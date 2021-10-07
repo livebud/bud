@@ -1,0 +1,28 @@
+package vfs_test
+
+import (
+	"io/fs"
+	"testing"
+
+	"github.com/go-duo/bud/internal/vfs"
+	"github.com/matryer/is"
+)
+
+func TestMap(t *testing.T) {
+	is := is.New(t)
+	fsys := vfs.Map{
+		"duo/view/index.svelte": `<h1>index</h1>`,
+	}
+
+	// Read duo/view/index.svelte
+	code, err := fs.ReadFile(fsys, "duo/view/index.svelte")
+	is.NoErr(err)
+	is.Equal(string(code), `<h1>index</h1>`)
+
+	// stat duo/
+	stat, err := fs.Stat(fsys, "duo")
+	is.NoErr(err)
+	is.Equal(stat.Name(), "duo")
+	is.Equal(stat.IsDir(), true)
+	is.Equal(stat.Mode(), fs.FileMode(fs.ModeDir))
+}
