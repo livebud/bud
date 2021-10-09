@@ -1,10 +1,15 @@
 package bfs
 
-import "io/fs"
+import (
+	"io/fs"
+
+	"github.com/go-duo/bud/internal/pubsub"
+)
 
 type BFS interface {
 	Open(name string) (fs.File, error)
 	Add(generators map[string]Generator)
+	Subscribe(name string) (pubsub.Subscription, error)
 }
 
 type Generator interface {

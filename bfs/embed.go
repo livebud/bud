@@ -3,6 +3,8 @@ package bfs
 import (
 	"io/fs"
 	"time"
+
+	"github.com/go-duo/bud/internal/pubsub"
 )
 
 type Embed struct {
@@ -27,12 +29,6 @@ type EFS map[string]Generator
 
 var _ BFS = (EFS)(nil)
 
-func (efs EFS) Add(fs map[string]Generator) {
-	for path, generator := range fs {
-		efs[path] = generator
-	}
-}
-
 // empty fs that implements FS
 type emptyfs struct{}
 
@@ -45,4 +41,15 @@ func (efs EFS) Open(name string) (fs.File, error) {
 		return nil, fs.ErrNotExist
 	}
 	return generator.open(emptyfs{}, "", name, name)
+}
+
+func (efs EFS) Add(fs map[string]Generator) {
+	for path, generator := range fs {
+		efs[path] = generator
+	}
+}
+
+// Subscribe does nothing for embedded file systems
+func (efs EFS) Subscribe(name string) (pubsub.Subscription, error) {
+	return pubsub.Discard().Subscribe(name), nil
 }
