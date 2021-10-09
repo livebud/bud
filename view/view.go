@@ -122,6 +122,13 @@ func (s *Server) Middleware(next http.Handler) http.Handler {
 	})
 }
 
+// Handler returns a handler for a specific server-side route
+func (s *Server) Handler(route string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.Respond(w, route, map[string]interface{}{})
+	})
+}
+
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	file, err := s.hfs.Open(r.URL.Path)
 	if err != nil {
