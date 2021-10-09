@@ -51,7 +51,7 @@ func (s *Server) Middleware(next http.Handler) http.Handler {
 			return
 		}
 		defer sub.Close()
-		fmt.Println("subscribed to", pagePath[1:])
+		// fmt.Println("subscribed to", pagePath[1:])
 
 		ctx := r.Context()
 		for {

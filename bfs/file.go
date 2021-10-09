@@ -51,6 +51,9 @@ type openFile struct {
 	offset  int64
 }
 
+var _ fs.File = (*openFile)(nil)
+var _ io.ReadSeeker = (*openFile)(nil)
+
 func (f *openFile) Close() error {
 	return nil
 }
