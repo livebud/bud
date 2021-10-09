@@ -3,240 +3,136 @@ package router
 import (
 	"fmt"
 	"net/http"
-	"os"
-	"path"
-	"regexp"
 	"strings"
-	"sync"
+	"unicode"
+
+	"github.com/go-duo/bud/router/radix"
 )
 
 // New router
 func New() *Router {
 	return &Router{
-		paths: map[string]string{},
+		methods: map[string]radix.Tree{},
 	}
 }
 
-// Route struct
-type Route struct {
-	router *Router
-	key    string
-}
-
-// Key returns the render key
-func (r *Route) Key() string {
-	return r.key
-}
-
-// Keyed is an optional interface to support
-// looking up routes by this key
-type Keyed interface {
-	Key() string
-}
-
-// Middleware type alias
-type Middleware = func(http.Handler) http.Handler
-
 // Router struct
 type Router struct {
-	stack []Middleware
-	paths map[string]string
-
-	once    sync.Once
-	handler http.Handler
+	methods map[string]radix.Tree
 }
 
 var _ http.Handler = (*Router)(nil)
 
-// Use middleware
-func (rt *Router) Use(middleware Middleware) *Router {
-	rt.stack = append(rt.stack, middleware)
-	return rt
+// Add a handler to a route
+func (rt *Router) Add(method, route string, handler http.Handler) error {
+	if !isMethod(method) {
+		return fmt.Errorf("router: %q is not a valid HTTP method", method)
+	}
+	return rt.add(method, route, handler)
 }
 
-// Add a path
-func (rt *Router) Add(method, path string, handler http.Handler) {
-	rt.stack = append(rt.stack, rt.wrap(method, path, handler))
+func (rt *Router) add(method, route string, handler http.Handler) error {
+	if _, ok := rt.methods[method]; !ok {
+		rt.methods[method] = radix.New()
+	}
+	return rt.methods[method].Insert(route, handler)
 }
 
 // Get route
-func (rt *Router) Get(path string, handler http.Handler) {
-	rt.stack = append(rt.stack, rt.wrap(http.MethodGet, path, handler))
+func (rt *Router) Get(route string, handler http.Handler) error {
+	return rt.add(http.MethodGet, route, handler)
 }
 
 // Post route
-func (rt *Router) Post(path string, handler http.Handler) {
-	rt.stack = append(rt.stack, rt.wrap(http.MethodPost, path, handler))
+func (rt *Router) Post(route string, handler http.Handler) error {
+	return rt.add(http.MethodPost, route, handler)
 }
 
 // Put route
-func (rt *Router) Put(path string, handler http.Handler) {
-	rt.stack = append(rt.stack, rt.wrap(http.MethodPut, path, handler))
+func (rt *Router) Put(route string, handler http.Handler) error {
+	return rt.add(http.MethodPut, route, handler)
 }
 
 // Patch route
-func (rt *Router) Patch(path string, handler http.Handler) {
-	rt.stack = append(rt.stack, rt.wrap(http.MethodPatch, path, handler))
+func (rt *Router) Patch(route string, handler http.Handler) error {
+	return rt.add(http.MethodPatch, route, handler)
 }
 
 // Delete route
-func (rt *Router) Delete(path string, handler http.Handler) {
-	rt.stack = append(rt.stack, rt.wrap(http.MethodDelete, path, handler))
+func (rt *Router) Delete(route string, handler http.Handler) error {
+	return rt.add(http.MethodDelete, route, handler)
 }
 
-// ServeFS serves a filesystem
-func (rt *Router) ServeFS(fs http.FileSystem) {
-	rt.stack = append(rt.stack, rt.serveFS(fs))
-}
-
-// Compose middleware into one
-func compose(stack ...Middleware) Middleware {
-	return func(h http.Handler) http.Handler {
-		if len(stack) == 0 {
-			return h
-		}
-		for i := len(stack) - 1; i >= 0; i-- {
-			h = stack[i](h)
-		}
-		return h
-	}
-}
-
-func (rt *Router) compose() {
-	wrap := compose(rt.stack...)
-	bottom := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(404)
-	})
-	rt.handler = wrap(bottom)
-}
-
-// ServeHTTP function
 func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	rt.once.Do(rt.compose)
-	rt.handler.ServeHTTP(w, r)
+	handler := rt.Middleware(http.NotFoundHandler())
+	handler.ServeHTTP(w, r)
 }
 
-// Convenience function for mapping a URL path to map of parameters.
-// TODO: decide if I should keep this method
-func Match(path, route string) map[string]string {
-	regexp, err := Parse(route)
-	if err != nil {
-		return map[string]string{}
-	}
-	matcher := &matcher{regexp}
-	return matcher.match(path)
+func (rt *Router) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tree, ok := rt.methods[r.Method]
+		if !ok {
+			next.ServeHTTP(w, r)
+			return
+		}
+		// Redirect for trailing slashes or paths with uppercase letters
+		urlPath := r.URL.Path
+		redirect := false
+		// Strip any trailing slash (e.g. /users/ => /users)
+		if hasTrailingSlash(urlPath) {
+			urlPath = strings.TrimRight(urlPath, "/")
+			redirect = true
+		}
+		// Ensure that all paths are case-insensitive (e.g. /USERS => /users)
+		if hasUpper(urlPath) {
+			urlPath = strings.ToLower(urlPath)
+			redirect = true
+		}
+		// Redirect all at once, instead of for each rule
+		if redirect {
+			http.Redirect(w, r, strings.ToLower(urlPath), http.StatusPermanentRedirect)
+			return
+		}
+		// Match the path
+		match, ok := tree.Match(urlPath)
+		if !ok {
+			next.ServeHTTP(w, r)
+			return
+		}
+		// Add the slots
+		if len(match.Slots) > 0 {
+			query := r.URL.Query()
+			for _, slot := range match.Slots {
+				query.Set(slot.Key, slot.Value)
+			}
+			r.URL.RawQuery = query.Encode()
+		}
+		// Call the handler
+		match.Handler.ServeHTTP(w, r)
+	})
 }
 
-type matcher struct {
-	re *regexp.Regexp
+func hasTrailingSlash(path string) bool {
+	return path != "/" && strings.HasSuffix(path, "/")
 }
 
-func (m *matcher) match(path string) (params map[string]string) {
-	match := m.re.FindStringSubmatch(path)
-	if match == nil {
-		return nil
-	}
-	params = map[string]string{}
-	for i, name := range m.re.SubexpNames() {
-		if i != 0 && name != "" {
-			params[name] = match[i]
+func hasUpper(path string) bool {
+	for _, r := range path {
+		if unicode.IsUpper(r) {
+			return true
 		}
 	}
-	return params
+	return false
 }
 
-func (rt *Router) wrap(method, routePath string, handler http.Handler) Middleware {
-	// Parse the path
-	regexp, err := Parse(routePath)
-	if err != nil {
-		panic(fmt.Errorf("router is unable to parse %q route", routePath))
-	}
-	// Create the route
-	route := &Route{router: rt}
-	if keyed, ok := handler.(Keyed); ok {
-		key := keyed.Key()
-		route.key = key
-	}
-	matcher := &matcher{regexp}
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Method != method {
-				next.ServeHTTP(w, r)
-				return
-			}
-			urlPath := r.URL.Path
-			// Always redirect to non-trailing slash
-			// TODO: figure out how to persist flashes across this redirect
-			if urlPath != "/" && strings.HasSuffix(urlPath, "/") {
-				r.URL.Path = strings.TrimSuffix(urlPath, "/")
-				http.Redirect(w, r, r.URL.String(), http.StatusPermanentRedirect)
-				return
-			}
-			// Match params with our URL
-			params := matcher.match(urlPath)
-			if params == nil {
-				next.ServeHTTP(w, r)
-				return
-			}
-			// Set params as query parameters.
-			// Overrides conflicting query parameters.
-			values := r.URL.Query()
-			for key, value := range params {
-				values.Set(key, value)
-			}
-			r.URL.RawQuery = values.Encode()
-			// Add the router to the context
-			// r = r.WithContext(context.WithValue(r.Context(), contextkey.Router, route))
-			// Handle the request
-			handler.ServeHTTP(w, r)
-		})
+// isMethod returns true if method is a valid HTTP method
+func isMethod(method string) bool {
+	switch method {
+	case http.MethodGet, http.MethodHead, http.MethodPost,
+		http.MethodPut, http.MethodPatch, http.MethodDelete,
+		http.MethodConnect, http.MethodOptions, http.MethodTrace:
+		return true
+	default:
+		return false
 	}
 }
-
-// serveFS serves the filesystem
-func (rt *Router) serveFS(fs http.FileSystem) Middleware {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			urlPath := r.URL.Path
-			if r.Method != http.MethodGet || path.Ext(urlPath) == "" {
-				next.ServeHTTP(w, r)
-				return
-			}
-			file, err := fs.Open(urlPath)
-			if err != nil {
-				if os.IsNotExist(err) {
-					next.ServeHTTP(w, r)
-					return
-				}
-				fmt.Println("Static open error", err)
-				return
-			}
-			stat, err := file.Stat()
-			if err != nil {
-				fmt.Println("Static stat error", err)
-				return
-			}
-			if stat.IsDir() {
-				next.ServeHTTP(w, r)
-				return
-			}
-			http.ServeContent(w, r, urlPath, stat.ModTime(), file)
-		})
-	}
-}
-
-// // From pulls the route from context
-// func From(ctx context.Context) *Route {
-// 	v := ctx.Value(contextkey.Router)
-// 	if v == nil {
-// 		return nil
-// 	}
-// 	route, ok := v.(*Route)
-// 	if !ok {
-// 		return nil
-// 	}
-// 	return route
-// }
-
-// FileRouter alias
-type FileRouter = Router

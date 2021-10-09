@@ -7,18 +7,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.com/mnm/duo/intern/pubsub"
-
+	"github.com/go-duo/bud/internal/pubsub"
 	"golang.org/x/sync/errgroup"
 )
 
-func New(dirfs fs.FS, generators map[string]Generator) *GFS {
+func New(dirfs fs.FS) *GFS {
 	roots := map[string]bool{}
 	dir := newDir(".")
-	dir.generators = generators
-	for path := range dir.generators {
-		roots[root(path)] = true
-	}
 	ps := pubsub.New()
 	return &GFS{&innerFS{dir, dirfs, roots, ps, newGraph()}}
 }

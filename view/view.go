@@ -5,9 +5,15 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"os"
 	"strings"
 
+	"github.com/go-duo/bud/bfs"
+	"github.com/go-duo/bud/dom"
+	"github.com/go-duo/bud/go/mod"
 	"github.com/go-duo/bud/js"
+	"github.com/go-duo/bud/ssr"
+	"github.com/go-duo/bud/svelte"
 )
 
 type Response struct {
@@ -30,63 +36,25 @@ type Renderer interface {
 	Render(path string, props interface{}) (*Response, error)
 }
 
-// // FileServer serves the client-side files
-// func FileServer(fs fs.FS) *Server {
-// 	return &Server{http.FS(fs)}
-// }
+// Live server serves view files on the fly. Used during development.
+func Live(modfile mod.File, bf bfs.BFS, vm js.VM) *Server {
+	dir := modfile.Directory()
+	dirfs := os.DirFS(modfile.Directory())
+	svelte := svelte.New(&svelte.Input{
+		VM:  vm,
+		Dev: true,
+	})
+	bf.Add(map[string]bfs.Generator{
+		"bud/view":         dom.Runner(svelte, dir),
+		"bud/node_modules": dom.NodeModules(dir),
+		"bud/view/_ssr.js": ssr.Generator(dirfs, svelte, dir),
+	})
+	return &Server{bf, http.FS(bf), vm}
+}
 
-// type Server struct {
-// 	hfs http.FileSystem
-// }
-
-// func (s *Server) Middleware(next http.Handler) http.Handler {
-// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 		if !isClient(r.URL.Path) {
-// 			next.ServeHTTP(w, r)
-// 			return
-// 		}
-// 		s.ServeHTTP(w, r)
-// 	})
-// }
-
-// func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-// 	file, err := s.hfs.Open(r.URL.Path)
-// 	if err != nil {
-// 		fmt.Println(err)
-// 		http.Error(w, err.Error(), 500)
-// 		return
-// 	}
-// 	stat, err := file.Stat()
-// 	if err != nil {
-// 		fmt.Println(err)
-// 		http.Error(w, err.Error(), 500)
-// 		return
-// 	}
-// 	w.Header().Add("Content-Type", "text/javascript")
-// 	http.ServeContent(w, r, r.URL.Path, stat.ModTime(), file)
-// }
-
-// func Runner(rootDir string, df *dfs.DFS, vm js.VM) *View {
-// 	dirfs := os.DirFS(rootDir)
-// 	svelte := svelte.New(&svelte.Input{
-// 		VM:  vm,
-// 		Dev: true,
-// 	})
-// 	// Add to the existing DFS
-// 	df.Add(map[string]dfs.Generator{
-// 		"duo/view":         dom.Runner(svelte, rootDir),
-// 		"duo/node_modules": dom.NodeModules(rootDir),
-// 		"duo/view/_ssr.js": ssr.Generator(dirfs, svelte, rootDir),
-// 	})
-// 	return &View{df, http.FS(df), vm}
-// }
-
-// func Builder(ef *dfs.EFS, vm js.VM) *View {
-// 	return &View{ef, http.FS(ef), vm}
-// }
-
-func NewServer(fs fs.FS, vm js.VM) *Server {
-	return &Server{fs, http.FS(fs), vm}
+// Static server serves the same files every time. Used during production.
+func Static(bf bfs.BFS, vm js.VM) *Server {
+	return &Server{bf, http.FS(bf), vm}
 }
 
 type Server struct {
@@ -121,12 +89,12 @@ func (s *Server) Render(path string, props interface{}) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	script, err := fs.ReadFile(s.fs, "duo/view/_ssr.js")
+	script, err := fs.ReadFile(s.fs, "bud/view/_ssr.js")
 	if err != nil {
 		return nil, err
 	}
 	// Evaluate the server
-	expr := fmt.Sprintf(`%s; duo.render(%q, %s)`, script, path, propBytes)
+	expr := fmt.Sprintf(`%s; bud.render(%q, %s)`, script, path, propBytes)
 	result, err := s.vm.Eval("_ssr.js", expr)
 	if err != nil {
 		return nil, err
@@ -140,8 +108,8 @@ func (s *Server) Render(path string, props interface{}) (*Response, error) {
 }
 
 func isClient(path string) bool {
-	return strings.HasPrefix(path, "/duo/node_modules/") ||
-		strings.HasPrefix(path, "/duo/view/")
+	return strings.HasPrefix(path, "/bud/node_modules/") ||
+		strings.HasPrefix(path, "/bud/view/")
 }
 
 func (s *Server) Middleware(next http.Handler) http.Handler {

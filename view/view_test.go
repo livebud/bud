@@ -6,13 +6,12 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/go-duo/bud/bfs"
 	"github.com/go-duo/bud/internal/fsync"
 	"github.com/go-duo/bud/internal/gotext"
 	"github.com/go-duo/bud/internal/vfs"
 	"github.com/go-duo/bud/view"
 	"github.com/matryer/is"
-
-	"gitlab.com/mnm/duo/runtime/dfs"
 )
 
 // func TestSvelteView(t *testing.T) {
@@ -142,7 +141,7 @@ var renderTests = []*RenderTest{
 	},
 }
 
-func testRender(is *is.I, dir string, df *dfs.DFS, test *RenderTest) {
+func testRender(is *is.I, dir string, bf bfs.BFS, test *RenderTest) {
 	// Prepare main.go and files
 	mem := vfs.Memory{}
 	for path, data := range test.Files {
@@ -150,7 +149,7 @@ func testRender(is *is.I, dir string, df *dfs.DFS, test *RenderTest) {
 	}
 	is.NoErr(vfs.WriteAll(".", dir, mem))
 	// Sync the filesystem
-	is.NoErr(fsync.Dir(df, "duo", vfs.OS(dir), "duo"))
+	is.NoErr(fsync.Dir(bf, "bud", vfs.OS(dir), "bud"))
 }
 
 func TestRunRender(t *testing.T) {

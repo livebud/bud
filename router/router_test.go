@@ -1,6 +1,7 @@
 package router_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -10,161 +11,215 @@ import (
 	"github.com/matryer/is"
 )
 
-func TestGetRoot(t *testing.T) {
-	is := is.New(t)
-	r := router.New()
-	req := httptest.NewRequest("GET", "/", nil)
-	rec := httptest.NewRecorder()
-	r.Get("/", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Write([]byte("/"))
-	}))
-	r.ServeHTTP(rec, req)
-	w := rec.Result()
-	res, err := ioutil.ReadAll(w.Body)
-	is.NoErr(err)
-	is.Equal("/", string(res))
+type test struct {
+	routes   []*route
+	requests []*request
 }
 
-func TestGetAbout(t *testing.T) {
-	is := is.New(t)
-	r := router.New()
-	req := httptest.NewRequest("GET", "/about", nil)
-	rec := httptest.NewRecorder()
-	r.Get("/about", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Write([]byte("/about"))
-	}))
-	r.ServeHTTP(rec, req)
-	w := rec.Result()
-	res, err := ioutil.ReadAll(w.Body)
-	is.NoErr(err)
-	is.Equal("/about", string(res))
+type route struct {
+	method string
+	route  string
+	err    string
 }
 
-func TestGetID(t *testing.T) {
-	is := is.New(t)
-	r := router.New()
-	req := httptest.NewRequest("GET", "/users/10", nil)
-	rec := httptest.NewRecorder()
-	r.Get("/users/:id", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("/users/" + r.URL.Query().Get("id")))
-	}))
-	r.ServeHTTP(rec, req)
-	w := rec.Result()
-	res, err := ioutil.ReadAll(w.Body)
-	is.NoErr(err)
-	is.Equal("/users/10", string(res))
+type request struct {
+	method string
+	path   string
+
+	// response
+	status   int
+	location string
+	body     string
 }
 
-func TestUse(t *testing.T) {
-	is := is.New(t)
-	r := router.New()
-	req := httptest.NewRequest("POST", "/", nil)
-	rec := httptest.NewRecorder()
-	r.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			next.ServeHTTP(w, r)
-		})
+// Handler returns the raw query
+func handler(route string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(r.URL.RawQuery))
 	})
-	r.Post("/", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.Write([]byte("/"))
-	}))
-	r.ServeHTTP(rec, req)
-	w := rec.Result()
-	res, err := ioutil.ReadAll(w.Body)
-	is.NoErr(err)
-	is.Equal("/", string(res))
 }
 
-// func TestRegexp(t *testing.T) {
-// is := is.New(t)
-// 	// • keys can match anything but /
-// 	// • regexps are for additional constraints (default key [^\/]+)
-// 	// • ? is 0 or 1 matching path segments
-// 	// • + is 1 or more matching path segments
-// 	// • * is 0 or more matching path segments
-// 	//
-// 	// Given:
-// 	//
-// 	//   /users/:id.:format?
-// 	//   /users/:id(v?\\d+\.\\d+\.\\d+).:format?
-// 	//   /users/:id+.:format?
-// 	//   /users/:id(v?\\d+\.\\d+\.\\d+).:format?
-// 	//
-// 	// How do we handle?
-// 	//
-// 	//   easy: /users/10
-// 	//   easy: /users/10.json
-// 	//   no: /users/10.
-// 	//   pattern: /users/v10.2.1
-// 	//   pattern: /users/v10.2.1.json
-// 	//
-// 	// • The trick is to be able to compile non-identifier suffixes into key matching negations (e.g. [])
-// 	// • Any non-/ character before an optional key become a optional prefix to the path
-// 	// • Patterns can be either named or unnamed. Unnamed parameters do not become keys
-// 	// • No need for custom prefixes and suffixes (e.g. {...} in path-to-regexp)
-// 	//
-// 	// - [x] test in regexr how the other modifiers would compose together
-// 	// - [ ] prototype in pegjs
-// 	// - [ ] test against path-to-regexps test suite
+func ok(t testing.TB, test *test) {
+	is := is.New(t)
+	router := router.New()
+	for _, route := range test.routes {
+		if route.method == "" {
+			route.method = http.MethodGet
+		}
+		var err error
+		switch route.method {
+		case http.MethodGet:
+			err = router.Get(route.route, handler(route.route))
+		case http.MethodPost:
+			err = router.Post(route.route, handler(route.route))
+		case http.MethodPatch:
+			err = router.Patch(route.route, handler(route.route))
+		case http.MethodPut:
+			err = router.Put(route.route, handler(route.route))
+		case http.MethodDelete:
+			err = router.Delete(route.route, handler(route.route))
+		default:
+			err = router.Add(route.method, route.route, handler(route.route))
+		}
+		if err != nil {
+			is.Equal(route.err, err.Error())
+			continue
+		} else if route.err != "" {
+			is.Equal(route.err, err)
+			continue
+		}
+	}
+	for _, request := range test.requests {
+		// Test the handler
+		req := httptest.NewRequest(request.method, request.path, nil)
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		res := rec.Result()
+		is.Equal(request.status, res.StatusCode)
+		if request.location != "" {
+			url, err := res.Location()
+			is.NoErr(err)
+			fmt.Println("location", url.Path)
+			is.Equal(request.location, url.Path)
+		}
+		body, err := ioutil.ReadAll(res.Body)
+		is.NoErr(err)
+		is.Equal(request.body, string(body))
+	}
+}
 
-// 	// /users/:id.:format?
-// 	re := regexp.MustCompile(`^\/users\/([^\.\/]+)(?:\.([^\/]+))?$`)
-// 	fmt.Println(re.FindAllStringSubmatch("/users/10.", -1))
-// 	// /users/:id*.:format?
-// 	re3 := regexp.MustCompile(`^\/users(?:\/?([^\.]*))(?:\.([^\/]+))?$`)
-// 	fmt.Println(re3.FindAllStringSubmatch("/users/10.", -1))
-// 	// /users/:id(v?\\d+\.\\d+\.\\d+).:format?
-// 	re2 := regexp.MustCompile(`^\/users\/(v?\d+\.\d+\.\d+)(?:\.([^\/]+))?$`)
-// 	fmt.Println(re2.FindAllStringSubmatch("/users/v10.2.1.", -1))
-// 	// /users/:id(v?\\d+\.\\d+\.\\d+)*.:format?
-// 	re4 := regexp.MustCompile(`^\/users(?:\/(v?\d+\.\d+\.\d+))*(?:\.([^\/]+))?$`)
-// 	fmt.Println(re4.FindAllStringSubmatch("/users/v10.2.1.", -1))
-// }
+func TestRouter(t *testing.T) {
+	ok(t, &test{
+		routes: []*route{
+			{method: "GET", route: "/"},
+			// users
+			// TODO: add :format? to every route
+			{method: "GET", route: `/users`},
+			{method: "GET", route: `/users/new`},
+			{method: "POST", route: `/users`},
+			{method: "GET", route: `/users/:id.:format?`},
+			{method: "GET", route: `/users/:id/edit`},
+			{method: "PATCH", route: `/users/:id.:format?`},
+			{method: "DELETE", route: `/users/:id.:format?`},
+			// comments
+			{method: "GET", route: `/posts/:post_id/comments`},
+			{method: "GET", route: `/posts/:post_id/comments/new`},
+			{method: "POST", route: `/posts/:post_id/comments`},
+			{method: "GET", route: `/posts/:post_id/comments/:id.:format?`},
+			{method: "GET", route: `/posts/:post_id/comments/:id/edit`},
+			{method: "PATCH", route: `/posts/:post_id/comments/:id.:format?`},
+			{method: "DELETE", route: `/posts/:post_id/comments/:id.:format?`},
+		},
+		requests: []*request{
+			{method: "GET", path: "/", status: 200},
+			// users
+			{method: "GET", path: `/users`, status: 200},
+			{method: "GET", path: `/users/new`, status: 200},
+			{method: "POST", path: `/users`, status: 200},
+			{method: "GET", path: `/users/10`, status: 200, body: "id=10"},
+			{method: "GET", path: `/users/10.json`, status: 200, body: "format=json&id=10"},
+			{method: "GET", path: `/users/10.rss`, status: 200, body: "format=rss&id=10"},
+			{method: "GET", path: `/users/10.html`, status: 200, body: "format=html&id=10"},
+			{method: "GET", path: `/users/10/edit`, status: 200, body: "id=10"},
+			{method: "PATCH", path: `/users/10`, status: 200, body: "id=10"},
+			{method: "PATCH", path: `/users/10.json`, status: 200, body: "format=json&id=10"},
+			{method: "PATCH", path: `/users/10.rss`, status: 200, body: "format=rss&id=10"},
+			{method: "PATCH", path: `/users/10.html`, status: 200, body: "format=html&id=10"},
+			{method: "DELETE", path: `/users/10`, status: 200, body: "id=10"},
+			{method: "DELETE", path: `/users/10.json`, status: 200, body: "format=json&id=10"},
+			{method: "DELETE", path: `/users/10.rss`, status: 200, body: "format=rss&id=10"},
+			{method: "DELETE", path: `/users/10.html`, status: 200, body: "format=html&id=10"},
+			// comments
+			{method: "GET", path: `/posts/1/comments`, status: 200, body: "post_id=1"},
+			{method: "GET", path: `/posts/1/comments/new`, status: 200, body: "post_id=1"},
+			{method: "POST", path: `/posts/1/comments`, status: 200, body: "post_id=1"},
+			{method: "GET", path: `/posts/1/comments/2`, status: 200, body: "id=2&post_id=1"},
+			{method: "GET", path: `/posts/1/comments/2.json`, status: 200, body: "format=json&id=2&post_id=1"},
+			{method: "GET", path: `/posts/1/comments/2.rss`, status: 200, body: "format=rss&id=2&post_id=1"},
+			{method: "GET", path: `/posts/1/comments/2.html`, status: 200, body: "format=html&id=2&post_id=1"},
+			{method: "GET", path: `/posts/1/comments/2/edit`, status: 200, body: "id=2&post_id=1"},
+			{method: "PATCH", path: `/posts/1/comments/2`, status: 200, body: "id=2&post_id=1"},
+			{method: "PATCH", path: `/posts/1/comments/2.json`, status: 200, body: "format=json&id=2&post_id=1"},
+			{method: "PATCH", path: `/posts/1/comments/2.rss`, status: 200, body: "format=rss&id=2&post_id=1"},
+			{method: "PATCH", path: `/posts/1/comments/2.html`, status: 200, body: "format=html&id=2&post_id=1"},
+			{method: "DELETE", path: `/posts/1/comments/2`, status: 200, body: "id=2&post_id=1"},
+			{method: "DELETE", path: `/posts/1/comments/2.json`, status: 200, body: "format=json&id=2&post_id=1"},
+			{method: "DELETE", path: `/posts/1/comments/2.rss`, status: 200, body: "format=rss&id=2&post_id=1"},
+			{method: "DELETE", path: `/posts/1/comments/2.html`, status: 200, body: "format=html&id=2&post_id=1"},
+		},
+	})
+}
 
-// // func TestMatch(t *testing.T) {
-// is := is.New(t)
-// // 	r := routes.New()
-// // 	req := httptest.NewRequest("GET", "/coelho/alchemist", nil)
-// // 	rec := httptest.NewRecorder()
-// // 	r.Get("/:author/:title", func(w http.ResponseWriter, r *http.Request) {
-// // 		query := r.URL.Query()
-// // 		fmt.Fprintf(w, "/%s/%s", query.Get(":author"), query.Get(":title"))
-// // 	})
-// // 	r.ServeHTTP(rec, req)
-// // 	w := rec.Result()
-// // 	res, err := ioutil.ReadAll(w.Body)
-// // 	is.NoErr(err)
-// // 	is.Equal("/coelho/alchemist", string(res))
-// // }
+func TestQueryPriority(t *testing.T) {
+	ok(t, &test{
+		routes: []*route{
+			{method: "GET", route: "/"},
+			{method: "GET", route: "/users/:id.:format?"},
+			{method: "GET", route: "/posts/:post_id/comments/:id.:format?"},
+		},
+		requests: []*request{
+			{method: "GET", path: "/?id=10", status: 200, body: "id=10"},
+			{method: "GET", path: `/users/10?id=20&format=bin&other=true`, status: 200, body: "format=bin&id=10&other=true"},
+			{method: "GET", path: `/users/10.json?id=20&format=bin&other=true`, status: 200, body: "format=json&id=10&other=true"},
+			{method: "GET", path: `/posts/1/comments/2?post_id=10&id=20&other=true`, status: 200, body: "id=2&other=true&post_id=1"},
+			{method: "GET", path: `/posts/1/comments/2.json?format=bin&post_id=10&id=20&other=true`, status: 200, body: "format=json&id=2&other=true&post_id=1"},
+		},
+	})
+}
 
-// // func TestOptional(t *testing.T) {
-// is := is.New(t)
-// // 	r := routes.New()
-// // 	req := httptest.NewRequest("GET", "/coelho", nil)
-// // 	rec := httptest.NewRecorder()
-// // 	r.Get("/:author/:title?", func(w http.ResponseWriter, r *http.Request) {
-// // 		query := r.URL.Query()
-// // 		fmt.Fprintf(w, "/%s/%s", query.Get(":author"), query.Get(":title"))
-// // 	})
-// // 	r.ServeHTTP(rec, req)
-// // 	w := rec.Result()
-// // 	res, err := ioutil.ReadAll(w.Body)
-// // 	is.NoErr(err)
-// // 	is.Equal("/coelho/", string(res))
-// // }
+func TestTrailingSlash(t *testing.T) {
+	ok(t, &test{
+		routes: []*route{
+			{method: "GET", route: "/"},
+			{method: "GET", route: "/hi/", err: `route "/hi/": remove the slash "/" at the end`},
+			{method: "GET", route: "/hi"},
+		},
+		requests: []*request{
+			{method: "GET", path: "/", status: 200},
+			{method: "GET", path: "/hi/", status: 308, location: "/hi", body: "<a href=\"/hi\">Permanent Redirect</a>.\n\n"},
+			{method: "GET", path: "/hi///", status: 308, location: "/hi", body: "<a href=\"/hi\">Permanent Redirect</a>.\n\n"},
+		},
+	})
+}
+func TestInsensitive(t *testing.T) {
+	ok(t, &test{
+		routes: []*route{
+			{method: "GET", route: "/HI", err: `route "/HI": uppercase letters are not allowed "H"`},
+			{method: "GET", route: "/hi"},
+		},
+		requests: []*request{
+			{method: "GET", path: "/HI", status: 308, location: "/hi", body: "<a href=\"/hi\">Permanent Redirect</a>.\n\n"},
+			{method: "GET", path: "/Hi", status: 308, location: "/hi", body: "<a href=\"/hi\">Permanent Redirect</a>.\n\n"},
+			{method: "GET", path: "/hI", status: 308, location: "/hi", body: "<a href=\"/hi\">Permanent Redirect</a>.\n\n"},
+			{method: "GET", path: "/HI///", status: 308, location: "/hi", body: "<a href=\"/hi\">Permanent Redirect</a>.\n\n"},
+		},
+	})
+}
 
-// // func TestWildcard(t *testing.T) {
-// is := is.New(t)
-// // 	r := routes.New()
-// // 	req := httptest.NewRequest("GET", "/coelho/alchemist/1988", nil)
-// // 	rec := httptest.NewRecorder()
-// // 	r.Get("/:author/*", func(w http.ResponseWriter, r *http.Request) {
-// // 		query := r.URL.Query()
-// // 		fmt.Fprintf(w, "/%s/%s", query.Get(":author"), query.Get(":wild"))
-// // 	})
-// // 	r.ServeHTTP(rec, req)
-// // 	w := rec.Result()
-// // 	res, err := ioutil.ReadAll(w.Body)
-// // 	is.NoErr(err)
-// // 	is.Equal("/coelho/alchemist/1988", string(res))
-// // }
+func TestPut(t *testing.T) {
+	is := is.New(t)
+	router := router.New()
+	is.NoErr(router.Put("/:id", handler("/:id")))
+	req := httptest.NewRequest(http.MethodPut, "/10", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	res := rec.Result()
+	is.Equal(200, res.StatusCode)
+	body, err := ioutil.ReadAll(res.Body)
+	is.NoErr(err)
+	is.Equal("id=10", string(body))
+}
+
+func TestAdd(t *testing.T) {
+	is := is.New(t)
+	router := router.New()
+	is.NoErr(router.Add(http.MethodHead, "/:id", handler("/:id")))
+	req := httptest.NewRequest(http.MethodHead, "/10", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	res := rec.Result()
+	is.Equal(200, res.StatusCode)
+	body, err := ioutil.ReadAll(res.Body)
+	is.NoErr(err)
+	is.Equal("id=10", string(body))
+}

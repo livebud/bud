@@ -36,7 +36,8 @@ func TestFS(t *testing.T) {
 	is := is.New(t)
 
 	// 1. duo
-	df := bfs.New(nil, View())
+	df := bfs.New(nil)
+	df.Add(View())
 	file, err := df.Open("duo")
 	is.NoErr(err)
 	rdf, ok := file.(fs.ReadDirFile)
@@ -64,7 +65,8 @@ func TestFS(t *testing.T) {
 	is.Equal(stat.Size(), int64(0))
 	is.Equal(stat.Sys(), nil)
 	// Stat duo
-	df = bfs.New(nil, View())
+	df = bfs.New(nil)
+	df.Add(View())
 	stat, err = fs.Stat(df, "duo")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "duo")
@@ -74,7 +76,8 @@ func TestFS(t *testing.T) {
 	is.Equal(stat.Size(), int64(0))
 	is.Equal(stat.Sys(), nil)
 	// ReadDir duo
-	df = bfs.New(nil, View())
+	df = bfs.New(nil)
+	df.Add(View())
 	des, err = fs.ReadDir(df, "duo")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
@@ -83,7 +86,8 @@ func TestFS(t *testing.T) {
 	is.Equal(des[0].Type(), fs.ModeDir)
 
 	// 2. duo/view
-	df = bfs.New(nil, View())
+	df = bfs.New(nil)
+	df.Add(View())
 	file, err = df.Open("duo/view")
 	is.NoErr(err)
 	rdf, ok = file.(fs.ReadDirFile)
@@ -122,7 +126,8 @@ func TestFS(t *testing.T) {
 	is.Equal(stat.Size(), int64(0))
 	is.Equal(stat.Sys(), nil)
 	// Stat duo
-	df = bfs.New(nil, View())
+	df = bfs.New(nil)
+	df.Add(View())
 	stat, err = fs.Stat(df, "duo/view")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "view")
@@ -132,7 +137,8 @@ func TestFS(t *testing.T) {
 	is.Equal(stat.Size(), int64(0))
 	is.Equal(stat.Sys(), nil)
 	// ReadDir duo
-	df = bfs.New(nil, View())
+	df = bfs.New(nil)
+	df.Add(View())
 	des, err = fs.ReadDir(df, "duo/view")
 	is.NoErr(err)
 	is.Equal(len(des), 2)
@@ -160,7 +166,8 @@ func TestFS(t *testing.T) {
 	is.Equal(fi.Sys(), nil)
 
 	// 3. duo/view/about
-	df = bfs.New(nil, View())
+	df = bfs.New(nil)
+	df.Add(View())
 	file, err = df.Open("duo/view/about")
 	is.NoErr(err)
 	rdf, ok = file.(fs.ReadDirFile)
@@ -188,7 +195,8 @@ func TestFS(t *testing.T) {
 	is.Equal(stat.Size(), int64(0))
 	is.Equal(stat.Sys(), nil)
 	// Stat duo
-	df = bfs.New(nil, View())
+	df = bfs.New(nil)
+	df.Add(View())
 	stat, err = fs.Stat(df, "duo/view/about")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "about")
@@ -198,7 +206,8 @@ func TestFS(t *testing.T) {
 	is.Equal(stat.Size(), int64(0))
 	is.Equal(stat.Sys(), nil)
 	// ReadDir duo
-	df = bfs.New(nil, View())
+	df = bfs.New(nil)
+	df.Add(View())
 	des, err = fs.ReadDir(df, "duo/view/about")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
@@ -216,7 +225,8 @@ func TestFS(t *testing.T) {
 
 	// 4. duo/view/index.svelte
 	// Open
-	df = bfs.New(nil, View())
+	df = bfs.New(nil)
+	df.Add(View())
 	file, err = df.Open("duo/view/index.svelte")
 	is.NoErr(err)
 	stat, err = file.Stat()
@@ -228,7 +238,8 @@ func TestFS(t *testing.T) {
 	is.Equal(stat.Size(), int64(14))
 	is.Equal(stat.Sys(), nil)
 	// Stat
-	df = bfs.New(nil, View())
+	df = bfs.New(nil)
+	df.Add(View())
 	stat, err = fs.Stat(df, "duo/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "index.svelte")
@@ -238,14 +249,16 @@ func TestFS(t *testing.T) {
 	is.Equal(stat.Size(), int64(14))
 	is.Equal(stat.Sys(), nil)
 	// ReadFile
-	df = bfs.New(nil, View())
+	df = bfs.New(nil)
+	df.Add(View())
 	code, err := fs.ReadFile(df, "duo/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), `<h1>index</h1>`)
 
 	// 4. duo/view/about/about.svelte
 	// Open
-	df = bfs.New(nil, View())
+	df = bfs.New(nil)
+	df.Add(View())
 	file, err = df.Open("duo/view/about/about.svelte")
 	is.NoErr(err)
 	stat, err = file.Stat()
@@ -257,7 +270,8 @@ func TestFS(t *testing.T) {
 	is.Equal(stat.Size(), int64(14))
 	is.Equal(stat.Sys(), nil)
 	// Stat
-	df = bfs.New(nil, View())
+	df = bfs.New(nil)
+	df.Add(View())
 	stat, err = fs.Stat(df, "duo/view/about/about.svelte")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "about.svelte")
@@ -267,7 +281,8 @@ func TestFS(t *testing.T) {
 	is.Equal(stat.Size(), int64(14))
 	is.Equal(stat.Sys(), nil)
 	// ReadFile
-	df = bfs.New(nil, View())
+	df = bfs.New(nil)
+	df.Add(View())
 	code, err = fs.ReadFile(df, "duo/view/about/about.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), `<h2>about</h2>`)
@@ -275,7 +290,8 @@ func TestFS(t *testing.T) {
 
 func TestInstance(t *testing.T) {
 	is := is.New(t)
-	df := bfs.New(nil, View())
+	df := bfs.New(nil)
+	df.Add(View())
 
 	// 1. duo
 	file, err := df.Open("duo")
@@ -502,7 +518,8 @@ func TestInstance(t *testing.T) {
 
 func TestDirFS(t *testing.T) {
 	is := is.New(t)
-	df := bfs.New(os.DirFS("."), map[string]bfs.Generator{
+	df := bfs.New(os.DirFS("."))
+	df.Add(map[string]bfs.Generator{
 		"duo/dfs/bfs.go": bfs.GenerateFile(func(f bfs.FS, file *bfs.File) error {
 			if err := bfs.Exists(f, "bfs.go"); err != nil {
 				return err
@@ -531,7 +548,8 @@ func TestDirFS(t *testing.T) {
 }
 func TestGenerateFileError(t *testing.T) {
 	is := is.New(t)
-	df := bfs.New(os.DirFS("."), map[string]bfs.Generator{
+	df := bfs.New(os.DirFS("."))
+	df.Add(map[string]bfs.Generator{
 		"duo/main.go": bfs.GenerateFile(func(f bfs.FS, file *bfs.File) error {
 			return fs.ErrNotExist
 		}),
@@ -543,7 +561,8 @@ func TestGenerateFileError(t *testing.T) {
 }
 func TestFileUnderneath(t *testing.T) {
 	is := is.New(t)
-	df := bfs.New(os.DirFS("."), map[string]bfs.Generator{
+	df := bfs.New(os.DirFS("."))
+	df.Add(map[string]bfs.Generator{
 		"bfs.go": bfs.GenerateFile(func(f bfs.FS, file *bfs.File) error {
 			return fs.ErrNotExist
 		}),
@@ -555,7 +574,8 @@ func TestFileUnderneath(t *testing.T) {
 }
 func TestServeFile(t *testing.T) {
 	is := is.New(t)
-	df := bfs.New(os.DirFS("."), map[string]bfs.Generator{
+	df := bfs.New(os.DirFS("."))
+	df.Add(map[string]bfs.Generator{
 		"duo/view": bfs.ServeFile(func(f bfs.FS, file *bfs.File) error {
 			file.Write([]byte(file.Path() + `'s data`))
 			return nil
@@ -597,7 +617,8 @@ func TestServeFile(t *testing.T) {
 }
 func TestHTTP(t *testing.T) {
 	is := is.New(t)
-	df := bfs.New(os.DirFS("."), map[string]bfs.Generator{
+	df := bfs.New(os.DirFS("."))
+	df.Add(map[string]bfs.Generator{
 		"duo/view": bfs.ServeFile(func(f bfs.FS, file *bfs.File) error {
 			file.Write([]byte(file.Path() + `'s data`))
 			return nil
@@ -658,7 +679,8 @@ func rootless(fpath string) string {
 func TestTargetPath(t *testing.T) {
 	is := is.New(t)
 	// Test inner file and rootless
-	df := bfs.New(nil, map[string]bfs.Generator{
+	df := bfs.New(nil)
+	df.Add(map[string]bfs.Generator{
 		"duo/view": bfs.GenerateDir(func(f bfs.FS, dir *bfs.Dir) error {
 			is.Equal(dir.Path(), "duo/view")
 			dir.Entry("about/about.svelte", bfs.GenerateFile(func(f bfs.FS, file *bfs.File) error {
@@ -676,7 +698,8 @@ func TestTargetPath(t *testing.T) {
 
 func TestDynamicDir(t *testing.T) {
 	is := is.New(t)
-	df := bfs.New(nil, map[string]bfs.Generator{
+	df := bfs.New(nil)
+	df.Add(map[string]bfs.Generator{
 		"duo/view": bfs.GenerateDir(func(f bfs.FS, dir *bfs.Dir) error {
 			doms := []string{"about/about.svelte", "index.svelte"}
 			for _, dom := range doms {
@@ -702,7 +725,8 @@ func TestDynamicDir(t *testing.T) {
 
 func TestBases(t *testing.T) {
 	is := is.New(t)
-	df := bfs.New(nil, map[string]bfs.Generator{
+	df := bfs.New(nil)
+	df.Add(map[string]bfs.Generator{
 		"duo/view": bfs.GenerateDir(func(f bfs.FS, dir *bfs.Dir) error {
 			return nil
 		}),
@@ -720,7 +744,8 @@ func TestBases(t *testing.T) {
 
 func TestDirPath(t *testing.T) {
 	is := is.New(t)
-	df := bfs.New(nil, map[string]bfs.Generator{
+	df := bfs.New(nil)
+	df.Add(map[string]bfs.Generator{
 		"duo/view": bfs.GenerateDir(func(f bfs.FS, dir *bfs.Dir) error {
 			is.Equal(dir.Path(), "duo/view")
 			dir.Entry("public", bfs.GenerateDir(func(f bfs.FS, dir *bfs.Dir) error {
@@ -758,7 +783,8 @@ func TestDirPath(t *testing.T) {
 
 func TestWatchFile(t *testing.T) {
 	is := is.New(t)
-	df := bfs.New(os.DirFS("."), map[string]bfs.Generator{
+	df := bfs.New(os.DirFS("."))
+	df.Add(map[string]bfs.Generator{
 		"duo/view": bfs.ServeFile(func(f bfs.FS, file *bfs.File) error {
 			source := rootless(file.Path())
 			file.Write([]byte(source + `'s data`))
@@ -783,7 +809,8 @@ func TestWatchFile(t *testing.T) {
 }
 func TestWatchDir(t *testing.T) {
 	is := is.New(t)
-	df := bfs.New(os.DirFS("."), map[string]bfs.Generator{
+	df := bfs.New(os.DirFS("."))
+	df.Add(map[string]bfs.Generator{
 		"duo/view": bfs.GenerateDir(func(f bfs.FS, dir *bfs.Dir) error {
 			dir.Entry("index.svelte", bfs.GenerateFile(func(f bfs.FS, file *bfs.File) error {
 				file.Write([]byte(`<h2>index</h2>`))
@@ -814,7 +841,8 @@ func TestWatchDir(t *testing.T) {
 }
 func TestDirMerge(t *testing.T) {
 	is := is.New(t)
-	df := bfs.New(nil, map[string]bfs.Generator{
+	df := bfs.New(nil)
+	df.Add(map[string]bfs.Generator{
 		"duo/view": bfs.GenerateDir(func(f bfs.FS, dir *bfs.Dir) error {
 			dir.Entry("index.svelte", bfs.GenerateFile(func(f bfs.FS, file *bfs.File) error {
 				file.Write([]byte(`<h1>index</h1>`))
@@ -852,7 +880,8 @@ func TestDirMerge(t *testing.T) {
 func TestAddGenerator(t *testing.T) {
 	is := is.New(t)
 	// Add the view
-	df := bfs.New(nil, View())
+	df := bfs.New(nil)
+	df.Add(View())
 
 	// Add the controller
 	df.Add(map[string]bfs.Generator{
@@ -894,7 +923,8 @@ func (c *commandGenerator) GenerateFile(f bfs.FS, file *bfs.File) error {
 func TestFileGenerator(t *testing.T) {
 	is := is.New(t)
 	// Add the view
-	df := bfs.New(nil, map[string]bfs.Generator{
+	df := bfs.New(nil)
+	df.Add(map[string]bfs.Generator{
 		"duo/command/command.go": bfs.FileGenerator(&commandGenerator{Input: "a"}),
 	})
 	code, err := fs.ReadFile(df, "duo/command/command.go")
@@ -922,7 +952,8 @@ func (c *viewGenerator) ServeFile(f bfs.FS, file *bfs.File) error {
 func TestDirGenerator(t *testing.T) {
 	is := is.New(t)
 	// Add the view
-	df := bfs.New(nil, map[string]bfs.Generator{
+	df := bfs.New(nil)
+	df.Add(map[string]bfs.Generator{
 		"duo/view": bfs.DirGenerator(&viewGenerator{Input: "a"}),
 	})
 	code, err := fs.ReadFile(df, "duo/view/index.svelte")
@@ -933,7 +964,8 @@ func TestDirGenerator(t *testing.T) {
 func TestFileServer(t *testing.T) {
 	is := is.New(t)
 	// Add the view
-	df := bfs.New(nil, map[string]bfs.Generator{
+	df := bfs.New(nil)
+	df.Add(map[string]bfs.Generator{
 		"duo/view": bfs.FileServer(&viewGenerator{Input: "a"}),
 	})
 	code, err := fs.ReadFile(df, "duo/view/index.svelte")
