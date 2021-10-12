@@ -72,7 +72,7 @@ func (s *Server) Respond(w http.ResponseWriter, path string, props interface{}) 
 	res, err := s.Render(path, props)
 	if err != nil {
 		// TODO: swap with logger
-		fmt.Println(err)
+		fmt.Println("view: render error", err)
 		http.Error(w, err.Error(), 500)
 		return
 	}
@@ -133,14 +133,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	file, err := s.hfs.Open(r.URL.Path)
 	if err != nil {
 		// TODO: swap with logger
-		fmt.Println(err)
+		fmt.Println("view: open error", err)
 		http.Error(w, err.Error(), 500)
 		return
 	}
 	stat, err := file.Stat()
 	if err != nil {
 		// TODO: swap with logger
-		fmt.Println(err)
+		fmt.Println("view: stat error", err)
 		http.Error(w, err.Error(), 500)
 		return
 	}

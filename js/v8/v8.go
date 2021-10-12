@@ -119,7 +119,7 @@ func (c *V8Context) Eval(path, expr string) (value *v8go.Value, err error) {
 	value, err = c.Context.RunScript(expr, path)
 	if err != nil {
 		if jsErr, ok := err.(*v8go.JSError); ok {
-			fmt.Println(jsErr.Location)
+			// fmt.Println(jsErr.Location)
 			return nil, jsErr
 		}
 		return nil, err
