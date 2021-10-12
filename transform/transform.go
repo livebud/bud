@@ -21,13 +21,48 @@ func (f *File) Path() string {
 	return base + f.ext
 }
 
+// Platform we're transforming to. Based on esbuild's Platform settings.
+type Platform int
+
+const (
+	PlatformNeutral Platform = iota
+	PlatformBrowser
+	PlatformNode
+)
+
 type Transform struct {
-	To   string
-	From string
-	Func func(file *File) error
+	To       string
+	From     string
+	Platform Platform
+	Func     func(file *File) error
 }
 
 func Load(transforms []*Transform) (*Transformer, error) {
+	var nodes []*Transform
+	var browsers []*Transform
+	for _, transform := range transforms {
+		switch transform.Platform {
+		case PlatformNode:
+			nodes = append(nodes, transform)
+		case PlatformBrowser:
+			browsers = append(browsers, transform)
+		case PlatformNeutral:
+			nodes = append(nodes, transform)
+			browsers = append(browsers, transform)
+		}
+	}
+	browser, err := load(browsers)
+	if err != nil {
+		return nil, err
+	}
+	node, err := load(nodes)
+	if err != nil {
+		return nil, err
+	}
+	return &Transformer{browser, node}, nil
+}
+
+func load(transforms []*Transform) (*transformer, error) {
 	graph := dag.New()
 	tmap := map[string][]func(file *File) error{}
 	froms := map[string]struct{}{}
@@ -60,7 +95,7 @@ func Load(transforms []*Transform) (*Transformer, error) {
 	for key, transforms := range tmap {
 		index[key] = compose(transforms)
 	}
-	return &Transformer{graph, index, pathmap}, nil
+	return &transformer{graph, index, pathmap}, nil
 }
 
 func compose(fns []func(file *File) error) func(file *File) error {
@@ -75,12 +110,17 @@ func compose(fns []func(file *File) error) func(file *File) error {
 }
 
 type Transformer struct {
+	Browser *transformer
+	Node    *transformer
+}
+
+type transformer struct {
 	graph   *dag.Graph
 	index   map[string]func(file *File) error
 	pathmap map[string]string
 }
 
-func (t *Transformer) Transform(fromPath, toPath string, code []byte) ([]byte, error) {
+func (t *transformer) Transform(fromPath, toPath string, code []byte) ([]byte, error) {
 	fromExt := filepath.Ext(fromPath)
 	hops, err := t.graph.ShortestPath(fromExt, filepath.Ext(toPath))
 	if err != nil {
@@ -114,7 +154,7 @@ func (t *Transformer) Transform(fromPath, toPath string, code []byte) ([]byte, e
 	return file.Code, nil
 }
 
-func (t *Transformer) Plugins() (plugins []esbuild.Plugin) {
+func (t *transformer) Plugins() (plugins []esbuild.Plugin) {
 	for from, to := range t.pathmap {
 		from := from
 		plugins = append(plugins, esbuild.Plugin{

@@ -51,7 +51,15 @@ func TestTransform(t *testing.T) {
 		},
 	})
 	is.NoErr(err)
-	result, err := transformer.Transform("index.md", "index.js", []byte(`# Hi world`))
+	result, err := transformer.Node.Transform("index.md", "index.js", []byte(`# Hi world`))
+	is.NoErr(err)
+	is.Equal(string(result), `document.body.innerHTML = "<h1 id='link'>Hi world</h1>"`)
+	is.Equal(len(trace), 3)
+	is.Equal(trace[0], ".md>.svelte")
+	is.Equal(trace[1], ".svelte>.svelte")
+	is.Equal(trace[2], ".svelte>.js")
+	trace = []string{}
+	result, err = transformer.Browser.Transform("index.md", "index.js", []byte(`# Hi world`))
 	is.NoErr(err)
 	is.Equal(string(result), `document.body.innerHTML = "<h1 id='link'>Hi world</h1>"`)
 	is.Equal(len(trace), 3)
@@ -89,7 +97,7 @@ func TestPlugins(t *testing.T) {
 		},
 	})
 	is.NoErr(err)
-	plugins := transformer.Plugins()
+	plugins := transformer.Node.Plugins()
 	is.Equal(len(plugins), 2)
 	// Create files in _tmp
 	cwd, err := os.Getwd()
@@ -130,4 +138,69 @@ func TestPlugins(t *testing.T) {
 	output := result.OutputFiles[0]
 	contents := string(output.Contents)
 	is.True(strings.Contains(contents, `var hello_default = "<h1 id='link'>Hi world</h1>";`))
+}
+
+func TestTargets(t *testing.T) {
+	is := is.New(t)
+	trace := []string{}
+	transformer, err := transform.Load([]*transform.Transform{
+		{
+			From: ".svelte",
+			To:   ".svelte",
+			Func: func(file *transform.File) error {
+				trace = append(trace, ".svelte>.svelte")
+				is.Equal(file.Path(), "index.svelte")
+				file.Code = bytes.ReplaceAll(file.Code, []byte("<h1>"), []byte("<h1 id='link'>"))
+				return nil
+			},
+		},
+		{
+			From: ".md",
+			To:   ".svelte",
+			Func: func(file *transform.File) error {
+				trace = append(trace, ".md>.svelte")
+				is.Equal(file.Path(), "index.md")
+				file.Code = []byte(`<h1>Hi world</h1>`)
+				return nil
+			},
+		},
+		{
+			From:     ".svelte",
+			To:       ".js",
+			Platform: transform.PlatformNode,
+			Func: func(file *transform.File) error {
+				trace = append(trace, ".svelte>.js(ssr)")
+				is.Equal(file.Path(), "index.svelte")
+				file.Code = []byte(`export default "` + string(file.Code) + `"`)
+				return nil
+			},
+		},
+		{
+			From:     ".svelte",
+			To:       ".js",
+			Platform: transform.PlatformBrowser,
+			Func: func(file *transform.File) error {
+				trace = append(trace, ".svelte>.js(dom)")
+				is.Equal(file.Path(), "index.svelte")
+				file.Code = []byte(`document.body.innerHTML = "` + string(file.Code) + `"`)
+				return nil
+			},
+		},
+	})
+	is.NoErr(err)
+	result, err := transformer.Node.Transform("index.md", "index.js", []byte(`# Hi world`))
+	is.NoErr(err)
+	is.Equal(string(result), `export default "<h1 id='link'>Hi world</h1>"`)
+	is.Equal(len(trace), 3)
+	is.Equal(trace[0], ".md>.svelte")
+	is.Equal(trace[1], ".svelte>.svelte")
+	is.Equal(trace[2], ".svelte>.js(ssr)")
+	trace = []string{}
+	result, err = transformer.Browser.Transform("index.md", "index.js", []byte(`# Hi world`))
+	is.NoErr(err)
+	is.Equal(string(result), `document.body.innerHTML = "<h1 id='link'>Hi world</h1>"`)
+	is.Equal(len(trace), 3)
+	is.Equal(trace[0], ".md>.svelte")
+	is.Equal(trace[1], ".svelte>.svelte")
+	is.Equal(trace[2], ".svelte>.js(dom)")
 }
