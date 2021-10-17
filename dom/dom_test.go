@@ -9,6 +9,8 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/go-duo/bud/transform"
+
 	"github.com/go-duo/bud/bfs"
 	"github.com/go-duo/bud/dom"
 	"github.com/go-duo/bud/internal/npm"
@@ -39,13 +41,16 @@ func TestRunner(t *testing.T) {
 	}
 	is.NoErr(vfs.WriteAll(".", dir, memfs))
 	dirfs := os.DirFS(dir)
-	svelte := svelte.New(&svelte.Input{
+	svelteCompiler := svelte.New(&svelte.Input{
 		VM:  v8.New(),
 		Dev: true,
 	})
+	transformer := transform.MustLoad(
+		svelte.NewTransformable(svelteCompiler),
+	)
 	bf := bfs.New(dirfs)
 	bf.Add(map[string]bfs.Generator{
-		"bud/view": dom.Runner(svelte, dir),
+		"bud/view": dom.Runner(dir, transformer),
 	})
 	// Read the wrapped version of index.svelte with node_modules rewritten
 	code, err := fs.ReadFile(bf, "bud/view/_index.svelte")
@@ -90,6 +95,14 @@ func TestRunner(t *testing.T) {
 	is.True(!strings.Contains(string(code), `hot: new Hot("/bud/hot?page=%2Fbud%2Fview%2Fabout%2Findex.svelte", components)`))
 }
 
+func TestImportLocal(t *testing.T) {
+
+}
+
+func TestImportNodeModule(t *testing.T) {
+
+}
+
 func TestNodeModules(t *testing.T) {
 	is := is.New(t)
 	cwd, err := os.Getwd()
@@ -122,7 +135,7 @@ func TestNodeModules(t *testing.T) {
 }
 
 func TestBuilder(t *testing.T) {
-	chunkPath := "chunk-VXRJ43E2.js"
+	chunkPath := "chunk-ZBJUH6TH.js"
 	is := is.New(t)
 	cwd, err := os.Getwd()
 	is.NoErr(err)
@@ -147,13 +160,16 @@ func TestBuilder(t *testing.T) {
 	is.NoErr(err)
 	err = npm.Link("../budjs", dir)
 	is.NoErr(err)
-	svelte := svelte.New(&svelte.Input{
+	svelteCompiler := svelte.New(&svelte.Input{
 		VM:  v8.New(),
 		Dev: true,
 	})
+	transformer := transform.MustLoad(
+		svelte.NewTransformable(svelteCompiler),
+	)
 	bf := bfs.New(dirfs)
 	bf.Add(map[string]bfs.Generator{
-		"bud/view": dom.Builder(svelte, dir),
+		"bud/view": dom.Builder(dir, transformer),
 	})
 	des, err := fs.ReadDir(bf, "bud/view")
 	is.NoErr(err)

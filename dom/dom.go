@@ -14,7 +14,7 @@ import (
 	"github.com/go-duo/bud/bfs"
 	"github.com/go-duo/bud/internal/entrypoint"
 	"github.com/go-duo/bud/internal/gotemplate"
-	"github.com/go-duo/bud/svelte"
+	"github.com/go-duo/bud/transform"
 )
 
 //go:embed dom.gotext
@@ -23,13 +23,12 @@ var template string
 // generator
 var generator = gotemplate.MustParse("dom.gotext", template)
 
-func Runner(svelte *svelte.Compiler, rootDir string) bfs.Generator {
+func Runner(rootDir string, transformer *transform.Transformer) bfs.Generator {
 	dirfs := os.DirFS(rootDir)
-	plugins := []esbuild.Plugin{
+	plugins := append([]esbuild.Plugin{
 		domPlugin(dirfs, rootDir),
 		domExternalizePlugin(),
-		svelteTransformPlugin(svelte),
-	}
+	}, transformer.Browser.Plugins()...)
 	return bfs.ServeFile(func(f bfs.FS, file *bfs.File) error {
 		// If the name starts with node_modules, trim it to allow esbuild to do
 		// the resolving. e.g. node_modules/livebud => livebud
@@ -109,12 +108,11 @@ func NodeModules(rootDir string) bfs.Generator {
 	})
 }
 
-func Builder(svelte *svelte.Compiler, rootDir string) bfs.Generator {
+func Builder(rootDir string, transformer *transform.Transformer) bfs.Generator {
 	dirfs := os.DirFS(rootDir)
-	plugins := []esbuild.Plugin{
+	plugins := append([]esbuild.Plugin{
 		domPlugin(dirfs, rootDir),
-		svelteTransformPlugin(svelte),
-	}
+	}, transformer.Browser.Plugins()...)
 	return bfs.GenerateDir(func(f bfs.FS, dir *bfs.Dir) error {
 		views, err := entrypoint.List(dirfs)
 		if err != nil {
@@ -220,11 +218,11 @@ func domPlugin(fsys fs.FS, dir string) esbuild.Plugin {
 				if err != nil {
 					return result, err
 				}
-				data, err := generator.Generate(view)
+				code, err := generator.Generate(view)
 				if err != nil {
 					return result, err
 				}
-				contents := string(data)
+				contents := string(code)
 				result.ResolveDir = dir
 				result.Contents = &contents
 				result.Loader = esbuild.LoaderJS
@@ -247,30 +245,6 @@ func domExternalizePlugin() esbuild.Plugin {
 					return result, nil
 				}
 				// Don't externalize the entry file or any local files
-				return result, nil
-			})
-		},
-	}
-}
-
-// Transform svelte files
-func svelteTransformPlugin(svelte *svelte.Compiler) esbuild.Plugin {
-	return esbuild.Plugin{
-		Name: "svelte_transform",
-		Setup: func(epb esbuild.PluginBuild) {
-			// Load svelte files. Add import if not present
-			epb.OnLoad(esbuild.OnLoadOptions{Filter: `\.svelte$`}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
-				code, err := os.ReadFile(args.Path)
-				if err != nil {
-					return result, err
-				}
-				dom, err := svelte.DOM(args.Path, code)
-				if err != nil {
-					return result, err
-				}
-				result.ResolveDir = filepath.Dir(args.Path)
-				result.Contents = &dom.JS
-				result.Loader = esbuild.LoaderJS
 				return result, nil
 			})
 		},

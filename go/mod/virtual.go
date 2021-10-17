@@ -10,28 +10,28 @@ import (
 )
 
 // Virtual module file
-func Virtual(modulePath, dir string) File {
-	return &virtual{modulePath, dir}
+func Virtual(modulePath, dir string) *VirtualFile {
+	return &VirtualFile{modulePath, dir}
 }
 
-type virtual struct {
+type VirtualFile struct {
 	modulePath string
 	dir        string
 }
 
-func (v *virtual) Directory() string {
+func (v *VirtualFile) Directory() string {
 	return v.dir
 }
 
-func (v *virtual) ModulePath() string {
+func (v *VirtualFile) ModulePath() string {
 	return v.modulePath
 }
 
-func (v *virtual) ResolveImport(dir string) (importPath string, err error) {
+func (v *VirtualFile) ResolveImport(dir string) (importPath string, err error) {
 	return resolveImport(v, dir)
 }
 
-func (v *virtual) ResolveDirectory(importPath string) (dir string, err error) {
+func (v *VirtualFile) ResolveDirectory(importPath string) (dir string, err error) {
 	if is.StdLib(importPath) {
 		return filepath.Join(stdDir, importPath), nil
 	}
@@ -43,4 +43,8 @@ func (v *virtual) ResolveDirectory(importPath string) (dir string, err error) {
 		return "", err
 	}
 	return dir, nil
+}
+
+func (v *VirtualFile) Plugins() ([]*Plugin, error) {
+	return []*Plugin{}, nil
 }

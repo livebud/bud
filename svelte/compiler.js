@@ -25,7 +25,13 @@ var bud_svelte = (() => {
   var self = {
     performance: {
       now() {
+        return 0;
       }
+    }
+  };
+  var window = {
+    btoa: (data2) => {
+      return "";
     }
   };
 

@@ -1,5 +1,5 @@
 import { mount } from "livebud"
-import hydrate from "livebud/{{$.Type}}"
+import createView from "livebud/{{$.Type}}"
 {{- if $.Hot }}
 import Hot from "livebud/hot"
 {{- end }}
@@ -24,7 +24,7 @@ const components = {
 
 // Mount the view
 export default mount({
-  hydrate: hydrate,
+  createView: createView,
   components: components,
   page: "/bud/{{$.Page}}",
   frames: [

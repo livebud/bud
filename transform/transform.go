@@ -30,55 +30,68 @@ const (
 	PlatformNode
 )
 
-type Transform struct {
-	To       string
-	From     string
-	Platform Platform
-	Func     func(file *File) error
+type Map map[Platform]func(file *File) error
+
+type Transformable struct {
+	To   string
+	From string
+	Map  Map
 }
 
-func Load(transforms []*Transform) (*Transformer, error) {
-	var nodes []*Transform
-	var browsers []*Transform
-	for _, transform := range transforms {
-		switch transform.Platform {
-		case PlatformNode:
-			nodes = append(nodes, transform)
-		case PlatformBrowser:
-			browsers = append(browsers, transform)
-		case PlatformNeutral:
-			nodes = append(nodes, transform)
-			browsers = append(browsers, transform)
-		}
+func MustLoad(transformables ...*Transformable) *Transformer {
+	transformer, err := Load(transformables...)
+	if err != nil {
+		panic("transform: unable to load the transformer: " + err.Error())
 	}
-	browser, err := load(browsers)
+	return transformer
+}
+
+func Load(transformables ...*Transformable) (*Transformer, error) {
+	browser, err := load(PlatformBrowser, transformables)
 	if err != nil {
 		return nil, err
 	}
-	node, err := load(nodes)
+	node, err := load(PlatformNode, transformables)
 	if err != nil {
 		return nil, err
 	}
 	return &Transformer{browser, node}, nil
 }
 
-func load(transforms []*Transform) (*transformer, error) {
+func getTransform(transformable *Transformable, platform Platform) (func(file *File) error, bool) {
+	tr, ok := transformable.Map[platform]
+	if ok {
+		return tr, true
+	}
+	tr, ok = transformable.Map[PlatformNeutral]
+	if ok {
+		return tr, true
+	}
+	return nil, false
+}
+
+func load(platform Platform, transformables []*Transformable) (*transformer, error) {
 	graph := dag.New()
 	tmap := map[string][]func(file *File) error{}
 	froms := map[string]struct{}{}
 	// Build a dependency graph of how the transforms transform (from -> to)
-	for _, transform := range transforms {
-		graph.Link(transform.From, transform.To)
-		key := transform.From + ">" + transform.To
-		froms[transform.From] = struct{}{}
+	for _, transformable := range transformables {
+		transform, ok := getTransform(transformable, platform)
+		if !ok {
+			continue
+		}
+		graph.Link(transformable.From, transformable.To)
+		key := transformable.From + ">" + transformable.To
+		froms[transformable.From] = struct{}{}
 		// We can compose transforms of the same type. For example, two
 		// svelte-to-svelte transforms. We cannot compose different types though.
 		// For example, two svelte-to-jsx transforms.
 		// TODO: Figure out what to do with the ignored transform.
-		if len(tmap[key]) > 0 && transform.From != transform.To {
+		if len(tmap[key]) > 0 && transformable.From != transformable.To {
 			continue
 		}
-		tmap[key] = append(tmap[key], transform.Func)
+		// TODO: this can be undefined
+		tmap[key] = append(tmap[key], transform)
 	}
 	// Build the full pathmap to generate the plugins
 	pathmap := map[string]string{}
@@ -109,17 +122,20 @@ func compose(fns []func(file *File) error) func(file *File) error {
 	}
 }
 
+// Transformer aggregates all the platform-specific transformers
 type Transformer struct {
 	Browser *transformer
 	Node    *transformer
 }
 
+// Transformer is specific to a platform
 type transformer struct {
 	graph   *dag.Graph
 	index   map[string]func(file *File) error
 	pathmap map[string]string
 }
 
+// TODO: support context
 func (t *transformer) Transform(fromPath, toPath string, code []byte) ([]byte, error) {
 	fromExt := filepath.Ext(fromPath)
 	hops, err := t.graph.ShortestPath(fromExt, filepath.Ext(toPath))

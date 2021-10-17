@@ -11,6 +11,11 @@ import (
 // dir containing the standard libraries
 var stdDir = filepath.Join(build.Default.GOROOT, "src")
 
+type Plugin struct {
+	Import string
+	Dir    string
+}
+
 // File is an interface for working with go modules.
 type File interface {
 	// Returns the dir of `go.mod`.
@@ -21,6 +26,8 @@ type File interface {
 	ResolveImport(dir string) (importPath string, err error)
 	// Resolve an import path to an absolute dir.
 	ResolveDirectory(importPath string) (dir string, err error)
+	// Plugins returns all the bud plugins
+	Plugins() ([]*Plugin, error)
 }
 
 // Directory is a convenience function for finding the directory containing

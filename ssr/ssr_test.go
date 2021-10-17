@@ -17,6 +17,7 @@ import (
 	v8 "github.com/go-duo/bud/js/v8"
 	"github.com/go-duo/bud/ssr"
 	"github.com/go-duo/bud/svelte"
+	"github.com/go-duo/bud/transform"
 	"github.com/go-duo/bud/view"
 	"github.com/matryer/is"
 )
@@ -40,13 +41,16 @@ func TestSvelteHello(t *testing.T) {
 	}
 	is.NoErr(vfs.WriteAll(".", dir, memfs))
 	dirfs := os.DirFS(dir)
-	svelte := svelte.New(&svelte.Input{
+	svelteCompiler := svelte.New(&svelte.Input{
 		VM:  vm,
 		Dev: true,
 	})
+	transformer := transform.MustLoad(
+		svelte.NewTransformable(svelteCompiler),
+	)
 	bf := bfs.New(dirfs)
 	bf.Add(map[string]bfs.Generator{
-		"bud/view/_ssr.js": ssr.Generator(dirfs, svelte, dir),
+		"bud/view/_ssr.js": ssr.Generator(dirfs, dir, transformer),
 	})
 	// Install svelte
 	err = npm.Install(dir, "svelte@3.42.3")
@@ -106,13 +110,16 @@ func TestSvelteAwait(t *testing.T) {
 	}
 	is.NoErr(vfs.WriteAll(".", dir, memfs))
 	dirfs := os.DirFS(dir)
-	svelte := svelte.New(&svelte.Input{
+	svelteCompiler := svelte.New(&svelte.Input{
 		VM:  vm,
 		Dev: true,
 	})
+	transformer := transform.MustLoad(
+		svelte.NewTransformable(svelteCompiler),
+	)
 	bf := bfs.New(dirfs)
 	bf.Add(map[string]bfs.Generator{
-		"bud/view/_ssr.js": ssr.Generator(dirfs, svelte, dir),
+		"bud/view/_ssr.js": ssr.Generator(dirfs, dir, transformer),
 	})
 	// Install svelte
 	err = npm.Install(dir, "svelte@3.42.3")

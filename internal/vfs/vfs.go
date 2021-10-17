@@ -48,3 +48,7 @@ func WriteAll(from, to string, fsys fs.FS) error {
 		return os.WriteFile(toPath, data, mode)
 	})
 }
+
+func WriteTo(to string, fsys fs.FS) error {
+	return WriteAll(".", to, fsys)
+}

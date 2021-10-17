@@ -13,11 +13,11 @@ import (
 	"github.com/go-duo/bud/bfs"
 	"github.com/go-duo/bud/internal/entrypoint"
 	"github.com/go-duo/bud/internal/gotemplate"
-	"github.com/go-duo/bud/svelte"
+	"github.com/go-duo/bud/transform"
 )
 
-func Generator(osfs fs.FS, svelte *svelte.Compiler, dir string) bfs.Generator {
-	plugins := []esbuild.Plugin{
+func Generator(osfs fs.FS, dir string, transformer *transform.Transformer) bfs.Generator {
+	plugins := append([]esbuild.Plugin{
 		ssrPlugin(osfs, dir),
 		ssrRuntimePlugin(osfs, dir),
 		jsxPlugin(osfs, dir),
@@ -25,8 +25,7 @@ func Generator(osfs fs.FS, svelte *svelte.Compiler, dir string) bfs.Generator {
 		jsxTransformPlugin(osfs, dir),
 		sveltePlugin(osfs, dir),
 		svelteRuntimePlugin(osfs, dir),
-		svelteTransformPlugin(osfs, svelte, dir),
-	}
+	}, transformer.Node.Plugins()...)
 	return bfs.GenerateFile(func(f bfs.FS, file *bfs.File) error {
 		result := esbuild.Build(esbuild.BuildOptions{
 			EntryPointsAdvanced: []esbuild.EntryPoint{
@@ -258,29 +257,6 @@ func svelteRuntimePlugin(osfs fs.FS, dir string) esbuild.Plugin {
 				result.ResolveDir = dir
 				result.Contents = &svelteRuntime
 				result.Loader = esbuild.LoaderTS
-				return result, nil
-			})
-		},
-	}
-}
-
-func svelteTransformPlugin(osfs fs.FS, svelte *svelte.Compiler, dir string) esbuild.Plugin {
-	return esbuild.Plugin{
-		Name: "svelte_transform",
-		Setup: func(epb esbuild.PluginBuild) {
-			// Load svelte files. Add import if not present
-			epb.OnLoad(esbuild.OnLoadOptions{Filter: `\.svelte$`}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
-				code, err := os.ReadFile(args.Path)
-				if err != nil {
-					return result, err
-				}
-				ssr, err := svelte.SSR(args.Path, code)
-				if err != nil {
-					return result, err
-				}
-				result.ResolveDir = filepath.Dir(args.Path)
-				result.Contents = &ssr.JS
-				result.Loader = esbuild.LoaderJS
 				return result, nil
 			})
 		},

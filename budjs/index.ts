@@ -18,35 +18,36 @@ type MountInput = {
   components: Record<string, any>
   page: string
   frames: string[]
+  target: HTMLElement
   error?: string
-  hydrate: Hydrate
+  createView: Hydrate
   hot?: Hot
 }
 
 export function mount(input: MountInput): void {
-  const props = getProps(document.getElementById("duo_props"))
-  input.hydrate({
+  const props = getProps(document.getElementById("bud_props"))
+  input.createView({
     page: input.components[input.page],
     frames: input.frames.map((frame) => input.components[frame]),
     error: input.components[input.error],
-    target: document.getElementById("duo_target"),
+    target: input.target,
     props: props,
   })
   if (input.hot) {
     input.hot.listen(() => {
-      input.hydrate({
+      input.createView({
         page: input.components[input.page],
         frames: input.frames.map((frame) => input.components[frame]),
         error: input.components[input.error],
-        target: document.getElementById("duo_target"),
+        target: input.target,
         props: props,
       })
     })
   }
 }
 
-function getProps(node) {
-  if (!node) {
+function getProps(node: HTMLElement | null) {
+  if (!node || !node.textContent) {
     return {}
   }
   try {

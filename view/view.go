@@ -13,7 +13,7 @@ import (
 	"github.com/go-duo/bud/go/mod"
 	"github.com/go-duo/bud/js"
 	"github.com/go-duo/bud/ssr"
-	"github.com/go-duo/bud/svelte"
+	"github.com/go-duo/bud/transform"
 )
 
 type Response struct {
@@ -37,17 +37,13 @@ type Renderer interface {
 }
 
 // Live server serves view files on the fly. Used during development.
-func Live(modfile mod.File, bf bfs.BFS, vm js.VM) *Server {
+func Live(modfile mod.File, bf bfs.BFS, vm js.VM, transformer *transform.Transformer) *Server {
 	dir := modfile.Directory()
 	dirfs := os.DirFS(modfile.Directory())
-	svelte := svelte.New(&svelte.Input{
-		VM:  vm,
-		Dev: true,
-	})
 	bf.Add(map[string]bfs.Generator{
-		"bud/view":         dom.Runner(svelte, dir),
+		"bud/view":         dom.Runner(dir, transformer),
 		"bud/node_modules": dom.NodeModules(dir),
-		"bud/view/_ssr.js": ssr.Generator(dirfs, svelte, dir),
+		"bud/view/_ssr.js": ssr.Generator(dirfs, dir, transformer),
 	})
 	return &Server{bf, http.FS(bf), vm}
 }

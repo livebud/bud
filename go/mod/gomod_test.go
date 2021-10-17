@@ -42,7 +42,7 @@ func TestResolveDirectory(t *testing.T) {
 	is.NoErr(err)
 	dir, err := modfile.ResolveDirectory("github.com/matryer/is")
 	is.NoErr(err)
-	expected := filepath.Join(mod.GOMODCACHE, "github.com", "matryer", "is")
+	expected := filepath.Join(mod.GOMODCACHE(), "github.com", "matryer", "is")
 	is.True(strings.HasPrefix(dir, expected))
 }
 
@@ -81,3 +81,19 @@ func TestResolveImport(t *testing.T) {
 }
 
 // TODO: test mod.Load(dir)
+// TODO: test required plugin
+// TODO: test replaced plugin
+
+// func TestRequirePlugin(t *testing.T) {
+// 	is := is.New(t)
+// 	dir := "_tmp"
+// 	is.NoErr(os.RemoveAll(dir))
+// 	is.NoErr(os.MkdirAll(dir, 0755))
+// 	err := vfs.WriteTo(dir, vfs.Map{
+// 		"go.mod": `module github.com/livebud/test`,
+// 	})
+// 	is.NoErr(err)
+// 	ctx := context.Background()
+// 	err = gobin.GoGet(ctx, dir, "gitlab.com/mnm/bud-tailwind")
+// 	is.NoErr(err)
+// }

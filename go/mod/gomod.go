@@ -7,8 +7,11 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/go-duo/bud/go/is"
 	"golang.org/x/mod/modfile"
@@ -133,19 +136,19 @@ func (m *Module) resolveDirectory(importPath string) (directory string, err erro
 		return directory, nil
 	}
 	// loop over replaces
-	for _, mod := range m.file.Replace {
-		if strings.HasPrefix(importPath, mod.Old.Path) {
-			relPath := strings.TrimPrefix(importPath, mod.Old.Path)
-			newPath := filepath.Join(mod.New.Path, relPath)
+	for _, rep := range m.file.Replace {
+		if strings.HasPrefix(importPath, rep.Old.Path) {
+			relPath := strings.TrimPrefix(importPath, rep.Old.Path)
+			newPath := filepath.Join(rep.New.Path, relPath)
 			resolved := resolvePath(m.dir, newPath)
 			return resolved, nil
 		}
 	}
 	// loop over requires
-	for _, mod := range m.file.Require {
-		if strings.HasPrefix(importPath, mod.Mod.Path) {
-			relPath := strings.TrimPrefix(importPath, mod.Mod.Path)
-			dir, err := downloadDir(mod.Mod)
+	for _, req := range m.file.Require {
+		if strings.HasPrefix(importPath, req.Mod.Path) {
+			relPath := strings.TrimPrefix(importPath, req.Mod.Path)
+			dir, err := downloadDir(req.Mod)
 			if err != nil {
 				return "", err
 			}
@@ -165,6 +168,49 @@ func (m *Module) ResolveImport(directory string) (importPath string, err error) 
 		return "", err
 	}
 	return importPath, nil
+}
+
+// Return a list of bud plugins
+func (m *Module) Plugins() ([]*Plugin, error) {
+	var importPaths []string
+	// Loop over require paths
+	for _, req := range m.file.Require {
+		// Plugins need to be imported directly and the last path in the module path
+		// needs to start with "bud-"
+		if req.Indirect || !strings.HasPrefix(path.Base(req.Mod.Path), "bud-") {
+			continue
+		}
+		importPaths = append(importPaths, req.Mod.Path)
+	}
+	// Loop over replace paths
+	for _, rep := range m.file.Replace {
+		// The last path in the module path needs to start with "bud-"
+		if !strings.HasPrefix(path.Base(rep.Old.Path), "bud-") {
+			continue
+		}
+		importPaths = append(importPaths, rep.Old.Path)
+	}
+	// Concurrently resolve directories
+	plugins := make([]*Plugin, len(importPaths))
+	eg := new(errgroup.Group)
+	for i, importPath := range importPaths {
+		i, importPath := i, importPath
+		eg.Go(func() error {
+			dir, err := m.ResolveDirectory(importPath)
+			if err != nil {
+				return err
+			}
+			plugins[i] = &Plugin{
+				Import: importPath,
+				Dir:    dir,
+			}
+			return nil
+		})
+	}
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+	return plugins, nil
 }
 
 func resolvePath(path string, rest ...string) (result string) {
@@ -207,14 +253,22 @@ func (m *Module) AddRequire(importPath, version string) (err error) {
 	return m.file.AddRequire(importPath, version)
 }
 
+// Cache for faster subsequent requests
+var gomodcache string
+
 // GOMODCACHE returns the cache directory
-var GOMODCACHE = func() string {
+func GOMODCACHE() string {
+	if gomodcache != "" {
+		return gomodcache
+	}
 	env := os.Getenv("GOMODCACHE")
 	if env != "" {
+		gomodcache = env
 		return env
 	}
-	return filepath.Join(build.Default.GOPATH, "pkg", "mod")
-}()
+	gomodcache = filepath.Join(build.Default.GOPATH, "pkg", "mod")
+	return gomodcache
+}
 
 // downloadDir returns the directory to which m should have been downloaded.
 // An error will be returned if the module path or version cannot be escaped.
@@ -222,7 +276,7 @@ var GOMODCACHE = func() string {
 // along with the directory if the directory does not exist or if the directory
 // is not completely populated.
 func downloadDir(m module.Version) (string, error) {
-	if GOMODCACHE == "" {
+	if GOMODCACHE() == "" {
 		// modload.Init exits if GOPATH[0] is empty, and GOMODCACHE
 		// is set to GOPATH[0]/pkg/mod if GOMODCACHE is empty, so this should never happen.
 		return "", fmt.Errorf("internal error: GOMODCACHE not set")
@@ -241,7 +295,7 @@ func downloadDir(m module.Version) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	dir := filepath.Join(GOMODCACHE, enc+"@"+encVer)
+	dir := filepath.Join(GOMODCACHE(), enc+"@"+encVer)
 	if fi, err := os.Stat(dir); os.IsNotExist(err) {
 		return dir, err
 	} else if err != nil {
@@ -296,7 +350,7 @@ func cachePath(m module.Version, suffix string) (string, error) {
 }
 
 func cacheDir(path string) (string, error) {
-	if GOMODCACHE == "" {
+	if GOMODCACHE() == "" {
 		// modload.Init exits if GOPATH[0] is empty, and GOMODCACHE
 		// is set to GOPATH[0]/pkg/mod if GOMODCACHE is empty, so this should never happen.
 		return "", fmt.Errorf("internal error: GOMODCACHE not set")
@@ -305,5 +359,5 @@ func cacheDir(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(GOMODCACHE, "cache/download", enc, "/@v"), nil
+	return filepath.Join(GOMODCACHE(), "cache/download", enc, "/@v"), nil
 }

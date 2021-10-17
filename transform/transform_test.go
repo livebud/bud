@@ -18,38 +18,44 @@ import (
 func TestTransform(t *testing.T) {
 	is := is.New(t)
 	trace := []string{}
-	transformer, err := transform.Load([]*transform.Transform{
+	transformer, err := transform.Load([]*transform.Transformable{
 		{
 			From: ".svelte",
 			To:   ".svelte",
-			Func: func(file *transform.File) error {
-				trace = append(trace, ".svelte>.svelte")
-				is.Equal(file.Path(), "index.svelte")
-				file.Code = bytes.ReplaceAll(file.Code, []byte("<h1>"), []byte("<h1 id='link'>"))
-				return nil
+			Map: transform.Map{
+				transform.PlatformNeutral: func(file *transform.File) error {
+					trace = append(trace, ".svelte>.svelte")
+					is.Equal(file.Path(), "index.svelte")
+					file.Code = bytes.ReplaceAll(file.Code, []byte("<h1>"), []byte("<h1 id='link'>"))
+					return nil
+				},
 			},
 		},
 		{
 			From: ".md",
 			To:   ".svelte",
-			Func: func(file *transform.File) error {
-				trace = append(trace, ".md>.svelte")
-				is.Equal(file.Path(), "index.md")
-				file.Code = []byte(`<h1>Hi world</h1>`)
-				return nil
+			Map: transform.Map{
+				transform.PlatformNeutral: func(file *transform.File) error {
+					trace = append(trace, ".md>.svelte")
+					is.Equal(file.Path(), "index.md")
+					file.Code = []byte(`<h1>Hi world</h1>`)
+					return nil
+				},
 			},
 		},
 		{
 			From: ".svelte",
 			To:   ".js",
-			Func: func(file *transform.File) error {
-				trace = append(trace, ".svelte>.js")
-				is.Equal(file.Path(), "index.svelte")
-				file.Code = []byte(`document.body.innerHTML = "` + string(file.Code) + `"`)
-				return nil
+			Map: transform.Map{
+				transform.PlatformNeutral: func(file *transform.File) error {
+					trace = append(trace, ".svelte>.js")
+					is.Equal(file.Path(), "index.svelte")
+					file.Code = []byte(`document.body.innerHTML = "` + string(file.Code) + `"`)
+					return nil
+				},
 			},
 		},
-	})
+	}...)
 	is.NoErr(err)
 	result, err := transformer.Node.Transform("index.md", "index.js", []byte(`# Hi world`))
 	is.NoErr(err)
@@ -70,32 +76,38 @@ func TestTransform(t *testing.T) {
 
 func TestPlugins(t *testing.T) {
 	is := is.New(t)
-	transformer, err := transform.Load([]*transform.Transform{
+	transformer, err := transform.Load([]*transform.Transformable{
 		{
 			From: ".svelte",
 			To:   ".svelte",
-			Func: func(file *transform.File) error {
-				file.Code = bytes.ReplaceAll(file.Code, []byte("<h1>"), []byte("<h1 id='link'>"))
-				return nil
+			Map: transform.Map{
+				transform.PlatformNeutral: func(file *transform.File) error {
+					file.Code = bytes.ReplaceAll(file.Code, []byte("<h1>"), []byte("<h1 id='link'>"))
+					return nil
+				},
 			},
 		},
 		{
 			From: ".md",
 			To:   ".svelte",
-			Func: func(file *transform.File) error {
-				file.Code = []byte(`<h1>Hi world</h1>`)
-				return nil
+			Map: transform.Map{
+				transform.PlatformNeutral: func(file *transform.File) error {
+					file.Code = []byte(`<h1>Hi world</h1>`)
+					return nil
+				},
 			},
 		},
 		{
 			From: ".svelte",
 			To:   ".js",
-			Func: func(file *transform.File) error {
-				file.Code = []byte(`export default "` + string(file.Code) + `"`)
-				return nil
+			Map: transform.Map{
+				transform.PlatformNeutral: func(file *transform.File) error {
+					file.Code = []byte(`export default "` + string(file.Code) + `"`)
+					return nil
+				},
 			},
 		},
-	})
+	}...)
 	is.NoErr(err)
 	plugins := transformer.Node.Plugins()
 	is.Equal(len(plugins), 2)
@@ -143,50 +155,50 @@ func TestPlugins(t *testing.T) {
 func TestTargets(t *testing.T) {
 	is := is.New(t)
 	trace := []string{}
-	transformer, err := transform.Load([]*transform.Transform{
+	transformer, err := transform.Load([]*transform.Transformable{
 		{
 			From: ".svelte",
 			To:   ".svelte",
-			Func: func(file *transform.File) error {
-				trace = append(trace, ".svelte>.svelte")
-				is.Equal(file.Path(), "index.svelte")
-				file.Code = bytes.ReplaceAll(file.Code, []byte("<h1>"), []byte("<h1 id='link'>"))
-				return nil
+			Map: transform.Map{
+				transform.PlatformNeutral: func(file *transform.File) error {
+					trace = append(trace, ".svelte>.svelte")
+					is.Equal(file.Path(), "index.svelte")
+					file.Code = bytes.ReplaceAll(file.Code, []byte("<h1>"), []byte("<h1 id='link'>"))
+					return nil
+				},
 			},
 		},
 		{
 			From: ".md",
 			To:   ".svelte",
-			Func: func(file *transform.File) error {
-				trace = append(trace, ".md>.svelte")
-				is.Equal(file.Path(), "index.md")
-				file.Code = []byte(`<h1>Hi world</h1>`)
-				return nil
+			Map: transform.Map{
+				transform.PlatformNeutral: func(file *transform.File) error {
+					trace = append(trace, ".md>.svelte")
+					is.Equal(file.Path(), "index.md")
+					file.Code = []byte(`<h1>Hi world</h1>`)
+					return nil
+				},
 			},
 		},
 		{
-			From:     ".svelte",
-			To:       ".js",
-			Platform: transform.PlatformNode,
-			Func: func(file *transform.File) error {
-				trace = append(trace, ".svelte>.js(ssr)")
-				is.Equal(file.Path(), "index.svelte")
-				file.Code = []byte(`export default "` + string(file.Code) + `"`)
-				return nil
+			From: ".svelte",
+			To:   ".js",
+			Map: transform.Map{
+				transform.PlatformNode: func(file *transform.File) error {
+					trace = append(trace, ".svelte>.js(ssr)")
+					is.Equal(file.Path(), "index.svelte")
+					file.Code = []byte(`export default "` + string(file.Code) + `"`)
+					return nil
+				},
+				transform.PlatformBrowser: func(file *transform.File) error {
+					trace = append(trace, ".svelte>.js(dom)")
+					is.Equal(file.Path(), "index.svelte")
+					file.Code = []byte(`document.body.innerHTML = "` + string(file.Code) + `"`)
+					return nil
+				},
 			},
 		},
-		{
-			From:     ".svelte",
-			To:       ".js",
-			Platform: transform.PlatformBrowser,
-			Func: func(file *transform.File) error {
-				trace = append(trace, ".svelte>.js(dom)")
-				is.Equal(file.Path(), "index.svelte")
-				file.Code = []byte(`document.body.innerHTML = "` + string(file.Code) + `"`)
-				return nil
-			},
-		},
-	})
+	}...)
 	is.NoErr(err)
 	result, err := transformer.Node.Transform("index.md", "index.js", []byte(`# Hi world`))
 	is.NoErr(err)
