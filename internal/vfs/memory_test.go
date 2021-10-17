@@ -5,7 +5,7 @@ import (
 	"io/fs"
 	"testing"
 
-	"github.com/go-duo/bud/internal/vfs"
+	"gitlab.com/mnm/bud/internal/vfs"
 	"github.com/matryer/is"
 )
 

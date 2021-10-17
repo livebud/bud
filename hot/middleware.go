@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/go-duo/bud/bfs"
+	"gitlab.com/mnm/bud/bfs"
 )
 
 var hotPath = "/bud/hot"

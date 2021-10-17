@@ -1,8 +1,8 @@
 package plugin
 
 import (
-	"github.com/go-duo/bud/bfs"
-	"github.com/go-duo/bud/go/mod"
+	"gitlab.com/mnm/bud/bfs"
+	"gitlab.com/mnm/bud/go/mod"
 )
 
 func New(modfile mod.File) bfs.Generator {

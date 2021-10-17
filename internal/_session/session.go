@@ -1,8 +1,8 @@
 package session
 
 import (
-	"github.com/go-duo/bud/go/mod"
-	"github.com/go-duo/bud/log"
+	"gitlab.com/mnm/bud/go/mod"
+	"gitlab.com/mnm/bud/log"
 )
 
 type Config struct {

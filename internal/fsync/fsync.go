@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/go-duo/bud/internal/fsync/set"
-	"github.com/go-duo/bud/internal/vfs"
+	"gitlab.com/mnm/bud/internal/fsync/set"
+	"gitlab.com/mnm/bud/internal/vfs"
 )
 
 // TODO: read files during diff so we ensure we're successful before writing.

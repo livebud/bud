@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/gitchander/permutation"
-	"github.com/go-duo/bud/router/radix"
+	"gitlab.com/mnm/bud/router/radix"
 	"github.com/matryer/is"
 )
 

@@ -1,7 +1,7 @@
 package svelte
 
 import (
-	"github.com/go-duo/bud/transform"
+	"gitlab.com/mnm/bud/transform"
 )
 
 func NewTransformable(compiler *Compiler) *Transformable {

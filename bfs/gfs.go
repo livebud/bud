@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/go-duo/bud/internal/pubsub"
+	"gitlab.com/mnm/bud/internal/pubsub"
 	"golang.org/x/sync/errgroup"
 )
 

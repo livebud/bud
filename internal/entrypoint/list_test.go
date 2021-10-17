@@ -4,7 +4,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/go-duo/bud/internal/entrypoint"
+	"gitlab.com/mnm/bud/internal/entrypoint"
 	"github.com/matryer/is"
 )
 

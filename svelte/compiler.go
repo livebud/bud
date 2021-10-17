@@ -8,7 +8,7 @@ import (
 
 	_ "embed"
 
-	"github.com/go-duo/bud/js"
+	"gitlab.com/mnm/bud/js"
 )
 
 type Input struct {

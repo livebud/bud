@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-duo/bud/internal/fsync"
-	"github.com/go-duo/bud/internal/vfs"
+	"gitlab.com/mnm/bud/internal/fsync"
+	"gitlab.com/mnm/bud/internal/vfs"
 	"github.com/matryer/is"
 )
 

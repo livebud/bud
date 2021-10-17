@@ -11,14 +11,14 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/go-duo/bud/bfs"
-	"github.com/go-duo/bud/internal/npm"
-	"github.com/go-duo/bud/internal/vfs"
-	v8 "github.com/go-duo/bud/js/v8"
-	"github.com/go-duo/bud/ssr"
-	"github.com/go-duo/bud/svelte"
-	"github.com/go-duo/bud/transform"
-	"github.com/go-duo/bud/view"
+	"gitlab.com/mnm/bud/bfs"
+	"gitlab.com/mnm/bud/internal/npm"
+	"gitlab.com/mnm/bud/internal/vfs"
+	v8 "gitlab.com/mnm/bud/js/v8"
+	"gitlab.com/mnm/bud/ssr"
+	"gitlab.com/mnm/bud/svelte"
+	"gitlab.com/mnm/bud/transform"
+	"gitlab.com/mnm/bud/view"
 	"github.com/matryer/is"
 )
 

@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"sync/atomic"
 
-	"github.com/go-duo/bud/js"
+	"gitlab.com/mnm/bud/js"
 	"github.com/jackc/puddle"
 )
 

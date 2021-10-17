@@ -6,11 +6,11 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/go-duo/bud/bfs"
-	"github.com/go-duo/bud/internal/fsync"
-	"github.com/go-duo/bud/internal/gotext"
-	"github.com/go-duo/bud/internal/vfs"
-	"github.com/go-duo/bud/view"
+	"gitlab.com/mnm/bud/bfs"
+	"gitlab.com/mnm/bud/internal/fsync"
+	"gitlab.com/mnm/bud/internal/gotext"
+	"gitlab.com/mnm/bud/internal/vfs"
+	"gitlab.com/mnm/bud/view"
 	"github.com/matryer/is"
 )
 

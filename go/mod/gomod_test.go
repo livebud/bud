@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-duo/bud/go/mod"
 	"github.com/matryer/is"
+	"gitlab.com/mnm/bud/go/mod"
 )
 
 func TestDirectory(t *testing.T) {

@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
-	"github.com/go-duo/bud/internal/entrypoint"
-	"github.com/go-duo/bud/internal/gotemplate"
-	"github.com/go-duo/bud/svelte"
+	"gitlab.com/mnm/bud/internal/entrypoint"
+	"gitlab.com/mnm/bud/internal/gotemplate"
+	"gitlab.com/mnm/bud/svelte"
 )
 
 // EntrypointDOM is a plugin for loading client-side entrypoints

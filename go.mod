@@ -1,4 +1,4 @@
-module github.com/go-duo/bud
+module gitlab.com/mnm/bud
 
 go 1.17
 

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/go-duo/bud/go/mod"
+	"gitlab.com/mnm/bud/go/mod"
 	"github.com/matryer/is"
 )
 

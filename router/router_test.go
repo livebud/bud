@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-duo/bud/router"
+	"gitlab.com/mnm/bud/router"
 	"github.com/matryer/is"
 )
 

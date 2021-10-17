@@ -8,12 +8,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/go-duo/bud/bfs"
-	"github.com/go-duo/bud/dom"
-	"github.com/go-duo/bud/go/mod"
-	"github.com/go-duo/bud/js"
-	"github.com/go-duo/bud/ssr"
-	"github.com/go-duo/bud/transform"
+	"gitlab.com/mnm/bud/bfs"
+	"gitlab.com/mnm/bud/dom"
+	"gitlab.com/mnm/bud/go/mod"
+	"gitlab.com/mnm/bud/js"
+	"gitlab.com/mnm/bud/ssr"
+	"gitlab.com/mnm/bud/transform"
 )
 
 type Response struct {

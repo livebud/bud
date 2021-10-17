@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	v8 "github.com/go-duo/bud/js/v8"
-	"github.com/go-duo/bud/svelte"
+	v8 "gitlab.com/mnm/bud/js/v8"
+	"gitlab.com/mnm/bud/svelte"
 	"github.com/matryer/is"
 )
 

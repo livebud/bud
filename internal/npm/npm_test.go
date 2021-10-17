@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/go-duo/bud/internal/npm"
-	"github.com/go-duo/bud/internal/vfs"
+	"gitlab.com/mnm/bud/internal/npm"
+	"gitlab.com/mnm/bud/internal/vfs"
 	"github.com/matryer/is"
 )
 

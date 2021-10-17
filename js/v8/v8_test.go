@@ -3,7 +3,7 @@ package v8_test
 import (
 	"testing"
 
-	v8 "github.com/go-duo/bud/js/v8"
+	v8 "gitlab.com/mnm/bud/js/v8"
 	"github.com/matryer/is"
 )
 

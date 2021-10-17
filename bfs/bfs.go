@@ -3,7 +3,7 @@ package bfs
 import (
 	"io/fs"
 
-	"github.com/go-duo/bud/internal/pubsub"
+	"gitlab.com/mnm/bud/internal/pubsub"
 )
 
 type BFS interface {

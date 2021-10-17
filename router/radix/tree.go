@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-duo/bud/router/lex"
+	"gitlab.com/mnm/bud/router/lex"
 )
 
 // New radix tree

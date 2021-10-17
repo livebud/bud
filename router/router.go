@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/go-duo/bud/router/radix"
+	"gitlab.com/mnm/bud/router/radix"
 )
 
 // New router

@@ -10,10 +10,10 @@ import (
 	_ "embed"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
-	"github.com/go-duo/bud/bfs"
-	"github.com/go-duo/bud/internal/entrypoint"
-	"github.com/go-duo/bud/internal/gotemplate"
-	"github.com/go-duo/bud/transform"
+	"gitlab.com/mnm/bud/bfs"
+	"gitlab.com/mnm/bud/internal/entrypoint"
+	"gitlab.com/mnm/bud/internal/gotemplate"
+	"gitlab.com/mnm/bud/transform"
 )
 
 func Generator(osfs fs.FS, dir string, transformer *transform.Transformer) bfs.Generator {

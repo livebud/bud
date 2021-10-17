@@ -4,7 +4,7 @@ import (
 	"io/fs"
 	"time"
 
-	"github.com/go-duo/bud/internal/pubsub"
+	"gitlab.com/mnm/bud/internal/pubsub"
 )
 
 type Embed struct {

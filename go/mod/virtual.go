@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/go-duo/bud/go/is"
+	"gitlab.com/mnm/bud/go/is"
 )
 
 // Virtual module file

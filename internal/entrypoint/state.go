@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/cespare/xxhash"
-	"github.com/go-duo/bud/internal/gotext"
+	"gitlab.com/mnm/bud/internal/gotext"
 )
 
 // type State struct {

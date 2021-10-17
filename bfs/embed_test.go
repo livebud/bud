@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-duo/bud/bfs"
+	"gitlab.com/mnm/bud/bfs"
 	"github.com/matryer/is"
 )
 

@@ -10,8 +10,8 @@ import (
 	"testing/fstest"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
-	"github.com/go-duo/bud/internal/vfs"
-	"github.com/go-duo/bud/transform"
+	"gitlab.com/mnm/bud/internal/vfs"
+	"gitlab.com/mnm/bud/transform"
 	"github.com/matryer/is"
 )
 

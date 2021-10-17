@@ -11,7 +11,7 @@ import (
 	"runtime"
 	"sync/atomic"
 
-	"github.com/go-duo/bud/js"
+	"gitlab.com/mnm/bud/js"
 	"github.com/jackc/puddle"
 	"go.kuoruan.net/v8go-polyfills/fetch"
 	"rogchap.com/v8go"

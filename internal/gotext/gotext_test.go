@@ -3,7 +3,7 @@ package gotext_test
 import (
 	"testing"
 
-	"github.com/go-duo/bud/internal/gotext"
+	"gitlab.com/mnm/bud/internal/gotext"
 	"github.com/matryer/is"
 )
 
