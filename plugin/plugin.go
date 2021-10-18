@@ -47,6 +47,7 @@ func Generator(modfile mod.File) bfs.Generator {
 					pluginDir := filepath.Join(plugin.Dir, name)
 					// Serve all inner files from ${plugin.Dir}/${name}/...
 					dir.Entry(name, bfs.ServeDir(func(f bfs.FS, entry *bfs.Entry) error {
+						// Switch the base from the requested to the actual.
 						relPath, err := filepath.Rel(baseDir, entry.Path())
 						if err != nil {
 							return err
