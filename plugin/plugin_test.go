@@ -79,9 +79,14 @@ func TestPlugin(t *testing.T) {
 	fis, err = fs.ReadDir(bf, "bud/plugin/tailwind/public")
 	is.NoErr(err)
 	is.Equal(len(fis), 1) // expected 1 markdown file
+	is.Equal(fis[0].Name(), "tailwind")
+	is.Equal(fis[0].IsDir(), true)
+	fis, err = fs.ReadDir(bf, "bud/plugin/tailwind/public/tailwind")
+	is.NoErr(err)
+	is.Equal(len(fis), 1) // expected 1 markdown file
 	is.Equal(fis[0].Name(), "preflight.css")
 	is.Equal(fis[0].IsDir(), false)
-	data, err = fs.ReadFile(bf, "bud/plugin/tailwind/public/preflight.css")
+	data, err = fs.ReadFile(bf, "bud/plugin/tailwind/public/tailwind/preflight.css")
 	is.NoErr(err)
 	is.True(strings.Contains(string(data), `/* Preflight.css */`))
 	// Transform
