@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/mnm/bud/bfs"
 	"github.com/matryer/is"
+	"gitlab.com/mnm/bud/bfs"
 )
 
 func View() map[string]bfs.Generator {
@@ -971,4 +971,8 @@ func TestFileServer(t *testing.T) {
 	code, err := fs.ReadFile(df, "duo/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), "aa")
+}
+
+func TestServeDir(t *testing.T) {
+	// TODO: ServeDir test
 }

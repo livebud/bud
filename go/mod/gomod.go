@@ -171,13 +171,15 @@ func (m *Module) ResolveImport(directory string) (importPath string, err error) 
 }
 
 // Return a list of bud plugins
+// TODO: Is there anyway to avoid dependencies of dependencies being picked up
+// as plugins? I could see this being confusing. We do have to use "indirect"
+// because plugins are picked up automatically.
 func (m *Module) Plugins() ([]*Plugin, error) {
 	var importPaths []string
 	// Loop over require paths
 	for _, req := range m.file.Require {
-		// Plugins need to be imported directly and the last path in the module path
-		// needs to start with "bud-"
-		if req.Indirect || !strings.HasPrefix(path.Base(req.Mod.Path), "bud-") {
+		// The last path in the module path needs to start with "bud-"
+		if !strings.HasPrefix(path.Base(req.Mod.Path), "bud-") {
 			continue
 		}
 		importPaths = append(importPaths, req.Mod.Path)
@@ -200,8 +202,10 @@ func (m *Module) Plugins() ([]*Plugin, error) {
 			if err != nil {
 				return err
 			}
+			name := strings.TrimPrefix(path.Base(importPath), "bud-")
 			plugins[i] = &Plugin{
 				Import: importPath,
+				Name:   name,
 				Dir:    dir,
 			}
 			return nil

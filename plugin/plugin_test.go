@@ -1,1 +1,101 @@
 package plugin_test
+
+import (
+	"context"
+	"io/fs"
+	"os"
+	"strings"
+	"testing"
+
+	"github.com/matryer/is"
+	"gitlab.com/mnm/bud/bfs"
+	"gitlab.com/mnm/bud/go/mod"
+	"gitlab.com/mnm/bud/internal/gobin"
+	"gitlab.com/mnm/bud/internal/vfs"
+	"gitlab.com/mnm/bud/plugin"
+)
+
+func TestPlugin(t *testing.T) {
+	is := is.New(t)
+	dir := "_tmp"
+	is.NoErr(os.RemoveAll(dir))
+	is.NoErr(os.MkdirAll(dir, 0755))
+	defer func() {
+		if !t.Failed() {
+			is.NoErr(os.RemoveAll(dir))
+		}
+	}()
+	err := vfs.WriteTo(dir, vfs.Map{
+		"go.mod": `module test.mod`,
+	})
+	is.NoErr(err)
+	ctx := context.Background()
+	err = gobin.GoGet(ctx, dir, "gitlab.com/mnm/testdata/bud-tailwind", "gitlab.com/mnm/testdata/bud-markdown")
+	is.NoErr(err)
+	modfile, err := mod.Find(dir)
+	is.NoErr(err)
+	dirfs := os.DirFS(dir)
+	bf := bfs.New(dirfs)
+	bf.Add(map[string]bfs.Generator{
+		"bud/plugin": plugin.Generator(modfile),
+	})
+	fis, err := fs.ReadDir(bf, "bud/plugin")
+	is.NoErr(err)
+	is.Equal(len(fis), 2) // expected 2 plugins
+	is.Equal(fis[0].Name(), "markdown")
+	is.Equal(fis[0].IsDir(), true)
+	is.Equal(fis[1].Name(), "tailwind")
+	is.Equal(fis[1].IsDir(), true)
+
+	// Markdown
+	fis, err = fs.ReadDir(bf, "bud/plugin/markdown")
+	is.NoErr(err)
+	is.Equal(len(fis), 1) // expected 1 markdown dir
+	is.Equal(fis[0].Name(), "transform")
+	is.Equal(fis[0].IsDir(), true)
+	fis, err = fs.ReadDir(bf, "bud/plugin/markdown/transform")
+	is.NoErr(err)
+	is.Equal(len(fis), 1) // expected 1 markdown dir
+	is.Equal(fis[0].Name(), "markdown")
+	is.Equal(fis[0].IsDir(), true)
+	fis, err = fs.ReadDir(bf, "bud/plugin/markdown/transform/markdown")
+	is.NoErr(err)
+	is.Equal(len(fis), 1) // expected 1 markdown file
+	is.Equal(fis[0].Name(), "markdown.go")
+	is.Equal(fis[0].IsDir(), false)
+	data, err := fs.ReadFile(bf, "bud/plugin/markdown/transform/markdown/markdown.go")
+	is.NoErr(err)
+	is.True(strings.Contains(string(data), `MDToSvelte`))
+
+	// Tailwind
+	fis, err = fs.ReadDir(bf, "bud/plugin/tailwind")
+	is.NoErr(err)
+	is.Equal(len(fis), 2) // expected 2 tailwind dirs
+	is.Equal(fis[0].Name(), "public")
+	is.Equal(fis[0].IsDir(), true)
+	is.Equal(fis[1].Name(), "transform")
+	is.Equal(fis[1].IsDir(), true)
+	// Public
+	fis, err = fs.ReadDir(bf, "bud/plugin/tailwind/public")
+	is.NoErr(err)
+	is.Equal(len(fis), 1) // expected 1 markdown file
+	is.Equal(fis[0].Name(), "preflight.css")
+	is.Equal(fis[0].IsDir(), false)
+	data, err = fs.ReadFile(bf, "bud/plugin/tailwind/public/preflight.css")
+	is.NoErr(err)
+	is.True(strings.Contains(string(data), `/* Preflight.css */`))
+	// Transform
+	fis, err = fs.ReadDir(bf, "bud/plugin/tailwind/transform")
+	is.NoErr(err)
+	is.Equal(len(fis), 1) // expected 1 markdown file
+	is.Equal(fis[0].Name(), "tailwind")
+	is.Equal(fis[0].IsDir(), true)
+	fis, err = fs.ReadDir(bf, "bud/plugin/tailwind/transform/tailwind")
+	is.NoErr(err)
+	is.Equal(len(fis), 1) // expected 1 markdown file
+	is.Equal(fis[0].Name(), "tailwind.go")
+	is.Equal(fis[0].IsDir(), false)
+	data, err = fs.ReadFile(bf, "bud/plugin/tailwind/transform/tailwind/tailwind.go")
+	is.NoErr(err)
+	is.True(strings.Contains(string(data), `SvelteToSvelte`))
+}

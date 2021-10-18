@@ -13,6 +13,7 @@ var stdDir = filepath.Join(build.Default.GOROOT, "src")
 
 type Plugin struct {
 	Import string
+	Name   string
 	Dir    string
 }
 

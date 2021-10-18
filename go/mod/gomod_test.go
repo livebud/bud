@@ -1,6 +1,7 @@
 package mod_test
 
 import (
+	"context"
 	"errors"
 	"go/build"
 	"os"
@@ -11,6 +12,8 @@ import (
 
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/go/mod"
+	"gitlab.com/mnm/bud/internal/gobin"
+	"gitlab.com/mnm/bud/internal/vfs"
 )
 
 func TestDirectory(t *testing.T) {
@@ -80,20 +83,39 @@ func TestResolveImport(t *testing.T) {
 	is.Equal(path.Join(modfile.ModulePath(), "go", "mod"), im)
 }
 
-// TODO: test mod.Load(dir)
-// TODO: test required plugin
-// TODO: test replaced plugin
+func TestRequirePlugin(t *testing.T) {
+	is := is.New(t)
+	dir := "_tmp"
+	is.NoErr(os.RemoveAll(dir))
+	is.NoErr(os.MkdirAll(dir, 0755))
+	defer func() {
+		if !t.Failed() {
+			is.NoErr(os.RemoveAll(dir))
+		}
+	}()
+	err := vfs.WriteTo(dir, vfs.Map{
+		"go.mod": `module github.com/livebud/test`,
+	})
+	is.NoErr(err)
+	ctx := context.Background()
+	err = gobin.GoGet(ctx, dir, "gitlab.com/mnm/testdata/bud-tailwind", "gitlab.com/mnm/testdata/bud-markdown")
+	is.NoErr(err)
+	modfile, err := mod.Find(dir)
+	is.NoErr(err)
+	plugins, err := modfile.Plugins()
+	is.NoErr(err)
+	is.Equal(len(plugins), 2) // expected 2 plugins
+	// First plugin
+	is.Equal(plugins[0].Import, "gitlab.com/mnm/testdata/bud-markdown")
+	expected := filepath.Join(mod.GOMODCACHE(), "gitlab.com", "mnm", "testdata", "bud-markdown")
+	is.True(strings.HasPrefix(plugins[0].Dir, expected))
+	is.Equal(plugins[0].Name, "markdown")
+	// Second plugin
+	is.Equal(plugins[1].Import, "gitlab.com/mnm/testdata/bud-tailwind")
+	expected = filepath.Join(mod.GOMODCACHE(), "gitlab.com", "mnm", "testdata", "bud-tailwind")
+	is.True(strings.HasPrefix(plugins[1].Dir, expected))
+	is.Equal(plugins[1].Name, "tailwind")
+}
 
-// func TestRequirePlugin(t *testing.T) {
-// 	is := is.New(t)
-// 	dir := "_tmp"
-// 	is.NoErr(os.RemoveAll(dir))
-// 	is.NoErr(os.MkdirAll(dir, 0755))
-// 	err := vfs.WriteTo(dir, vfs.Map{
-// 		"go.mod": `module github.com/livebud/test`,
-// 	})
-// 	is.NoErr(err)
-// 	ctx := context.Background()
-// 	err = gobin.GoGet(ctx, dir, "gitlab.com/mnm/bud-tailwind")
-// 	is.NoErr(err)
-// }
+// TODO: test mod.Load(dir)
+// TODO: test replaced plugin
