@@ -1,7 +1,6 @@
 package plugin
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -9,21 +8,10 @@ import (
 	"gitlab.com/mnm/bud/go/mod"
 )
 
-// dirs that can be extended with plugins
-var dirs = map[string]bool{
-	"transform": true,
-	"public":    true,
-	// "controller": true,
-	// "view":       true,
-}
-
 // Generator loads all the bud plugins.
 //
 // If the import path is "gitlab.com/mnm/bud-tailwind/transform", then you'd
-// load this plugin with "bud/plugin/transform/tailwind". The type of plugin
-// is switched to make traversing plugins for a generator easier.
-//
-// TODO: break this up, it's a mess
+// load this plugin with "bud/plugin/tailwind/transform".
 func Generator(modfile mod.File) bfs.Generator {
 	return bfs.GenerateDir(func(f bfs.FS, dir *bfs.Dir) error {
 		plugins, err := modfile.Plugins()
@@ -41,13 +29,13 @@ func Generator(modfile mod.File) bfs.Generator {
 				}
 				for _, fi := range fis {
 					name := fi.Name()
-					if !fi.IsDir() || !dirs[name] {
+					if !fi.IsDir() || name[0] == '_' || name[0] == '.' {
 						continue
 					}
 					// baseDir := filepath.Join("bud", "plugin", plugin.Name, name)
 					pluginDir := filepath.Join(plugin.Dir, name)
 					// Serve all inner files from ${plugin.Dir}/${name}/...
-					fmt.Println(filepath.Join("bud", "plugin", plugin.Name, name), "=>", filepath.Join(pluginDir))
+					// fmt.Println(filepath.Join("bud", "plugin", plugin.Name, name), "=>", filepath.Join(pluginDir))
 					dir.Entry(name, bfs.ServeFS(os.DirFS(pluginDir)))
 					// dir.Entry(name, bfs.ServeDir(func(f bfs.FS, entry *bfs.Entry) error {
 					// 	// Switch the base from the requested to the actual.

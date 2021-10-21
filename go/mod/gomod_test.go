@@ -109,12 +109,12 @@ func TestRequirePlugin(t *testing.T) {
 	is.Equal(plugins[0].Import, "gitlab.com/mnm/testdata/bud-markdown")
 	expected := filepath.Join(mod.GOMODCACHE(), "gitlab.com", "mnm", "testdata", "bud-markdown")
 	is.True(strings.HasPrefix(plugins[0].Dir, expected))
-	is.Equal(plugins[0].Name, "markdown")
+	is.Equal(plugins[0].Name, "bud-markdown")
 	// Second plugin
 	is.Equal(plugins[1].Import, "gitlab.com/mnm/testdata/bud-tailwind")
 	expected = filepath.Join(mod.GOMODCACHE(), "gitlab.com", "mnm", "testdata", "bud-tailwind")
 	is.True(strings.HasPrefix(plugins[1].Dir, expected))
-	is.Equal(plugins[1].Name, "tailwind")
+	is.Equal(plugins[1].Name, "bud-tailwind")
 }
 
 // TODO: test mod.Load(dir)

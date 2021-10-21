@@ -42,65 +42,67 @@ func TestPlugin(t *testing.T) {
 	fis, err := fs.ReadDir(bf, "bud/plugin")
 	is.NoErr(err)
 	is.Equal(len(fis), 2) // expected 2 plugins
-	is.Equal(fis[0].Name(), "markdown")
+	is.Equal(fis[0].Name(), "bud-markdown")
 	is.Equal(fis[0].IsDir(), true)
-	is.Equal(fis[1].Name(), "tailwind")
+	is.Equal(fis[1].Name(), "bud-tailwind")
 	is.Equal(fis[1].IsDir(), true)
 
 	// Markdown
-	fis, err = fs.ReadDir(bf, "bud/plugin/markdown")
+	fis, err = fs.ReadDir(bf, "bud/plugin/bud-markdown")
 	is.NoErr(err)
 	is.Equal(len(fis), 1) // expected 1 markdown dir
 	is.Equal(fis[0].Name(), "transform")
 	is.Equal(fis[0].IsDir(), true)
-	fis, err = fs.ReadDir(bf, "bud/plugin/markdown/transform")
+	fis, err = fs.ReadDir(bf, "bud/plugin/bud-markdown/transform")
 	is.NoErr(err)
 	is.Equal(len(fis), 1) // expected 1 markdown dir
 	is.Equal(fis[0].Name(), "markdown")
 	is.Equal(fis[0].IsDir(), true)
-	fis, err = fs.ReadDir(bf, "bud/plugin/markdown/transform/markdown")
+	fis, err = fs.ReadDir(bf, "bud/plugin/bud-markdown/transform/markdown")
 	is.NoErr(err)
 	is.Equal(len(fis), 1) // expected 1 markdown file
 	is.Equal(fis[0].Name(), "markdown.go")
 	is.Equal(fis[0].IsDir(), false)
-	data, err := fs.ReadFile(bf, "bud/plugin/markdown/transform/markdown/markdown.go")
+	data, err := fs.ReadFile(bf, "bud/plugin/bud-markdown/transform/markdown/markdown.go")
 	is.NoErr(err)
 	is.True(strings.Contains(string(data), `MDToSvelte`))
 
 	// Tailwind
-	fis, err = fs.ReadDir(bf, "bud/plugin/tailwind")
+	fis, err = fs.ReadDir(bf, "bud/plugin/bud-tailwind")
 	is.NoErr(err)
-	is.Equal(len(fis), 2) // expected 2 tailwind dirs
-	is.Equal(fis[0].Name(), "public")
+	is.Equal(len(fis), 3) // expected 2 tailwind dirs
+	is.Equal(fis[0].Name(), "internal")
 	is.Equal(fis[0].IsDir(), true)
-	is.Equal(fis[1].Name(), "transform")
+	is.Equal(fis[1].Name(), "public")
 	is.Equal(fis[1].IsDir(), true)
+	is.Equal(fis[2].Name(), "transform")
+	is.Equal(fis[2].IsDir(), true)
 	// Public
-	fis, err = fs.ReadDir(bf, "bud/plugin/tailwind/public")
+	fis, err = fs.ReadDir(bf, "bud/plugin/bud-tailwind/public")
 	is.NoErr(err)
 	is.Equal(len(fis), 1) // expected 1 markdown file
 	is.Equal(fis[0].Name(), "tailwind")
 	is.Equal(fis[0].IsDir(), true)
-	fis, err = fs.ReadDir(bf, "bud/plugin/tailwind/public/tailwind")
+	fis, err = fs.ReadDir(bf, "bud/plugin/bud-tailwind/public/tailwind")
 	is.NoErr(err)
 	is.Equal(len(fis), 1) // expected 1 markdown file
 	is.Equal(fis[0].Name(), "preflight.css")
 	is.Equal(fis[0].IsDir(), false)
-	data, err = fs.ReadFile(bf, "bud/plugin/tailwind/public/tailwind/preflight.css")
+	data, err = fs.ReadFile(bf, "bud/plugin/bud-tailwind/public/tailwind/preflight.css")
 	is.NoErr(err)
 	is.True(strings.Contains(string(data), `/* Preflight.css */`))
 	// Transform
-	fis, err = fs.ReadDir(bf, "bud/plugin/tailwind/transform")
+	fis, err = fs.ReadDir(bf, "bud/plugin/bud-tailwind/transform")
 	is.NoErr(err)
 	is.Equal(len(fis), 1) // expected 1 markdown file
 	is.Equal(fis[0].Name(), "tailwind")
 	is.Equal(fis[0].IsDir(), true)
-	fis, err = fs.ReadDir(bf, "bud/plugin/tailwind/transform/tailwind")
+	fis, err = fs.ReadDir(bf, "bud/plugin/bud-tailwind/transform/tailwind")
 	is.NoErr(err)
 	is.Equal(len(fis), 1) // expected 1 markdown file
 	is.Equal(fis[0].Name(), "tailwind.go")
 	is.Equal(fis[0].IsDir(), false)
-	data, err = fs.ReadFile(bf, "bud/plugin/tailwind/transform/tailwind/tailwind.go")
+	data, err = fs.ReadFile(bf, "bud/plugin/bud-tailwind/transform/tailwind/tailwind.go")
 	is.NoErr(err)
 	is.True(strings.Contains(string(data), `SvelteToSvelte`))
 }

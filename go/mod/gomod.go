@@ -131,13 +131,13 @@ func (m *Module) resolveDirectory(importPath string) (directory string, err erro
 	if is.StdLib(importPath) {
 		return filepath.Join(stdDir, importPath), nil
 	}
-	if strings.HasPrefix(importPath, m.file.Module.Mod.Path) {
+	if contains(m.file.Module.Mod.Path, importPath) {
 		directory = filepath.Join(m.dir, strings.TrimPrefix(importPath, m.file.Module.Mod.Path))
 		return directory, nil
 	}
 	// loop over replaces
 	for _, rep := range m.file.Replace {
-		if strings.HasPrefix(importPath, rep.Old.Path) {
+		if contains(rep.Old.Path, importPath) {
 			relPath := strings.TrimPrefix(importPath, rep.Old.Path)
 			newPath := filepath.Join(rep.New.Path, relPath)
 			resolved := resolvePath(m.dir, newPath)
@@ -156,6 +156,10 @@ func (m *Module) resolveDirectory(importPath string) (directory string, err erro
 		}
 	}
 	return "", fmt.Errorf("unable to find directory for import path %q", importPath)
+}
+
+func contains(basePath, importPath string) bool {
+	return basePath == importPath || strings.HasPrefix(importPath, basePath+"/")
 }
 
 // ResolveImport returns an import path from a directory
@@ -184,14 +188,6 @@ func (m *Module) Plugins() ([]*Plugin, error) {
 		}
 		importPaths = append(importPaths, req.Mod.Path)
 	}
-	// Loop over replace paths
-	for _, rep := range m.file.Replace {
-		// The last path in the module path needs to start with "bud-"
-		if !strings.HasPrefix(path.Base(rep.Old.Path), "bud-") {
-			continue
-		}
-		importPaths = append(importPaths, rep.Old.Path)
-	}
 	// Concurrently resolve directories
 	plugins := make([]*Plugin, len(importPaths))
 	eg := new(errgroup.Group)
@@ -202,7 +198,7 @@ func (m *Module) Plugins() ([]*Plugin, error) {
 			if err != nil {
 				return err
 			}
-			name := strings.TrimPrefix(path.Base(importPath), "bud-")
+			name := path.Base(importPath)
 			plugins[i] = &Plugin{
 				Import: importPath,
 				Name:   name,
