@@ -973,6 +973,42 @@ func TestFileServer(t *testing.T) {
 	is.Equal(string(code), "aa")
 }
 
-func TestServeDir(t *testing.T) {
-	// TODO: ServeDir test
+func TestServeFS(t *testing.T) {
+	is := is.New(t)
+	df := bfs.New(nil)
+	dirfs := os.DirFS(".")
+	df.Add(map[string]bfs.Generator{
+		"duo/view": bfs.ServeFS(dirfs),
+	})
+	// duo/view
+	edes, err := fs.ReadDir(dirfs, ".")
+	is.NoErr(err)
+	ades, err := fs.ReadDir(df, "duo/view")
+	is.NoErr(err)
+	is.Equal(len(edes), len(ades))
+	es, err := fs.Stat(dirfs, ".")
+	is.NoErr(err)
+	as, err := fs.Stat(df, "duo/view")
+	is.NoErr(err)
+	is.Equal(as.Name(), "view")
+	is.Equal(as.IsDir(), true)
+	is.Equal(as.ModTime(), es.ModTime())
+	is.Equal(as.Mode(), es.Mode())
+	is.Equal(as.Size(), es.Size())
+	// ./dir.go
+	ed, err := fs.ReadFile(dirfs, "dir.go")
+	is.NoErr(err)
+	ad, err := fs.ReadFile(df, "duo/view/dir.go")
+	is.NoErr(err)
+	is.Equal(ed, ad)
+	es, err = fs.Stat(dirfs, "dir.go")
+	is.NoErr(err)
+	as, err = fs.Stat(df, "duo/view/dir.go")
+	is.NoErr(err)
+	is.Equal(as.Name(), "dir.go")
+	is.Equal(as.IsDir(), false)
+	is.Equal(as.ModTime(), es.ModTime())
+	is.Equal(as.Mode(), es.Mode())
+	is.Equal(as.Size(), es.Size())
+
 }

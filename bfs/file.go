@@ -40,7 +40,7 @@ func (f *File) Watch(pattern string, event Event) {
 
 func (f *File) open(fsys FS, key, relative, path string) (fs.File, error) {
 	// fsys.watch(path, f.Watch)
-	return &openFile{path, f.data, f.mode, f.modTime, 0}, nil
+	return &openFile{path, f.data, f.mode, f.modTime, int64(len(f.data)), 0}, nil
 }
 
 type openFile struct {
@@ -48,6 +48,7 @@ type openFile struct {
 	data    []byte
 	mode    fs.FileMode
 	modTime time.Time
+	size    int64
 	offset  int64
 }
 
@@ -76,6 +77,7 @@ func (f *openFile) Stat() (fs.FileInfo, error) {
 		data:    f.data,
 		mode:    f.mode,
 		modTime: f.modTime,
+		size:    f.size,
 	}, nil
 }
 

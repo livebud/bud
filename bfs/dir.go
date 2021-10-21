@@ -91,7 +91,7 @@ func (d *Dir) synthesize(path string) (fs.File, error) {
 					name: fname,
 				}
 				switch generator.(type) {
-				case GenerateDir, ServeDir:
+				case GenerateDir, *serveFS:
 					fi.mode = fs.ModeDir
 				}
 				entries = append(entries, fi)
@@ -111,7 +111,7 @@ func (d *Dir) synthesize(path string) (fs.File, error) {
 						name: felem,
 					}
 					switch generator.(type) {
-					case GenerateDir, ServeDir:
+					case GenerateDir, *serveFS:
 						fi.mode = fs.ModeDir
 					}
 					entries = append(entries, fi)
@@ -164,7 +164,9 @@ func (d *Dir) mergeSynthetic(dir *openDir, path string) {
 type openDir struct {
 	path    string
 	entries []fs.DirEntry
+	mode    fs.FileMode
 	modTime time.Time
+	size    int64
 	offset  int
 }
 
@@ -177,8 +179,9 @@ func (d *openDir) Close() error {
 func (d *openDir) Stat() (fs.FileInfo, error) {
 	return &fileInfo{
 		name:    filepath.Base(d.path),
-		mode:    fs.ModeDir,
+		mode:    d.mode | fs.ModeDir,
 		modTime: d.modTime,
+		size:    d.size,
 	}, nil
 }
 
@@ -223,86 +226,123 @@ func DirGenerator(generator dirGenerator) Generator {
 	return GenerateDir(generator.GenerateDir)
 }
 
-type Entry struct {
-	path    string
-	mode    fs.FileMode
-	entries []fs.DirEntry
-	modTime time.Time
-	data    []byte
+func ServeFS(fsys fs.FS) Generator {
+	return &serveFS{fsys}
 }
 
-func (e *Entry) Path() string {
-	return e.path
-}
+type serveFS struct{ fsys fs.FS }
 
-func (e *Entry) Mode(mode fs.FileMode) {
-	e.mode = mode
-}
-
-func (e *Entry) Entry(entries ...fs.DirEntry) {
-	e.mode = e.mode & fs.ModeDir
-	e.entries = append(e.entries, entries...)
-}
-
-func (e *Entry) Write(data []byte) {
-	e.data = append(e.data, data...)
-}
-
-func (e *Entry) open(fsys FS, key, relative, path string) (fs.File, error) {
-	sort.Slice(e.entries, func(i, j int) bool {
-		return e.entries[i].Name() < e.entries[j].Name()
-	})
-	if e.mode&fs.ModeDir != 0 {
+func (s *serveFS) open(f FS, key, relative, target string) (fs.File, error) {
+	stat, err := fs.Stat(s.fsys, relative)
+	if err != nil {
+		return nil, err
+	}
+	if stat.IsDir() {
+		des, err := fs.ReadDir(s.fsys, relative)
+		if err != nil {
+			return nil, err
+		}
 		return &openDir{
-			path:    path,
-			modTime: e.modTime,
-			entries: e.entries,
+			path:    target,
+			modTime: stat.ModTime(),
+			mode:    stat.Mode(),
+			size:    stat.Size(),
+			entries: des,
 		}, nil
 	}
+	data, err := fs.ReadFile(s.fsys, relative)
+	if err != nil {
+		return nil, err
+	}
 	return &openFile{
-		path:    path,
-		modTime: e.modTime,
-		mode:    e.mode,
-		data:    e.data,
+		path:    target,
+		data:    data,
+		modTime: stat.ModTime(),
+		mode:    stat.Mode(),
+		size:    stat.Size(),
 	}, nil
 }
 
-type ServeDir func(f FS, entry *Entry) error
-
-func (fn ServeDir) open(f FS, key, relative, target string) (fs.File, error) {
-	entry := &Entry{path: target}
-	if err := fn(f, entry); err != nil {
-		return nil, err
-	}
-	return entry.open(f, key, relative, target)
-}
-
-// type ServeDir string
-
-// var _ Generator = ServeDir("")
-
-// func (dir ServeDir) open(f FS, key, relative, target string) (fs.File, error) {
-// 	path := filepath.Join(string(dir), relative)
-// 	file, err := os.Open(path)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer file.Close()
-// 	stat, err := file.Stat()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	if stat.IsDir() {
-// 		vdir := newDir(target)
-// 		return vdir.open(f, key, relative, target)
-// 	}
-// 	data, err := ioutil.ReadAll(file)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	vfile := newFile(target)
-// 	vfile.modTime = time.Now()
-// 	vfile.mode = 0644
-// 	vfile.data = data
-// 	return vfile.open(f, key, relative, target)
+// type Entry struct {
+// 	path    string
+// 	mode    fs.FileMode
+// 	entries []fs.DirEntry
+// 	modTime time.Time
+// 	data    []byte
 // }
+
+// func (e *Entry) Path() string {
+// 	return e.path
+// }
+
+// func (e *Entry) Mode(mode fs.FileMode) {
+// 	e.mode = mode
+// }
+
+// func (e *Entry) Entry(entries ...fs.DirEntry) {
+// 	e.mode = e.mode & fs.ModeDir
+// 	e.entries = append(e.entries, entries...)
+// }
+
+// func (e *Entry) Write(data []byte) {
+// 	e.data = append(e.data, data...)
+// }
+
+// func (e *Entry) open(fsys FS, key, relative, path string) (fs.File, error) {
+// 	sort.Slice(e.entries, func(i, j int) bool {
+// 		return e.entries[i].Name() < e.entries[j].Name()
+// 	})
+// 	if e.mode&fs.ModeDir != 0 {
+// 		return &openDir{
+// 			path:    path,
+// 			modTime: e.modTime,
+// 			entries: e.entries,
+// 		}, nil
+// 	}
+// 	return &openFile{
+// 		path:    path,
+// 		modTime: e.modTime,
+// 		mode:    e.mode,
+// 		data:    e.data,
+// 	}, nil
+// }
+
+// type ServeDir func(f FS, entry *Entry) error
+
+// func (fn ServeDir) open(f FS, key, relative, target string) (fs.File, error) {
+// 	entry := &Entry{path: target}
+// 	if err := fn(f, entry); err != nil {
+// 		return nil, err
+// 	}
+// 	return entry.open(f, key, relative, target)
+// }
+
+// // type ServeDir string
+
+// // var _ Generator = ServeDir("")
+
+// // func (dir ServeDir) open(f FS, key, relative, target string) (fs.File, error) {
+// // 	path := filepath.Join(string(dir), relative)
+// // 	file, err := os.Open(path)
+// // 	if err != nil {
+// // 		return nil, err
+// // 	}
+// // 	defer file.Close()
+// // 	stat, err := file.Stat()
+// // 	if err != nil {
+// // 		return nil, err
+// // 	}
+// // 	if stat.IsDir() {
+// // 		vdir := newDir(target)
+// // 		return vdir.open(f, key, relative, target)
+// // 	}
+// // 	data, err := ioutil.ReadAll(file)
+// // 	if err != nil {
+// // 		return nil, err
+// // 	}
+// // 	vfile := newFile(target)
+// // 	vfile.modTime = time.Now()
+// // 	vfile.mode = 0644
+// // 	vfile.data = data
+// // 	return vfile.open(f, key, relative, target)
+// // }

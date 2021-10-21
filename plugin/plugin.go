@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -43,38 +44,40 @@ func Generator(modfile mod.File) bfs.Generator {
 					if !fi.IsDir() || !dirs[name] {
 						continue
 					}
-					baseDir := filepath.Join("bud", "plugin", plugin.Name, name)
+					// baseDir := filepath.Join("bud", "plugin", plugin.Name, name)
 					pluginDir := filepath.Join(plugin.Dir, name)
 					// Serve all inner files from ${plugin.Dir}/${name}/...
-					dir.Entry(name, bfs.ServeDir(func(f bfs.FS, entry *bfs.Entry) error {
-						// Switch the base from the requested to the actual.
-						relPath, err := filepath.Rel(baseDir, entry.Path())
-						if err != nil {
-							return err
-						}
-						absPath := filepath.Join(pluginDir, relPath)
-						stat, err := os.Stat(absPath)
-						if err != nil {
-							return err
-						}
-						entry.Mode(stat.Mode())
-						// Serve Directories
-						if stat.IsDir() {
-							fis, err := os.ReadDir(absPath)
-							if err != nil {
-								return err
-							}
-							entry.Entry(fis...)
-							return nil
-						}
-						// Serve Files
-						data, err := os.ReadFile(absPath)
-						if err != nil {
-							return err
-						}
-						entry.Write(data)
-						return nil
-					}))
+					fmt.Println(filepath.Join("bud", "plugin", plugin.Name, name), "=>", filepath.Join(pluginDir))
+					dir.Entry(name, bfs.ServeFS(os.DirFS(pluginDir)))
+					// dir.Entry(name, bfs.ServeDir(func(f bfs.FS, entry *bfs.Entry) error {
+					// 	// Switch the base from the requested to the actual.
+					// 	relPath, err := filepath.Rel(baseDir, entry.Path())
+					// 	if err != nil {
+					// 		return err
+					// 	}
+					// 	absPath := filepath.Join(pluginDir, relPath)
+					// 	stat, err := os.Stat(absPath)
+					// 	if err != nil {
+					// 		return err
+					// 	}
+					// 	entry.Mode(stat.Mode())
+					// 	// Serve Directories
+					// 	if stat.IsDir() {
+					// 		fis, err := os.ReadDir(absPath)
+					// 		if err != nil {
+					// 			return err
+					// 		}
+					// 		entry.Entry(fis...)
+					// 		return nil
+					// 	}
+					// 	// Serve Files
+					// 	data, err := os.ReadFile(absPath)
+					// 	if err != nil {
+					// 		return err
+					// 	}
+					// 	entry.Write(data)
+					// 	return nil
+					// }))
 				}
 				return nil
 			}))
