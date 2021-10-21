@@ -3,8 +3,8 @@ package v8_test
 import (
 	"testing"
 
-	v8 "gitlab.com/mnm/bud/js/v8"
 	"github.com/matryer/is"
+	v8 "gitlab.com/mnm/bud/js/v8"
 )
 
 func TestEval(t *testing.T) {
@@ -35,9 +35,17 @@ func TestConsole(t *testing.T) {
 	_, err := v8.Eval("TestConsole.js", `console.log("a", 3, { hi: "world" })`)
 	is.NoErr(err)
 }
+
 func TestFetch(t *testing.T) {
 	is := is.New(t)
 	res, err := v8.Eval("TestFetch.js", `fetch("http://google.com").then(res => res.status)`)
 	is.NoErr(err)
 	is.Equal(res, "200")
+}
+
+func TestURL(t *testing.T) {
+	is := is.New(t)
+	res, err := v8.Eval("TestURL.js", `(new URL("http://google.com/hi")).host`)
+	is.NoErr(err)
+	is.Equal(res, "google.com")
 }

@@ -11,9 +11,10 @@ import (
 	"runtime"
 	"sync/atomic"
 
-	"gitlab.com/mnm/bud/js"
 	"github.com/jackc/puddle"
+	"gitlab.com/mnm/bud/js"
 	"go.kuoruan.net/v8go-polyfills/fetch"
+	"go.kuoruan.net/v8go-polyfills/url"
 	"rogchap.com/v8go"
 )
 
@@ -64,6 +65,9 @@ func loadV8() (*V8Context, error) {
 	if err != nil {
 		iso.TerminateExecution()
 		iso.Dispose()
+		return nil, err
+	}
+	if err := url.InjectTo(context); err != nil {
 		return nil, err
 	}
 	v8 := &V8Context{
