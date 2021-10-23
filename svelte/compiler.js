@@ -1,11 +1,15 @@
 var bud_svelte = (() => {
   var __defProp = Object.defineProperty;
-  var __require = (x2) => {
+  var __markAsModule = (target) => __defProp(target, "__esModule", { value: true });
+  var __require = /* @__PURE__ */ ((x2) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x2, {
+    get: (a, b2) => (typeof require !== "undefined" ? require : a)[b2]
+  }) : x2)(function(x2) {
     if (typeof require !== "undefined")
-      return require(x2);
+      return require.apply(this, arguments);
     throw new Error('Dynamic require of "' + x2 + '" is not supported');
-  };
+  });
   var __export = (target, all) => {
+    __markAsModule(target);
     for (var name in all)
       __defProp(target, name, { get: all[name], enumerable: true });
   };
@@ -5952,9 +5956,10 @@ ${state.indent})`));
   handlers.AssignmentPattern = handlers.AssignmentExpression;
   var charToInteger = {};
   var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-  for (var i = 0; i < chars.length; i++) {
+  for (i = 0; i < chars.length; i++) {
     charToInteger[chars.charCodeAt(i)] = i;
   }
+  var i;
   function encode(decoded) {
     var sourceFileIndex = 0;
     var sourceCodeLine = 0;
@@ -6715,7 +6720,7 @@ ${str}`);
   charCodeCategory.Digit = 131;
   charCodeCategory.NameStart = 132;
   charCodeCategory.NonPrintable = 133;
-  for (var i$1 = 0; i$1 < CATEGORY.length; i$1++) {
+  for (i$1 = 0; i$1 < CATEGORY.length; i$1++) {
     switch (true) {
       case isWhiteSpace(i$1):
         CATEGORY[i$1] = charCodeCategory.WhiteSpace;
@@ -6733,6 +6738,7 @@ ${str}`);
         CATEGORY[i$1] = i$1 || charCodeCategory.Eof;
     }
   }
+  var i$1;
   function charCodeCategory(code) {
     return code < 128 ? CATEGORY[code] : charCodeCategory.NameStart;
   }
@@ -19572,9 +19578,10 @@ ${this.frame}`;
   };
   var charToInteger$1 = {};
   var chars$1 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
-  for (var i$2 = 0; i$2 < chars$1.length; i$2++) {
+  for (i$2 = 0; i$2 < chars$1.length; i$2++) {
     charToInteger$1[chars$1.charCodeAt(i$2)] = i$2;
   }
+  var i$2;
   function decode$1(mappings) {
     var decoded = [];
     var line = [];
@@ -19953,7 +19960,6 @@ Did you specify these with the most recent transformation maps first?`);
     return map;
   }
   var b64enc = typeof btoa == "function" ? btoa : (b2) => Buffer.from(b2).toString("base64");
-  var b64dec = typeof atob == "function" ? atob : (a) => Buffer.from(a, "base64").toString();
   function apply_preprocessor_sourcemap(filename, svelte_map, preprocessor_map_input) {
     if (!svelte_map || !preprocessor_map_input)
       return svelte_map;
