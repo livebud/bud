@@ -7,7 +7,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"gitlab.com/mnm/bud/internal/vfs"
+	"gitlab.com/mnm/bud/vfs"
 	"github.com/matryer/is"
 )
 

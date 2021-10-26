@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"gitlab.com/mnm/bud/internal/fsync/set"
-	"gitlab.com/mnm/bud/internal/vfs"
+	"gitlab.com/mnm/bud/fsync/set"
+	"gitlab.com/mnm/bud/vfs"
 )
 
 // TODO: read files during diff so we ensure we're successful before writing.

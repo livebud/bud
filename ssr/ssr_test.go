@@ -11,15 +11,15 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/bfs"
 	"gitlab.com/mnm/bud/internal/npm"
-	"gitlab.com/mnm/bud/internal/vfs"
 	v8 "gitlab.com/mnm/bud/js/v8"
 	"gitlab.com/mnm/bud/ssr"
 	"gitlab.com/mnm/bud/svelte"
 	"gitlab.com/mnm/bud/transform"
+	"gitlab.com/mnm/bud/vfs"
 	"gitlab.com/mnm/bud/view"
-	"github.com/matryer/is"
 )
 
 func TestSvelteHello(t *testing.T) {

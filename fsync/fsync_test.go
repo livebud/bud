@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/mnm/bud/internal/fsync"
-	"gitlab.com/mnm/bud/internal/vfs"
 	"github.com/matryer/is"
+	"gitlab.com/mnm/bud/fsync"
+	"gitlab.com/mnm/bud/vfs"
 )
 
 func TestFileSync(t *testing.T) {

@@ -11,7 +11,7 @@ import (
 	"gitlab.com/mnm/bud/bfs"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/gobin"
-	"gitlab.com/mnm/bud/internal/vfs"
+	"gitlab.com/mnm/bud/vfs"
 	"gitlab.com/mnm/bud/plugin"
 )
 

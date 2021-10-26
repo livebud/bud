@@ -10,14 +10,14 @@ import (
 	"testing/fstest"
 
 	"gitlab.com/mnm/bud/transform"
+	"gitlab.com/mnm/bud/vfs"
 
+	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/bfs"
 	"gitlab.com/mnm/bud/dom"
 	"gitlab.com/mnm/bud/internal/npm"
-	"gitlab.com/mnm/bud/internal/vfs"
 	v8 "gitlab.com/mnm/bud/js/v8"
 	"gitlab.com/mnm/bud/svelte"
-	"github.com/matryer/is"
 )
 
 func TestRunner(t *testing.T) {

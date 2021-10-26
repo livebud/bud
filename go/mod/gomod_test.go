@@ -13,7 +13,7 @@ import (
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/gobin"
-	"gitlab.com/mnm/bud/internal/vfs"
+	"gitlab.com/mnm/bud/vfs"
 )
 
 func TestDirectory(t *testing.T) {

@@ -6,12 +6,12 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"gitlab.com/mnm/bud/bfs"
-	"gitlab.com/mnm/bud/internal/fsync"
-	"gitlab.com/mnm/bud/internal/gotext"
-	"gitlab.com/mnm/bud/internal/vfs"
-	"gitlab.com/mnm/bud/view"
 	"github.com/matryer/is"
+	"gitlab.com/mnm/bud/bfs"
+	"gitlab.com/mnm/bud/fsync"
+	"gitlab.com/mnm/bud/internal/gotext"
+	"gitlab.com/mnm/bud/vfs"
+	"gitlab.com/mnm/bud/view"
 )
 
 // func TestSvelteView(t *testing.T) {
