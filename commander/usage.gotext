@@ -1,0 +1,11 @@
+
+{{bold}}Usage:{{reset}}
+  {{ $.Name }}
+
+{{- if $.Commands }}
+
+{{bold}}Commands:{{reset}}
+{{- range $cmd := $.Commands }}
+  {{$cmd.Name}}  {{$cmd.Usage}}
+{{- end }}
+{{- end }}
