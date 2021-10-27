@@ -1,4 +1,4 @@
-package cli
+package commander
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 )
 
 // Trap cancels the context based on a signal
-func Trap(ctx context.Context, signals ...os.Signal) (context.Context, context.CancelFunc) {
+func trap(ctx context.Context, signals ...os.Signal) (context.Context, context.CancelFunc) {
 	ret, cancel := context.WithCancel(ctx)
 	ch := make(chan os.Signal, len(signals))
 	go func() {

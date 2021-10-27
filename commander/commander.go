@@ -19,7 +19,7 @@ var usage string
 var defaultUsage = template.Must(template.New("usage").Funcs(colors).Parse(usage))
 
 func New(name string) *CLI {
-	config := &config{os.Stderr, defaultUsage}
+	config := &config{os.Stderr, defaultUsage, []os.Signal{os.Interrupt}}
 	return &CLI{newCommand(config, name, ""), config}
 }
 
@@ -57,6 +57,7 @@ type CLI struct {
 type config struct {
 	writer   io.Writer
 	template *template.Template
+	signals  []os.Signal
 }
 
 func (c *CLI) Writer(writer io.Writer) *CLI {
@@ -68,8 +69,14 @@ func (c *CLI) Template(template *template.Template) {
 	c.config.template = template
 }
 
+func (c *CLI) Trap(signals ...os.Signal) {
+	c.config.signals = signals
+}
+
 func (c *CLI) Parse(args []string) error {
-	return c.root.parse(context.TODO(), args)
+	ctx, cancel := trap(context.Background(), c.config.signals...)
+	defer cancel()
+	return c.root.parse(ctx, args)
 }
 
 func (c *CLI) Command(name, usage string) *Command {
