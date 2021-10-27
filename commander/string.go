@@ -46,7 +46,9 @@ func (v *stringValue) Set(val string) error {
 }
 
 func (v *stringValue) String() string {
-	if v.set {
+	if v.inner == nil {
+		return ""
+	} else if v.set {
 		return *v.inner.target
 	} else if v.inner.defval != nil {
 		return *v.inner.defval

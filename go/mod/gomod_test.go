@@ -98,7 +98,7 @@ func TestRequirePlugin(t *testing.T) {
 	})
 	is.NoErr(err)
 	ctx := context.Background()
-	err = gobin.GoGet(ctx, dir, "gitlab.com/mnm/testdata/bud-tailwind", "gitlab.com/mnm/testdata/bud-markdown")
+	err = gobin.Get(ctx, dir, "gitlab.com/mnm/testdata/bud-tailwind", "gitlab.com/mnm/testdata/bud-markdown")
 	is.NoErr(err)
 	modfile, err := mod.Find(dir)
 	is.NoErr(err)

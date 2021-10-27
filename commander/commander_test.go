@@ -14,19 +14,20 @@ import (
 func TestHelp(t *testing.T) {
 	is := is.New(t)
 	actual := new(bytes.Buffer)
-	cmd := commander.New("say").Writer(actual)
+	cmd := commander.New("cli").Writer(actual)
 	err := cmd.Parse([]string{"-h"})
 	is.NoErr(err)
 	isEqual(t, actual.String(), `
 {bold}Usage:{reset}
-  say
+  cli
+
 `)
 }
 
 func TestInvalid(t *testing.T) {
 	is := is.New(t)
 	actual := new(bytes.Buffer)
-	cmd := commander.New("say").Writer(actual)
+	cmd := commander.New("cli").Writer(actual)
 	err := cmd.Parse([]string{"blargle"})
 	is.Equal(err.Error(), "unexpected blargle")
 	isEqual(t, actual.String(), ``)
@@ -34,7 +35,7 @@ func TestInvalid(t *testing.T) {
 func TestSimple(t *testing.T) {
 	is := is.New(t)
 	actual := new(bytes.Buffer)
-	cli := commander.New("say").Writer(actual)
+	cli := commander.New("cli").Writer(actual)
 	called := 0
 	cli.Run(func(ctx context.Context) error {
 		called++
@@ -49,34 +50,34 @@ func TestFlagString(t *testing.T) {
 	is := is.New(t)
 	actual := new(bytes.Buffer)
 	called := 0
-	cli := commander.New("say").Writer(actual)
+	cli := commander.New("cli").Writer(actual)
 	cli.Run(func(ctx context.Context) error {
 		called++
 		return nil
 	})
-	var message string
-	cli.Flag("message", "say the message").String(&message)
-	err := cli.Parse([]string{"--message", "cool"})
+	var flag string
+	cli.Flag("flag", "cli flag").String(&flag)
+	err := cli.Parse([]string{"--flag", "cool"})
 	is.NoErr(err)
 	is.Equal(1, called)
-	is.Equal(message, "cool")
+	is.Equal(flag, "cool")
 	isEqual(t, actual.String(), ``)
 }
 func TestFlagStringDefault(t *testing.T) {
 	is := is.New(t)
 	actual := new(bytes.Buffer)
 	called := 0
-	cli := commander.New("say").Writer(actual)
+	cli := commander.New("cli").Writer(actual)
 	cli.Run(func(ctx context.Context) error {
 		called++
 		return nil
 	})
-	var message string
-	cli.Flag("message", "say the message").String(&message).Default("default")
+	var flag string
+	cli.Flag("flag", "cli flag").String(&flag).Default("default")
 	err := cli.Parse([]string{})
 	is.NoErr(err)
 	is.Equal(1, called)
-	is.Equal(message, "default")
+	is.Equal(flag, "default")
 	isEqual(t, actual.String(), ``)
 }
 
@@ -84,15 +85,113 @@ func TestFlagStringRequired(t *testing.T) {
 	is := is.New(t)
 	actual := new(bytes.Buffer)
 	called := 0
-	cli := commander.New("say").Writer(actual)
+	cli := commander.New("cli").Writer(actual)
 	cli.Run(func(ctx context.Context) error {
 		called++
 		return nil
 	})
-	var message string
-	cli.Flag("message", "say the message").String(&message)
+	var flag string
+	cli.Flag("flag", "cli flag").String(&flag)
 	err := cli.Parse([]string{})
-	is.Equal(err.Error(), "missing message")
+	is.Equal(err.Error(), "missing flag")
+}
+func TestFlagInt(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	var flag int
+	cli.Flag("flag", "cli flag").Int(&flag)
+	err := cli.Parse([]string{"--flag", "10"})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(flag, 10)
+	isEqual(t, actual.String(), ``)
+}
+func TestFlagIntDefault(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	var flag int
+	cli.Flag("flag", "cli flag").Int(&flag).Default(10)
+	err := cli.Parse([]string{})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(flag, 10)
+	isEqual(t, actual.String(), ``)
+}
+
+func TestFlagIntRequired(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	var flag int
+	cli.Flag("flag", "cli flag").Int(&flag)
+	err := cli.Parse([]string{})
+	is.Equal(err.Error(), "missing flag")
+}
+func TestFlagBool(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	var flag bool
+	cli.Flag("flag", "cli flag").Bool(&flag)
+	err := cli.Parse([]string{"--flag"})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(flag, true)
+	isEqual(t, actual.String(), ``)
+}
+func TestFlagBoolDefault(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	var flag bool
+	cli.Flag("flag", "cli flag").Bool(&flag).Default(true)
+	err := cli.Parse([]string{})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(flag, true)
+	isEqual(t, actual.String(), ``)
+}
+
+func TestFlagBoolRequired(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	var flag bool
+	cli.Flag("flag", "cli flag").Bool(&flag)
+	err := cli.Parse([]string{})
+	is.Equal(err.Error(), "missing flag")
 }
 
 func TestSub(t *testing.T) {
@@ -128,6 +227,7 @@ func TestSubHelp(t *testing.T) {
 	is := is.New(t)
 	actual := new(bytes.Buffer)
 	cli := commander.New("bud").Writer(actual)
+	cli.Flag("log", "log").Bool(nil).Default(false)
 	var trace []string
 	cli.Run(func(ctx context.Context) error {
 		trace = append(trace, "bud")
@@ -151,12 +251,87 @@ func TestSubHelp(t *testing.T) {
 	is.NoErr(err)
 	isEqual(t, actual.String(), `
 {bold}Usage:{reset}
-  bud
+  bud [flags] [command]
+
+{bold}Flags:{reset}
+  log		log
 
 {bold}Commands:{reset}
-  build  build your application
-  run  run your application
+  build		build your application
+  run		run your application
+
 `)
+}
+
+func TestArgString(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	var arg string
+	cli.Arg("arg", "cli arg").String(&arg)
+	err := cli.Parse([]string{"cool"})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(arg, "cool")
+	isEqual(t, actual.String(), ``)
+}
+
+func TestArgStringDefault(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	var arg string
+	cli.Arg("arg", "cli arg").String(&arg).Default("default")
+	err := cli.Parse([]string{})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(arg, "default")
+	isEqual(t, actual.String(), ``)
+}
+
+func TestArgStringRequired(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	var arg string
+	cli.Arg("arg", "cli arg").String(&arg)
+	err := cli.Parse([]string{})
+	is.Equal(err.Error(), "missing arg")
+}
+
+func TestSubArgString(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	var arg string
+	cli.Command("build", "build command")
+	cli.Command("run", "run command")
+	cli.Arg("arg", "cli arg").String(&arg)
+	err := cli.Parse([]string{"deploy"})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(arg, "deploy")
+	isEqual(t, actual.String(), ``)
 }
 
 // // TODO: more tests
@@ -168,7 +343,7 @@ func TestSubHelp(t *testing.T) {
 // 		name: "help",
 // 		test: func(t testing.TB) {
 // 			actual := new(bytes.Buffer)
-// 			cmd := commander.New("say", "same command").Writer(actual)
+// 			cmd := commander.New("cli", "same command").Writer(actual)
 // 			err := cmd.Parse([]string{"-h"})
 // 			assert.NoError(t, err)
 // 			equal(t, actual.String(), `
@@ -186,7 +361,7 @@ func TestSubHelp(t *testing.T) {
 // 		name: "invalid",
 // 		test: func(t testing.TB) {
 // 			actual := new(bytes.Buffer)
-// 			cmd := commander.New("say", "same command").Writer(actual)
+// 			cmd := commander.New("cli", "same command").Writer(actual)
 // 			err := cmd.Parse([]string{"blargle"})
 // 			assert.EqualError(t, err, "unexpected blargle")
 // 			equal(t, actual.String(), ``)
@@ -196,7 +371,7 @@ func TestSubHelp(t *testing.T) {
 // 		name: "simple",
 // 		test: func(t testing.TB) {
 // 			actual := new(bytes.Buffer)
-// 			cmd := commander.New("say", "same command").Writer(actual)
+// 			cmd := commander.New("cli", "same command").Writer(actual)
 // 			called := 0
 // 			cmd.Run(func() error {
 // 				called++
@@ -212,7 +387,7 @@ func TestSubHelp(t *testing.T) {
 // 		name: "run error",
 // 		test: func(t testing.TB) {
 // 			actual := new(bytes.Buffer)
-// 			cmd := commander.New("say", "same command").Writer(actual)
+// 			cmd := commander.New("cli", "same command").Writer(actual)
 // 			called := 0
 // 			cmd.Run(func() error {
 // 				called++
@@ -228,7 +403,7 @@ func TestSubHelp(t *testing.T) {
 // 		name: "help with example",
 // 		test: func(t testing.TB) {
 // 			actual := new(bytes.Buffer)
-// 			cmd := commander.New("say", "same command").Writer(actual)
+// 			cmd := commander.New("cli", "same command").Writer(actual)
 // 			cmd.Example("say <something>", "say something")
 // 			cmd.Example("say <something> [else]", "say something else")
 // 			err := cmd.Parse([]string{"-h"})
@@ -256,7 +431,7 @@ func TestSubHelp(t *testing.T) {
 // 		name: "subcommand help with example",
 // 		test: func(t testing.TB) {
 // 			actual := new(bytes.Buffer)
-// 			cmd := commander.New("say", "same command").Writer(actual)
+// 			cmd := commander.New("cli", "same command").Writer(actual)
 // 			en := cmd.Command("en", "say in english")
 // 			en.Example("say en <something>", "say something")
 // 			en.Example("say en <something> [else]", "say something else")
@@ -287,7 +462,7 @@ func TestSubHelp(t *testing.T) {
 // 		name: "before function",
 // 		test: func(t testing.TB) {
 // 			actual := new(bytes.Buffer)
-// 			cmd := commander.New("say", "same command").Writer(actual)
+// 			cmd := commander.New("cli", "same command").Writer(actual)
 // 			called := 0
 // 			cmd.Before(func() error {
 // 				called++

@@ -19,7 +19,7 @@ var usage string
 var defaultUsage = template.Must(template.New("usage").Funcs(colors).Parse(usage))
 
 func New(name string) *CLI {
-	config := &config{os.Stderr, defaultUsage, []os.Signal{os.Interrupt}}
+	config := &config{"", os.Stderr, defaultUsage, []os.Signal{os.Interrupt}}
 	return &CLI{newCommand(config, name, ""), config}
 }
 
@@ -55,6 +55,7 @@ type CLI struct {
 }
 
 type config struct {
+	version  string
 	writer   io.Writer
 	template *template.Template
 	signals  []os.Signal
@@ -62,6 +63,11 @@ type config struct {
 
 func (c *CLI) Writer(writer io.Writer) *CLI {
 	c.config.writer = writer
+	return c
+}
+
+func (c *CLI) Version(version string) *CLI {
+	c.config.version = version
 	return c
 }
 
@@ -87,6 +93,10 @@ func (c *CLI) Flag(name, usage string) *Flag {
 	return c.root.Flag(name, usage)
 }
 
+func (c *CLI) Arg(name, usage string) *Arg {
+	return c.root.Arg(name, usage)
+}
+
 func (c *CLI) Run(runner func(ctx context.Context) error) {
 	c.root.Run(runner)
 }
@@ -100,10 +110,15 @@ func (c *Command) usage() error {
 	return nil
 }
 
+type value interface {
+	flag.Getter
+	verify(name string) error
+}
+
 func (c *Command) parse(ctx context.Context, args []string) error {
 	// Set flags
 	for _, flag := range c.Flags {
-		c.fset.Var(flag.value, flag.name, flag.name)
+		c.fset.Var(flag.value, flag.Name, flag.Usage)
 	}
 	// Parse the arguments
 	if err := c.fset.Parse(args); err != nil {
@@ -122,10 +137,18 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 		return sub.parse(ctx, c.fset.Args()[1:])
 	}
 	// Handle the remaining arguments
-	for i, arg := range c.Args {
-		if err := arg.value.Set(c.fset.Arg(i)); err != nil {
+	numArgs := len(c.Args)
+	for i, arg := range c.fset.Args() {
+		if i >= numArgs {
+			return fmt.Errorf("unexpected %s", arg)
+		}
+		if err := c.Args[i].value.Set(arg); err != nil {
 			return err
 		}
+	}
+	// Verify that all the args have been set or have default values
+	if err := verifyArgs(c.Args); err != nil {
+		return err
 	}
 	// Print usage if there's no run function defined
 	if c.run == nil {
@@ -149,35 +172,17 @@ func (c *Command) Command(name, usage string) *Command {
 
 func (c *Command) Arg(name, usage string) *Arg {
 	arg := &Arg{
-		name:  name,
-		usage: usage,
+		Name:  name,
+		Usage: usage,
 	}
 	c.Args = append(c.Args, arg)
 	return arg
 }
 
-type Arg struct {
-	name  string
-	usage string
-	value flag.Getter
-}
-
-func (a *Arg) Int(target *int) *Int {
-	value := &Int{target, nil}
-	a.value = &intValue{value}
-	return value
-}
-
-func (a *Arg) String(target *string) *String {
-	value := &String{target, nil}
-	a.value = &stringValue{inner: value}
-	return value
-}
-
 func (c *Command) Flag(name, usage string) *Flag {
 	flag := &Flag{
-		name:  name,
-		usage: usage,
+		Name:  name,
+		Usage: usage,
 	}
 	c.Flags = append(c.Flags, flag)
 	return flag

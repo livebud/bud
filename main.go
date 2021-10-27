@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"flag"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 
-	"gitlab.com/mnm/bud/commander"
+	"gitlab.com/mnm/bud/internal/gobin"
 	"gitlab.com/mnm/bud/log/console"
 )
 
@@ -17,18 +20,21 @@ func main() {
 }
 
 func run() error {
-	cli := commander.New("bud")
-	cmd := new(Bud)
-	cli.Run(cmd.Run)
-	// cli.StringVar(&cmd.workDir, "chdir", ".", "change the working directory")
-	return cli.Parse(os.Args[1:])
-}
-
-type Bud struct {
-	workDir string
-}
-
-func (b *Bud) Run(ctx context.Context) error {
-	fmt.Println("running in", b.workDir)
-	return nil
+	bud := flag.NewFlagSet("bud", flag.ContinueOnError)
+	bud.SetOutput(ioutil.Discard)
+	chdir := bud.String("chdir", ".", "change the working directory")
+	if err := bud.Parse(os.Args[1:]); err != nil {
+		if !errors.Is(err, flag.ErrHelp) {
+			return err
+		}
+		// TODO: handle bud -h when not in an app directory
+	}
+	abspath, err := filepath.Abs(*chdir)
+	if err != nil {
+		return err
+	}
+	mainPath := filepath.Join(abspath, "bud", "command", "main.go")
+	// TODO: generate command/main.go
+	// TODO: better context
+	return gobin.Run(context.Background(), abspath, mainPath, bud.Args()...)
 }

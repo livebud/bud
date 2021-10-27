@@ -1,11 +1,20 @@
 
 {{bold}}Usage:{{reset}}
-  {{ $.Name }}
+  {{ $.Name }}{{ if $.Flags }} [flags]{{ end }}{{ if $.Commands }} [command]{{ end }}
+
+{{- if $.Flags}}
+
+{{bold}}Flags:{{reset}}
+{{- range $flag := $.Flags }}
+  {{$flag.Name}}		{{$flag.Usage}}
+{{- end }}
+{{- end }}
 
 {{- if $.Commands }}
 
 {{bold}}Commands:{{reset}}
 {{- range $cmd := $.Commands }}
-  {{$cmd.Name}}  {{$cmd.Usage}}
+  {{$cmd.Name}}		{{$cmd.Usage}}
 {{- end }}
 {{- end }}
+

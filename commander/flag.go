@@ -1,16 +1,14 @@
 package commander
 
-import "flag"
-
 type Flag struct {
-	name  string
-	usage string
-	value flag.Getter
+	Name  string
+	Usage string
+	value value
 }
 
 func (f *Flag) Int(target *int) *Int {
 	value := &Int{target: target}
-	f.value = &intValue{value}
+	f.value = &intValue{inner: value}
 	return value
 }
 
@@ -20,21 +18,19 @@ func (f *Flag) String(target *string) *String {
 	return value
 }
 
-type value interface {
-	flag.Getter
-	verify(name string) error
+func (f *Flag) Bool(target *bool) *Bool {
+	value := &Bool{target: target}
+	f.value = &boolValue{inner: value}
+	return value
 }
 
 func (f *Flag) verify(name string) error {
-	if verifier, ok := f.value.(value); ok {
-		return verifier.verify(name)
-	}
-	return nil
+	return f.value.verify(name)
 }
 
 func verifyFlags(flags []*Flag) error {
 	for _, flag := range flags {
-		if err := flag.verify(flag.name); err != nil {
+		if err := flag.verify(flag.Name); err != nil {
 			return err
 		}
 	}

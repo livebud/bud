@@ -7,18 +7,31 @@ import (
 
 type Int struct {
 	target *int
-	value  *int
+	defval *int
 }
 
 func (v *Int) Default(value int) {
-	*v.value = value
+	v.defval = &value
 }
 
 func (v *Int) Optional() {
 
 }
 
-type intValue struct{ inner *Int }
+type intValue struct {
+	inner *Int
+	set   bool
+}
+
+func (v *intValue) verify(name string) error {
+	if v.set {
+		return nil
+	} else if v.inner.defval != nil {
+		*v.inner.target = *v.inner.defval
+		return nil
+	}
+	return fmt.Errorf("missing %s", name)
+}
 
 func (v *intValue) Get() interface{} {
 	return *v.inner.target
@@ -30,9 +43,17 @@ func (v *intValue) Set(val string) error {
 		return err
 	}
 	*v.inner.target = n
+	v.set = true
 	return nil
 }
 
 func (v *intValue) String() string {
-	return fmt.Sprintf("%d", *v.inner.target)
+	if v.inner == nil {
+		return ""
+	} else if v.set {
+		return strconv.Itoa(*v.inner.target)
+	} else if v.inner.defval != nil {
+		return strconv.Itoa(*v.inner.defval)
+	}
+	return ""
 }

@@ -1,4 +1,4 @@
-package run
+package build
 
 import (
 	"context"
@@ -13,10 +13,8 @@ type Command struct {
 }
 
 func (c *Command) Run(ctx context.Context, generators map[string]bfs.Generator) error {
-	fmt.Println("running code!", c.Hot, c.Embed)
-
+	fmt.Println("building code!")
 	// 1. Run the generators
-	// 2. go run bud/main.go
-	// 3. Wait for changes
+	// 2. go build bud/main.go
 	return nil
 }

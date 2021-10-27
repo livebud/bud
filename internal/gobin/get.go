@@ -6,8 +6,8 @@ import (
 	"os/exec"
 )
 
-// GoGet calls `go get -u importPath@version`
-func GoGet(ctx context.Context, dir string, importPaths ...string) error {
+// Get calls `go get -u importPath@version`
+func Get(ctx context.Context, dir string, importPaths ...string) error {
 	cmd := exec.CommandContext(ctx, "go", append([]string{"get", "-u"}, importPaths...)...)
 	// GOPRIVATE=* to ensure we're not dealing with any caches
 	cmd.Env = append(os.Environ(), "GOPRIVATE=*")

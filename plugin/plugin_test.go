@@ -11,8 +11,8 @@ import (
 	"gitlab.com/mnm/bud/bfs"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/gobin"
-	"gitlab.com/mnm/bud/vfs"
 	"gitlab.com/mnm/bud/plugin"
+	"gitlab.com/mnm/bud/vfs"
 )
 
 func TestPlugin(t *testing.T) {
@@ -30,7 +30,7 @@ func TestPlugin(t *testing.T) {
 	})
 	is.NoErr(err)
 	ctx := context.Background()
-	err = gobin.GoGet(ctx, dir, "gitlab.com/mnm/testdata/bud-tailwind", "gitlab.com/mnm/testdata/bud-markdown")
+	err = gobin.Get(ctx, dir, "gitlab.com/mnm/testdata/bud-tailwind", "gitlab.com/mnm/testdata/bud-markdown")
 	is.NoErr(err)
 	modfile, err := mod.Find(dir)
 	is.NoErr(err)
