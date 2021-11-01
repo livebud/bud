@@ -7,6 +7,13 @@ import (
 	"gitlab.com/mnm/bud/bfs"
 )
 
+func New() *Command {
+	return &Command{
+		Hot:   false,
+		Embed: true,
+	}
+}
+
 type Command struct {
 	Hot   bool
 	Embed bool
