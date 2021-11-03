@@ -1,4 +1,4 @@
-package web
+package controller
 
 import (
 	"gitlab.com/mnm/bud/bfs"

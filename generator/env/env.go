@@ -1,4 +1,4 @@
-package web
+package env
 
 import (
 	"gitlab.com/mnm/bud/bfs"

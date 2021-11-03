@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/mnm/bud/bfs"
 	"github.com/matryer/is"
+	"gitlab.com/mnm/bud/bfs"
 )
 
 func TestOpen(t *testing.T) {

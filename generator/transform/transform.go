@@ -1,8 +1,6 @@
-package web
+package transform
 
-import (
-	"gitlab.com/mnm/bud/bfs"
-)
+import "gitlab.com/mnm/bud/bfs"
 
 func Generator() bfs.Generator {
 	return bfs.GenerateFile(func(f bfs.FS, file *bfs.File) error {

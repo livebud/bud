@@ -1,4 +1,4 @@
-package web
+package public
 
 import (
 	"gitlab.com/mnm/bud/bfs"

@@ -31,6 +31,9 @@ func Compose(stack ...Middleware) Middleware {
 			return h
 		}
 		for i := len(stack) - 1; i >= 0; i-- {
+			if stack[i] == nil {
+				continue
+			}
 			h = stack[i].Middleware(h)
 		}
 		return h
