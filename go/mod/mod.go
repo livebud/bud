@@ -58,7 +58,7 @@ func Find(dir string) (File, error) {
 	}
 	modPath, err := Infer(absdir)
 	if nil == err {
-		return Virtual(modPath, dir), nil
+		return Virtual(modPath, absdir), nil
 	} else if !errors.Is(err, ErrCantInfer) {
 		return nil, err
 	}

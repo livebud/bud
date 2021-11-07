@@ -10,13 +10,13 @@ import (
 	_ "embed"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
-	"gitlab.com/mnm/bud/bfs"
+	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/entrypoint"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/transform"
 )
 
-func Generator(osfs fs.FS, dir string, transformer *transform.Transformer) bfs.Generator {
+func Generator(osfs fs.FS, dir string, transformer *transform.Transformer) gen.Generator {
 	plugins := append([]esbuild.Plugin{
 		ssrPlugin(osfs, dir),
 		ssrRuntimePlugin(osfs, dir),
@@ -26,7 +26,7 @@ func Generator(osfs fs.FS, dir string, transformer *transform.Transformer) bfs.G
 		sveltePlugin(osfs, dir),
 		svelteRuntimePlugin(osfs, dir),
 	}, transformer.Node.Plugins()...)
-	return bfs.GenerateFile(func(f bfs.FS, file *bfs.File) error {
+	return gen.GenerateFile(func(f gen.F, file *gen.File) error {
 		result := esbuild.Build(esbuild.BuildOptions{
 			EntryPointsAdvanced: []esbuild.EntryPoint{
 				{
@@ -62,7 +62,7 @@ func Generator(osfs fs.FS, dir string, transformer *transform.Transformer) bfs.G
 		// }
 		// TODO: remove WriteEvent and externalize actual file contents so we only
 		// need to watch directory changes.
-		file.Watch("bud/view/**/*.{svelte,jsx}", bfs.CreateEvent|bfs.RemoveEvent|bfs.WriteEvent)
+		file.Watch("bud/view/**/*.{svelte,jsx}", gen.CreateEvent|gen.RemoveEvent|gen.WriteEvent)
 		file.Write(result.OutputFiles[0].Contents)
 		return nil
 	})

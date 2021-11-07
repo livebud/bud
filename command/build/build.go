@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"gitlab.com/mnm/bud/bfs"
+	"gitlab.com/mnm/bud/gen"
 )
 
 func New() *Command {
@@ -19,7 +19,7 @@ type Command struct {
 	Embed bool
 }
 
-func (c *Command) Run(ctx context.Context, generators map[string]bfs.Generator) error {
+func (c *Command) Run(ctx context.Context, generators map[string]gen.Generator) error {
 	fmt.Println("building code!")
 	// 1. Run the generators
 	// 2. go build bud/main.go

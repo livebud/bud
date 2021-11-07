@@ -1,7 +1,6 @@
 package commander
 
 import (
-	"bytes"
 	"context"
 	_ "embed"
 	"errors"
@@ -29,12 +28,11 @@ type Command struct {
 	run    func(ctx context.Context) error
 
 	// state for the template
-	// TODO: hide
-	Name     string
-	Usage    string
-	Commands map[string]*Command
-	Flags    []*Flag
-	Args     []*Arg
+	name     string
+	usage    string
+	commands map[string]*Command
+	flags    []*Flag
+	args     []*Arg
 }
 
 func newCommand(config *config, name, usage string) *Command {
@@ -43,9 +41,9 @@ func newCommand(config *config, name, usage string) *Command {
 	return &Command{
 		config:   config,
 		fset:     fset,
-		Name:     name,
-		Usage:    usage,
-		Commands: map[string]*Command{},
+		name:     name,
+		usage:    usage,
+		commands: map[string]*Command{},
 	}
 }
 
@@ -101,12 +99,12 @@ func (c *CLI) Run(runner func(ctx context.Context) error) {
 	c.root.Run(runner)
 }
 
-func (c *Command) usage() error {
-	buf := new(bytes.Buffer)
-	if err := c.config.template.Execute(buf, c); err != nil {
+func (c *Command) printUsage() error {
+	usage, err := generateUsage(c.config.template, c)
+	if err != nil {
 		return err
 	}
-	fmt.Fprint(c.config.writer, buf.String())
+	fmt.Fprint(c.config.writer, usage)
 	return nil
 }
 
@@ -117,43 +115,46 @@ type value interface {
 
 func (c *Command) parse(ctx context.Context, args []string) error {
 	// Set flags
-	for _, flag := range c.Flags {
-		c.fset.Var(flag.value, flag.Name, flag.Usage)
+	for _, flag := range c.flags {
+		c.fset.Var(flag.value, flag.name, flag.usage)
+		if flag.short != 0 {
+			c.fset.Var(flag.value, string(flag.short), flag.usage)
+		}
 	}
 	// Parse the arguments
 	if err := c.fset.Parse(args); err != nil {
 		// Print usage if the developer used -h or --help
 		if errors.Is(err, flag.ErrHelp) {
-			return c.usage()
+			return c.printUsage()
 		}
 		return err
 	}
 	// Verify that all the flags have been set or have default values
-	if err := verifyFlags(c.Flags); err != nil {
+	if err := verifyFlags(c.flags); err != nil {
 		return err
 	}
 	// Check if the first argument is a subcommand
-	if sub, ok := c.Commands[c.fset.Arg(0)]; ok {
+	if sub, ok := c.commands[c.fset.Arg(0)]; ok {
 		return sub.parse(ctx, c.fset.Args()[1:])
 	}
 	// Handle the remaining arguments
-	numArgs := len(c.Args)
+	numArgs := len(c.args)
 	for i, arg := range c.fset.Args() {
 		if i >= numArgs {
 			return fmt.Errorf("unexpected %s", arg)
 		}
-		if err := c.Args[i].value.Set(arg); err != nil {
+		if err := c.args[i].value.Set(arg); err != nil {
 			return err
 		}
 	}
 	// Verify that all the args have been set or have default values
-	if err := verifyArgs(c.Args); err != nil {
+	if err := verifyArgs(c.args); err != nil {
 		return err
 	}
 	// Print usage if there's no run function defined
 	if c.run == nil {
 		if len(c.fset.Args()) == 0 {
-			return c.usage()
+			return c.printUsage()
 		}
 		return fmt.Errorf("unexpected %s", c.fset.Arg(0))
 	}
@@ -165,8 +166,11 @@ func (c *Command) Run(runner func(ctx context.Context) error) {
 }
 
 func (c *Command) Command(name, usage string) *Command {
+	if c.commands[name] != nil {
+		return c.commands[name]
+	}
 	cmd := newCommand(c.config, name, usage)
-	c.Commands[name] = cmd
+	c.commands[name] = cmd
 	return cmd
 }
 
@@ -175,15 +179,15 @@ func (c *Command) Arg(name, usage string) *Arg {
 		Name:  name,
 		Usage: usage,
 	}
-	c.Args = append(c.Args, arg)
+	c.args = append(c.args, arg)
 	return arg
 }
 
 func (c *Command) Flag(name, usage string) *Flag {
 	flag := &Flag{
-		Name:  name,
-		Usage: usage,
+		name:  name,
+		usage: usage,
 	}
-	c.Flags = append(c.Flags, flag)
+	c.flags = append(c.flags, flag)
 	return flag
 }

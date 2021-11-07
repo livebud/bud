@@ -7,8 +7,8 @@ import (
 	"testing/fstest"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/bfs"
 	"gitlab.com/mnm/bud/fsync"
+	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/gotext"
 	"gitlab.com/mnm/bud/vfs"
 	"gitlab.com/mnm/bud/view"
@@ -141,7 +141,7 @@ var renderTests = []*RenderTest{
 	},
 }
 
-func testRender(is *is.I, dir string, bf bfs.BFS, test *RenderTest) {
+func testRender(is *is.I, dir string, bf gen.FS, test *RenderTest) {
 	// Prepare main.go and files
 	mem := vfs.Memory{}
 	for path, data := range test.Files {

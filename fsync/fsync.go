@@ -145,11 +145,14 @@ func apply(sfs fs.FS, tfs vfs.ReadWritable, ops []Op) error {
 		switch op.Type {
 		case CreateType:
 			dir := filepath.Dir(op.Path)
-			if err := tfs.MkdirAll(dir, 0755); err != nil {
-				return err
-			}
 			data, err := fs.ReadFile(sfs, op.Path)
 			if err != nil {
+				if errors.Is(err, fs.ErrNotExist) {
+					continue
+				}
+				return err
+			}
+			if err := tfs.MkdirAll(dir, 0755); err != nil {
 				return err
 			}
 			if err := tfs.WriteFile(op.Path, data, 0644); err != nil {
@@ -158,6 +161,9 @@ func apply(sfs fs.FS, tfs vfs.ReadWritable, ops []Op) error {
 		case UpdateType:
 			data, err := fs.ReadFile(sfs, op.Path)
 			if err != nil {
+				if errors.Is(err, fs.ErrNotExist) {
+					continue
+				}
 				return err
 			}
 			if err := tfs.WriteFile(op.Path, data, 0644); err != nil {

@@ -5,17 +5,17 @@ import (
 	"net/http"
 	"time"
 
-	"gitlab.com/mnm/bud/bfs"
+	"gitlab.com/mnm/bud/gen"
 )
 
 var hotPath = "/bud/hot"
 
-func New(bf bfs.BFS) *Server {
+func New(bf gen.FS) *Server {
 	return &Server{bf}
 }
 
 type Server struct {
-	bf bfs.BFS
+	bf gen.FS
 }
 
 // Middleware that handles refreshing the frontend

@@ -1,9 +1,15 @@
 package commander
 
 type Flag struct {
-	Name  string
-	Usage string
+	name  string
+	usage string
 	value value
+	short byte
+}
+
+func (f *Flag) Short(short byte) *Flag {
+	f.short = short
+	return f
 }
 
 func (f *Flag) Int(target *int) *Int {
@@ -30,7 +36,7 @@ func (f *Flag) verify(name string) error {
 
 func verifyFlags(flags []*Flag) error {
 	for _, flag := range flags {
-		if err := flag.verify(flag.Name); err != nil {
+		if err := flag.verify(flag.name); err != nil {
 			return err
 		}
 	}

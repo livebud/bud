@@ -227,7 +227,7 @@ func TestSubHelp(t *testing.T) {
 	is := is.New(t)
 	actual := new(bytes.Buffer)
 	cli := commander.New("bud").Writer(actual)
-	cli.Flag("log", "log").Bool(nil).Default(false)
+	cli.Flag("log", "specify the logger").Bool(nil).Default(false)
 	var trace []string
 	cli.Run(func(ctx context.Context) error {
 		trace = append(trace, "bud")
@@ -254,7 +254,48 @@ func TestSubHelp(t *testing.T) {
   bud [flags] [command]
 
 {bold}Flags:{reset}
-  log		log
+  --log		specify the logger
+
+{bold}Commands:{reset}
+  build		build your application
+  run		run your application
+
+`)
+}
+func TestSubHelpShort(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	cli := commander.New("bud").Writer(actual)
+	cli.Flag("log", "specify the logger").Short('L').Bool(nil).Default(false)
+	cli.Flag("debug", "set the debugger").Bool(nil).Default(true)
+	var trace []string
+	cli.Run(func(ctx context.Context) error {
+		trace = append(trace, "bud")
+		return nil
+	})
+	{
+		sub := cli.Command("run", "run your application")
+		sub.Run(func(ctx context.Context) error {
+			trace = append(trace, "run")
+			return nil
+		})
+	}
+	{
+		sub := cli.Command("build", "build your application")
+		sub.Run(func(ctx context.Context) error {
+			trace = append(trace, "build")
+			return nil
+		})
+	}
+	err := cli.Parse([]string{"-h"})
+	is.NoErr(err)
+	isEqual(t, actual.String(), `
+{bold}Usage:{reset}
+  bud [flags] [command]
+
+{bold}Flags:{reset}
+  --log, -L		specify the logger
+  --debug		set the debugger
 
 {bold}Commands:{reset}
   build		build your application

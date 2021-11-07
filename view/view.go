@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/mnm/bud/bfs"
+	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/js"
 )
 
@@ -32,7 +32,7 @@ type Renderer interface {
 	Render(path string, props interface{}) (*Response, error)
 }
 
-func New(bf bfs.BFS, vm js.VM) *Server {
+func New(bf gen.FS, vm js.VM) *Server {
 	return &Server{bf, http.FS(bf), vm}
 }
 

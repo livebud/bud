@@ -12,7 +12,7 @@ import (
 	"testing/fstest"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/bfs"
+	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/npm"
 	v8 "gitlab.com/mnm/bud/js/v8"
 	"gitlab.com/mnm/bud/ssr"
@@ -48,8 +48,8 @@ func TestSvelteHello(t *testing.T) {
 	transformer := transform.MustLoad(
 		svelte.NewTransformable(svelteCompiler),
 	)
-	bf := bfs.New(dirfs)
-	bf.Add(map[string]bfs.Generator{
+	bf := gen.New(dirfs)
+	bf.Add(map[string]gen.Generator{
 		"bud/view/_ssr.js": ssr.Generator(dirfs, dir, transformer),
 	})
 	// Install svelte
@@ -117,8 +117,8 @@ func TestSvelteAwait(t *testing.T) {
 	transformer := transform.MustLoad(
 		svelte.NewTransformable(svelteCompiler),
 	)
-	bf := bfs.New(dirfs)
-	bf.Add(map[string]bfs.Generator{
+	bf := gen.New(dirfs)
+	bf.Add(map[string]gen.Generator{
 		"bud/view/_ssr.js": ssr.Generator(dirfs, dir, transformer),
 	})
 	// Install svelte

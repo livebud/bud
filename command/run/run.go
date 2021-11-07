@@ -4,18 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"gitlab.com/mnm/bud/bfs"
-	"gitlab.com/mnm/bud/generator/command/run"
-	"gitlab.com/mnm/bud/generator/controller"
-	"gitlab.com/mnm/bud/generator/env"
-	"gitlab.com/mnm/bud/generator/public"
-	"gitlab.com/mnm/bud/generator/transform"
-	"gitlab.com/mnm/bud/generator/web"
+	"gitlab.com/mnm/bud/gen"
+	"gitlab.com/mnm/bud/internal/generator/controller"
+	"gitlab.com/mnm/bud/internal/generator/web"
 )
 
-func New(bfs bfs.BFS) *Command {
+func New(gen gen.FS) *Command {
 	return &Command{
-		bfs:   bfs,
+		gen:   gen,
 		URL:   "localhost:3000",
 		Hot:   false,
 		Embed: true,
@@ -23,25 +19,25 @@ func New(bfs bfs.BFS) *Command {
 }
 
 type Command struct {
-	bfs   bfs.BFS
+	gen   gen.FS
 	URL   string
 	Hot   bool
 	Embed bool
 }
 
-func (c *Command) Run(ctx context.Context, generators map[string]bfs.Generator) error {
+func (c *Command) Run(ctx context.Context, generators map[string]gen.Generator) error {
 	fmt.Println("running code!", c.URL, c.Hot, c.Embed)
 	// 1. Run the generators
-	c.bfs.Add(map[string]bfs.Generator{
-		"bud/command/main.go":          run.Generator(),
-		"bud/controller/controller.go": controller.Generator(),
-		"bud/env/env.go":               env.Generator(),
-		"bud/public/public.go":         public.Generator(),
-		"bud/transform/transform.go":   transform.Generator(),
-		"bud/web/web.go":               web.Generator(),
+	c.gen.Add(map[string]gen.Generator{
+		// "bud/command/main.go":          run.Generator(),
+		"bud/controller/controller.go": gen.FileGenerator(&controller.Generator{}),
+		"bud/web/web.go":               gen.FileGenerator(&web.Generator{}),
+		// "bud/env/env.go":               env.Generator(),
+		// "bud/public/public.go":         public.Generator(),
+		// "bud/transform/transform.go":   transform.Generator(),
 	})
 	// Add the user-defined generators
-	c.bfs.Add(generators)
+	c.gen.Add(generators)
 	// fsync.Dir(c.bfs,)
 	// 2. go run bud/main.go
 	// 3. Wait for changes

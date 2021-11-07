@@ -13,8 +13,8 @@ import (
 	"gitlab.com/mnm/bud/vfs"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/bfs"
 	"gitlab.com/mnm/bud/dom"
+	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/npm"
 	v8 "gitlab.com/mnm/bud/js/v8"
 	"gitlab.com/mnm/bud/svelte"
@@ -48,8 +48,8 @@ func TestRunner(t *testing.T) {
 	transformer := transform.MustLoad(
 		svelte.NewTransformable(svelteCompiler),
 	)
-	bf := bfs.New(dirfs)
-	bf.Add(map[string]bfs.Generator{
+	bf := gen.New(dirfs)
+	bf.Add(map[string]gen.Generator{
 		"bud/view": dom.Runner(dir, transformer),
 	})
 	// Read the wrapped version of index.svelte with node_modules rewritten
@@ -123,8 +123,8 @@ func TestNodeModules(t *testing.T) {
 	dirfs := os.DirFS(dir)
 	err = npm.Install(dir, "svelte@3.42.3")
 	is.NoErr(err)
-	bf := bfs.New(dirfs)
-	bf.Add(map[string]bfs.Generator{
+	bf := gen.New(dirfs)
+	bf.Add(map[string]gen.Generator{
 		"bud/node_modules": dom.NodeModules(dir),
 	})
 	// Read the re-written node_modules
@@ -167,8 +167,8 @@ func TestBuilder(t *testing.T) {
 	transformer := transform.MustLoad(
 		svelte.NewTransformable(svelteCompiler),
 	)
-	bf := bfs.New(dirfs)
-	bf.Add(map[string]bfs.Generator{
+	bf := gen.New(dirfs)
+	bf.Add(map[string]gen.Generator{
 		"bud/view": dom.Builder(dir, transformer),
 	})
 	des, err := fs.ReadDir(bf, "bud/view")

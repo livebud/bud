@@ -1,0 +1,49 @@
+package generator
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+// Config shared by the generators
+type Config struct {
+	Embed  bool
+	Hot    bool
+	Minify bool
+}
+
+// Configure provides configuration to the user generators
+func Configure() *Config {
+	return &Config{
+		Embed: {{$.Embed}},
+		Hot: {{$.Hot}},
+		Minify: {{$.Minify}},
+	}
+}
+
+// New
+func New(
+	{{- range $generator := $.Generators }}
+	{{ $generator.Variable }} {{ $generator.Type }},
+	{{- end }}
+) *Generator {
+	genfs := gen.New(os.DirFS("."))
+	genfs.Add(map[string]gen.Generator{
+		{{- range $generator := $.Generators }}
+		"{{ $generator.Path }}": gen.FileGenerator({{ $generator.Variable }}),
+		{{- end }}
+	})
+	return &Generator{genfs}
+}
+
+type Generator struct {
+	genfs gen.FS
+}
+
+func (g *Generator) Generate() error {
+	return fsync.Dir(g.genfs, ".", vfs.OS("."), ".")
+}

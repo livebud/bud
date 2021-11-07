@@ -6,7 +6,7 @@
 
 {{bold}}Flags:{{reset}}
 {{- range $flag := $.Flags }}
-  {{$flag.Name}}		{{$flag.Usage}}
+  --{{$flag.Name}}{{with $flag.Short}}, -{{.}}{{end}}		{{$flag.Usage}}
 {{- end }}
 {{- end }}
 

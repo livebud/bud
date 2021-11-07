@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
-	"gitlab.com/mnm/bud/bfs"
+	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/entrypoint"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/transform"
@@ -23,13 +23,13 @@ var template string
 // generator
 var generator = gotemplate.MustParse("dom.gotext", template)
 
-func Runner(rootDir string, transformer *transform.Transformer) bfs.Generator {
+func Runner(rootDir string, transformer *transform.Transformer) gen.Generator {
 	dirfs := os.DirFS(rootDir)
 	plugins := append([]esbuild.Plugin{
 		domPlugin(dirfs, rootDir),
 		domExternalizePlugin(),
 	}, transformer.Browser.Plugins()...)
-	return bfs.ServeFile(func(f bfs.FS, file *bfs.File) error {
+	return gen.ServeFile(func(f gen.F, file *gen.File) error {
 		// If the name starts with node_modules, trim it to allow esbuild to do
 		// the resolving. e.g. node_modules/livebud => livebud
 		entryPoint := trimEntrypoint(file.Path())
@@ -61,16 +61,16 @@ func Runner(rootDir string, transformer *transform.Transformer) bfs.Generator {
 		code = replaceDependencyPaths(code)
 		file.Write(code)
 		source := strings.TrimPrefix(file.Path(), "bud/")
-		file.Watch(source, bfs.WriteEvent)
+		file.Watch(source, gen.WriteEvent)
 		return nil
 	})
 }
 
-func NodeModules(rootDir string) bfs.Generator {
+func NodeModules(rootDir string) gen.Generator {
 	plugins := []esbuild.Plugin{
 		domExternalizePlugin(),
 	}
-	return bfs.ServeFile(func(f bfs.FS, file *bfs.File) error {
+	return gen.ServeFile(func(f gen.F, file *gen.File) error {
 		// If the name starts with node_modules, trim it to allow esbuild to do
 		// the resolving. e.g. node_modules/timeago.js => timeago.js
 		entryPoint := trimEntrypoint(file.Path())
@@ -103,17 +103,17 @@ func NodeModules(rootDir string) bfs.Generator {
 		file.Write(code)
 		source := strings.TrimPrefix(file.Path(), "bud/")
 		// fmt.Println("linked", file.Path(), "->", source)
-		file.Watch(source, bfs.WriteEvent)
+		file.Watch(source, gen.WriteEvent)
 		return nil
 	})
 }
 
-func Builder(rootDir string, transformer *transform.Transformer) bfs.Generator {
+func Builder(rootDir string, transformer *transform.Transformer) gen.Generator {
 	dirfs := os.DirFS(rootDir)
 	plugins := append([]esbuild.Plugin{
 		domPlugin(dirfs, rootDir),
 	}, transformer.Browser.Plugins()...)
-	return bfs.GenerateDir(func(f bfs.FS, dir *bfs.Dir) error {
+	return gen.GenerateDir(func(f gen.F, dir *gen.Dir) error {
 		views, err := entrypoint.List(dirfs)
 		if err != nil {
 			return err
@@ -163,7 +163,7 @@ func Builder(rootDir string, transformer *transform.Transformer) bfs.Generator {
 			if isEntry(outPath) {
 				outPath = strings.TrimSuffix(outPath, ".js")
 			}
-			dir.Entry(outPath, bfs.GenerateFile(func(f bfs.FS, file *bfs.File) error {
+			dir.Entry(outPath, gen.GenerateFile(func(f gen.F, file *gen.File) error {
 				file.Write(outFile.Contents)
 				return nil
 			}))

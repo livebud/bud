@@ -6,9 +6,9 @@ import (
 	"os/exec"
 )
 
-// Run calls `go run -mod=mod main.go ...`
-func Run(ctx context.Context, dir, mainpath string, args ...string) error {
-	cmd := exec.CommandContext(ctx, "go", append([]string{"run", "-mod=mod", mainpath}, args...)...)
+// Build calls `go build -mod=mod -o main main.go`
+func Build(ctx context.Context, dir, mainpath string, outpath string) error {
+	cmd := exec.CommandContext(ctx, "go", "build", "-mod=mod", "-o", outpath, mainpath)
 	cmd.Env = os.Environ()
 	cmd.Stdout = os.Stdout
 	// stderr := new(bytes.Buffer)

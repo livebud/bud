@@ -1,0 +1,37 @@
+package main
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+// Build Configuration
+var config = &generator.Config{
+	Embed: {{$.Embed}},
+	Hot: {{$.Hot}},
+	Minify: {{$.Minify}},
+}
+
+func main() {
+	if err := do(); err != nil {
+		println(err.Error())
+		os.Exit(1)
+	}
+}
+
+func do() error {
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	genfs := gen.New(os.DirFS(wd))
+	// user generators
+	// TODO: support user generators
+	genfs.Add(map[string]gen.Generator{})
+	fmt.Println(genfs)
+  return nil
+}

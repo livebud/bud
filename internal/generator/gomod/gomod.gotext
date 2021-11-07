@@ -1,0 +1,21 @@
+module {{$.Modfile.ModulePath}}
+
+go {{$.Go.Version}}
+
+{{- if $.Requires }}
+
+require (
+{{- range $require := $.Requires }}
+	{{ $require.Path }} {{ $require.Version }}{{ if $require.Indirect }} // indirect{{ end }}
+{{- end }}
+)
+{{- end }}
+
+{{- if $.Replaces }}
+
+replace (
+{{- range $replace := $.Replaces }}
+	{{ $replace.Old }} => {{ $replace.New }}
+{{- end }}
+)
+{{- end }}
