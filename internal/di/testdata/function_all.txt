@@ -1,0 +1,172 @@
+# Duo setup
+go mod edit -replace gitlab.com/mnm/bud=$DUOC_DIR
+
+# Run di
+di -d='web.*Web' -o='gen/web/web.go'
+
+# Run go mod tidy
+go mod tidy
+
+# Test di
+go test main_test.go
+
+-- main_test.go --
+package main_test
+
+import (
+  "testing"
+  "gitlab.com/mnm/bud/is"
+  "myapp.com/gen/web"
+)
+
+func Test(t *testing.T) {
+  is := is.New(t)
+  actual, err := web.Load()
+  is.NoErr(err)
+  expect := `&web.Web{r: &router.Router{}, c: &controller.Map{pages: &pages.Controller{log: &log.Log{e: &env.Env{}}}, users: &users.Controller{db: &db.DB{env: &env.Env{}, log: &log.Log{e: &env.Env{}}}, log: &log.Log{e: &env.Env{}}}}}`
+  is.Value(actual, expect)
+}
+
+-- go.mod --
+module myapp.com
+
+require (
+  gitlab.com/mnm/bud v0.0.0
+)
+
+-- env/env.go --
+package env
+
+// New env
+func New() (*Env, error) {
+  return &Env{}, nil
+}
+
+// Env struct
+type Env struct {
+  LogLevel    string
+  PostgresURL string
+}
+
+-- log/log.go --
+package log
+
+import (
+  "myapp.com/env"
+)
+
+// Log struct
+type Log struct {
+  e *env.Env
+}
+
+// New Log
+func New(e *env.Env) (*Log, error) {
+  return &Log{e}, nil
+}
+
+-- router/router.go --
+package router
+
+// New router
+func New() *Router {
+  return &Router{}
+}
+
+// Router struct
+type Router struct {
+}
+
+-- db/db.go --
+package db
+
+import (
+  "myapp.com/env"
+  "myapp.com/log"
+)
+
+// New fn
+func New(e *env.Env, log *log.Log) (*DB, error) {
+  return &DB{e, log}, nil
+}
+
+// DB Struct
+type DB struct {
+  env  *env.Env
+  log  *log.Log
+}
+
+-- controllers/users/controller.go --
+package users
+
+import (
+  "myapp.com/db"
+  "myapp.com/log"
+)
+
+// New controller
+func New(db *db.DB, log *log.Log) *Controller {
+  return &Controller{db, log}
+}
+
+// Controller struct
+type Controller struct {
+  db *db.DB
+  log *log.Log
+}
+
+-- controllers/pages/controller.go --
+package pages
+
+import (
+  "myapp.com/log"
+)
+
+// New controller
+func New(log *log.Log) *Controller {
+  return &Controller{log}
+}
+
+// Controller struct
+type Controller struct {
+  log *log.Log
+}
+
+-- controller/controller.go --
+package controller
+
+import (
+  "myapp.com/controllers/pages"
+  "myapp.com/controllers/users"
+)
+
+// New controller map
+func New(pages *pages.Controller, users *users.Controller) *Map {
+  return &Map{pages, users}
+}
+
+// Map of controllers
+type Map struct {
+  pages *pages.Controller
+  users *users.Controller
+}
+
+-- web/web.go --
+package web
+
+import (
+  "myapp.com/controller"
+  "myapp.com/router"
+)
+
+// New web
+func New(r *router.Router, c *controller.Map) *Web {
+  return &Web{r, c}
+}
+
+// Web struct
+type Web struct {
+  r *router.Router
+  c *controller.Map
+}
+

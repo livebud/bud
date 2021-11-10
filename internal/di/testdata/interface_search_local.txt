@@ -1,0 +1,95 @@
+# Test for defining an interface in `duo/log/log.go`,  but instantiating that
+# interface locally in `log/log.go`. Duo uses search paths to look in
+# non-standard places.
+
+# Duo setup
+go mod edit -replace gitlab.com/mnm/bud=$DUOC_DIR
+
+# Run di
+di -d='web.*Web' -o='gen/web/web.go'
+
+# Run go mod tidy
+go mod tidy
+
+# Test di
+go test main_test.go
+
+-- main_test.go --
+package main_test
+
+import (
+  "testing"
+  "gitlab.com/mnm/bud/is"
+  "myapp.com/gen/web"
+)
+
+func Test(t *testing.T) {
+  is := is.New(t)
+  expect := `&web.Web{Log: &console.console{value: "c"}, Logger: &web.Logger{log: &console.console{value: "c"}}}`
+  actual := web.Load()
+  is.Value(actual, expect)
+}
+
+-- go.mod --
+module myapp.com
+
+require (
+  gitlab.com/mnm/bud v0.0.0
+)
+
+-- duo/log/log.go --
+package log
+
+type Log interface {
+  Info(s string)
+}
+
+-- duo/log/console/console.go --
+package console
+
+import (
+  "myapp.com/duo/log"
+)
+
+func Default() log.Log {
+  return &console{"c"}
+}
+
+type console struct {
+  value string
+}
+
+func (c *console) Info(s string) {}
+
+-- log/log.go --
+package log
+
+import (
+  "myapp.com/duo/log/console"
+  "myapp.com/duo/log"
+)
+
+func New() log.Log {
+  return console.Default()
+}
+
+-- web/web.go --
+package web
+
+import (
+  "myapp.com/duo/log"
+)
+
+func New(log log.Log) *Logger {
+  return &Logger{log}
+}
+
+type Logger struct {
+  log log.Log
+}
+
+type Web struct {
+  log.Log
+  *Logger
+}
+

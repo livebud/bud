@@ -1,0 +1,47 @@
+# Duo setup
+go mod edit -replace gitlab.com/mnm/bud=$DUOC_DIR
+[replace] go mod edit -replace gitlab.com/mnm/duo=$DUO_DIR
+[!replace] go mod edit -require gitlab.com/mnm/duo@$DUO_VERSION
+go mod tidy
+
+go run main.go
+stdout '^hello'
+
+-- main.go --
+package main
+
+import (
+  "gitlab.com/mnm/bud/go/mod"
+  "gitlab.com/mnm/bud/go/parser"
+  "fmt"
+  "os"
+)
+
+func main() {
+  result, err := run()
+  if err != nil {
+    fmt.Fprintln(os.Stderr, err)
+    os.Exit(1)
+  }
+  fmt.Fprintln(os.Stdout, result)
+}
+
+func run() (string, error) {
+  p := parser.New(mod.New())
+  pkg, err := p.Parse("./hello")
+  if err != nil {
+    return "", err
+  }
+  return pkg.Name(), nil
+}
+
+-- go.mod --
+module app.com
+
+require (
+  gitlab.com/mnm/duo v0.0.0
+  gitlab.com/mnm/bud v0.0.0
+)
+
+-- hello/hello.go --
+package hello

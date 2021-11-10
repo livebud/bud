@@ -1,0 +1,63 @@
+# Duo setup
+go mod edit -replace gitlab.com/mnm/bud=$DUOC_DIR
+
+# Run di
+di -d='web.*Web' -o='gen/web/web.go'
+
+# Run go mod tidy
+go mod tidy
+
+# Test di
+go test main_test.go
+
+-- main_test.go --
+package main_test
+
+import (
+  "testing"
+  "gitlab.com/mnm/bud/is"
+  "myapp.com/gen/web"
+)
+
+func Test(t *testing.T) {
+  is := is.New(t)
+  expect := `&web.Web{Logs: []*log.Log{}, Logger: &web.Logger{logs: []*log.Log{}}}`
+  actual := web.Load()
+  is.Value(actual, expect)
+}
+
+-- go.mod --
+module myapp.com
+
+require (
+  gitlab.com/mnm/bud v0.0.0
+)
+
+-- log/log.go --
+package log
+
+func New() []*Log {
+  return []*Log{}
+}
+
+type Log struct {}
+
+-- web/web.go --
+package web
+
+import (
+  "myapp.com/log"
+)
+
+func New(logs []*log.Log) *Logger {
+  return &Logger{logs}
+}
+
+type Logger struct {
+  logs []*log.Log
+}
+
+type Web struct {
+  Logs []*log.Log
+  *Logger
+}

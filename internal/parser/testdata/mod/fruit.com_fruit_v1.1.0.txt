@@ -1,0 +1,22 @@
+-- .mod --
+module fruit.com/fruit
+
+-- .info --
+{"Version":"v1.1.0","Time":"2018-10-22T18:45:40Z"}
+
+-- go.mod --
+module fruit.com/fruit
+
+-- fruit.go --
+package fruit
+
+const Name = "Apple"
+
+// Pear command
+func Pear() string {
+  return "Pear"
+}
+
+type Fruit struct {
+  Kind string
+}

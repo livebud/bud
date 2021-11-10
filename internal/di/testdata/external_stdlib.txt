@@ -1,0 +1,49 @@
+# Duo setup
+go mod edit -replace gitlab.com/mnm/bud=$DUOC_DIR
+
+# Run di
+di -d='web.*Web' -o='gen/web/web.go' -e='net/http.*Request'
+
+# Run go mod tidy
+go mod tidy
+
+# Test di
+go test main_test.go
+
+-- main_test.go --
+package main_test
+
+import (
+  "testing"
+  "net/http"
+  "gitlab.com/mnm/bud/is"
+  genweb "myapp.com/gen/web"
+)
+
+func Test(t *testing.T) {
+  is := is.New(t)
+  expect := `&web.Web{Request: &http.Request{Method: "GET", URL: &url.URL{Path: "/"}, Proto: "HTTP/1.1", ProtoMajor: 1, ProtoMinor: 1, Header: http.Header{}, ctx: valast.Addr(context.emptyCtx(0)).(*context.emptyCtx)}}`
+  request, err := http.NewRequest("GET", "/", nil)
+  is.NoErr(err)
+  actual := genweb.Load(request)
+  is.Value(actual, expect)
+}
+
+-- go.mod --
+module myapp.com
+
+require (
+  gitlab.com/mnm/bud v0.0.0
+)
+
+-- web/web.go --
+package web
+
+import (
+  "net/http"
+)
+
+// Web struct
+type Web struct {
+  *http.Request
+}

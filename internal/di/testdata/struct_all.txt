@@ -1,0 +1,108 @@
+# Duo setup
+go mod edit -replace gitlab.com/mnm/bud=$DUOC_DIR
+
+# Run di
+di -d='web.*Web' -o='gen/web/web.go'
+
+# Run go mod tidy
+go mod tidy
+
+# Test di
+go test main_test.go
+
+-- main_test.go --
+package main_test
+
+import (
+  "testing"
+  "gitlab.com/mnm/bud/is"
+  "myapp.com/gen/web"
+)
+
+func Test(t *testing.T) {
+  is := is.New(t)
+  expect := `&web.Web{Blank: &web.Blank{}, Database: &web.Database{DB: &db.DB{Env: &env.Env{}, Log: &log.Log{Env: &env.Env{}}}}, Env: &env.Env{}, Users: &users.Controller{DB: &db.DB{Env: &env.Env{}, Log: &log.Log{Env: &env.Env{}}}, Env: &env.Env{}}}`
+  actual := web.Load()
+  is.Value(actual, expect)
+}
+
+-- go.mod --
+module myapp.com
+
+require (
+  gitlab.com/mnm/bud v0.0.0
+)
+
+-- web/web.go --
+package web
+
+import (
+  "myapp.com/db"
+  "myapp.com/env"
+  "myapp.com/users"
+)
+
+// Blank struct
+type Blank struct {
+  small string
+}
+
+// Database struct
+type Database struct {
+  *db.DB
+}
+
+// Web struct
+type Web struct {
+  *Blank
+  *Database
+  *env.Env
+  Users *users.Controller
+}
+
+-- users/controller.go --
+package users
+
+import (
+  "myapp.com/db"
+  "myapp.com/env"
+)
+
+// Controller struct
+type Controller struct {
+  *db.DB
+  Env *env.Env
+}
+
+-- log/log.go --
+package log
+
+import (
+  "myapp.com/env"
+)
+
+// Log struct
+type Log struct {
+  *env.Env
+}
+
+-- env/env.go --
+package env
+
+// Env struct
+type Env struct {}
+
+-- db/db.go --
+package db
+
+import (
+  "myapp.com/env"
+  "myapp.com/log"
+)
+
+// DB Struct
+type DB struct {
+  Env *env.Env
+  Log *log.Log
+}
+

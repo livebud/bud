@@ -1,0 +1,87 @@
+# Duo setup
+go mod edit -replace gitlab.com/mnm/bud=$DUOC_DIR
+
+# Run di
+di -d='web.*Web' -o='gen/web/web.go'
+
+# Run go mod tidy
+go mod tidy
+
+# Test di
+go test main_test.go
+
+-- main_test.go --
+package main_test
+
+import (
+  "testing"
+  "gitlab.com/mnm/bud/is"
+  "myapp.com/gen/web"
+)
+
+func Test(t *testing.T) {
+  is := is.New(t)
+  result, err := web.Load()
+  is.Equal(`env: unable to load environment`, err.Error())
+  is.Equal(nil, result)
+}
+
+-- go.mod --
+module myapp.com
+
+require (
+  gitlab.com/mnm/bud v0.0.0
+)
+
+-- env/env.go --
+package env
+
+import (
+  "errors"
+)
+
+// New env
+func New() (*Env, error) {
+  return &Env{}, errors.New("env: unable to load environment")
+}
+
+// Env struct
+type Env struct {
+  LogLevel    string
+  PostgresURL string
+}
+
+-- log/log.go --
+package log
+
+import (
+  "myapp.com/env"
+)
+
+// Log struct
+type Log struct {
+  e *env.Env
+}
+
+// New Log
+func New(e *env.Env) (*Log, error) {
+  return &Log{e}, nil
+}
+
+-- web/web.go --
+package web
+
+import (
+  "myapp.com/log"
+)
+
+// New web
+func New(log *log.Log) *Web {
+  return &Web{log}
+}
+
+// Web struct
+type Web struct {
+  l *log.Log
+}
+

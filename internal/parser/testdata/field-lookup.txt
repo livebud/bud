@@ -1,0 +1,72 @@
+# Duo setup
+go mod edit -replace gitlab.com/mnm/bud=$DUOC_DIR
+[replace] go mod edit -replace gitlab.com/mnm/duo=$DUO_DIR
+[!replace] go mod edit -require gitlab.com/mnm/duo@$DUO_VERSION
+go mod tidy
+
+go run main.go
+stdout '^Fruit$'
+
+-- main.go --
+package main
+
+import (
+  "gitlab.com/mnm/bud/go/mod"
+  "gitlab.com/mnm/bud/go/parser"
+  "fmt"
+  "os"
+)
+
+func main() {
+  result, err := run()
+  if err != nil {
+    fmt.Fprintln(os.Stderr, err)
+    os.Exit(1)
+  }
+  fmt.Fprintln(os.Stdout, result)
+}
+
+func run() (string, error) {
+  p := parser.New(mod.New())
+  pkg, err := p.Parse("./hello")
+  if err != nil {
+    return "", err
+  }
+  stcts := pkg.Structs()
+  for _, stct := range stcts {
+    if stct.Name() != "A" {
+      continue
+    }
+    for _, field := range stct.Fields() {
+      if field.Name() != "Fruit" {
+        continue
+      }
+      def, err := parser.Definition(field.Type())
+      if err != nil {
+        return "", err
+      }
+      return def.Name(), nil
+    }
+  }
+  return "", fmt.Errorf("unable to find struct")
+}
+
+-- go.mod --
+module app.com
+
+require (
+  gitlab.com/mnm/duo v0.0.0
+  gitlab.com/mnm/bud v0.0.0
+  fruit.com/fruit v1.1.0
+)
+
+-- hello/hello.go --
+package hello
+
+import (
+  "fruit.com/fruit"
+)
+
+type A struct {
+  Fruit fruit.Fruit
+}

@@ -109,7 +109,7 @@ func (m *Module) Directory() string {
 }
 
 // ModulePath returns the module path
-// e.g. github.com/go-duo/duoc
+// e.g. gitlab.com/mnm/bud
 func (m *Module) ModulePath(subpaths ...string) string {
 	return path.Join(append([]string{m.file.Module.Mod.Path}, subpaths...)...)
 }

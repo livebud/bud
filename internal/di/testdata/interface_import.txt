@@ -1,0 +1,69 @@
+# TODO: We'd need a custom search path to find log.Log in web/. I'm not sure
+# this usecase is useful right now, so we'll skip it until we find a usecase.
+skip
+
+# Duo setup
+go mod edit -replace gitlab.com/mnm/bud=$DUOC_DIR
+
+# Run di
+di -d='web.Log' -o='gen/web/web.go'
+
+# Run go mod tidy
+go mod tidy
+
+# Test di
+go test main_test.go
+
+-- main_test.go --
+package main_test
+
+import (
+  "testing"
+  "gitlab.com/mnm/bud/is"
+  "myapp.com/gen/web"
+)
+
+func Test(t *testing.T) {
+  is := is.New(t)
+  expect := `&log.log{}`
+  actual := web.Load()
+  is.Value(actual, expect)
+}
+
+-- go.mod --
+module myapp.com
+
+require (
+  gitlab.com/mnm/bud v0.0.0
+)
+
+-- log/log.go --
+package log
+
+type Log interface {
+  Info(s string)
+}
+
+func New() *log {
+  return &log{}
+}
+
+type log struct {
+}
+
+func (l *log) Info(s string) {}
+
+func Default() Log {
+  return &log{}
+}
+
+-- web/web.go --
+package web
+
+import (
+  "myapp.com/log"
+)
+
+func Log() log.Log {
+  return log.New()
+}
