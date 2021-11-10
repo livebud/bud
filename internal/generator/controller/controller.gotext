@@ -1,0 +1,69 @@
+package controller
+
+// GENERATED. DO NOT EDIT.
+
+import (
+	"net/http"
+
+	"github.com/go-duo/hn/bud/view"
+	"github.com/go-duo/hn/controller"
+)
+
+func New(
+	controller *controller.Controller,
+	view *view.Server,
+) *Controller {
+	return &Controller{
+		controller,
+		view,
+	}
+}
+
+type Controller struct {
+	controller *controller.Controller
+	view       *view.Server
+}
+
+func (c *Controller) Index(w http.ResponseWriter, r *http.Request) {
+	result, err := c.controller.Index(r.Context())
+	if err != nil {
+		// TODO: multi-format
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	// TODO: multi-format
+	res, err := c.view.Render("/", result)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	w.WriteHeader(res.Status)
+	header := w.Header()
+	for key, value := range res.Headers {
+		header.Set(key, value)
+	}
+	w.Write([]byte(res.Body))
+}
+
+func (c *Controller) Show(w http.ResponseWriter, r *http.Request) {
+	// TODO: proper request body
+	query := r.URL.Query()
+	result, err := c.controller.Show(r.Context(), query.Get("id"))
+	if err != nil {
+		// TODO: multi-format
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	// TODO: multi-format
+	res, err := c.view.Render("/:id", result)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	w.WriteHeader(res.Status)
+	header := w.Header()
+	for key, value := range res.Headers {
+		header.Set(key, value)
+	}
+	w.Write([]byte(res.Body))
+}

@@ -1,11 +1,36 @@
 package public
 
 import (
+	_ "embed"
+
 	"gitlab.com/mnm/bud/gen"
+	"gitlab.com/mnm/bud/internal/gotemplate"
 )
 
-func Generator() gen.Generator {
-	return gen.GenerateFile(func(f gen.F, file *gen.File) error {
-		return nil
-	})
+//go:embed public.gotext
+var template string
+
+var generator = gotemplate.MustParse("public", template)
+
+type Generator struct {
+	Embed  bool
+	Minify bool
+}
+
+type State struct {
+	Embed bool
+	Files []*File
+}
+
+type File struct {
+	Path string
+}
+
+func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
+	code, err := generator.Generate(State{})
+	if err != nil {
+		return err
+	}
+	file.Write(code)
+	return nil
 }

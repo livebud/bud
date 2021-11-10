@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/build"
 	"os"
+	"path"
 	"path/filepath"
 
 	"gitlab.com/mnm/bud/go/is"
@@ -23,8 +24,8 @@ func (v *VirtualFile) Directory() string {
 	return v.dir
 }
 
-func (v *VirtualFile) ModulePath() string {
-	return v.modulePath
+func (v *VirtualFile) ModulePath(subpaths ...string) string {
+	return path.Join(append([]string{v.modulePath}, subpaths...)...)
 }
 
 func (v *VirtualFile) ResolveImport(dir string) (importPath string, err error) {

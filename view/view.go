@@ -5,11 +5,16 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 
+	"gitlab.com/mnm/bud/dom"
 	"gitlab.com/mnm/bud/gen"
+	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/js"
+	"gitlab.com/mnm/bud/ssr"
+	"gitlab.com/mnm/bud/transform"
 )
 
 type Response struct {
@@ -40,22 +45,22 @@ func Test(t testing.TB) *Server {
 	panic("view: Test not implemented yet")
 }
 
-// // Live server serves view files on the fly. Used during development.
-// func Live(modfile mod.File, bf bfs.BFS, vm js.VM, transformer *transform.Transformer) *Server {
-// 	dir := modfile.Directory()
-// 	dirfs := os.DirFS(modfile.Directory())
-// 	bf.Add(map[string]bfs.Generator{
-// 		"bud/view":         dom.Runner(dir, transformer),
-// 		"bud/node_modules": dom.NodeModules(dir),
-// 		"bud/view/_ssr.js": ssr.Generator(dirfs, dir, transformer),
-// 	})
-// 	return &Server{bf, http.FS(bf), vm}
-// }
+// Live server serves view files on the fly. Used during development.
+func Live(modfile mod.File, genfs gen.FS, vm js.VM, transformer *transform.Transformer) *Server {
+	dir := modfile.Directory()
+	dirfs := os.DirFS(modfile.Directory())
+	genfs.Add(map[string]gen.Generator{
+		"bud/view":         dom.Runner(dir, transformer),
+		"bud/node_modules": dom.NodeModules(dir),
+		"bud/view/_ssr.js": ssr.Generator(dirfs, dir, transformer),
+	})
+	return &Server{genfs, http.FS(genfs), vm}
+}
 
-// // Static server serves the same files every time. Used during production.
-// func Static(bf bfs.BFS, vm js.VM) *Server {
-// 	return &Server{bf, http.FS(bf), vm}
-// }
+// Static server serves the same files every time. Used during production.
+func Static(genfs gen.FS, vm js.VM) *Server {
+	return &Server{genfs, http.FS(genfs), vm}
+}
 
 type Server struct {
 	fs  fs.FS

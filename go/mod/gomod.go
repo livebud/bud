@@ -110,8 +110,8 @@ func (m *Module) Directory() string {
 
 // ModulePath returns the module path
 // e.g. github.com/go-duo/duoc
-func (m *Module) ModulePath() string {
-	return m.file.Module.Mod.Path
+func (m *Module) ModulePath(subpaths ...string) string {
+	return path.Join(append([]string{m.file.Module.Mod.Path}, subpaths...)...)
 }
 
 func (m *Module) ResolveDirectory(importPath string) (directory string, err error) {

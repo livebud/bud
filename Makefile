@@ -2,24 +2,25 @@ precommit:
 	@ go generate ./...
 	@ go test ./...
 
-clear:
+e2e.hackernews:
 	@ clear
+	@ rm -rf ../hackernews
+	@ mkdir ../hackernews
+	@ cp -R example/hn/controller ../hackernews
+	@ go run main.go -C ../hackernews run
 
-hackernews.run:
-	@ rm -rf ../hackernews/run
-	@ mkdir ../hackernews/run
-	@ go run main.go -C ../hackernews/run run
+# hackernews.build:
+# 	# @ rm -rf ../hackernews
+# 	# @ mkdir -p ../hackernews
+# 	@ go run main.go -C ../hackernews build
+# 	@ cd ../hackernews && ./bud/main
 
-hackernews.build:
-	@ rm -rf ../hackernews/build
-	@ mkdir -p ../hackernews/build
-	@ go run main.go -C ../hackernews/build build
-	@ cd ../hackernews/build && ./bud/main
-
-hackernews.deploy:
-	@ rm -rf ../hackernews/deploy
-	@ mkdir -p ../hackernews/deploy
-	@ go run main.go -C ../hackernews/deploy deploy
+# hackernews.deploy:
+# 	# @ rm -rf ../hackernews
+# 	# @ mkdir -p ../hackernews
+# 	@ go run main.go -C ../hackernews deploy
 
 example:
-	@ watch -- $(MAKE) clear hackernews.run hackernews.build hackernews.deploy
+	@ watch -- $(MAKE) e2e.hackernews
+
+.PHONY: example

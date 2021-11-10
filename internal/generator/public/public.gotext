@@ -1,0 +1,115 @@
+package public
+
+// GENERATED. DO NOT EDIT.
+
+import (
+	"errors"
+	"io"
+	"io/fs"
+	"net/http"
+	"path"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"gitlab.com/mnm/bud/gen"
+	"gitlab.com/mnm/bud/middleware"
+)
+
+func New(genfs gen.FS) Middleware {
+	{{- if $.Embed }}
+	return reference(genfs)
+	{{- else }}
+	return embed(genfs)
+	{{- end }}
+}
+
+func reference(genfs gen.FS) Middleware {
+	genfs.Add(map[string]gen.Generator{
+		{{- range $file := $.Files }}
+		{{- end }}
+		// TODO: dynamic from public
+		// "bud/public/y18.gif":     gen.GenerateFile(serveFrom(".")),
+		// "bud/public/favicon.ico": gen.GenerateFile(serveFrom(".")),
+		// From plugin/bud-tailwind
+		// "bud/public/tailwind/preflight.css": gen.GenerateFile(servePlugin("bud/plugin/bud-tailwind/public")),
+	})
+	return serve(http.FS(genfs), serveContent)
+}
+
+func embed(genfs gen.FS) Middleware {
+	genfs.Add(map[string]gen.Generator{
+		{{- range $file := $.Files }}
+		{{- end }}
+	})
+	return serve(http.FS(genfs), serveGzipContent)
+}
+
+type Middleware = middleware.Middleware
+
+func serveFrom(dir string) func(f gen.F, file *gen.File) error {
+	return func(f gen.F, file *gen.File) error {
+		path := strings.TrimPrefix(file.Path(), "bud/")
+		code, err := fs.ReadFile(f, filepath.Join(dir, path))
+		if err != nil {
+			return err
+		}
+		file.Write(code)
+		return nil
+	}
+}
+
+func servePlugin(dir string) func(f gen.F, file *gen.File) error {
+	return func(f gen.F, file *gen.File) error {
+		path := strings.TrimPrefix(file.Path(), "bud/public/")
+		code, err := fs.ReadFile(f, filepath.Join(dir, path))
+		if err != nil {
+			return err
+		}
+		file.Write(code)
+		return nil
+	}
+}
+
+func serve(hfs http.FileSystem, serveContent func(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, content io.ReadSeeker)) Middleware {
+	return middleware.Function(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			urlPath := r.URL.Path
+			if r.Method != http.MethodGet || path.Ext(urlPath) == "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+			file, err := hfs.Open(path.Join("bud", "public", urlPath))
+			if err != nil {
+				if errors.Is(err, fs.ErrNotExist) {
+					next.ServeHTTP(w, r)
+					return
+				}
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			stat, err := file.Stat()
+			if err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			if stat.IsDir() {
+				next.ServeHTTP(w, r)
+				return
+			}
+			serveContent(w, r, urlPath, stat.ModTime(), file)
+		})
+	})
+}
+
+func serveContent(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, content io.ReadSeeker) {
+	http.ServeContent(w, req, name, modtime, content)
+}
+
+func serveGzipContent(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, content io.ReadSeeker) {
+	header := w.Header()
+	header.Add("Content-Encoding", "gzip")
+	header.Add("Vary", "Accept-Encoding")
+	http.ServeContent(w, req, name, modtime, content)
+}
+

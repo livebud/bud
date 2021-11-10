@@ -1,0 +1,30 @@
+package web
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+func New() *Server {
+	return &Server{}
+}
+
+type Server struct {
+}
+
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("serving!"))
+}
+
+func (s *Server) ListenAndServe(ctx context.Context, address string) error {
+	server := &http.Server{
+		Addr: address,
+		Handler: s,
+	}
+	// TODO: handle graceful shutdown using the cancelled context
+	return server.ListenAndServe()
+}

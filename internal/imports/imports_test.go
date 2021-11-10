@@ -43,3 +43,16 @@ func TestReserveAfter(t *testing.T) {
 	is.Equal(im.Add("duo/web"), "web1")
 	is.Equal(len(im.List()), 2)
 }
+
+func TestAddStd(t *testing.T) {
+	is := is.New(t)
+	im := imports.New()
+	im.AddStd("os", "fmt", "net/http")
+	is.Equal(len(im.List()), 3)
+	is.Equal(im.List()[0].Name, "fmt")
+	is.Equal(im.List()[0].Path, "fmt")
+	is.Equal(im.List()[1].Name, "http")
+	is.Equal(im.List()[1].Path, "net/http")
+	is.Equal(im.List()[2].Name, "os")
+	is.Equal(im.List()[2].Path, "os")
+}

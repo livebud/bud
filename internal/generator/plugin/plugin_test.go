@@ -10,8 +10,8 @@ import (
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
+	"gitlab.com/mnm/bud/internal/generator/plugin"
 	"gitlab.com/mnm/bud/internal/gobin"
-	"gitlab.com/mnm/bud/plugin"
 	"gitlab.com/mnm/bud/vfs"
 )
 
@@ -37,7 +37,7 @@ func TestPlugin(t *testing.T) {
 	dirfs := os.DirFS(dir)
 	bf := gen.New(dirfs)
 	bf.Add(map[string]gen.Generator{
-		"bud/plugin": plugin.Generator(modfile),
+		"bud/plugin": gen.DirGenerator(&plugin.Generator{Modfile: modfile}),
 	})
 	fis, err := fs.ReadDir(bf, "bud/plugin")
 	is.NoErr(err)

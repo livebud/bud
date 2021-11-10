@@ -16,6 +16,8 @@ import (
 	"gitlab.com/mnm/bud/internal/generator/generator"
 	"gitlab.com/mnm/bud/internal/generator/gomod"
 	"gitlab.com/mnm/bud/internal/generator/maingo"
+	"gitlab.com/mnm/bud/internal/generator/plugin"
+	"gitlab.com/mnm/bud/internal/generator/public"
 	"gitlab.com/mnm/bud/internal/generator/web"
 
 	"gitlab.com/mnm/bud/fsync"
@@ -99,7 +101,7 @@ func (c *bud) Run(ctx context.Context) error {
 			Replaces: []*gomod.Replace{
 				{
 					Old: "gitlab.com/mnm/bud",
-					New: "../../bud",
+					New: "../bud",
 				},
 			},
 		}),
@@ -138,18 +140,8 @@ func (c *runCommand) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("running...", modfile.Directory(), c.Embed, c.Hot, c.Minify)
 	genfs := gen.New(os.DirFS(modfile.Directory()))
 	genfs.Add(map[string]gen.Generator{
-		"bud/generate/main.go": gen.FileGenerator(&generate.Generator{
-			Modfile: modfile,
-			Embed:   c.Embed,
-			Hot:     c.Hot,
-			Minify:  c.Minify,
-		}),
-		"bud/generator/generator.go": gen.FileGenerator(&generator.Generator{
-			// fill in
-		}),
 		"go.mod": gen.FileGenerator(&gomod.Generator{
 			Modfile: modfile,
 			Go: &gomod.Go{
@@ -165,18 +157,38 @@ func (c *runCommand) Run(ctx context.Context) error {
 			Replaces: []*gomod.Replace{
 				{
 					Old: "gitlab.com/mnm/bud",
-					New: "../../bud",
+					New: "../bud",
 				},
 			},
 		}),
+		"bud/plugin": gen.DirGenerator(&plugin.Generator{
+			Modfile: modfile,
+		}),
+		"bud/generate/main.go": gen.FileGenerator(&generate.Generator{
+			Modfile: modfile,
+			Embed:   c.Embed,
+			Hot:     c.Hot,
+			Minify:  c.Minify,
+		}),
+		"bud/generator/generator.go": gen.FileGenerator(&generator.Generator{
+			// fill in
+		}),
+		// TODO: separate the following from the generators to give the generators
+		// a chance to add files that are picked up by these compiler plugins.
+		"bud/command/command.go": gen.FileGenerator(&command.Generator{
+			Modfile: modfile,
+		}),
 		"bud/controller/controller.go": gen.FileGenerator(&controller.Generator{
+			// fill in
+		}),
+		"bud/public/public.go": gen.FileGenerator(&public.Generator{
 			// fill in
 		}),
 		"bud/web/web.go": gen.FileGenerator(&web.Generator{
 			// fill in
 		}),
 		"bud/main.go": gen.FileGenerator(&maingo.Generator{
-			// fill in
+			Modfile: modfile,
 		}),
 	})
 	// Sync genfs
@@ -249,7 +261,7 @@ func (c *buildCommand) Run(ctx context.Context) error {
 			Replaces: []*gomod.Replace{
 				{
 					Old: "gitlab.com/mnm/bud",
-					New: "../../bud",
+					New: "../bud",
 				},
 			},
 		}),

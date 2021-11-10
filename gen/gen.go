@@ -155,6 +155,7 @@ func (i *innerFS) link(from, to string, event Event) {
 	i.graph.Link(from, to, event)
 }
 
+// Check if many different paths exist at once
 func Exists(f fs.FS, paths ...string) error {
 	eg := new(errgroup.Group)
 	for _, path := range paths {

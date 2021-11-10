@@ -31,7 +31,9 @@ type Set struct {
 // AddStd is a convenience function for adding standard library packages
 func (s *Set) AddStd(pkgs ...string) {
 	for _, pkg := range pkgs {
-		s.AddNamed(pkg, pkg)
+		// Split to support subpackages like net/http
+		_, name := path.Split(pkg)
+		s.AddNamed(name, pkg)
 	}
 }
 

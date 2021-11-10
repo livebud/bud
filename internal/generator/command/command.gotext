@@ -1,4 +1,4 @@
-package main
+package command
 
 {{- if $.Imports }}
 
@@ -9,6 +9,37 @@ import (
 )
 {{- end }}
 
-func main() {
-	println("custom", os.Args[1], "!")
+func Run(args ...string) int {
+	cmd := loadCommand()
+	cli := commander.New("bud")
+	cli.Run(cmd.Run)
+	if err := cli.Parse(args); err != nil {
+		console.Error(err.Error())
+		return 1
+	}
+	return 0
+}
+
+func New(
+	web *web.Server,
+) *Command {
+	return &Command{
+		web,
+	}
+}
+
+type Command struct {
+	Web *web.Server
+}
+
+func (c *Command) Run(ctx context.Context) error {
+	console.Info("Listening on http://localhost:3000")
+	return c.Web.ListenAndServe(ctx, ":3000")
+}
+
+// TODO: generate with DI
+func loadCommand() *Command {
+	return &Command{
+		Web: &web.Server{},
+	}
 }

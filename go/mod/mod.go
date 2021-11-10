@@ -22,7 +22,7 @@ type File interface {
 	// Returns the dir of `go.mod`.
 	Directory() string
 	// Returns the name of the module in `go.mod`.
-	ModulePath() string
+	ModulePath(subpaths ...string) string
 	// Resolve an absolute dir to an import path.
 	ResolveImport(dir string) (importPath string, err error)
 	// Resolve an import path to an absolute dir.
