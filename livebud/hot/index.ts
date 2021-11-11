@@ -1,4 +1,4 @@
-import { parse } from "./url"
+import { parse } from "../url"
 
 /**
  * Hot reload

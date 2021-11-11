@@ -4,6 +4,7 @@ import (
 	_ "embed"
 
 	"gitlab.com/mnm/bud/gen"
+	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
 )
@@ -14,6 +15,7 @@ var template string
 var generator = gotemplate.MustParse("web", template)
 
 type Generator struct {
+	Modfile mod.File
 }
 
 type State struct {
@@ -21,8 +23,18 @@ type State struct {
 }
 
 func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
+	if err := gen.Exists(f, "bud/controller/controller.go"); err != nil {
+		return err
+	}
 	imports := imports.New()
-	imports.AddStd("net/http", "context")
+	imports.AddStd("net/http", "context", "errors", "os")
+	imports.AddNamed("hot", "gitlab.com/mnm/bud/hot")
+	imports.AddNamed("middleware", "gitlab.com/mnm/bud/middleware")
+	imports.AddNamed("router", "gitlab.com/mnm/bud/router")
+	imports.AddNamed("commander", "gitlab.com/mnm/bud/commander")
+	imports.AddNamed("controller", g.Modfile.ModulePath("bud/controller"))
+	imports.AddNamed("public", g.Modfile.ModulePath("bud/public"))
+	imports.AddNamed("view", g.Modfile.ModulePath("bud/view"))
 	code, err := generator.Generate(State{
 		Imports: imports.List(),
 	})

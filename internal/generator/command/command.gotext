@@ -10,10 +10,21 @@ import (
 {{- end }}
 
 func Run(args ...string) int {
-	cmd := loadCommand()
+	cmd, err := loadCommand()
+	if err != nil {
+		console.Error(err.Error())
+		return 1
+	}
 	cli := commander.New("bud")
 	cli.Run(cmd.Run)
 	if err := cli.Parse(args); err != nil {
+		if errors.Is(err, context.Canceled) {
+			// Unfortunately interrupts like SIGINT trigger a non-zero exit code,
+			// regardless of whether you do os.Exit(0) or not. We're going to use exit
+			// code 3 to distinguish between non-zero exit codes so "bud run" can know
+			// that we exited cleanly on an interrupt.
+			return 3
+		}
 		console.Error(err.Error())
 		return 1
 	}
@@ -38,8 +49,35 @@ func (c *Command) Run(ctx context.Context) error {
 }
 
 // TODO: generate with DI
-func loadCommand() *Command {
-	return &Command{
-		Web: &web.Server{},
+func loadCommand() (*Command, error) {
+	modFile, err := mod.Find(".")
+	if err != nil {
+		return nil, err
 	}
+	genFS := gen.New(os.DirFS(modFile.Directory()))
+	genFS.Add(map[string]gen.Generator{
+		"bud/plugin": gen.DirGenerator(&plugin.Generator{Modfile: modFile}),
+	})
+	jsVM := v8.New()
+	svelteInput := &svelte.Input{
+		Dev: true,
+		VM:  jsVM,
+	}
+	tailwindTransform := tailwind.New(modFile)
+	hnClient := hn.New()
+	controllerController := &controller.Controller{HN: hnClient}
+	svelteCompiler := svelte.New(svelteInput)
+	svelteTransformable := svelte.NewTransformable(svelteCompiler)
+	transformTransformer, err := transform.PrivateLoad(svelteTransformable, tailwindTransform)
+	if err != nil {
+		return nil, err
+	}
+	viewServer := view.New(genFS, modFile, jsVM, transformTransformer)
+	controller1Controller := controller1.New(controllerController, viewServer)
+	hotServer := hot.New(genFS)
+	publicMiddleware := public.New(genFS)
+	routerRouter := router.New()
+	webServer := web.New(controller1Controller, hotServer, publicMiddleware, routerRouter, viewServer)
+	commandCommand := New(webServer)
+	return commandCommand, err
 }

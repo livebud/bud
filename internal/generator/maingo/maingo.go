@@ -28,6 +28,7 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 	}
 	imports := imports.New()
 	imports.AddStd("os")
+	// imports.AddStd("fmt")
 	imports.Add(g.Modfile.ModulePath("bud/command"))
 	code, err := generator.Generate(State{
 		Imports: imports.List(),

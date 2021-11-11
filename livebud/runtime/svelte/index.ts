@@ -1,4 +1,4 @@
-import { HydrateInput } from "./"
+import { HydrateInput } from ".."
 
 // TODO:
 // - Support frames

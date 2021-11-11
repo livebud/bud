@@ -24,6 +24,12 @@ func (f *Flag) String(target *string) *String {
 	return value
 }
 
+func (f *Flag) Strings(target *[]string) *Strings {
+	value := &Strings{target: target}
+	f.value = &stringsValue{inner: value}
+	return value
+}
+
 func (f *Flag) Bool(target *bool) *Bool {
 	value := &Bool{target: target}
 	f.value = &boolValue{inner: value}
@@ -31,7 +37,7 @@ func (f *Flag) Bool(target *bool) *Bool {
 }
 
 func (f *Flag) verify(name string) error {
-	return f.value.verify(name)
+	return f.value.verify("--" + name)
 }
 
 func verifyFlags(flags []*Flag) error {

@@ -3,7 +3,7 @@
  */
 
 import assert from "internal/assert"
-import { parse, URL } from "./"
+import { parse, URL } from "."
 
 /**
  * Test runner

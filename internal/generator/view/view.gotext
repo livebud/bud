@@ -1,0 +1,36 @@
+package view
+
+// GENERATED. DO NOT EDIT.
+
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+// New is called like this when calling bud run
+func New(genfs gen.FS, modfile mod.File, vm js.VM, transformer *transform.Transformer) *Server {
+	return view.Live(modfile, genfs, vm, transformer)
+}
+
+// New_ is swapped in when generating with bud build
+func New_(genfs gen.FS, modfile mod.File, vm js.VM) *Server {
+	genfs.Add(map[string]gen.Generator{
+		// "bud/view/_ssr.js": &bfs.Embed{
+		// 	  Data:    []byte(`...`),
+		// 	  ModTime: time.New(),
+		// },
+		// "bud/view/_index.svelte": &bfs.Embed{
+		// 	  Data:    []byte(`...`),
+		// 	  ModTime: time.New(),
+		// },
+	})
+	return view.Static(genfs, vm)
+}
+
+type Map = view.Map
+type Server = view.Server

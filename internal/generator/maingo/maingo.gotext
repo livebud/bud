@@ -10,5 +10,6 @@ import (
 {{- end }}
 
 func main() {
-	os.Exit(command.Run(os.Args[1:]...))
+	exitCode := command.Run(os.Args[1:]...)
+	os.Exit(exitCode)
 }

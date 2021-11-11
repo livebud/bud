@@ -26,12 +26,22 @@ func color(level log.Level) string {
 }
 
 // prefixes
-var prefixes = [...]string{
-	log.DebugLevel: "debug",
-	log.InfoLevel:  "info",
-	log.WarnLevel:  "warn",
-	log.ErrorLevel: "error",
-}
+var prefixes = func() [6]string {
+	if os.Getenv("NO_COLOR") != "" {
+		return [6]string{
+			log.DebugLevel: "debug:",
+			log.InfoLevel:  "info:",
+			log.WarnLevel:  "warn:",
+			log.ErrorLevel: "error:",
+		}
+	}
+	return [6]string{
+		log.DebugLevel: "|",
+		log.InfoLevel:  "|",
+		log.WarnLevel:  "|",
+		log.ErrorLevel: "|",
+	}
+}()
 
 // New console handler
 func New(w io.Writer) log.Handler {

@@ -78,9 +78,14 @@ func (c *CLI) Trap(signals ...os.Signal) {
 }
 
 func (c *CLI) Parse(args []string) error {
-	ctx, cancel := trap(context.Background(), c.config.signals...)
+	ctx, cancel := Trap(context.Background(), c.config.signals...)
 	defer cancel()
-	return c.root.parse(ctx, args)
+	if err := c.root.parse(ctx, args); err != nil {
+		return err
+	}
+	// Give the caller a chance to handle context cancellations and therefore
+	// interrupts specifically.
+	return ctx.Err()
 }
 
 func (c *CLI) Command(name, usage string) *Command {
@@ -110,7 +115,7 @@ func (c *Command) printUsage() error {
 
 type value interface {
 	flag.Getter
-	verify(name string) error
+	verify(displayName string) error
 }
 
 func (c *Command) parse(ctx context.Context, args []string) error {

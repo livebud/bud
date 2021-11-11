@@ -18,9 +18,9 @@ import (
 
 func New(genfs gen.FS) Middleware {
 	{{- if $.Embed }}
-	return reference(genfs)
-	{{- else }}
 	return embed(genfs)
+	{{- else }}
+	return reference(genfs)
 	{{- end }}
 }
 
@@ -29,10 +29,10 @@ func reference(genfs gen.FS) Middleware {
 		{{- range $file := $.Files }}
 		{{- end }}
 		// TODO: dynamic from public
-		// "bud/public/y18.gif":     gen.GenerateFile(serveFrom(".")),
-		// "bud/public/favicon.ico": gen.GenerateFile(serveFrom(".")),
+		"bud/public/y18.gif":     gen.GenerateFile(serveFrom(".")),
+		"bud/public/favicon.ico": gen.GenerateFile(serveFrom(".")),
 		// From plugin/bud-tailwind
-		// "bud/public/tailwind/preflight.css": gen.GenerateFile(servePlugin("bud/plugin/bud-tailwind/public")),
+		"bud/public/tailwind/preflight.css": gen.GenerateFile(servePlugin("bud/plugin/bud-tailwind/public")),
 	})
 	return serve(http.FS(genfs), serveContent)
 }

@@ -17,7 +17,21 @@ func Run(ctx context.Context, dir, mainpath string, args ...string) error {
 	cmd.Dir = dir
 	err := cmd.Run()
 	if err != nil {
+		if isCleanExit(err) {
+			return nil
+		}
 		return err
 	}
 	return nil
+}
+
+// Interpret exit code 3 as an error-free exit. This allows interrupts like
+// SIGINT to exit cleanly.
+func isCleanExit(err error) bool {
+	if e, ok := err.(*exec.ExitError); ok {
+		if e.ExitCode() == 3 {
+			return true
+		}
+	}
+	return false
 }

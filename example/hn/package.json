@@ -1,0 +1,17 @@
+{
+  "name": "hn",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "svelte": "3.44.1",
+    "tailwindcss": "2.2.19",
+    "timeago.js": "4.0.2"
+  }
+}

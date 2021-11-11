@@ -20,7 +20,7 @@ type Plugin struct {
 // File is an interface for working with go modules.
 type File interface {
 	// Returns the dir of `go.mod`.
-	Directory() string
+	Directory(subpaths ...string) string
 	// Returns the name of the module in `go.mod`.
 	ModulePath(subpaths ...string) string
 	// Resolve an absolute dir to an import path.

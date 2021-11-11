@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"gitlab.com/mnm/bud/go/is"
 	"gitlab.com/mnm/bud/internal/parser"
 )
 
@@ -35,6 +36,10 @@ func tryStruct(stct *parser.Struct, dep *Dependency) (*Struct, error) {
 			continue
 		}
 		ft := field.Type()
+		// Ensure there are no builtin types (e.g. string) as field types
+		if is.Builtin(ft.String()) {
+			return nil, ErrNoMatch
+		}
 		importPath, err := parser.ImportPath(ft)
 		if err != nil {
 			return nil, err

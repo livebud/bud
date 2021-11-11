@@ -15,7 +15,7 @@ func (v *Bool) Default(value bool) {
 }
 
 func (v *Bool) Optional() {
-
+	v.defval = new(bool)
 }
 
 type boolValue struct {
@@ -23,14 +23,14 @@ type boolValue struct {
 	set   bool
 }
 
-func (v *boolValue) verify(name string) error {
+func (v *boolValue) verify(displayName string) error {
 	if v.set {
 		return nil
 	} else if v.inner.defval != nil {
 		*v.inner.target = *v.inner.defval
 		return nil
 	}
-	return fmt.Errorf("missing %s", name)
+	return fmt.Errorf("missing %s", displayName)
 }
 
 func (v *boolValue) Get() interface{} {

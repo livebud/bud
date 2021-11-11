@@ -2,16 +2,26 @@ package controller
 
 import (
 	"context"
-	"fmt"
+
+	"gitlab.com/mnm/bud/example/hn/internal/hn"
 )
 
 type Controller struct {
+	HN *hn.Client
 }
 
-func (c *Controller) Index(ctx context.Context) ([]interface{}, error) {
-	return nil, fmt.Errorf("/ is not implemented yet")
+func (c *Controller) Index(ctx context.Context) (*hn.News, error) {
+	return c.HN.FrontPage(ctx)
 }
 
-func (c *Controller) Show(ctx context.Context, id int) error {
-	return fmt.Errorf("GET /%d is not implemented yet", id)
+type ShowOut struct {
+	Story *hn.Story `json:"story"`
+}
+
+func (c *Controller) Show(ctx context.Context, id string) (*ShowOut, error) {
+	story, err := c.HN.Find(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return &ShowOut{story}, nil
 }

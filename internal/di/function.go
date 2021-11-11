@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"gitlab.com/mnm/bud/go/is"
 	"gitlab.com/mnm/bud/internal/parser"
 )
 
@@ -49,6 +50,10 @@ func tryFunction(fn *parser.Function, dep *Dependency) (*Function, error) {
 	}
 	for _, param := range fn.Params() {
 		pt := param.Type()
+		// Ensure there are no builtin types (e.g. string) as parameters
+		if is.Builtin(pt.String()) {
+			return nil, ErrNoMatch
+		}
 		importPath, err := parser.ImportPath(pt)
 		if err != nil {
 			return nil, err

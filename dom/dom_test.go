@@ -135,7 +135,7 @@ func TestNodeModules(t *testing.T) {
 }
 
 func TestBuilder(t *testing.T) {
-	chunkPath := "chunk-ZBJUH6TH.js"
+	chunkPath := "chunk-FM5TQRH2.js"
 	is := is.New(t)
 	cwd, err := os.Getwd()
 	is.NoErr(err)
@@ -158,7 +158,7 @@ func TestBuilder(t *testing.T) {
 	dirfs := os.DirFS(dir)
 	err = npm.Install(dir, "svelte@3.42.3")
 	is.NoErr(err)
-	err = npm.Link("../budjs", dir)
+	err = npm.Link("../livebud", dir)
 	is.NoErr(err)
 	svelteCompiler := svelte.New(&svelte.Input{
 		VM:  v8.New(),

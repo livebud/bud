@@ -4,7 +4,7 @@
 
 import { ParsedUrlQuery } from "querystring"
 import assert from "internal/assert"
-import { parse } from "./"
+import { parse } from "."
 
 describe("qs/parse", () => {
   tests().forEach((test) => {

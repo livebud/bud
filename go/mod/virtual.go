@@ -20,8 +20,8 @@ type VirtualFile struct {
 	dir        string
 }
 
-func (v *VirtualFile) Directory() string {
-	return v.dir
+func (v *VirtualFile) Directory(subpaths ...string) string {
+	return filepath.Join(append([]string{v.dir}, subpaths...)...)
 }
 
 func (v *VirtualFile) ModulePath(subpaths ...string) string {

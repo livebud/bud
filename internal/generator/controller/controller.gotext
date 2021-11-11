@@ -2,12 +2,14 @@ package controller
 
 // GENERATED. DO NOT EDIT.
 
-import (
-	"net/http"
+{{- if $.Imports }}
 
-	"github.com/go-duo/hn/bud/view"
-	"github.com/go-duo/hn/controller"
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
 )
+{{- end }}
 
 func New(
 	controller *controller.Controller,

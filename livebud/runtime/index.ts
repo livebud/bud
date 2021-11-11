@@ -29,7 +29,7 @@ export function mount(input: MountInput): void {
   input.createView({
     page: input.components[input.page],
     frames: input.frames.map((frame) => input.components[frame]),
-    error: input.components[input.error],
+    error: input.error ? input.components[input.error] : undefined,
     target: input.target,
     props: props,
   })
@@ -38,7 +38,7 @@ export function mount(input: MountInput): void {
       input.createView({
         page: input.components[input.page],
         frames: input.frames.map((frame) => input.components[frame]),
-        error: input.components[input.error],
+        error: input.error ? input.components[input.error] : undefined,
         target: input.target,
         props: props,
       })

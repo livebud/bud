@@ -1,0 +1,27 @@
+package transform
+
+// GENERATED. DO NOT EDIT.
+
+import (
+	"gitlab.com/mnm/bud-tailwind/transform/tailwind"
+	"gitlab.com/mnm/bud/svelte"
+	"gitlab.com/mnm/bud/transform"
+)
+
+func PrivateLoad(
+	svelte *svelte.Transformable,
+	tailwind *tailwind.Transform,
+) (*Transformer, error) {
+	return transform.Load(
+		svelte,
+		&transform.Transformable{
+			From: ".svelte",
+			To:   ".svelte",
+			Map: transform.Map{
+				transform.PlatformNeutral: tailwind.SvelteToSvelte,
+			},
+		},
+	)
+}
+
+type Transformer = transform.Transformer

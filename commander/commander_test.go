@@ -1,8 +1,12 @@
 package commander_test
 
 import (
+	"bufio"
 	"bytes"
 	"context"
+	"errors"
+	"os"
+	"os/exec"
 	"strings"
 	"testing"
 
@@ -93,7 +97,7 @@ func TestFlagStringRequired(t *testing.T) {
 	var flag string
 	cli.Flag("flag", "cli flag").String(&flag)
 	err := cli.Parse([]string{})
-	is.Equal(err.Error(), "missing flag")
+	is.Equal(err.Error(), "missing --flag")
 }
 func TestFlagInt(t *testing.T) {
 	is := is.New(t)
@@ -142,7 +146,7 @@ func TestFlagIntRequired(t *testing.T) {
 	var flag int
 	cli.Flag("flag", "cli flag").Int(&flag)
 	err := cli.Parse([]string{})
-	is.Equal(err.Error(), "missing flag")
+	is.Equal(err.Error(), "missing --flag")
 }
 func TestFlagBool(t *testing.T) {
 	is := is.New(t)
@@ -191,7 +195,38 @@ func TestFlagBoolRequired(t *testing.T) {
 	var flag bool
 	cli.Flag("flag", "cli flag").Bool(&flag)
 	err := cli.Parse([]string{})
-	is.Equal(err.Error(), "missing flag")
+	is.Equal(err.Error(), "missing --flag")
+}
+func TestFlagStrings(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	var flags []string
+	cli.Flag("flag", "cli flag").Strings(&flags)
+	err := cli.Parse([]string{"--flag", "1", "--flag", "2"})
+	is.NoErr(err)
+	is.Equal(len(flags), 2)
+	is.Equal(flags[0], "1")
+	is.Equal(flags[1], "2")
+}
+func TestFlagStringsNone(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	var flags []string
+	cli.Flag("flag", "cli flag").Strings(&flags)
+	err := cli.Parse([]string{})
+	is.Equal(err.Error(), "missing --flag")
 }
 
 func TestSub(t *testing.T) {
@@ -373,6 +408,55 @@ func TestSubArgString(t *testing.T) {
 	is.Equal(1, called)
 	is.Equal(arg, "deploy")
 	isEqual(t, actual.String(), ``)
+}
+
+// TestInterrupt tests interrupts canceling context. It spawns a copy of itself
+// to run a subcommand. I learned this trick from Mitchell Hashimoto's excellent
+// "Advanced Testing with Go" talk. We use stdout to synchronize between the
+// process and subprocess.
+func TestInterrupt(t *testing.T) {
+	is := is.New(t)
+	if value := os.Getenv("TEST_INTERRUPT"); value == "" {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		cmd := exec.CommandContext(ctx, os.Args[0], append(os.Args[1:], "-test.v=true")...)
+		cmd.Env = append(os.Environ(), "TEST_INTERRUPT=1")
+		stdout, err := cmd.StdoutPipe()
+		is.NoErr(err)
+		cmd.Stderr = os.Stderr
+		is.NoErr(cmd.Start())
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if line == "ready" {
+				break
+			}
+		}
+		cmd.Process.Signal(os.Interrupt)
+		for scanner.Scan() {
+			line := scanner.Text()
+			if line == "cancelled" {
+				break
+			}
+		}
+		if err := cmd.Wait(); err != nil {
+			is.True(errors.Is(err, context.Canceled))
+		}
+		return
+	}
+	cli := commander.New("cli")
+	cli.Run(func(ctx context.Context) error {
+		os.Stdout.Write([]byte("ready\n"))
+		<-ctx.Done()
+		os.Stdout.Write([]byte("cancelled\n"))
+		return nil
+	})
+	if err := cli.Parse([]string{}); err != nil {
+		if errors.Is(err, context.Canceled) {
+			return
+		}
+		is.NoErr(err)
+	}
 }
 
 // // TODO: more tests

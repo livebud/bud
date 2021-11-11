@@ -59,6 +59,10 @@ func Parse(path string, data []byte) (*Module, error) {
 	}, nil
 }
 
+func Format(m *Module) []byte {
+	return modfile.Format(m.file.Syntax)
+}
+
 // findModPath traverses up the filesystem until it finds a directory containing
 // go.mod or returns an error trying.
 func findModPath(dir string) (abs string, err error) {
@@ -104,8 +108,8 @@ type Module struct {
 
 // Directory returns the module directory
 // e.g. /Users/$USER/...
-func (m *Module) Directory() string {
-	return m.dir
+func (m *Module) Directory(subpaths ...string) string {
+	return filepath.Join(append([]string{m.dir}, subpaths...)...)
 }
 
 // ModulePath returns the module path
@@ -146,7 +150,7 @@ func (m *Module) resolveDirectory(importPath string) (directory string, err erro
 	}
 	// loop over requires
 	for _, req := range m.file.Require {
-		if strings.HasPrefix(importPath, req.Mod.Path) {
+		if contains(req.Mod.Path, importPath) {
 			relPath := strings.TrimPrefix(importPath, req.Mod.Path)
 			dir, err := downloadDir(req.Mod)
 			if err != nil {
@@ -249,8 +253,22 @@ func (m *Module) Replacement(importPath string) string {
 	return ""
 }
 
-func (m *Module) AddRequire(importPath, version string) (err error) {
+// Requirement will return the dependecy's version or an empty string
+// func (m *Module) Requirement(importPath string) (version string) {
+// 	for _, require := range m.file.Require {
+// 		if require.Mod.Path == importPath {
+// 			return require.Mod.Version
+// 		}
+// 	}
+// 	return ""
+// }
+
+func (m *Module) AddRequire(importPath, version string) error {
 	return m.file.AddRequire(importPath, version)
+}
+
+func (m *Module) AddReplace(oldPath, oldVers, newPath, newVers string) error {
+	return m.file.AddReplace(oldPath, oldVers, newPath, newVers)
 }
 
 // Cache for faster subsequent requests

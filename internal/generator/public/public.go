@@ -3,6 +3,8 @@ package public
 import (
 	_ "embed"
 
+	"gitlab.com/mnm/bud/go/mod"
+
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 )
@@ -13,8 +15,9 @@ var template string
 var generator = gotemplate.MustParse("public", template)
 
 type Generator struct {
-	Embed  bool
-	Minify bool
+	Modfile mod.File
+	Embed   bool
+	Minify  bool
 }
 
 type State struct {

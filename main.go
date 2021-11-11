@@ -7,9 +7,13 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 
+	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/gobin"
+	"gitlab.com/mnm/bud/internal/parser"
 
 	"gitlab.com/mnm/bud/internal/generator/command"
 	"gitlab.com/mnm/bud/internal/generator/controller"
@@ -18,6 +22,8 @@ import (
 	"gitlab.com/mnm/bud/internal/generator/maingo"
 	"gitlab.com/mnm/bud/internal/generator/plugin"
 	"gitlab.com/mnm/bud/internal/generator/public"
+	"gitlab.com/mnm/bud/internal/generator/transform"
+	"gitlab.com/mnm/bud/internal/generator/view"
 	"gitlab.com/mnm/bud/internal/generator/web"
 
 	"gitlab.com/mnm/bud/fsync"
@@ -41,7 +47,7 @@ func main() {
 }
 
 func do() error {
-	cmd := &bud{}
+	cmd := new(bud)
 	cli := commander.New("bud")
 	cli.Flag("chdir", "Change the working directory").Short('C').String(&cmd.Chdir).Default(".")
 
@@ -62,6 +68,20 @@ func do() error {
 		cli.Flag("hot", "hot reload the frontend").Bool(&cmd.Hot).Default(false)
 		cli.Flag("minify", "minify the assets").Bool(&cmd.Minify).Default(true)
 		cli.Run(cmd.Run)
+	}
+
+	{
+		cli := cli.Command("tool", "extra tools")
+		{
+			cmd := &diCommand{bud: cmd}
+			cli := cli.Command("di", "dependency injection generator")
+			cli.Flag("dependency", "generate dependency provider").Short('d').Strings(&cmd.Dependencies)
+			cli.Flag("external", "mark dependency as external").Short('e').Strings(&cmd.Externals).Optional()
+			cli.Flag("target", "target import path").Short('t').String(&cmd.Target)
+			cli.Flag("hoist", "hoist dependencies that depend on externals").Bool(&cmd.Hoist).Default(false)
+			cli.Flag("debug", "debug the dependency injection generator").Bool(&cmd.Debug).Default(false)
+			cli.Run(cmd.Run)
+		}
 	}
 
 	cli.Arg("command", "custom command").String(&cmd.Custom)
@@ -179,13 +199,21 @@ func (c *runCommand) Run(ctx context.Context) error {
 			Modfile: modfile,
 		}),
 		"bud/controller/controller.go": gen.FileGenerator(&controller.Generator{
-			// fill in
+			Modfile: modfile,
+		}),
+		"bud/transform/transform.go": gen.FileGenerator(&transform.Generator{
+			Modfile: modfile,
+		}),
+		"bud/view/view.go": gen.FileGenerator(&view.Generator{
+			Modfile: modfile,
 		}),
 		"bud/public/public.go": gen.FileGenerator(&public.Generator{
-			// fill in
+			Modfile: modfile,
+			Embed:   c.Embed,
+			Minify:  c.Minify,
 		}),
 		"bud/web/web.go": gen.FileGenerator(&web.Generator{
-			// fill in
+			Modfile: modfile,
 		}),
 		"bud/main.go": gen.FileGenerator(&maingo.Generator{
 			Modfile: modfile,
@@ -195,10 +223,15 @@ func (c *runCommand) Run(ctx context.Context) error {
 	if err := fsync.Dir(genfs, ".", vfs.OS(modfile.Directory()), "."); err != nil {
 		return err
 	}
+	// Intentionally use a different context for running subprocesses because
+	// the subprocess should be the one handling the interrupt, not the parent
+	// process.
+	runCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	// Run generate (if it exists) to support user-defined generators
 	generatePath := filepath.Join(modfile.Directory(), "bud", "generate", "main.go")
 	if _, err := os.Stat(generatePath); nil == err {
-		if err := gobin.Run(ctx, modfile.Directory(), generatePath); err != nil {
+		if err := gobin.Run(runCtx, modfile.Directory(), generatePath); err != nil {
 			return err
 		}
 	}
@@ -216,7 +249,7 @@ func (c *runCommand) Run(ctx context.Context) error {
 		}))
 	}
 	// Run the main server
-	if err := gobin.Run(ctx, modfile.Directory(), mainPath); err != nil {
+	if err := gobin.Run(runCtx, modfile.Directory(), mainPath); err != nil {
 		return err
 	}
 	return nil
@@ -266,10 +299,10 @@ func (c *buildCommand) Run(ctx context.Context) error {
 			},
 		}),
 		"bud/controller/controller.go": gen.FileGenerator(&controller.Generator{
-			// fill in
+			// Fill in
 		}),
 		"bud/web/web.go": gen.FileGenerator(&web.Generator{
-			// fill in
+			Modfile: modfile,
 		}),
 		"bud/main.go": gen.FileGenerator(&maingo.Generator{
 			// fill in
@@ -299,4 +332,106 @@ func (c *buildCommand) Run(ctx context.Context) error {
 	return nil
 
 	return nil
+}
+
+type diCommand struct {
+	bud          *bud
+	Target       string
+	Dependencies []string
+	Externals    []string
+	Hoist        bool
+	Debug        bool
+}
+
+func (c *diCommand) Run(ctx context.Context) error {
+	modfile, err := mod.Find(c.bud.Chdir)
+	if err != nil {
+		return err
+	}
+	parser := parser.New(mod.New())
+	injector := di.New(modfile, parser)
+	// Searcher that bud uses
+	// - {importPath}
+	// - internal/{base(importPath)}
+	// - /{base(importPath)}
+	injector.Searcher = func(importPath string) (searchPaths []string) {
+		base := path.Base(importPath)
+		return []string{
+			importPath,
+			modfile.ModulePath("internal", base),
+			modfile.ModulePath(base),
+		}
+	}
+	input := &di.GenerateInput{
+		Hoist: c.Hoist,
+	}
+	input.Target, err = c.toImportPath(modfile, c.Target)
+	if err != nil {
+		return err
+	}
+	// Add the dependencies
+	for _, dependency := range c.Dependencies {
+		dep, err := c.toDependency(modfile, dependency)
+		if err != nil {
+			return err
+		}
+		input.Dependencies = append(input.Dependencies, dep)
+	}
+	// Add the externals
+	for _, external := range c.Externals {
+		ext, err := c.toDependency(modfile, external)
+		if err != nil {
+			return err
+		}
+		input.Externals = append(input.Externals, ext)
+	}
+	graph, err := injector.Print(&di.PrintInput{
+		Dependencies: input.Dependencies,
+		Externals:    input.Externals,
+		Hoist:        input.Hoist,
+	})
+	if err != nil {
+		return err
+	}
+	if c.Debug {
+		fmt.Println(graph)
+	}
+	provider, err := injector.Generate(input)
+	if err != nil {
+		return fmt.Errorf("di: wiring failed: %+s", err)
+	}
+	fmt.Println(provider.File("Load"))
+	return nil
+}
+
+// This should handle both stdlib (e.g. "net/http"), directories (e.g. "web"),
+// and dependencies
+func (c *diCommand) toImportPath(modfile mod.File, importPath string) (string, error) {
+	importPath = strings.Trim(importPath, "\"")
+	maybeDir := modfile.Directory(importPath)
+	if _, err := os.Stat(maybeDir); err == nil {
+		importPath, err = modfile.ResolveImport(maybeDir)
+		if err != nil {
+			return "", fmt.Errorf("di: unable to resolve import %s because %+s", importPath, err)
+		}
+	}
+	return importPath, nil
+}
+
+func (c *diCommand) toDependency(modfile mod.File, dependency string) (*di.Dependency, error) {
+	i := strings.LastIndex(dependency, ".")
+	if i < 0 {
+		return nil, fmt.Errorf("di: external must have form '<import>.<type>'. got %q ", dependency)
+	}
+	importPath, err := c.toImportPath(modfile, dependency[0:i])
+	if err != nil {
+		return nil, err
+	}
+	dataType := dependency[i+1:]
+	// Create the dependency
+	dep := &di.Dependency{
+		Import: importPath,
+		Type:   dataType,
+	}
+	return dep, nil
 }

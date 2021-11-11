@@ -15,7 +15,7 @@ func (v *Int) Default(value int) {
 }
 
 func (v *Int) Optional() {
-
+	v.defval = new(int)
 }
 
 type intValue struct {
@@ -23,14 +23,14 @@ type intValue struct {
 	set   bool
 }
 
-func (v *intValue) verify(name string) error {
+func (v *intValue) verify(displayName string) error {
 	if v.set {
 		return nil
 	} else if v.inner.defval != nil {
 		*v.inner.target = *v.inner.defval
 		return nil
 	}
-	return fmt.Errorf("missing %s", name)
+	return fmt.Errorf("missing %s", displayName)
 }
 
 func (v *intValue) Get() interface{} {

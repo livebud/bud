@@ -11,7 +11,7 @@ var ErrNoMatch = errors.New("no match")
 // Find a dependency using the searcher
 func (i *Injector) Find(dep *Dependency) (Declaration, error) {
 	searchPaths := i.Searcher(dep.Import)
-	return i.find(searchPaths, dep)
+	return i.find(searchPaths, []string{}, dep)
 }
 
 // Looks for the dependency by search path in order. The search paths are
@@ -19,17 +19,21 @@ func (i *Injector) Find(dep *Dependency) (Declaration, error) {
 //
 // TODO: consider parallelizing find. The order should still matter in the end
 // but we can look for dependencies across search paths simultaneously.
-func (i *Injector) find(searchPaths []string, dep *Dependency) (Declaration, error) {
+func (i *Injector) find(searchPaths []string, foundPaths []string, dep *Dependency) (Declaration, error) {
 	// No more search paths, we're unable to find this dependency
 	if len(searchPaths) == 0 {
-		return nil, fmt.Errorf("di: unable to find dependency %q.%s", dep.Import, dep.Type)
+		if len(foundPaths) == 0 {
+			return nil, fmt.Errorf("di: unable to find dependency %q.%s", dep.Import, dep.Type)
+		} else {
+			return nil, fmt.Errorf("di: unclear how to provide %q.%s", dep.Import, dep.Type)
+		}
 	}
 	// Resolve the absolute directory based on the import
 	dir, err := i.Modfile.ResolveDirectory(searchPaths[0])
 	if err != nil {
 		// If the directory doesn't exist, search the next search path
 		if errors.Is(err, os.ErrNotExist) {
-			return i.find(searchPaths[1:], dep)
+			return i.find(searchPaths[1:], foundPaths, dep)
 		}
 		return nil, err
 	}
@@ -60,8 +64,10 @@ func (i *Injector) find(searchPaths []string, dep *Dependency) (Declaration, err
 		}
 		return decl, nil
 	}
+	// Add to foundPaths and try again
+	foundPaths = append(foundPaths, dir)
 	// Search the next search path
-	decl, err := i.find(searchPaths[1:], dep)
+	decl, err := i.find(searchPaths[1:], foundPaths, dep)
 	if err != nil {
 		return nil, err
 	}

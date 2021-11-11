@@ -1,5 +1,7 @@
 package web
 
+// GENERATED. DO NOT EDIT.
+
 {{- if $.Imports }}
 
 import (
@@ -9,15 +11,31 @@ import (
 )
 {{- end }}
 
-func New() *Server {
-	return &Server{}
+// New web server
+func New(
+	controller *controller.Controller,
+	hot *hot.Server,
+	public public.Middleware,
+	router *router.Router,
+	view *view.Server,
+) *Server {
+	// Routing
+	router.Get("/", http.HandlerFunc(controller.Index))
+	router.Get("/:id", http.HandlerFunc(controller.Show))
+	router.Get("/new", view.Handler("/new"))
+	// Compose the middleware together
+	middleware := middleware.Compose(
+		public,
+		hot,
+		view,
+		router,
+	)
+	handler := middleware.Middleware(http.NotFoundHandler())
+	return &Server{handler}
 }
 
 type Server struct {
-}
-
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("serving!"))
+	http.Handler
 }
 
 func (s *Server) ListenAndServe(ctx context.Context, address string) error {
@@ -25,6 +43,33 @@ func (s *Server) ListenAndServe(ctx context.Context, address string) error {
 		Addr: address,
 		Handler: s,
 	}
-	// TODO: handle graceful shutdown using the cancelled context
-	return server.ListenAndServe()
+	// Make the server shutdownable
+	shutdown := shutdown(ctx, server)
+	// Serve requests
+	if err := server.ListenAndServe(); err != nil {
+		if !errors.Is(err, http.ErrServerClosed) {
+			return err
+		}
+	}
+	// Handle any errors that occurred while shutting down
+	if err := <-shutdown; err != nil {
+		return err
+	}
+	return nil
+}
+
+// shutdown the server when the context is cancelled
+func shutdown(ctx context.Context, server *http.Server) <-chan error {
+	shutdown := make(chan error, 1)
+	go func() {
+		<-ctx.Done()
+		// Wait for one more interrupt to force an immediate shutdown
+		forceCtx, cancel := commander.Trap(context.Background(), os.Interrupt)
+		defer cancel()
+		if err := server.Shutdown(forceCtx); err != nil {
+			shutdown <- err
+		}
+		close(shutdown)
+	}()
+	return shutdown
 }

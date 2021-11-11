@@ -43,11 +43,11 @@ func TestLinkLiveBud(t *testing.T) {
 		"package.json": &vfs.File{Data: []byte(`{}`)},
 	})
 	is.NoErr(err)
-	err = npm.Link("../../budjs", "_tmp")
+	err = npm.Link("../../livebud", "_tmp")
 	is.NoErr(err)
 	exists(t, filepath.Join("_tmp", "node_modules", "livebud", "package.json"))
-	exists(t, filepath.Join("_tmp", "node_modules", "livebud", "svelte.ts"))
-	exists(t, filepath.Join("_tmp", "node_modules", "livebud", "hot.ts"))
-	exists(t, filepath.Join("_tmp", "node_modules", "livebud", "index.ts"))
-	exists(t, filepath.Join("_tmp", "node_modules", "livebud", "jsx.ts"))
+	exists(t, filepath.Join("_tmp", "node_modules", "livebud", "runtime", "svelte", "index.ts"))
+	exists(t, filepath.Join("_tmp", "node_modules", "livebud", "runtime", "hot", "index.ts"))
+	exists(t, filepath.Join("_tmp", "node_modules", "livebud", "runtime", "index.ts"))
+	exists(t, filepath.Join("_tmp", "node_modules", "livebud", "runtime", "jsx", "index.ts"))
 }
