@@ -13,6 +13,7 @@ require (
 	github.com/matthewmueller/diff v0.0.0-20210410144936-5c82685ba722
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac
 	github.com/matthewmueller/text v0.0.0-20210424201111-ec1e4af8dfe8
+	github.com/mattn/go-isatty v0.0.14
 	go.kuoruan.net/v8go-polyfills v0.4.0
 	golang.org/x/mod v0.5.1
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c

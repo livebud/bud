@@ -4,16 +4,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 
+	"github.com/mattn/go-isatty"
 	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/gobin"
 	"gitlab.com/mnm/bud/internal/parser"
+	v8 "gitlab.com/mnm/bud/js/v8"
 
 	"gitlab.com/mnm/bud/internal/generator/command"
 	"gitlab.com/mnm/bud/internal/generator/controller"
@@ -72,7 +76,8 @@ func do() error {
 
 	{
 		cli := cli.Command("tool", "extra tools")
-		{
+
+		{ // bud tool di
 			cmd := &diCommand{bud: cmd}
 			cli := cli.Command("di", "dependency injection generator")
 			cli.Flag("dependency", "generate dependency provider").Short('d').Strings(&cmd.Dependencies)
@@ -80,6 +85,13 @@ func do() error {
 			cli.Flag("target", "target import path").Short('t').String(&cmd.Target)
 			cli.Flag("hoist", "hoist dependencies that depend on externals").Bool(&cmd.Hoist).Default(false)
 			cli.Flag("debug", "debug the dependency injection generator").Bool(&cmd.Debug).Default(false)
+			cli.Run(cmd.Run)
+		}
+
+		{ // bud tool v8
+			cmd := &v8Command{bud: cmd}
+			cli := cli.Command("v8", "Execute Javascript with V8")
+			cli.Arg("eval", "evaluate a script").Strings(&cmd.Eval).Optional()
 			cli.Run(cmd.Run)
 		}
 	}
@@ -434,4 +446,47 @@ func (c *diCommand) toDependency(modfile mod.File, dependency string) (*di.Depen
 		Type:   dataType,
 	}
 	return dep, nil
+}
+
+type v8Command struct {
+	bud  *bud
+	Eval []string
+}
+
+func (c *v8Command) Run(ctx context.Context) error {
+	script, err := c.getScript()
+	if err != nil {
+		return err
+	}
+	vm := v8.New()
+	result, err := vm.Eval("script.js", script)
+	if err != nil {
+		return err
+	}
+	fmt.Println(result)
+	return nil
+}
+
+func (c *v8Command) getScript() (string, error) {
+	if len(c.Eval) > 0 {
+		script := strings.Join(c.Eval, " ")
+		return script, nil
+	}
+	code, err := ioutil.ReadAll(stdin())
+	if err != nil {
+		return "", err
+	}
+	script := string(code)
+	if script == "" {
+		return "", errors.New("missing script to evaluate")
+	}
+	return script, nil
+}
+
+// input from stdin or empty object by default.
+func stdin() io.Reader {
+	if isatty.IsTerminal(os.Stdin.Fd()) {
+		return strings.NewReader("")
+	}
+	return os.Stdin
 }

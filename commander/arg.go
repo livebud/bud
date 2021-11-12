@@ -17,6 +17,13 @@ func (a *Arg) String(target *string) *String {
 	a.value = &stringValue{inner: value}
 	return value
 }
+
+func (a *Arg) Strings(target *[]string) *Strings {
+	value := &Strings{target: target}
+	a.value = &stringsValue{inner: value}
+	return value
+}
+
 func (a *Arg) verify(name string) error {
 	return a.value.verify(name)
 }
