@@ -92,7 +92,7 @@ func (p *Parser) parseDir(fset *token.FileSet, path string, filter func(fs.FileI
 	return
 }
 
-func (p *Parser) modfile(dir string) (mod.File, error) {
+func (p *Parser) modfile(dir string) (*mod.File, error) {
 	return p.modfinder.Find(dir)
 }
 

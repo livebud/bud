@@ -18,7 +18,7 @@ var template string
 var generator = gotemplate.MustParse("generate", template)
 
 type Generator struct {
-	Modfile mod.File
+	Modfile *mod.File
 	Embed   bool
 	Hot     bool
 	Minify  bool

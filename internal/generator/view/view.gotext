@@ -13,12 +13,12 @@ import (
 {{- end }}
 
 // New is called like this when calling bud run
-func New(genfs gen.FS, modfile mod.File, vm js.VM, transformer *transform.Transformer) *Server {
+func New(genfs gen.FS, modfile *mod.File, vm js.VM, transformer *transform.Transformer) *Server {
 	return view.Live(modfile, genfs, vm, transformer)
 }
 
 // New_ is swapped in when generating with bud build
-func New_(genfs gen.FS, modfile mod.File, vm js.VM) *Server {
+func New_(genfs gen.FS, modfile *mod.File, vm js.VM) *Server {
 	genfs.Add(map[string]gen.Generator{
 		// "bud/view/_ssr.js": &bfs.Embed{
 		// 	  Data:    []byte(`...`),

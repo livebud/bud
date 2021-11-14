@@ -10,8 +10,8 @@ import (
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
-	"gitlab.com/mnm/bud/internal/generator/plugin"
 	"gitlab.com/mnm/bud/internal/gobin"
+	"gitlab.com/mnm/bud/plugin"
 	"gitlab.com/mnm/bud/vfs"
 )
 
@@ -32,7 +32,7 @@ func TestPlugin(t *testing.T) {
 	ctx := context.Background()
 	err = gobin.Get(ctx, dir, "gitlab.com/mnm/testdata/bud-tailwind", "gitlab.com/mnm/testdata/bud-markdown")
 	is.NoErr(err)
-	modfile, err := mod.Find(dir)
+	modfile, err := mod.FindBy(dir)
 	is.NoErr(err)
 	dirfs := os.DirFS(dir)
 	bf := gen.New(dirfs)

@@ -35,7 +35,7 @@ var defaultSearcher = func(importPath string) []string {
 }
 
 // New dependency injector
-func New(modfile mod.File, parser *parser.Parser) *Injector {
+func New(modfile *mod.File, parser *parser.Parser) *Injector {
 	return &Injector{
 		Modfile:  modfile,
 		Parser:   parser,
@@ -45,7 +45,7 @@ func New(modfile mod.File, parser *parser.Parser) *Injector {
 
 type Injector struct {
 	// Modfile of the project
-	Modfile mod.File
+	Modfile *mod.File
 
 	// Parser for parsing Go code
 	Parser *parser.Parser

@@ -6,7 +6,7 @@ import (
 )
 
 type Config struct {
-	Modfile mod.File
+	Modfile *mod.File
 	Logger  log.Log
 	Embed   bool
 	Hot     bool

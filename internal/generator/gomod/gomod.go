@@ -3,12 +3,12 @@ package gomod
 import (
 	_ "embed"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 
-	"gitlab.com/mnm/bud/go/mod"
-
 	"gitlab.com/mnm/bud/gen"
+	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 )
 
@@ -16,13 +16,6 @@ import (
 var template string
 
 var generator = gotemplate.MustParse("gomod", template)
-
-type State struct {
-	Modfile  mod.File
-	Go       *Go
-	Requires []*Require
-	Replaces []*Replace
-}
 
 type Go struct {
 	Version string
@@ -40,7 +33,7 @@ type Replace struct {
 }
 
 type Generator struct {
-	Modfile  mod.File
+	Modfile  *mod.File
 	Go       *Go
 	Requires []*Require
 	Replaces []*Replace
@@ -73,7 +66,8 @@ func (g *Generator) updateFile(f gen.F, file *gen.File, code []byte) error {
 			return err
 		}
 	}
-	file.Write(mod.Format(modfile))
+	fmt.Println(string(modfile.Format()))
+	file.Write(modfile.Format())
 	return nil
 }
 

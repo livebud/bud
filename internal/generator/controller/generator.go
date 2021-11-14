@@ -15,7 +15,7 @@ var template string
 var generator = gotemplate.MustParse("controller.gotext", template)
 
 type Generator struct {
-	Modfile mod.File
+	Modfile *mod.File
 }
 
 // var controllers = glob.MustCompile("controller/{*,**}.go")

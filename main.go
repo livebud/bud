@@ -24,11 +24,11 @@ import (
 	"gitlab.com/mnm/bud/internal/generator/generator"
 	"gitlab.com/mnm/bud/internal/generator/gomod"
 	"gitlab.com/mnm/bud/internal/generator/maingo"
-	"gitlab.com/mnm/bud/internal/generator/plugin"
 	"gitlab.com/mnm/bud/internal/generator/public"
 	"gitlab.com/mnm/bud/internal/generator/transform"
 	"gitlab.com/mnm/bud/internal/generator/view"
 	"gitlab.com/mnm/bud/internal/generator/web"
+	"gitlab.com/mnm/bud/plugin"
 
 	"gitlab.com/mnm/bud/fsync"
 	"gitlab.com/mnm/bud/vfs"
@@ -108,7 +108,7 @@ type bud struct {
 }
 
 func (c *bud) Run(ctx context.Context) error {
-	modfile, err := mod.Find(c.Chdir)
+	modfile, err := mod.FindBy(c.Chdir)
 	if err != nil {
 		return err
 	}
@@ -168,7 +168,7 @@ type runCommand struct {
 }
 
 func (c *runCommand) Run(ctx context.Context) error {
-	modfile, err := mod.Find(c.bud.Chdir)
+	modfile, err := mod.FindBy(c.bud.Chdir)
 	if err != nil {
 		return err
 	}
@@ -190,6 +190,10 @@ func (c *runCommand) Run(ctx context.Context) error {
 				{
 					Old: "gitlab.com/mnm/bud",
 					New: "../bud",
+				},
+				{
+					Old: "gitlab.com/mnm/bud-tailwind",
+					New: "../bud-tailwind",
 				},
 			},
 		}),
@@ -275,7 +279,7 @@ type buildCommand struct {
 }
 
 func (c *buildCommand) Run(ctx context.Context) error {
-	modfile, err := mod.Find(c.bud.Chdir)
+	modfile, err := mod.FindBy(c.bud.Chdir)
 	if err != nil {
 		return err
 	}
@@ -307,6 +311,10 @@ func (c *buildCommand) Run(ctx context.Context) error {
 				{
 					Old: "gitlab.com/mnm/bud",
 					New: "../bud",
+				},
+				{
+					Old: "gitlab.com/mnm/bud-tailwind",
+					New: "../bud-tailwind",
 				},
 			},
 		}),
@@ -356,7 +364,7 @@ type diCommand struct {
 }
 
 func (c *diCommand) Run(ctx context.Context) error {
-	modfile, err := mod.Find(c.bud.Chdir)
+	modfile, err := mod.FindBy(c.bud.Chdir)
 	if err != nil {
 		return err
 	}
@@ -418,7 +426,7 @@ func (c *diCommand) Run(ctx context.Context) error {
 
 // This should handle both stdlib (e.g. "net/http"), directories (e.g. "web"),
 // and dependencies
-func (c *diCommand) toImportPath(modfile mod.File, importPath string) (string, error) {
+func (c *diCommand) toImportPath(modfile *mod.File, importPath string) (string, error) {
 	importPath = strings.Trim(importPath, "\"")
 	maybeDir := modfile.Directory(importPath)
 	if _, err := os.Stat(maybeDir); err == nil {
@@ -430,7 +438,7 @@ func (c *diCommand) toImportPath(modfile mod.File, importPath string) (string, e
 	return importPath, nil
 }
 
-func (c *diCommand) toDependency(modfile mod.File, dependency string) (*di.Dependency, error) {
+func (c *diCommand) toDependency(modfile *mod.File, dependency string) (*di.Dependency, error) {
 	i := strings.LastIndex(dependency, ".")
 	if i < 0 {
 		return nil, fmt.Errorf("di: external must have form '<import>.<type>'. got %q ", dependency)

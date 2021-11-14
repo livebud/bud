@@ -46,7 +46,7 @@ func Test(t testing.TB) *Server {
 }
 
 // Live server serves view files on the fly. Used during development.
-func Live(modfile mod.File, genfs gen.FS, vm js.VM, transformer *transform.Transformer) *Server {
+func Live(modfile *mod.File, genfs gen.FS, vm js.VM, transformer *transform.Transformer) *Server {
 	dir := modfile.Directory()
 	dirfs := os.DirFS(modfile.Directory())
 	genfs.Add(map[string]gen.Generator{

@@ -15,7 +15,7 @@ var template string
 var generator = gotemplate.MustParse("command", template)
 
 type Generator struct {
-	Modfile mod.File
+	Modfile *mod.File
 }
 
 type State struct {
@@ -38,7 +38,7 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 	imports.AddNamed("web", g.Modfile.ModulePath("bud/web"))
 	imports.AddNamed("commander", "gitlab.com/mnm/bud/commander")
 	imports.AddNamed("console", "gitlab.com/mnm/bud/log/console")
-	imports.AddNamed("plugin", "gitlab.com/mnm/bud/plugin_old")
+	imports.AddNamed("plugin", "gitlab.com/mnm/bud/plugin")
 	// TODO: pull from DI
 	imports.AddNamed("mod", "gitlab.com/mnm/bud/go/mod")
 	imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")

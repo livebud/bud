@@ -44,7 +44,7 @@ func (pkg *Package) Files() []*File {
 }
 
 // Modfile returns the modfile or fails
-func (pkg *Package) Modfile() (mod.File, error) {
+func (pkg *Package) Modfile() (*mod.File, error) {
 	return pkg.parser.modfile(pkg.directory)
 }
 

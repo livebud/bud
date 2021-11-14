@@ -75,7 +75,7 @@ func (e *externals) Set(value string) error {
 }
 
 type Searcher struct {
-	modfile mod.File
+	Modfile *mod.File
 }
 
 // Searcher that duo uses
@@ -156,7 +156,7 @@ func diCmd(ts *testscript.TestScript, neg bool, args []string) {
 	}
 }
 
-func toDependency(ts *testscript.TestScript, modfile mod.File, dependency string) *di.Dependency {
+func toDependency(ts *testscript.TestScript, modfile *mod.File, dependency string) *di.Dependency {
 	parts := strings.SplitN(dependency, ".", 2)
 	if len(parts) < 2 {
 		ts.Fatalf("di: external must have form '<import>.<type>'. got %q ", dependency)
