@@ -21,12 +21,12 @@ var ErrCantInfer = errors.New("mod: unable to infer the module path")
 var ErrFileNotFound = fmt.Errorf("unable to find go.mod: %w", fs.ErrNotExist)
 
 func Find() (*File, error) {
-	return FindBy(".")
+	return FindIn(".")
 }
 
 // Find first tries finding an explicit module file (go.mod). If no go.mod is
 // found, then Find will try inferring a virtual module file from $GOPATH.
-func FindBy(dir string) (*File, error) {
+func FindIn(dir string) (*File, error) {
 	absdir, err := filepath.Abs(dir)
 	if err != nil {
 		return nil, err

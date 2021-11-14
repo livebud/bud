@@ -32,7 +32,7 @@ func TestPlugin(t *testing.T) {
 	ctx := context.Background()
 	err = gobin.Get(ctx, dir, "gitlab.com/mnm/testdata/bud-tailwind", "gitlab.com/mnm/testdata/bud-markdown")
 	is.NoErr(err)
-	modfile, err := mod.FindBy(dir)
+	modfile, err := mod.FindIn(dir)
 	is.NoErr(err)
 	dirfs := os.DirFS(dir)
 	bf := gen.New(dirfs)

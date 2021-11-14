@@ -10,6 +10,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"golang.org/x/mod/modfile"
 	"golang.org/x/mod/module"
 	"golang.org/x/mod/semver"
 )
@@ -33,7 +34,15 @@ func Directory() string {
 
 // WriteModule writes a module to the cache directory in the proper format for
 // the proxy to pick it up
-func WriteModule(cacheDir, modulePath, version string, files map[string][]byte) error {
+func WriteModule(cacheDir, version string, files map[string][]byte) error {
+	goMod, ok := files["go.mod"]
+	if !ok {
+		return fmt.Errorf("modcache: missing go.mod in files map")
+	}
+	modulePath := modfile.ModulePath(goMod)
+	if modulePath == "" {
+		return fmt.Errorf("modcache: missing module path in go.mod")
+	}
 	cacheDir, err := getCacheDir(cacheDir)
 	if err != nil {
 		return err

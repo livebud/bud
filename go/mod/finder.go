@@ -11,7 +11,7 @@ type Finder struct {
 
 // Find a modfile
 func (f *Finder) Find(dir string) (*File, error) {
-	modfile, err := FindBy(dir)
+	modfile, err := FindIn(dir)
 	if err != nil {
 		return nil, err
 	}

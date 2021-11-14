@@ -6,6 +6,11 @@ import (
 	"path/filepath"
 )
 
+// TODO: create an os_windows for opening on multiple drives
+// with the same API
+//
+// https://github.com/golang/go/issues/44279#issuecomment-955766528
+
 type OS string
 
 var _ ReadWritable = (OS)("")

@@ -19,7 +19,7 @@ func TestFindBy(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	modfile, err := mod.FindBy(wd)
+	modfile, err := mod.FindIn(wd)
 	is.NoErr(err)
 	dir := modfile.Directory()
 	root := filepath.Join(wd, "..", "..")
@@ -30,7 +30,7 @@ func TestResolveDirectory(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	modfile, err := mod.FindBy(wd)
+	modfile, err := mod.FindIn(wd)
 	is.NoErr(err)
 	dir, err := modfile.ResolveDirectory("github.com/matryer/is")
 	is.NoErr(err)
@@ -42,7 +42,7 @@ func TestResolveDirectoryNotOk(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	modfile, err := mod.FindBy(wd)
+	modfile, err := mod.FindIn(wd)
 	is.NoErr(err)
 	dir, err := modfile.ResolveDirectory("github.com/matryer/is/zargle")
 	is.Equal(dir, "")
@@ -53,7 +53,7 @@ func TestResolveStdDirectory(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	modfile, err := mod.FindBy(wd)
+	modfile, err := mod.FindIn(wd)
 	is.NoErr(err)
 	dir, err := modfile.ResolveDirectory("net/http")
 	is.NoErr(err)
@@ -65,7 +65,7 @@ func TestResolveImport(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	modfile, err := mod.FindBy(wd)
+	modfile, err := mod.FindIn(wd)
 	is.NoErr(err)
 	im, err := modfile.ResolveImport(wd)
 	is.NoErr(err)
@@ -141,28 +141,26 @@ func TestLocalResolveDirectory(t *testing.T) {
 	is := is.New(t)
 	cacheDir := t.TempDir()
 	var modules = []struct {
-		modulePath, version string
-		files               map[string][]byte
+		version string
+		files   map[string][]byte
 	}{
 		{
-			modulePath: "mod.test/module",
-			version:    "v1.2.3",
+			version: "v1.2.3",
 			files: map[string][]byte{
-				"go.mod":   []byte("module mod.test\n\ngo 1.12"),
+				"go.mod":   []byte("module mod.test/module\n\ngo 1.12"),
 				"const.go": []byte("package module\n\nconst Answer = 42"),
 			},
 		},
 		{
-			modulePath: "mod.test/module",
-			version:    "v1.2.4",
+			version: "v1.2.4",
 			files: map[string][]byte{
-				"go.mod":   []byte("module mod.test\n\ngo 1.12"),
+				"go.mod":   []byte("module mod.test/module\n\ngo 1.12"),
 				"const.go": []byte("package module\n\nconst Answer = 43"),
 			},
 		},
 	}
 	for _, m := range modules {
-		err := modcache.WriteModule(cacheDir, m.modulePath, m.version, m.files)
+		err := modcache.WriteModule(cacheDir, m.version, m.files)
 		is.NoErr(err)
 	}
 	appDir := t.TempDir()

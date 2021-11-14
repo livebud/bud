@@ -5,8 +5,8 @@ import (
 	"io/fs"
 	"testing"
 
-	"gitlab.com/mnm/bud/vfs"
 	"github.com/matryer/is"
+	"gitlab.com/mnm/bud/vfs"
 )
 
 func TestMemory(t *testing.T) {
@@ -93,4 +93,17 @@ func TestWriteAll(t *testing.T) {
 	code, err = fs.ReadFile(dirfs, "duo/view/index.svelte")
 	is.Equal(errors.Is(err, fs.ErrNotExist), true)
 	is.Equal(code, nil)
+}
+
+func TestWriteRead(t *testing.T) {
+	is := is.New(t)
+	fsys := vfs.Memory{}
+	err := fsys.MkdirAll("a/b", 0755)
+	is.NoErr(err)
+	err = fsys.WriteFile("a/b/c.txt", []byte("c"), 0644)
+	is.NoErr(err)
+	stat, err := fs.Stat(fsys, "a/b")
+	is.NoErr(err)
+	is.Equal(stat.Name(), "b")
+	is.Equal(stat.IsDir(), true)
 }

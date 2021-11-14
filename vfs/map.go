@@ -6,6 +6,7 @@ import (
 
 type Map map[string]string
 
+// TODO: support the vfs.ReadWritable interface
 var _ fs.FS = (Map)(nil)
 
 func toMemory(m Map) Memory {
