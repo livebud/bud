@@ -3,6 +3,7 @@ package mod
 import (
 	"fmt"
 	"go/build"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -17,10 +18,9 @@ import (
 type Require = modfile.Require
 
 type File struct {
-	CacheDir string // Module cache directory
-
-	file *modfile.File
-	dir  string
+	file  *modfile.File
+	cache *modcache.Cache
+	dir   string
 }
 
 // Directory returns the module directory (e.g. /Users/$USER/...)
@@ -79,6 +79,15 @@ func (f *File) Format() []byte {
 	return modfile.Format(f.file.Syntax)
 }
 
+// Open implements fs.FS allowing you to read the contents of your dependencies.
+func (f *File) Open(name string) (fs.File, error) {
+	dir, err := f.ResolveDirectory(name)
+	if err != nil {
+		return nil, err
+	}
+	return os.DirFS(dir).Open(".")
+}
+
 // dir containing the standard libraries
 var stdDir = filepath.Join(build.Default.GOROOT, "src")
 
@@ -120,7 +129,7 @@ func (f *File) resolveDirectory(importPath string) (directory string, err error)
 	for _, req := range f.file.Require {
 		if contains(req.Mod.Path, importPath) {
 			relPath := strings.TrimPrefix(importPath, req.Mod.Path)
-			dir, err := modcache.ResolveDirectory(f.CacheDir, req.Mod.Path, req.Mod.Version)
+			dir, err := f.cache.ResolveDirectory(req.Mod.Path, req.Mod.Version)
 			if err != nil {
 				return "", err
 			}

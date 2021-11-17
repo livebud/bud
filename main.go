@@ -16,6 +16,7 @@ import (
 	"github.com/mattn/go-isatty"
 	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/gobin"
+	"gitlab.com/mnm/bud/internal/modcache"
 	"gitlab.com/mnm/bud/internal/parser"
 	v8 "gitlab.com/mnm/bud/js/v8"
 
@@ -108,7 +109,7 @@ type bud struct {
 }
 
 func (c *bud) Run(ctx context.Context) error {
-	modfile, err := mod.FindIn(c.Chdir)
+	modfile, err := mod.FindIn(modcache.Default(), c.Chdir)
 	if err != nil {
 		return err
 	}
@@ -168,7 +169,7 @@ type runCommand struct {
 }
 
 func (c *runCommand) Run(ctx context.Context) error {
-	modfile, err := mod.FindIn(c.bud.Chdir)
+	modfile, err := mod.FindIn(modcache.Default(), c.bud.Chdir)
 	if err != nil {
 		return err
 	}
@@ -279,7 +280,7 @@ type buildCommand struct {
 }
 
 func (c *buildCommand) Run(ctx context.Context) error {
-	modfile, err := mod.FindIn(c.bud.Chdir)
+	modfile, err := mod.FindIn(modcache.Default(), c.bud.Chdir)
 	if err != nil {
 		return err
 	}
@@ -350,8 +351,6 @@ func (c *buildCommand) Run(ctx context.Context) error {
 		return err
 	}
 	return nil
-
-	return nil
 }
 
 type diCommand struct {
@@ -364,11 +363,12 @@ type diCommand struct {
 }
 
 func (c *diCommand) Run(ctx context.Context) error {
-	modfile, err := mod.FindIn(c.bud.Chdir)
+	modcache := modcache.Default()
+	modfile, err := mod.FindIn(modcache, c.bud.Chdir)
 	if err != nil {
 		return err
 	}
-	parser := parser.New(mod.New())
+	parser := parser.New(mod.New(modcache))
 	injector := di.New(modfile, parser)
 	// Searcher that bud uses
 	// - {importPath}

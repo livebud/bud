@@ -3,13 +3,13 @@ package gomod
 import (
 	_ "embed"
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/gotemplate"
+	"gitlab.com/mnm/bud/internal/modcache"
 )
 
 //go:embed gomod.gotext
@@ -51,7 +51,7 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 }
 
 func (g *Generator) updateFile(f gen.F, file *gen.File, code []byte) error {
-	modfile, err := mod.Parse(file.Path(), code)
+	modfile, err := mod.Parse(modcache.Default(), file.Path(), code)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,6 @@ func (g *Generator) updateFile(f gen.F, file *gen.File, code []byte) error {
 			return err
 		}
 	}
-	fmt.Println(string(modfile.Format()))
 	file.Write(modfile.Format())
 	return nil
 }

@@ -15,26 +15,28 @@ import (
 	"golang.org/x/mod/semver"
 )
 
-// Cache for faster subsequent requests
-var cacheDir string
+// Default loads a module cache from the default location
+func Default() *Cache {
+	return New(getCacheDir())
+}
 
-// Directory returns the module cache directory
-func Directory() string {
-	if cacheDir != "" {
-		return cacheDir
-	}
-	env := os.Getenv("GOMODCACHE")
-	if env != "" {
-		cacheDir = env
-		return env
-	}
-	cacheDir = filepath.Join(build.Default.GOPATH, "pkg", "mod")
-	return cacheDir
+// New module cache relative to the cache directory
+func New(cacheDir string) *Cache {
+	return &Cache{cacheDir}
+}
+
+type Cache struct {
+	cacheDir string
+}
+
+// Directory returns the cache directory joined with optional subpaths
+func (c *Cache) Directory(subpaths ...string) string {
+	return filepath.Join(append([]string{c.cacheDir}, subpaths...)...)
 }
 
 // WriteModule writes a module to the cache directory in the proper format for
 // the proxy to pick it up
-func WriteModule(cacheDir, version string, files map[string][]byte) error {
+func (c *Cache) WriteModule(version string, files map[string][]byte) error {
 	goMod, ok := files["go.mod"]
 	if !ok {
 		return fmt.Errorf("modcache: missing go.mod in files map")
@@ -43,11 +45,7 @@ func WriteModule(cacheDir, version string, files map[string][]byte) error {
 	if modulePath == "" {
 		return fmt.Errorf("modcache: missing module path in go.mod")
 	}
-	cacheDir, err := getCacheDir(cacheDir)
-	if err != nil {
-		return err
-	}
-	moduleDir, err := getModuleDir(cacheDir, modulePath, version)
+	moduleDir, err := c.getModuleDirectory(modulePath, version)
 	if err != nil {
 		return err
 	}
@@ -71,12 +69,8 @@ func WriteModule(cacheDir, version string, files map[string][]byte) error {
 // escaped. An error satisfying errors.Is(err, os.ErrNotExist) will be returned
 // along with the directory if the directory does not exist or if the directory
 // is not completely populated.
-func ResolveDirectory(cacheDir, modulePath, version string) (string, error) {
-	cacheDir, err := getCacheDir(cacheDir)
-	if err != nil {
-		return "", err
-	}
-	dir, err := getModuleDir(cacheDir, modulePath, version)
+func (c *Cache) ResolveDirectory(modulePath, version string) (string, error) {
+	dir, err := c.getModuleDirectory(modulePath, version)
 	if err != nil {
 		return "", err
 	}
@@ -87,7 +81,7 @@ func ResolveDirectory(cacheDir, modulePath, version string) (string, error) {
 	} else if !fi.IsDir() {
 		return dir, &downloadDirPartialError{dir, errors.New("not a directory")}
 	}
-	partialPath, err := partialDownloadPath(cacheDir, modulePath, version, "partial")
+	partialPath, err := c.partialDownloadPath(modulePath, version, "partial")
 	if err != nil {
 		return dir, err
 	}
@@ -99,7 +93,25 @@ func ResolveDirectory(cacheDir, modulePath, version string) (string, error) {
 	return dir, nil
 }
 
-func getModuleDir(cacheDir, modulePath, version string) (string, error) {
+// Cache for faster subsequent requests
+var cacheDir string
+
+// getCacheDir returns the module cache directory
+func getCacheDir() string {
+	if cacheDir != "" {
+		return cacheDir
+	}
+	env := os.Getenv("GOMODCACHE")
+	if env != "" {
+		cacheDir = env
+		return env
+	}
+	cacheDir = filepath.Join(build.Default.GOPATH, "pkg", "mod")
+	return cacheDir
+}
+
+// getModuleDirectory returns an absolute path to the required module.
+func (c *Cache) getModuleDirectory(modulePath, version string) (string, error) {
 	enc, err := module.EscapePath(modulePath)
 	if err != nil {
 		return "", err
@@ -114,19 +126,8 @@ func getModuleDir(cacheDir, modulePath, version string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	dir := filepath.Join(cacheDir, enc+"@"+encVer)
+	dir := filepath.Join(c.cacheDir, enc+"@"+encVer)
 	return dir, nil
-}
-
-func getCacheDir(cacheDir string) (string, error) {
-	if cacheDir != "" {
-		return cacheDir, nil
-	}
-	cacheDir = Directory()
-	if cacheDir != "" {
-		return cacheDir, nil
-	}
-	return "", fmt.Errorf("internal error: GOMODCACHE not set")
 }
 
 // downloadDirPartialError is returned by DownloadDir if a module directory
@@ -145,12 +146,12 @@ func (e *downloadDirPartialError) Error() string { return fmt.Sprintf("%s: %v", 
 func (e *downloadDirPartialError) Is(err error) bool { return err == os.ErrNotExist }
 
 // partialDownloadPath returns the partial download path
-func partialDownloadPath(cacheDir, modulePath, version, suffix string) (string, error) {
+func (c *Cache) partialDownloadPath(modulePath, version, suffix string) (string, error) {
 	enc, err := module.EscapePath(modulePath)
 	if err != nil {
 		return "", err
 	}
-	dir := filepath.Join(cacheDir, "cache/download", enc, "/@v")
+	dir := filepath.Join(c.cacheDir, "cache/download", enc, "/@v")
 	if !semver.IsValid(version) {
 		return "", fmt.Errorf("non-semver module version %q", version)
 	}
