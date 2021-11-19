@@ -1,0 +1,8 @@
+-- a.go --
+package a
+
+-- b/b.go --
+package b
+
+-- c/c/c.txt --
+c
