@@ -50,7 +50,11 @@ func (c *Command) Run(ctx context.Context) error {
 
 // TODO: generate with DI
 func loadCommand() (*Command, error) {
-	modFile, err := mod.Find()
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+	modFile, err := mod.Default().Find(wd)
 	if err != nil {
 		return nil, err
 	}

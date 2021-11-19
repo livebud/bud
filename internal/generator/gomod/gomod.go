@@ -51,7 +51,8 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 }
 
 func (g *Generator) updateFile(f gen.F, file *gen.File, code []byte) error {
-	modfile, err := mod.Parse(modcache.Default(), file.Path(), code)
+	module := mod.New(modcache.Default())
+	modfile, err := module.Parse(file.Path(), code)
 	if err != nil {
 		return err
 	}

@@ -34,14 +34,26 @@ func (c *Cache) Directory(subpaths ...string) string {
 	return filepath.Join(append([]string{c.cacheDir}, subpaths...)...)
 }
 
-// WriteModule writes a module to the cache directory in the proper format for
-// the proxy to pick it up
-func (c *Cache) WriteModule(version string, files map[string][]byte) error {
+type Files = map[string]string
+type Versions = map[string]Files
+
+// Write modules to the cache directory in the proper format for
+// the proxy to pick it up. Mostly used for testing.
+func (c *Cache) Write(versions Versions) error {
+	eg := new(errgroup.Group)
+	for version, files := range versions {
+		version, files := version, files
+		eg.Go(func() error { return c.writeModule(version, files) })
+	}
+	return eg.Wait()
+}
+
+func (c *Cache) writeModule(version string, files map[string]string) error {
 	goMod, ok := files["go.mod"]
 	if !ok {
 		return fmt.Errorf("modcache: missing go.mod in files map")
 	}
-	modulePath := modfile.ModulePath(goMod)
+	modulePath := modfile.ModulePath([]byte(goMod))
 	if modulePath == "" {
 		return fmt.Errorf("modcache: missing module path in go.mod")
 	}
@@ -58,7 +70,7 @@ func (c *Cache) WriteModule(version string, files map[string][]byte) error {
 			if err := os.MkdirAll(dir, 0755); err != nil {
 				return err
 			}
-			return ioutil.WriteFile(path, data, 0644)
+			return ioutil.WriteFile(path, []byte(data), 0644)
 		})
 	}
 	return eg.Wait()

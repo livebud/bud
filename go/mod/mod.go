@@ -20,30 +20,56 @@ var ErrCantInfer = errors.New("mod: unable to infer the module path")
 // ErrFileNotFound occurs when no go.mod can be found
 var ErrFileNotFound = fmt.Errorf("unable to find go.mod: %w", fs.ErrNotExist)
 
-func Find() (*File, error) {
-	return FindIn(modcache.Default(), ".")
+// New modfile loader
+func New(cache *modcache.Cache) *Module {
+	return &Module{cache}
+}
+
+// Default modfile loader
+func Default() *Module {
+	return &Module{modcache.Default()}
+}
+
+// Module struct
+type Module struct {
+	cache *modcache.Cache
 }
 
 // Find first tries finding an explicit module file (go.mod). If no go.mod is
 // found, then Find will try inferring a virtual module file from $GOPATH.
-func FindIn(cache *modcache.Cache, appDir string) (*File, error) {
+func (m *Module) Find(appDir string) (*File, error) {
 	absdir, err := filepath.Abs(appDir)
 	if err != nil {
 		return nil, err
 	}
 	// First search for go.mod
-	modfile, err := findModFile(cache, absdir)
+	modfile, err := findModFile(m.cache, absdir)
 	if nil == err {
 		return modfile, nil
 	} else if !errors.Is(err, ErrFileNotFound) {
 		return nil, err
 	}
 	// If that fails, try inferring from the $GOPATH
-	return Infer(cache, absdir)
+	return m.Infer(absdir)
+}
+
+// Infer the module path from the $GOPATH. This only works if you work inside
+// $GOPATH.
+func (m *Module) Infer(dir string) (*File, error) {
+	modulePath := modulePathFromGoPath(dir)
+	if modulePath == "" {
+		return nil, fmt.Errorf("%w for %q, run `go mod init` to fix", ErrCantInfer, dir)
+	}
+	virtualPath := filepath.Join(dir, "go.mod")
+	return parse(m.cache, virtualPath, []byte("module "+modulePath))
 }
 
 // Parse a modfile from it's data
-func Parse(cache *modcache.Cache, path string, data []byte) (*File, error) {
+func (m *Module) Parse(path string, data []byte) (*File, error) {
+	return parse(m.cache, path, data)
+}
+
+func parse(cache *modcache.Cache, path string, data []byte) (*File, error) {
 	modfile, err := modfile.Parse(path, data, nil)
 	if err != nil {
 		return nil, err
@@ -53,17 +79,6 @@ func Parse(cache *modcache.Cache, path string, data []byte) (*File, error) {
 		cache: cache,
 		dir:   filepath.Dir(path),
 	}, nil
-}
-
-// Infer the module path from the $GOPATH. This only works if you work inside
-// $GOPATH.
-func Infer(cache *modcache.Cache, appDir string) (*File, error) {
-	modulePath := modulePathFromGoPath(appDir)
-	if modulePath == "" {
-		return nil, fmt.Errorf("%w for %q, run `go mod init` to fix", ErrCantInfer, appDir)
-	}
-	virtualPath := filepath.Join(appDir, "go.mod")
-	return Parse(cache, virtualPath, []byte("module "+modulePath))
 }
 
 // Find the go.mod file from anywhere in your project.
@@ -77,7 +92,7 @@ func findModFile(cache *modcache.Cache, path string) (*File, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Parse(cache, modulePath, moduleData)
+	return parse(cache, modulePath, moduleData)
 }
 
 // findModPath traverses up the filesystem until it finds a directory containing

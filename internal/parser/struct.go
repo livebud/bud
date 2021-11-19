@@ -40,6 +40,35 @@ func (stct *Struct) Private() bool {
 	return unicode.IsLower(rune(stct.ts.Name.Name[0]))
 }
 
+func (stct *Struct) Field(name string) *Field {
+	if stct.node.Fields == nil {
+		return nil
+	}
+	for _, field := range stct.node.Fields.List {
+		if len(field.Names) == 0 {
+			ident := getIdentifier(field.Type)
+			if name == ident.Name {
+				return &Field{
+					stct:     stct,
+					name:     ident.Name,
+					node:     field,
+					embedded: true,
+				}
+			}
+		}
+		for _, ident := range field.Names {
+			if ident.Name == name {
+				return &Field{
+					stct: stct,
+					name: ident.Name,
+					node: field,
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // Fields function
 func (stct *Struct) Fields() (fields []*Field) {
 	if stct.node.Fields == nil {

@@ -1,72 +1,54 @@
-# Duo setup
-go mod edit -replace gitlab.com/mnm/bud=$DUOC_DIR
-[replace] go mod edit -replace gitlab.com/mnm/duo=$DUO_DIR
-[!replace] go mod edit -require gitlab.com/mnm/duo@$DUO_VERSION
-go mod tidy
+-- mod/mod.test/dep@v1.0.0/go.mod --
+module mod.test/dep
 
-go run main.go
-stdout '^Fruit$'
+-- mod/mod.test/dep@v1.0.0/inner/inner.go --
+package inner
 
--- main.go --
-package main
+type Dep struct {}
 
-import (
-  "gitlab.com/mnm/bud/go/mod"
-  "gitlab.com/mnm/bud/go/parser"
-  "fmt"
-  "os"
+-- mod/mod.test/module@v0.0.1/go.mod --
+module mod.test/module
+
+require (
+  mod.test/dep v1.0.0
 )
 
-func main() {
-  result, err := run()
-  if err != nil {
-    fmt.Fprintln(os.Stderr, err)
-    os.Exit(1)
-  }
-  fmt.Fprintln(os.Stdout, result)
+-- mod/mod.test/module@v0.0.1/struct.go --
+package module
+
+type Struct struct {
 }
 
-func run() (string, error) {
-  p := parser.New(mod.New())
-  pkg, err := p.Parse("./hello")
-  if err != nil {
-    return "", err
-  }
-  stcts := pkg.Structs()
-  for _, stct := range stcts {
-    if stct.Name() != "A" {
-      continue
-    }
-    for _, field := range stct.Fields() {
-      if field.Name() != "Fruit" {
-        continue
-      }
-      def, err := parser.Definition(field.Type())
-      if err != nil {
-        return "", err
-      }
-      return def.Name(), nil
-    }
-  }
-  return "", fmt.Errorf("unable to find struct")
+-- mod/mod.test/module@v0.0.2/go.mod --
+module mod.test/module
+
+require (
+  mod.test/dep v1.0.0
+)
+
+-- mod/mod.test/module@v0.0.2/struct.go --
+package module
+
+import "mod.test/dep/inner"
+
+type Struct struct {
+  inner.Dep
 }
 
--- go.mod --
+-- app/go.mod --
 module app.com
 
 require (
-  gitlab.com/mnm/duo v0.0.0
-  gitlab.com/mnm/bud v0.0.0
-  fruit.com/fruit v1.1.0
+  mod.test/module v0.0.2
 )
 
--- hello/hello.go --
+-- app/hello/hello.go --
 package hello
 
 import (
-  "fruit.com/fruit"
+  "mod.test/module"
 )
 
 type A struct {
-  Fruit fruit.Fruit
+  S *module.Struct
 }

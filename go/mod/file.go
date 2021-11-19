@@ -3,7 +3,6 @@ package mod
 import (
 	"fmt"
 	"go/build"
-	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -35,15 +34,25 @@ func (f *File) ModulePath(subpaths ...string) string {
 
 // ResolveDirectory resolves an import to an absolute path
 func (f *File) ResolveDirectory(importPath string) (directory string, err error) {
-	dir, err := f.resolveDirectory(importPath)
+	absdir, err := f.resolveDirectory(importPath)
 	if err != nil {
 		return "", err
 	}
 	// Ensure the resolved directory exists
-	if _, err := os.Stat(dir); err != nil {
+	if _, err := os.Stat(absdir); err != nil {
 		return "", fmt.Errorf("unable to find directory for import path %q: %w", importPath, err)
 	}
-	return dir, nil
+	return absdir, nil
+}
+
+// Load a new modfile from an import path
+func (f *File) Load(importPath string) (*File, error) {
+	absdir, err := f.resolveDirectory(importPath)
+	if err != nil {
+		return nil, err
+	}
+	// First search for go.mod
+	return findModFile(f.cache, absdir)
 }
 
 // ResolveImport returns an import path from a local directory.
@@ -79,14 +88,14 @@ func (f *File) Format() []byte {
 	return modfile.Format(f.file.Syntax)
 }
 
-// Open implements fs.FS allowing you to read the contents of your dependencies.
-func (f *File) Open(name string) (fs.File, error) {
-	dir, err := f.ResolveDirectory(name)
-	if err != nil {
-		return nil, err
-	}
-	return os.DirFS(dir).Open(".")
-}
+// // Open implements fs.FS allowing you to read the contents of your dependencies.
+// func (f *File) Open(name string) (fs.File, error) {
+// 	dir, err := f.ResolveDirectory(name)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return os.DirFS(dir).Open(".")
+// }
 
 // dir containing the standard libraries
 var stdDir = filepath.Join(build.Default.GOROOT, "src")

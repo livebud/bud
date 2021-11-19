@@ -109,7 +109,8 @@ type bud struct {
 }
 
 func (c *bud) Run(ctx context.Context) error {
-	modfile, err := mod.FindIn(modcache.Default(), c.Chdir)
+	module := mod.New(modcache.Default())
+	modfile, err := module.Find(c.Chdir)
 	if err != nil {
 		return err
 	}
@@ -169,7 +170,8 @@ type runCommand struct {
 }
 
 func (c *runCommand) Run(ctx context.Context) error {
-	modfile, err := mod.FindIn(modcache.Default(), c.bud.Chdir)
+	module := mod.New(modcache.Default())
+	modfile, err := module.Find(c.bud.Chdir)
 	if err != nil {
 		return err
 	}
@@ -280,7 +282,8 @@ type buildCommand struct {
 }
 
 func (c *buildCommand) Run(ctx context.Context) error {
-	modfile, err := mod.FindIn(modcache.Default(), c.bud.Chdir)
+	module := mod.New(modcache.Default())
+	modfile, err := module.Find(c.bud.Chdir)
 	if err != nil {
 		return err
 	}
@@ -363,12 +366,12 @@ type diCommand struct {
 }
 
 func (c *diCommand) Run(ctx context.Context) error {
-	modcache := modcache.Default()
-	modfile, err := mod.FindIn(modcache, c.bud.Chdir)
+	module := mod.New(modcache.Default())
+	modfile, err := module.Find(c.bud.Chdir)
 	if err != nil {
 		return err
 	}
-	parser := parser.New(mod.New(modcache))
+	parser := parser.New(module)
 	injector := di.New(modfile, parser)
 	// Searcher that bud uses
 	// - {importPath}

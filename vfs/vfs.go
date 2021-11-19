@@ -49,6 +49,6 @@ func WriteAll(from, to string, fsys fs.FS) error {
 	})
 }
 
-func WriteTo(to string, fsys fs.FS) error {
+func Write(to string, fsys fs.FS) error {
 	return WriteAll(".", to, fsys)
 }

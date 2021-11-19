@@ -26,14 +26,15 @@ func TestPlugin(t *testing.T) {
 			is.NoErr(os.RemoveAll(dir))
 		}
 	}()
-	err := vfs.WriteTo(dir, vfs.Map{
+	err := vfs.Write(dir, vfs.Map{
 		"go.mod": `module test.mod`,
 	})
 	is.NoErr(err)
 	ctx := context.Background()
 	err = gobin.Get(ctx, dir, "gitlab.com/mnm/testdata/bud-tailwind", "gitlab.com/mnm/testdata/bud-markdown")
 	is.NoErr(err)
-	modfile, err := mod.FindIn(modcache.Default(), dir)
+	module := mod.New(modcache.Default())
+	modfile, err := module.Find(dir)
 	is.NoErr(err)
 	dirfs := os.DirFS(dir)
 	bf := gen.New(dirfs)

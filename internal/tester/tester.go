@@ -64,7 +64,7 @@ func (t *Tester) Env(key, value string) {
 
 func (t *Tester) WriteFiles(files map[string]string) {
 	t.Helper()
-	t.NoErr(vfs.WriteTo(t.dir, vfs.Map(files)))
+	t.NoErr(vfs.Write(t.dir, vfs.Map(files)))
 }
 
 func (t *Tester) Exists(path string) bool {

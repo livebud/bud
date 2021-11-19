@@ -14,17 +14,17 @@ import (
 )
 
 // New parser. Packages are cached between parses
-func New(modfinder *mod.Finder) *Parser {
+func New(module *mod.Module) *Parser {
 	return &Parser{
-		cache:     newCache(),
-		modfinder: modfinder,
+		cache:  newCache(),
+		module: module,
 	}
 }
 
 // Parser for parsing Go code.
 type Parser struct {
-	cache     *cache
-	modfinder *mod.Finder
+	cache  *cache
+	module *mod.Module
 }
 
 // Parse a dir containing Go files.
@@ -93,7 +93,7 @@ func (p *Parser) parseDir(fset *token.FileSet, path string, filter func(fs.FileI
 }
 
 func (p *Parser) modfile(dir string) (*mod.File, error) {
-	return p.modfinder.Find(dir)
+	return p.module.Find(dir)
 }
 
 // Filter for ignoring Go code
