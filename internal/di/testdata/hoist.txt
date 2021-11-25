@@ -1,28 +1,48 @@
-# Duo setup
-go mod edit -replace gitlab.com/mnm/bud=$DUOC_DIR
+-- input.json --
+{
+  "dependencies": [
+    {
+      "import": "myapp.com/web",
+      "type": "*Web"
+    }
+  ],
+  "externals": [
+    {
+      "import": "myapp.com/web",
+      "type": "*Request"
+    }
+  ],
+  "hoist": true,
+  "target": "gen/web"
+}
 
-# Run di
-di -d='web.*Web' -o='gen/web/web.go' -hoist=true -e='web.*Request'
+-- expect.txt --
+&web.Web{
+  Session: &web.Session{
+    Request: &web.Request{},
+    DB: &web.Postgres{Log: &web.Log{
+      value: "log",
+      Env:   &web.Env{value: "env"},
+    }},
+  },
+  Log: &web.Log{
+    value: "log",
+    Env:   &web.Env{value: "env"},
+  },
+}
 
-# Run go mod tidy
-go mod tidy
-
-# Test di
-go test main_test.go
-
--- main_test.go --
-package main_test
+-- main.go --
+package main
 
 import (
-  "testing"
-  "gitlab.com/mnm/bud/is"
-  "myapp.com/web"
+  "os"
+  "fmt"
+  "github.com/hexops/valast"
+  web "myapp.com/web"
   genweb "myapp.com/gen/web"
 )
 
-func Test(t *testing.T) {
-  is := is.New(t)
-  expect := `&web.Web{Session: &web.Session{Request: &web.Request{}, DB: &web.Postgres{Log: &web.Log{value: "log", Env: &web.Env{value: "env"}}}}, Log: &web.Log{value: "log", Env: &web.Env{value: "env"}}}`
+func main() {
   request := &web.Request{}
   env := web.NewEnv()
   log := web.NewLog(env)
@@ -30,14 +50,14 @@ func Test(t *testing.T) {
   // request and dependencies that don't rely on request
   // get hoisted up.
   actual := genweb.Load(log, pg, request)
-  is.Value(actual, expect)
+  fmt.Fprintf(os.Stdout, "%s\n", valast.String(actual))
 }
 
 -- go.mod --
 module myapp.com
 
 require (
-  gitlab.com/mnm/bud v0.0.0
+  github.com/hexops/valast v1.4.1
 )
 
 -- web/web.go --

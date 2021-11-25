@@ -49,6 +49,8 @@ func (c *Command) Run(ctx context.Context) error {
 }
 
 // TODO: generate with DI
+// Currently adjusted from:
+// go run main.go -C ../hackernews tool di -d="bud/command.*Command" -t="bud/command"  -e="gitlab.com/mnm/bud/gen".FS -e="gitlab.com/mnm/bud/go/mod.File" -e "gitlab.com/mnm/bud/js".VM -e='"gitlab.com/mnm/bud/svelte".*Input' -e='"gitlab.com/mnm/bud-tailwind/transform/tailwind".*Transform'
 func loadCommand() (*Command, error) {
 	wd, err := os.Getwd()
 	if err != nil {

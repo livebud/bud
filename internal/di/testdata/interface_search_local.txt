@@ -37,6 +37,49 @@ require (
   gitlab.com/mnm/bud v0.0.0
 )
 
+-- input.json --
+{
+  "dependencies": [
+    {
+      "import": "myapp.com/web",
+      "type": "*Web"
+    }
+  ],
+  "externals": [
+  ],
+  "target": "gen/web"
+}
+
+-- expect.txt --
+&web.Web{
+  Log: &console.console{
+    value: "c",
+  },
+  Logger: &web.Logger{log: &console.console{value: "c"}},
+}
+
+-- main.go --
+package main
+
+import (
+  "os"
+  "fmt"
+  "github.com/hexops/valast"
+  genweb "myapp.com/gen/web"
+)
+
+func main() {
+  actual := genweb.Load()
+  fmt.Fprintf(os.Stdout, "%s\n", valast.String(actual))
+}
+
+-- go.mod --
+module myapp.com
+
+require (
+  github.com/hexops/valast v1.4.1
+)
+
 -- duo/log/log.go --
 package log
 
