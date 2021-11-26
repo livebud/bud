@@ -162,6 +162,15 @@ func (pkg *Package) Struct(name string) *Struct {
 	return nil
 }
 
+func (pkg *Package) Interface(name string) *Interface {
+	for _, file := range pkg.Files() {
+		if iface := file.Interface(name); iface != nil {
+			return iface
+		}
+	}
+	return nil
+}
+
 // Interfaces returns all the interfaces in the package
 func (pkg *Package) Interfaces() (ifaces []*Interface) {
 	for _, file := range pkg.Files() {
@@ -196,6 +205,17 @@ func (pkg *Package) definition(name string) (decl Declaration, err error) {
 					return true
 				}
 				decl = &Struct{
+					file: file,
+					ts:   ts,
+					node: n,
+				}
+				err = nil
+				return false
+			case *ast.InterfaceType:
+				if ts == nil || ts.Name.Name != name {
+					return true
+				}
+				decl = &Interface{
 					file: file,
 					ts:   ts,
 					node: n,

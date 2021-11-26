@@ -3,6 +3,8 @@ package command
 import (
 	_ "embed"
 
+	"gitlab.com/mnm/bud/internal/di"
+
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/gotemplate"
@@ -15,7 +17,8 @@ var template string
 var generator = gotemplate.MustParse("command", template)
 
 type Generator struct {
-	Modfile *mod.File
+	Modfile  *mod.File
+	Injector *di.Injector
 }
 
 type State struct {
@@ -39,9 +42,10 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 	imports.AddNamed("commander", "gitlab.com/mnm/bud/commander")
 	imports.AddNamed("console", "gitlab.com/mnm/bud/log/console")
 	imports.AddNamed("plugin", "gitlab.com/mnm/bud/plugin")
-	// TODO: pull from DI
 	imports.AddNamed("mod", "gitlab.com/mnm/bud/go/mod")
 	imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
+
+	// TODO: pull from DI
 	imports.AddNamed("v8", "gitlab.com/mnm/bud/js/v8")
 	imports.AddNamed("controller1", "gitlab.com/mnm/bud/example/hn/bud/controller")
 	imports.AddNamed("tailwind", "gitlab.com/mnm/bud-tailwind/transform/tailwind")

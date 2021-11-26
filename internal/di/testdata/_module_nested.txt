@@ -1,0 +1,50 @@
+-- input.json --
+{
+  "dependencies": [
+    {
+      "import": "app.com/one",
+      "type": "*One"
+    }
+  ],
+  "target": "gen/web"
+}
+
+-- expect.txt --
+&One{Two: &Two{Three: Three{}}}
+
+-- main.go --
+package main
+
+import (
+  "os"
+  "fmt"
+  genweb "app.com/gen/web"
+)
+
+func main() {
+  actual := genweb.Load()
+  fmt.Fprintf(os.Stdout, "%s\n", actual)
+}
+
+-- go.mod --
+module app.com
+
+require (
+  mod.test/two v0.0.2
+)
+
+-- one/one.go --
+package one
+
+import (
+  "mod.test/two"
+  "fmt"
+)
+
+type One struct {
+  Two *two.Two
+}
+
+func (o *One) String() string {
+  return fmt.Sprintf(`&One{Two: %s}`, o.Two)
+}

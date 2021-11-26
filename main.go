@@ -175,6 +175,8 @@ func (c *runCommand) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	// parser := parser.New(module)
+	// injector := di.New(parser)
 	genfs := gen.New(os.DirFS(modfile.Directory()))
 	genfs.Add(map[string]gen.Generator{
 		"go.mod": gen.FileGenerator(&gomod.Generator{
@@ -372,7 +374,7 @@ func (c *diCommand) Run(ctx context.Context) error {
 		return err
 	}
 	parser := parser.New(module)
-	injector := di.New(modfile, parser)
+	injector := di.New(parser)
 	// Searcher that bud uses
 	// - {importPath}
 	// - internal/{base(importPath)}

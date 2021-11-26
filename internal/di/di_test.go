@@ -13,6 +13,8 @@ import (
 	"strings"
 	"testing"
 
+	"gitlab.com/mnm/bud/internal/modcache"
+
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/parser"
@@ -23,24 +25,20 @@ import (
 	"gitlab.com/mnm/bud/vfs"
 )
 
-func goRun(dir string) (string, string, error) {
+func goRun(cacheDir, appDir string) (string, error) {
 	ctx := context.Background()
 	cmd := exec.CommandContext(ctx, "go", "run", "-mod=mod", "main.go")
-	cmd.Env = os.Environ()
+	cmd.Env = append(os.Environ(), "GOMODCACHE="+cacheDir, "GOPRIVATE=*")
 	stdout := new(bytes.Buffer)
 	cmd.Stdout = stdout
-	stderr := new(bytes.Buffer)
-	cmd.Stderr = stderr
+	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
-	cmd.Dir = dir
+	cmd.Dir = appDir
 	err := cmd.Run()
-	if stderr.Len() > 0 {
-		return "", stderr.String(), nil
-	}
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
-	return stdout.String(), "", nil
+	return stdout.String(), nil
 }
 
 // Searcher that bud uses
@@ -61,13 +59,14 @@ func searcher(modfile *mod.File) func(importPath string) (searchPaths []string) 
 }
 
 func runDI(dir, testscript string) (string, error) {
-	modfile, err := mod.Default().Find(dir)
+	module := mod.Default()
+	modFile, err := module.Find(dir)
 	if err != nil {
 		return "", err
 	}
-	parser := parser.New(mod.Default())
-	injector := di.New(modfile, parser)
-	injector.Searcher = searcher(modfile)
+	parser := parser.New(module)
+	injector := di.New(parser)
+	injector.Searcher = searcher(modFile)
 	input, err := ioutil.ReadFile(filepath.Join(dir, "input.json"))
 	if err != nil {
 		return "", err
@@ -75,6 +74,12 @@ func runDI(dir, testscript string) (string, error) {
 	var in di.GenerateInput
 	if err := json.Unmarshal(input, &in); err != nil {
 		return "", fmt.Errorf("unable to unmarshal input.json: %w", err)
+	}
+	// Add the project modfile to each initial dependency
+	for _, dep := range in.Dependencies {
+		if dep.ModFile == nil {
+			dep.ModFile = modFile
+		}
 	}
 	provider, err := injector.Generate(&in)
 	if err != nil {
@@ -91,12 +96,9 @@ func runDI(dir, testscript string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	stdout, stderr, err := goRun(dir)
+	stdout, err := goRun(modcache.Directory(), dir)
 	if err != nil {
-		return "", fmt.Errorf("error running generated code: %s", stderr)
-	}
-	if stderr != "" {
-		return stderr, nil
+		return "", fmt.Errorf("error running generated code: %s", err)
 	}
 	return stdout, nil
 }
@@ -135,6 +137,140 @@ func Test(t *testing.T) {
 			expect, err := ioutil.ReadFile(filepath.Join(dir, "expect.txt"))
 			is.NoErr(err)
 			actual, err := runDI(dir, testPath)
+			if err != nil {
+				diff.TestString(t, format(string(expect)), err.Error())
+				return
+			}
+			diff.TestString(t, format(string(expect)), format(actual))
+		})
+	}
+}
+
+// TODO: This should be merged with the rest of the tests
+func runDIWithModules(modDir, appDir, testscript string) (string, error) {
+	modCache := modcache.New(modDir)
+	err := modCache.Write(modcache.Modules{
+		"mod.test/three@v1.0.0": modcache.Files{
+			"inner/inner.go": `
+				package inner
+
+				import (
+					"fmt"
+				)
+
+				type Three struct {}
+
+				func (t Three) String() string {
+					return fmt.Sprintf("Three{}")
+				}
+			`,
+		},
+		"mod.test/two@v0.0.1": modcache.Files{
+			"struct.go": `
+				package two
+
+				type Struct struct {
+				}
+			`,
+		},
+		"mod.test/two@v0.0.2": modcache.Files{
+			"go.mod": `
+				module mod.test/two
+
+				require (
+					mod.test/three v1.0.0
+				)
+			`,
+			"struct.go": `
+				package two
+
+				import (
+					"mod.test/three/inner"
+					"fmt"
+				)
+
+				type Two struct {
+					inner.Three
+				}
+
+				func (t *Two) String() string {
+					return fmt.Sprintf("&Two{Three: %s}", t.Three)
+				}
+			`,
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+	module := mod.New(modCache)
+	modFile, err := module.Find(appDir)
+	if err != nil {
+		return "", err
+	}
+	parser := parser.New(module)
+	injector := di.New(parser)
+	injector.Searcher = searcher(modFile)
+	input, err := ioutil.ReadFile(filepath.Join(appDir, "input.json"))
+	if err != nil {
+		return "", err
+	}
+	var in di.GenerateInput
+	if err := json.Unmarshal(input, &in); err != nil {
+		return "", fmt.Errorf("unable to unmarshal input.json: %w", err)
+	}
+	// Add the project modfile to each initial dependency
+	for _, dep := range in.Dependencies {
+		if dep.ModFile == nil {
+			dep.ModFile = modFile
+		}
+	}
+	provider, err := injector.Generate(&in)
+	if err != nil {
+		return "", err
+	}
+	code := provider.File("Load")
+	outDir := filepath.Join(appDir, in.Target)
+	err = os.MkdirAll(outDir, 0755)
+	if err != nil {
+		return "", err
+	}
+	outPath := filepath.Join(outDir, "di.go")
+	err = ioutil.WriteFile(outPath, []byte(code), 0644)
+	if err != nil {
+		return "", err
+	}
+	stdout, err := goRun(modDir, appDir)
+	if err != nil {
+		return "", fmt.Errorf("error running generated code: %s", err)
+	}
+	return stdout, nil
+}
+
+func TestModuleNested(t *testing.T) {
+	is := is.New(t)
+	des, err := ioutil.ReadDir("testdata")
+	is.NoErr(err)
+	for _, de := range des {
+		de := de
+		if de.IsDir() {
+			continue
+		}
+		name := de.Name()
+		if name != "_module_nested.txt" {
+			continue
+		}
+		testPath := filepath.Join("testdata", name)
+		t.Run(name, func(t *testing.T) {
+			is := is.New(t)
+			modDir := t.TempDir()
+			appDir := t.TempDir()
+			fsys, err := txtar.ParseFile(testPath)
+			is.NoErr(err)
+			err = vfs.Write(appDir, fsys)
+			is.NoErr(err)
+			expect, err := ioutil.ReadFile(filepath.Join(appDir, "expect.txt"))
+			is.NoErr(err)
+			actual, err := runDIWithModules(modDir, appDir, testPath)
 			if err != nil {
 				diff.TestString(t, format(string(expect)), err.Error())
 				return

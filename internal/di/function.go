@@ -59,9 +59,18 @@ func tryFunction(fn *parser.Function, dep *Dependency) (*Function, error) {
 			return nil, err
 		}
 		t := parser.Unqualify(pt)
+		def, err := param.Definition()
+		if err != nil {
+			return nil, err
+		}
+		modFile, err := def.Package().Modfile()
+		if err != nil {
+			return nil, err
+		}
 		function.Params = append(function.Params, &Dependency{
-			Import: importPath,
-			Type:   t.String(),
+			Import:  importPath,
+			Type:    t.String(),
+			ModFile: modFile,
 		})
 	}
 	for _, result := range results {
@@ -75,7 +84,7 @@ func tryFunction(fn *parser.Function, dep *Dependency) (*Function, error) {
 			return nil, err
 		}
 		unqualified := parser.Unqualify(resultType)
-		function.Results = append(function.Results, &Field{
+		function.Results = append(function.Results, &ResultField{
 			Import: importPath,
 			Name:   name,
 			Type:   unqualified.String(),
@@ -89,7 +98,13 @@ type Function struct {
 	Import  string
 	Name    string
 	Params  []*Dependency
-	Results []*Field
+	Results []*ResultField
+}
+
+type ResultField struct {
+	Import string // Import path
+	Type   string // Result type
+	Name   string // Result name
 }
 
 var _ Declaration = (*Function)(nil)

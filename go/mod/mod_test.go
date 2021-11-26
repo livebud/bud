@@ -160,12 +160,12 @@ func TestLocalResolveDirectory(t *testing.T) {
 	is := is.New(t)
 	cacheDir := t.TempDir()
 	modCache := modcache.New(cacheDir)
-	err := modCache.Write(modcache.Versions{
-		"v1.2.3": modcache.Files{
+	err := modCache.Write(modcache.Modules{
+		"mod.test/module@v1.2.3": modcache.Files{
 			"go.mod":   "module mod.test/module\n\ngo 1.12",
 			"const.go": "package module\n\nconst Answer = 42",
 		},
-		"v1.2.4": modcache.Files{
+		"mod.test/module@v1.2.4": modcache.Files{
 			"go.mod":   "module mod.test/module\n\ngo 1.12",
 			"const.go": "package module\n\nconst Answer = 43",
 		},
@@ -200,12 +200,12 @@ func TestLoadCustom(t *testing.T) {
 	is := is.New(t)
 	cacheDir := t.TempDir()
 	modCache := modcache.New(cacheDir)
-	err := modCache.Write(modcache.Versions{
-		"v1.2.3": modcache.Files{
+	err := modCache.Write(modcache.Modules{
+		"mod.test/module@v1.2.3": modcache.Files{
 			"go.mod":   "module mod.test/module",
 			"const.go": "package module\nconst Answer = 42",
 		},
-		"v1.2.4": modcache.Files{
+		"mod.test/module@v1.2.4": modcache.Files{
 			"go.mod":   "module mod.test/module",
 			"const.go": "package module\nconst Answer = 43",
 		},

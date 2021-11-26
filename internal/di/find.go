@@ -29,7 +29,7 @@ func (i *Injector) find(searchPaths []string, foundPaths []string, dep *Dependen
 		}
 	}
 	// Resolve the absolute directory based on the import
-	dir, err := i.Modfile.ResolveDirectory(searchPaths[0])
+	dir, err := dep.ModFile.ResolveDirectory(searchPaths[0])
 	if err != nil {
 		// If the directory doesn't exist, search the next search path
 		if errors.Is(err, os.ErrNotExist) {

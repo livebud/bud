@@ -13,6 +13,10 @@ type Function struct {
 	node *ast.FuncDecl
 }
 
+type filer interface {
+	File() *File
+}
+
 // Package returns the package containing this function
 func (fn *Function) Package() *Package {
 	return fn.pkg
@@ -68,15 +72,15 @@ func (fn *Function) Params() (fields []*Param) {
 		for _, name := range field.Names {
 			if len(field.Names) == 0 {
 				fields = append(fields, &Param{
-					fn:   fn,
-					node: field,
+					parent: fn,
+					node:   field,
 				})
 				continue
 			}
 			fields = append(fields, &Param{
-				fn:   fn,
-				name: name.Name,
-				node: field,
+				parent: fn,
+				name:   name.Name,
+				node:   field,
 			})
 		}
 	}
@@ -95,20 +99,20 @@ func (fn *Function) Results() (fields []*Result) {
 	for i, field := range results.List {
 		if len(field.Names) == 0 {
 			fields = append(fields, &Result{
-				fn:   fn,
-				node: field,
-				n:    i + 1,
-				of:   of,
+				parent: fn,
+				node:   field,
+				n:      i + 1,
+				of:     of,
 			})
 			continue
 		}
 		for j, name := range field.Names {
 			fields = append(fields, &Result{
-				fn:   fn,
-				name: name.Name,
-				node: field,
-				n:    i + j + 1,
-				of:   of,
+				parent: fn,
+				name:   name.Name,
+				node:   field,
+				n:      i + j + 1,
+				of:     of,
 			})
 		}
 	}
@@ -189,16 +193,16 @@ func (f *Receiver) String() string {
 
 // Param is a function input
 type Param struct {
-	fn   *Function
-	name string
-	node *ast.Field
+	parent filer
+	name   string
+	node   *ast.Field
 }
 
 var _ Fielder = (*Param)(nil)
 
 // File that contains this field
 func (f *Param) File() *File {
-	return f.fn.File()
+	return f.parent.File()
 }
 
 // Name of the field
@@ -227,9 +231,9 @@ func (f *Param) String() string {
 
 // Result is a function output
 type Result struct {
-	fn   *Function
-	name string
-	node *ast.Field
+	parent filer
+	name   string
+	node   *ast.Field
 
 	// Used to implement First() and Last()
 	n, of int
@@ -249,7 +253,7 @@ func (f *Result) Last() bool {
 
 // File that contains this field
 func (f *Result) File() *File {
-	return f.fn.File()
+	return f.parent.File()
 }
 
 // Name of the field
@@ -270,6 +274,10 @@ func (f *Result) Private() bool {
 // Type of the field
 func (f *Result) Type() Type {
 	return getType(f, f.node.Type)
+}
+
+func (f *Result) Definition() (Declaration, error) {
+	return Definition(f.Type())
 }
 
 // IsError returns true if the field is an error

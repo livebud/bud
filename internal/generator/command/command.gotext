@@ -48,9 +48,6 @@ func (c *Command) Run(ctx context.Context) error {
 	return c.Web.ListenAndServe(ctx, ":3000")
 }
 
-// TODO: generate with DI
-// Currently adjusted from:
-// go run main.go -C ../hackernews tool di -d="bud/command.*Command" -t="bud/command"  -e="gitlab.com/mnm/bud/gen".FS -e="gitlab.com/mnm/bud/go/mod.File" -e "gitlab.com/mnm/bud/js".VM -e='"gitlab.com/mnm/bud/svelte".*Input' -e='"gitlab.com/mnm/bud-tailwind/transform/tailwind".*Transform'
 func loadCommand() (*Command, error) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -64,6 +61,13 @@ func loadCommand() (*Command, error) {
 	genFS.Add(map[string]gen.Generator{
 		"bud/plugin": gen.DirGenerator(&plugin.Generator{Modfile: modFile}),
 	})
+	return provideCommand(modFile, genFS)
+}
+
+// TODO: generate with DI
+// Currently adjusted from:
+// go run main.go -C ../hackernews tool di -d="bud/command.*Command" -t="bud/command"  -e="gitlab.com/mnm/bud/gen".FS -e="gitlab.com/mnm/bud/go/mod.File" -e "gitlab.com/mnm/bud/js".VM -e='"gitlab.com/mnm/bud/svelte".*Input' -e='"gitlab.com/mnm/bud-tailwind/transform/tailwind".*Transform'
+func provideCommand(modFile *mod.File, genFS gen.FS) (*Command, error) {
 	jsVM := v8.New()
 	svelteInput := &svelte.Input{
 		Dev: true,

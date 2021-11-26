@@ -1,0 +1,54 @@
+-- mod/mod.test/three@v1.0.0/go.mod --
+module mod.test/three
+
+-- mod/mod.test/three@v1.0.0/inner/inner.go --
+package inner
+
+type Dep struct {}
+
+-- mod/mod.test/two@v0.0.1/go.mod --
+module mod.test/two
+
+require (
+  mod.test/three v1.0.0
+)
+
+-- mod/mod.test/two@v0.0.1/struct.go --
+package two
+
+type Struct struct {
+}
+
+-- mod/mod.test/two@v0.0.2/go.mod --
+module mod.test/two
+
+require (
+  mod.test/three v1.0.0
+)
+
+-- mod/mod.test/two@v0.0.2/struct.go --
+package two
+
+import "mod.test/three/inner"
+
+type Struct struct {
+  inner.Dep
+}
+
+-- app/go.mod --
+module app.com
+
+require (
+  mod.test/two v0.0.2
+)
+
+-- app/hello/hello.go --
+package hello
+
+import (
+  "mod.test/two"
+)
+
+type A struct {
+  S *two.Struct
+}

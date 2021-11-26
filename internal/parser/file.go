@@ -150,6 +150,16 @@ func (f *File) Struct(name string) *Struct {
 	return nil
 }
 
+// Interface returns an interface by name
+func (f *File) Interface(name string) *Interface {
+	for _, iface := range f.Interfaces() {
+		if iface.Name() == name {
+			return iface
+		}
+	}
+	return nil
+}
+
 // Interfaces returns all the interfaces in a file
 func (f *File) Interfaces() (ifaces []*Interface) {
 	for _, decl := range f.node.Decls {

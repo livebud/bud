@@ -11,12 +11,6 @@ type Declaration interface {
 	Generate(gen *Generator, inputs []*Variable) (outputs []*Variable)
 }
 
-type Field struct {
-	Import string // Import path
-	Type   string // Field type
-	Name   string // Field or parameter name
-}
-
 type Variable struct {
 	Import string // Import path
 	Type   string // Type of the variable
@@ -35,18 +29,14 @@ var defaultSearcher = func(importPath string) []string {
 }
 
 // New dependency injector
-func New(modfile *mod.File, parser *parser.Parser) *Injector {
+func New(parser *parser.Parser) *Injector {
 	return &Injector{
-		Modfile:  modfile,
 		Parser:   parser,
 		Searcher: defaultSearcher,
 	}
 }
 
 type Injector struct {
-	// Modfile of the project
-	Modfile *mod.File
-
 	// Parser for parsing Go code
 	Parser *parser.Parser
 
@@ -71,6 +61,9 @@ type Dependency struct {
 	Import string `json:"import,omitempty"`
 	// Type of the target (e.g. *Web)
 	Type string `json:"type,omitempty"`
+	// Module file for this import
+	// Currently nil for externals (TODO: re-consider)
+	ModFile *mod.File
 }
 
 // ID of the dependency as a string

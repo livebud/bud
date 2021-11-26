@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"gitlab.com/mnm/bud/go/is"
+	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/parser"
 )
 
@@ -45,10 +46,19 @@ func tryStruct(stct *parser.Struct, dep *Dependency) (*Struct, error) {
 			return nil, err
 		}
 		t := parser.Unqualify(ft)
-		decl.Fields = append(decl.Fields, &Field{
-			Import: importPath,
-			Name:   field.Name(),
-			Type:   t.String(),
+		def, err := field.Definition()
+		if err != nil {
+			return nil, err
+		}
+		modFile, err := def.Package().Modfile()
+		if err != nil {
+			return nil, err
+		}
+		decl.Fields = append(decl.Fields, &StructField{
+			ModFile: modFile,
+			Import:  importPath,
+			Name:    field.Name(),
+			Type:    t.String(),
 		})
 	}
 	return decl, nil
@@ -58,7 +68,14 @@ type Struct struct {
 	Import   string
 	Name     string
 	NeedsRef bool
-	Fields   []*Field
+	Fields   []*StructField
+}
+
+type StructField struct {
+	ModFile *mod.File // Module file that contains this struct
+	Import  string    // Import path
+	Type    string    // Field type
+	Name    string    // Field or parameter name
 }
 
 var _ Declaration = (*Struct)(nil)
@@ -70,8 +87,9 @@ func (s *Struct) ID() string {
 func (s *Struct) Dependencies() (deps []*Dependency) {
 	for _, field := range s.Fields {
 		deps = append(deps, &Dependency{
-			Import: field.Import,
-			Type:   field.Type,
+			ModFile: field.ModFile,
+			Import:  field.Import,
+			Type:    field.Type,
 		})
 	}
 	return deps
