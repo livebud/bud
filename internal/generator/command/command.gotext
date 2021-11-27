@@ -66,17 +66,13 @@ func loadCommand() (*Command, error) {
 
 // TODO: generate with DI
 // Currently adjusted from:
-// go run main.go -C ../hackernews tool di -d="bud/command.*Command" -t="bud/command"  -e="gitlab.com/mnm/bud/gen".FS -e="gitlab.com/mnm/bud/go/mod.File" -e "gitlab.com/mnm/bud/js".VM -e='"gitlab.com/mnm/bud/svelte".*Input' -e='"gitlab.com/mnm/bud-tailwind/transform/tailwind".*Transform'
+// go run main.go -C ../hackernews tool di -d="bud/command.*Command" -t="bud/command"  -e="gitlab.com/mnm/bud/gen".FS -e="gitlab.com/mnm/bud/go/mod.File" -e "gitlab.com/mnm/bud/js".VM -e='"gitlab.com/mnm/bud-tailwind/transform/tailwind".*Transform'
 func provideCommand(modFile *mod.File, genFS gen.FS) (*Command, error) {
 	jsVM := v8.New()
-	svelteInput := &svelte.Input{
-		Dev: true,
-		VM:  jsVM,
-	}
 	tailwindTransform := tailwind.New(modFile)
 	hnClient := hn.New()
 	controllerController := &controller.Controller{HN: hnClient}
-	svelteCompiler := svelte.New(svelteInput)
+	svelteCompiler := svelte.New(jsVM)
 	svelteTransformable := svelte.NewTransformable(svelteCompiler)
 	transformTransformer, err := transform.PrivateLoad(svelteTransformable, tailwindTransform)
 	if err != nil {

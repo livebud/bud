@@ -41,10 +41,7 @@ func TestRunner(t *testing.T) {
 	}
 	is.NoErr(vfs.WriteAll(".", dir, memfs))
 	dirfs := os.DirFS(dir)
-	svelteCompiler := svelte.New(&svelte.Input{
-		VM:  v8.New(),
-		Dev: true,
-	})
+	svelteCompiler := svelte.New(v8.New())
 	transformer := transform.MustLoad(
 		svelte.NewTransformable(svelteCompiler),
 	)
@@ -160,10 +157,7 @@ func TestBuilder(t *testing.T) {
 	is.NoErr(err)
 	err = npm.Link("../livebud", dir)
 	is.NoErr(err)
-	svelteCompiler := svelte.New(&svelte.Input{
-		VM:  v8.New(),
-		Dev: true,
-	})
+	svelteCompiler := svelte.New(v8.New())
 	transformer := transform.MustLoad(
 		svelte.NewTransformable(svelteCompiler),
 	)

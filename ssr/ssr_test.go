@@ -41,10 +41,7 @@ func TestSvelteHello(t *testing.T) {
 	}
 	is.NoErr(vfs.WriteAll(".", dir, memfs))
 	dirfs := os.DirFS(dir)
-	svelteCompiler := svelte.New(&svelte.Input{
-		VM:  vm,
-		Dev: true,
-	})
+	svelteCompiler := svelte.New(vm)
 	transformer := transform.MustLoad(
 		svelte.NewTransformable(svelteCompiler),
 	)
@@ -110,10 +107,7 @@ func TestSvelteAwait(t *testing.T) {
 	}
 	is.NoErr(vfs.WriteAll(".", dir, memfs))
 	dirfs := os.DirFS(dir)
-	svelteCompiler := svelte.New(&svelte.Input{
-		VM:  vm,
-		Dev: true,
-	})
+	svelteCompiler := svelte.New(vm)
 	transformer := transform.MustLoad(
 		svelte.NewTransformable(svelteCompiler),
 	)

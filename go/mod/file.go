@@ -40,7 +40,7 @@ func (f *File) ResolveDirectory(importPath string) (directory string, err error)
 	}
 	// Ensure the resolved directory exists
 	if _, err := os.Stat(absdir); err != nil {
-		return "", fmt.Errorf("unable to find directory for import path %q: %w", importPath, err)
+		return "", fmt.Errorf("mod: unable to resolve directory for import path %q: %w", importPath, err)
 	}
 	return absdir, nil
 }
@@ -145,7 +145,7 @@ func (f *File) resolveDirectory(importPath string) (directory string, err error)
 			return filepath.Join(dir, relPath), nil
 		}
 	}
-	return "", fmt.Errorf("unable to find directory for import path %q", importPath)
+	return "", fmt.Errorf("mod: unable to resolve directory for import path %q", importPath)
 }
 
 func resolvePath(path string, rest ...string) (result string) {

@@ -1,0 +1,65 @@
+-- input.json --
+{
+  "dependencies": [
+    {
+      "import": "myapp.com/web",
+      "type": "*Web"
+    }
+  ],
+  "target": "gen/web"
+}
+
+-- expect.txt --
+&web.Web{Public: &middleware.Middleware{}}
+
+-- main.go --
+package main
+
+import (
+  "os"
+  "fmt"
+  "github.com/hexops/valast"
+  "myapp.com/gen/web"
+)
+
+func main() {
+  actual := web.Load()
+  fmt.Fprintf(os.Stdout, "%s\n", valast.String(actual))
+}
+
+-- go.mod --
+module myapp.com
+
+require (
+  github.com/hexops/valast v1.4.1
+)
+
+-- web/web.go --
+package web
+
+import (
+  "myapp.com/public"
+)
+
+// Web struct
+type Web struct {
+  Public *public.Middleware
+}
+
+-- public/public.go --
+package public
+
+import (
+  "myapp.com/middleware"
+)
+
+func New() *Middleware {
+  return &Middleware{}
+}
+
+type Middleware = middleware.Middleware
+
+-- middleware/middleware.go --
+package middleware
+
+type Middleware struct {}

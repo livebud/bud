@@ -185,3 +185,32 @@ func (f *File) Interfaces() (ifaces []*Interface) {
 	}
 	return ifaces
 }
+
+func (f *File) Alias(name string) *Alias {
+	for _, alias := range f.Aliases() {
+		if alias.Name() == name {
+			return alias
+		}
+	}
+	return nil
+}
+
+func (f *File) Aliases() (aliases []*Alias) {
+	for _, decl := range f.node.Decls {
+		node, ok := decl.(*ast.GenDecl)
+		if !ok {
+			continue
+		}
+		for _, spec := range node.Specs {
+			ts, ok := spec.(*ast.TypeSpec)
+			if !ok || ts.Assign == 0 {
+				continue
+			}
+			aliases = append(aliases, &Alias{
+				file: f,
+				ts:   ts,
+			})
+		}
+	}
+	return aliases
+}

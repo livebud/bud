@@ -130,7 +130,7 @@ func (fn *Function) hasError() bool {
 
 // maybePrefix allows us to reference and derefence values during generate so
 // the result type doesn't need to be exact.
-func maybePrefix(param *Dependency, input *Variable) string {
+func maybePrefixParam(param *Dependency, input *Variable) string {
 	if param.Type == input.Type {
 		return input.Name
 	}
@@ -150,7 +150,7 @@ func maybePrefix(param *Dependency, input *Variable) string {
 func (fn *Function) Generate(gen *Generator, inputs []*Variable) (outputs []*Variable) {
 	var params []string
 	for i, input := range inputs {
-		params = append(params, maybePrefix(fn.Params[i], input))
+		params = append(params, maybePrefixParam(fn.Params[i], input))
 	}
 	identifier := gen.Identifier(fn.Import, fn.Name)
 	var results []string

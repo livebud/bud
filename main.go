@@ -455,8 +455,9 @@ func (c *diCommand) toDependency(modfile *mod.File, dependency string) (*di.Depe
 	dataType := dependency[i+1:]
 	// Create the dependency
 	dep := &di.Dependency{
-		Import: importPath,
-		Type:   dataType,
+		Import:  importPath,
+		Type:    dataType,
+		ModFile: modfile,
 	}
 	return dep, nil
 }

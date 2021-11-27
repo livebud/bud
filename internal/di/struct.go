@@ -71,14 +71,14 @@ type Struct struct {
 	Fields   []*StructField
 }
 
+var _ Declaration = (*Struct)(nil)
+
 type StructField struct {
 	ModFile *mod.File // Module file that contains this struct
 	Import  string    // Import path
 	Type    string    // Field type
 	Name    string    // Field or parameter name
 }
-
-var _ Declaration = (*Struct)(nil)
 
 func (s *Struct) ID() string {
 	return `"` + s.Import + `".` + s.Name
@@ -98,8 +98,9 @@ func (s *Struct) Dependencies() (deps []*Dependency) {
 func (s *Struct) Generate(gen *Generator, inputs []*Variable) (outputs []*Variable) {
 	var params []string
 	for i, input := range inputs {
-		key := s.Fields[i].Name
-		params = append(params, key+": "+input.Name)
+		field := s.Fields[i]
+		value := maybePrefixField(field, input)
+		params = append(params, field.Name+": "+value)
 	}
 	identifier := gen.Identifier(s.Import, s.Name)
 	result := gen.Variable(s.Import, s.Name)
@@ -114,4 +115,22 @@ func (s *Struct) Generate(gen *Generator, inputs []*Variable) (outputs []*Variab
 	}
 	fmt.Fprintf(gen.Code, "%s := %s{%s}\n", result, identifier, strings.Join(params, ", "))
 	return append(outputs, output)
+}
+
+// maybePrefix allows us to reference and derefence values during generate so
+// the result type doesn't need to be exact.
+func maybePrefixField(field *StructField, input *Variable) string {
+	if field.Type == input.Type {
+		return input.Name
+	}
+	// Want *T, got T. Need to reference.
+	if strings.HasPrefix(field.Type, "*") && !strings.HasPrefix(input.Type, "*") {
+		return "&" + input.Name
+	}
+	// Want T, got*T. Need to dereference.
+	if !strings.HasPrefix(field.Type, "*") && strings.HasPrefix(input.Type, "*") {
+		return "*" + input.Name
+	}
+	// We really shouldn't reach here.
+	return input.Name
 }

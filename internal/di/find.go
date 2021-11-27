@@ -38,12 +38,12 @@ func (i *Injector) find(searchPaths []string, foundPaths []string, dep *Dependen
 		return nil, err
 	}
 	// Parse the package
-	ast, err := i.Parser.Parse(dir)
+	pkg, err := i.Parser.Parse(dir)
 	if err != nil {
 		return nil, err
 	}
 	// Look through the functions
-	for _, fn := range ast.Functions() {
+	for _, fn := range pkg.Functions() {
 		decl, err := tryFunction(fn, dep)
 		if err != nil {
 			if err == ErrNoMatch {
@@ -54,7 +54,7 @@ func (i *Injector) find(searchPaths []string, foundPaths []string, dep *Dependen
 		return decl, nil
 	}
 	// Look through the structs
-	for _, stct := range ast.Structs() {
+	for _, stct := range pkg.Structs() {
 		decl, err := tryStruct(stct, dep)
 		if err != nil {
 			if err == ErrNoMatch {

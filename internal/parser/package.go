@@ -104,7 +104,6 @@ func files(pkg *Package) (files []*File) {
 type Declaration interface {
 	Name() string
 	Package() *Package
-	Directory() string
 }
 
 // Functions returns all the functions in a package
@@ -179,6 +178,22 @@ func (pkg *Package) Interfaces() (ifaces []*Interface) {
 	return ifaces
 }
 
+func (pkg *Package) Alias(name string) *Alias {
+	for _, file := range pkg.Files() {
+		if alias := file.Alias(name); alias != nil {
+			return alias
+		}
+	}
+	return nil
+}
+
+func (pkg *Package) Aliases() (aliases []*Alias) {
+	for _, file := range pkg.Files() {
+		aliases = append(aliases, file.Aliases()...)
+	}
+	return aliases
+}
+
 // var errIsBuiltin = errors.New("definition is a built-in type")
 
 // // ErrIsBuiltin checks if the error is builtin
@@ -192,14 +207,23 @@ func (pkg *Package) definition(name string) (decl Declaration, err error) {
 	if is.Builtin(name) {
 		return builtin(name), nil
 	}
-	err = fmt.Errorf("parser: Unable to find declaration for %q", name)
+	err = fmt.Errorf("parser: unable to find declaration for %q in %q", name, pkg.Name())
 	var ts *ast.TypeSpec
 	for _, file := range pkg.Files() {
 		file := file
 		ast.Inspect(pkg.node, func(node ast.Node) bool {
 			switch n := node.(type) {
 			case *ast.TypeSpec:
-				ts = n
+				if n.Assign == 0 {
+					ts = n
+					return true
+				}
+				decl = &Alias{
+					file: file,
+					ts:   n,
+				}
+				err = nil
+				return false
 			case *ast.StructType:
 				if ts == nil || ts.Name.Name != name {
 					return true
