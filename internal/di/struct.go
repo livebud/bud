@@ -33,8 +33,11 @@ func tryStruct(stct *parser.Struct, dep *Dependency) (*Struct, error) {
 		NeedsRef: strings.HasPrefix(dep.Type, "*"),
 	}
 	for _, field := range stct.Fields() {
+		// Disallow any private fields. This is restrictive but it makes sure
+		// that the struct is usable if we initialize it automatically. If you need
+		// to use private fields, use a function.
 		if field.Private() {
-			continue
+			return nil, ErrNoMatch
 		}
 		ft := field.Type()
 		// Ensure there are no builtin types (e.g. string) as field types

@@ -13,7 +13,9 @@
 
 -- expect.txt --
 &web.Web{
-  Blank: &web.Blank{},
+  Blank: &web.Blank{
+    small: "s",
+  },
   Database: &web.Database{DB: &db.DB{
     Env: &env.Env{},
     Log: &log.Log{Env: &env.Env{}},
@@ -58,6 +60,10 @@ import (
   "myapp.com/env"
   "myapp.com/users"
 )
+
+func NewBlank() *Blank {
+  return &Blank{"s"}
+}
 
 // Blank struct
 type Blank struct {
