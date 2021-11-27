@@ -31,14 +31,6 @@ func Run(args ...string) int {
 	return 0
 }
 
-func New(
-	web *web.Server,
-) *Command {
-	return &Command{
-		web,
-	}
-}
-
 type Command struct {
 	Web *web.Server
 }
@@ -61,15 +53,14 @@ func loadCommand() (*Command, error) {
 	genFS.Add(map[string]gen.Generator{
 		"bud/plugin": gen.DirGenerator(&plugin.Generator{Modfile: modFile}),
 	})
-	return provideCommand(modFile, genFS)
+	jsVM := v8.New()
+	tailwindTransform := tailwind.New(modFile)
+	return provideCommand(genFS, jsVM, modFile, tailwindTransform)
 }
 
 // TODO: generate with DI
-// Currently adjusted from:
-// go run main.go -C ../hackernews tool di -d="bud/command.*Command" -t="bud/command"  -e="gitlab.com/mnm/bud/gen".FS -e="gitlab.com/mnm/bud/go/mod.File" -e "gitlab.com/mnm/bud/js".VM -e='"gitlab.com/mnm/bud-tailwind/transform/tailwind".*Transform'
-func provideCommand(modFile *mod.File, genFS gen.FS) (*Command, error) {
-	jsVM := v8.New()
-	tailwindTransform := tailwind.New(modFile)
+// go run main.go -C ../hackernews tool di -d="bud/command.*Command" -t="bud/command"  -e="gitlab.com/mnm/bud/gen".FS -e="gitlab.com/mnm/bud/go/mod.*File" -e "gitlab.com/mnm/bud/js".VM -e='"gitlab.com/mnm/bud-tailwind/transform/tailwind".*Transform'
+func provideCommand(genFS gen.FS, jsVM js.VM, modFile *mod.File, tailwindTransform *tailwind.Transform) (*Command, error) {
 	hnClient := hn.New()
 	controllerController := &controller.Controller{HN: hnClient}
 	svelteCompiler := svelte.New(jsVM)
@@ -84,6 +75,6 @@ func provideCommand(modFile *mod.File, genFS gen.FS) (*Command, error) {
 	publicMiddleware := public.New(genFS)
 	routerRouter := router.New()
 	webServer := web.New(controller1Controller, hotServer, publicMiddleware, routerRouter, viewServer)
-	commandCommand := New(webServer)
+	commandCommand := &Command{Web: webServer}
 	return commandCommand, err
 }

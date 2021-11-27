@@ -100,7 +100,7 @@ func (g *Generator) External(n *Node) *External {
 // This function will also add an import automatically if the importPath doesn't
 // match our target path.
 func (g *Generator) Identifier(importPath, name string) string {
-	if g.Target != name {
+	if g.Target != importPath {
 		pkg := g.Imports.Add(importPath)
 		return toDataType(pkg, name)
 	}

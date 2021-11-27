@@ -12,7 +12,7 @@
       "type": "Log"
     }
   ],
-  "target": "gen/web"
+  "target": "myapp.com/gen/web"
 }
 
 -- expect.txt --

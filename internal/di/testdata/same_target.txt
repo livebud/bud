@@ -1,3 +1,6 @@
+# TODO: Currently no way to append to an existing file within the test suite
+# This should pass though once we adjust the tests since it's working in di.
+
 -- input.json --
 {
   "dependencies": [
@@ -7,25 +10,14 @@
     }
   ],
   "externals": [
-    {
-      "import": "myapp.com/web",
-      "type": "*A"
-    },
-    {
-      "import": "myapp.com/web",
-      "type": "*B"
-    }
   ],
-  "target": "myapp.com/gen/web"
+  "target": "myapp.com/web"
 }
 
 -- expect.txt --
-&web.Web{
-  a: &web.A{
-    Value: "A",
-  },
-  b: &web.B{Value: "B"},
-}
+&web.Web{m: &web.Middleware{
+  v: "v",
+}}
 
 -- main.go --
 package main
@@ -35,11 +27,10 @@ import (
   "fmt"
   "github.com/hexops/valast"
   web "myapp.com/web"
-  genweb "myapp.com/gen/web"
 )
 
 func main() {
-  actual := genweb.Load(&web.A{"A"}, &web.B{"B"})
+  actual := web.Load()
   fmt.Fprintf(os.Stdout, "%s\n", valast.String(actual))
 }
 
@@ -53,21 +44,23 @@ require (
 -- web/web.go --
 package web
 
-type A struct {
-  Value string
+// Middlewares function
+func Middlewares() *Middleware {
+  return &Middleware{"v"}
 }
 
-type B struct {
-  Value string
+// Middleware handler
+type Middleware struct{
+  v string
 }
 
 // New web
-func New(a *A, b *B) *Web {
-  return &Web{a, b}
+func New(m *Middleware) *Web {
+  return &Web{m}
 }
 
 // Web struct
 type Web struct {
-  a *A
-  b *B
+  m *Middleware
 }
+

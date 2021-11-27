@@ -86,12 +86,14 @@ func runDI(dir, testscript string) (string, error) {
 		return "", err
 	}
 	code := provider.File("Load")
-	outDir := filepath.Join(dir, in.Target)
-	err = os.MkdirAll(outDir, 0755)
+	// TODO: provide a modFile method for doing this.
+	// Right now ResolveDirectory also stats the final dir
+	targetDir := modFile.Directory(strings.TrimPrefix(in.Target, modFile.ModulePath()))
+	err = os.MkdirAll(targetDir, 0755)
 	if err != nil {
 		return "", err
 	}
-	outPath := filepath.Join(outDir, "di.go")
+	outPath := filepath.Join(targetDir, "di.go")
 	err = ioutil.WriteFile(outPath, []byte(code), 0644)
 	if err != nil {
 		return "", err
@@ -229,12 +231,14 @@ func runDIWithModules(modDir, appDir, testscript string) (string, error) {
 		return "", err
 	}
 	code := provider.File("Load")
-	outDir := filepath.Join(appDir, in.Target)
-	err = os.MkdirAll(outDir, 0755)
+	// TODO: provide a modFile method for doing this.
+	// Right now ResolveDirectory also stats the final dir
+	targetDir := modFile.Directory(strings.TrimPrefix(in.Target, modFile.ModulePath()))
+	err = os.MkdirAll(targetDir, 0755)
 	if err != nil {
 		return "", err
 	}
-	outPath := filepath.Join(outDir, "di.go")
+	outPath := filepath.Join(targetDir, "di.go")
 	err = ioutil.WriteFile(outPath, []byte(code), 0644)
 	if err != nil {
 		return "", err
