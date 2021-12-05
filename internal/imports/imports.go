@@ -47,14 +47,14 @@ func (s *Set) Add(path string) string {
 		s.paths[path] = reserved
 		return reserved
 	}
-	name := AssumedName(path)
-	ith := s.names[name]
-	uniqueName := name
+	assumed := AssumedName(path)
+	ith := s.names[assumed]
+	uniqueName := assumed
 	if ith > 0 {
 		uniqueName += strconv.Itoa(ith)
 	}
 	s.paths[path] = uniqueName
-	s.names[name]++
+	s.names[assumed]++
 	return uniqueName
 }
 

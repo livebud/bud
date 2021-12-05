@@ -53,23 +53,23 @@ func loadCommand() (*Command, error) {
 	genFS.Add(map[string]gen.Generator{
 		"bud/plugin": gen.DirGenerator(&plugin.Generator{Modfile: modFile}),
 	})
-	jsVM := v8.New()
-	tailwindTransform := tailwind.New(modFile)
-	return provideCommand(genFS, jsVM, modFile, tailwindTransform)
+	return provideCommand(genFS, modFile)
 }
 
 // TODO: generate with DI
-// go run main.go -C ../hackernews tool di -d="bud/command.*Command" -t="bud/command"  -e="gitlab.com/mnm/bud/gen".FS -e="gitlab.com/mnm/bud/go/mod.*File" -e "gitlab.com/mnm/bud/js".VM -e='"gitlab.com/mnm/bud-tailwind/transform/tailwind".*Transform'
-func provideCommand(genFS gen.FS, jsVM js.VM, modFile *mod.File, tailwindTransform *tailwind.Transform) (*Command, error) {
+// go run main.go -C ../hackernews tool di -d="bud/command.*Command" -t="bud/command"  -e="gitlab.com/mnm/bud/gen".FS -e="gitlab.com/mnm/bud/go/mod.*File" -m "gitlab.com/mnm/bud/js.VM:gitlab.com/mnm/bud/js/v8.*Pool"
+func provideCommand(genFS gen.FS, modFile *mod.File) (*Command, error) {
 	hnClient := hn.New()
 	controllerController := &controller.Controller{HN: hnClient}
-	svelteCompiler := svelte.New(jsVM)
+	jsPool := js.New()
+	svelteCompiler := svelte.New(jsPool)
 	svelteTransformable := svelte.NewTransformable(svelteCompiler)
+	tailwindTransform := tailwind.New(modFile)
 	transformTransformer, err := transform.PrivateLoad(svelteTransformable, tailwindTransform)
 	if err != nil {
 		return nil, err
 	}
-	viewServer := view.New(genFS, modFile, jsVM, transformTransformer)
+	viewServer := view.New(genFS, modFile, jsPool, transformTransformer)
 	controller1Controller := controller1.New(controllerController, viewServer)
 	hotServer := hot.New(genFS)
 	publicMiddleware := public.New(genFS)

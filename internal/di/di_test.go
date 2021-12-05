@@ -3,7 +3,6 @@ package di_test
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -92,7 +91,6 @@ func runTest(t testing.TB, test Test) {
 	}
 	provider := node.Generate(test.Function.Target)
 	code := provider.File(test.Function.Name)
-	fmt.Println(code)
 	// TODO: provide a modFile method for doing this, modfile.ResolveDirectory
 	// also stats the final dir, which doesn't exist yet.
 	targetDir := modFile.Directory(strings.TrimPrefix(test.Function.Target, modFile.ModulePath()))

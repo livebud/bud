@@ -21,6 +21,7 @@ func TestAddNamed(t *testing.T) {
 	is.Equal(im.AddNamed("www", "net/http"), "www")
 	is.Equal(im.AddNamed("www", "net/http"), "www")
 	is.Equal(im.AddNamed("www", "hop/http"), "www1")
+	is.Equal(im.AddNamed("v8", "app.com/js/v8"), "v8")
 }
 
 func TestReserveBefore(t *testing.T) {

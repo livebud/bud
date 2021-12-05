@@ -46,8 +46,7 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 	imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
 
 	// TODO: pull from DI
-	imports.AddNamed("js", "gitlab.com/mnm/bud/js")
-	imports.AddNamed("v8", "gitlab.com/mnm/bud/js/v8")
+	imports.AddNamed("js", "gitlab.com/mnm/bud/js/v8")
 	imports.AddNamed("controller1", "gitlab.com/mnm/bud/example/hn/bud/controller")
 	imports.AddNamed("tailwind", "gitlab.com/mnm/bud-tailwind/transform/tailwind")
 	imports.AddNamed("public", "gitlab.com/mnm/bud/example/hn/bud/public")
