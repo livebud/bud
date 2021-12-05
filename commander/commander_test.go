@@ -197,6 +197,7 @@ func TestFlagBoolRequired(t *testing.T) {
 	err := cli.Parse([]string{})
 	is.Equal(err.Error(), "missing --flag")
 }
+
 func TestFlagStrings(t *testing.T) {
 	is := is.New(t)
 	actual := new(bytes.Buffer)
@@ -214,7 +215,8 @@ func TestFlagStrings(t *testing.T) {
 	is.Equal(flags[0], "1")
 	is.Equal(flags[1], "2")
 }
-func TestFlagStringsNone(t *testing.T) {
+
+func TestFlagStringsRequired(t *testing.T) {
 	is := is.New(t)
 	actual := new(bytes.Buffer)
 	called := 0
@@ -227,6 +229,78 @@ func TestFlagStringsNone(t *testing.T) {
 	cli.Flag("flag", "cli flag").Strings(&flags)
 	err := cli.Parse([]string{})
 	is.Equal(err.Error(), "missing --flag")
+}
+
+func TestFlagStringsDefault(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	var flags []string
+	cli.Flag("flag", "cli flag").Strings(&flags).Default("a", "b")
+	err := cli.Parse([]string{})
+	is.NoErr(err)
+	is.Equal(len(flags), 2)
+	is.Equal(flags[0], "a")
+	is.Equal(flags[1], "b")
+}
+
+func TestFlagStringMap(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	var flags map[string]string
+	cli.Flag("flag", "cli flag").StringMap(&flags)
+	err := cli.Parse([]string{"--flag", "a:1 + 1", "--flag", "b:2"})
+	is.NoErr(err)
+	is.Equal(len(flags), 2)
+	is.Equal(flags["a"], "1 + 1")
+	is.Equal(flags["b"], "2")
+}
+
+func TestFlagStringMapRequired(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	var flags map[string]string
+	cli.Flag("flag", "cli flag").StringMap(&flags)
+	err := cli.Parse([]string{})
+	is.Equal(err.Error(), "missing --flag")
+}
+
+func TestFlagStringMapDefault(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	var flags map[string]string
+	cli.Flag("flag", "cli flag").StringMap(&flags).Default(map[string]string{
+		"a": "1",
+		"b": "2",
+	})
+	err := cli.Parse([]string{})
+	is.NoErr(err)
+	is.Equal(len(flags), 2)
+	is.Equal(flags["a"], "1")
+	is.Equal(flags["b"], "2")
 }
 
 func TestSub(t *testing.T) {
@@ -258,6 +332,7 @@ func TestSub(t *testing.T) {
 	is.Equal(trace[0], "build")
 	isEqual(t, actual.String(), ``)
 }
+
 func TestSubHelp(t *testing.T) {
 	is := is.New(t)
 	actual := new(bytes.Buffer)

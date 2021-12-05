@@ -30,6 +30,12 @@ func (f *Flag) Strings(target *[]string) *Strings {
 	return value
 }
 
+func (f *Flag) StringMap(target *map[string]string) *StringMap {
+	value := &StringMap{target: target}
+	f.value = &stringMapValue{inner: value}
+	return value
+}
+
 func (f *Flag) Bool(target *bool) *Bool {
 	value := &Bool{target: target}
 	f.value = &boolValue{inner: value}

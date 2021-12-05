@@ -82,9 +82,10 @@ func do() error {
 			cli := cli.Command("di", "dependency injection generator")
 			cli.Flag("dependency", "generate dependency provider").Short('d').Strings(&cmd.Dependencies)
 			cli.Flag("external", "mark dependency as external").Short('e').Strings(&cmd.Externals).Optional()
+			cli.Flag("map", "map interface types to concrete types").Short('m').StringMap(&cmd.Map).Optional()
 			cli.Flag("target", "target import path").Short('t').String(&cmd.Target)
 			cli.Flag("hoist", "hoist dependencies that depend on externals").Bool(&cmd.Hoist).Default(false)
-			cli.Flag("debug", "debug the dependency injection generator").Bool(&cmd.Debug).Default(false)
+			cli.Flag("verbose", "verbose logging").Short('v').Bool(&cmd.Verbose).Default(false)
 			cli.Run(cmd.Run)
 		}
 
@@ -360,10 +361,11 @@ func (c *buildCommand) Run(ctx context.Context) error {
 type diCommand struct {
 	bud          *bud
 	Target       string
+	Map          map[string]string
 	Dependencies []string
 	Externals    []string
 	Hoist        bool
-	Debug        bool
+	Verbose      bool
 }
 
 func (c *diCommand) Run(ctx context.Context) error {
@@ -373,13 +375,25 @@ func (c *diCommand) Run(ctx context.Context) error {
 		return err
 	}
 	parser := parser.New(module)
-	injector := di.New(modfile, parser, di.Map{})
 	fn := &di.Function{
 		Hoist: c.Hoist,
 	}
 	fn.Target, err = c.toImportPath(modfile, c.Target)
 	if err != nil {
 		return err
+	}
+	typeMap := di.Map{}
+	// Add the type mapping
+	for from, to := range c.Map {
+		fromDep, err := c.toDependency(modfile, from)
+		if err != nil {
+			return err
+		}
+		toDep, err := c.toDependency(modfile, to)
+		if err != nil {
+			return err
+		}
+		typeMap[fromDep] = toDep
 	}
 	// Add the dependencies
 	for _, dependency := range c.Dependencies {
@@ -397,11 +411,12 @@ func (c *diCommand) Run(ctx context.Context) error {
 		}
 		fn.Params = append(fn.Params, ext)
 	}
+	injector := di.New(modfile, parser, typeMap)
 	node, err := injector.Load(fn)
 	if err != nil {
 		return err
 	}
-	if c.Debug {
+	if c.Verbose {
 		fmt.Println(node.Print())
 	}
 	provider := node.Generate(fn.Target)
