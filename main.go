@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -374,23 +373,11 @@ func (c *diCommand) Run(ctx context.Context) error {
 		return err
 	}
 	parser := parser.New(module)
-	injector := di.New(parser)
-	// Searcher that bud uses
-	// - {importPath}
-	// - internal/{base(importPath)}
-	// - /{base(importPath)}
-	injector.Searcher = func(importPath string) (searchPaths []string) {
-		base := path.Base(importPath)
-		return []string{
-			importPath,
-			modfile.ModulePath("internal", base),
-			modfile.ModulePath(base),
-		}
-	}
-	input := &di.GenerateInput{
+	injector := di.New(modfile, parser, di.TypeMap{})
+	fn := &di.Function{
 		Hoist: c.Hoist,
 	}
-	input.Target, err = c.toImportPath(modfile, c.Target)
+	fn.Target, err = c.toImportPath(modfile, c.Target)
 	if err != nil {
 		return err
 	}
@@ -400,7 +387,7 @@ func (c *diCommand) Run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		input.Dependencies = append(input.Dependencies, dep)
+		fn.Results = append(fn.Results, dep)
 	}
 	// Add the externals
 	for _, external := range c.Externals {
@@ -408,23 +395,16 @@ func (c *diCommand) Run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		input.Externals = append(input.Externals, ext)
+		fn.Params = append(fn.Params, ext)
 	}
-	graph, err := injector.Print(&di.PrintInput{
-		Dependencies: input.Dependencies,
-		Externals:    input.Externals,
-		Hoist:        input.Hoist,
-	})
+	node, err := injector.Load(fn)
 	if err != nil {
 		return err
 	}
 	if c.Debug {
-		fmt.Println(graph)
+		fmt.Println(node.Print())
 	}
-	provider, err := injector.Generate(input)
-	if err != nil {
-		return fmt.Errorf("di: wiring failed: %+s", err)
-	}
+	provider := node.Generate(fn.Target)
 	fmt.Println(provider.File("Load"))
 	return nil
 }
@@ -443,7 +423,7 @@ func (c *diCommand) toImportPath(modfile *mod.File, importPath string) (string, 
 	return importPath, nil
 }
 
-func (c *diCommand) toDependency(modfile *mod.File, dependency string) (*di.Dependency, error) {
+func (c *diCommand) toDependency(modfile *mod.File, dependency string) (di.Dependency, error) {
 	i := strings.LastIndex(dependency, ".")
 	if i < 0 {
 		return nil, fmt.Errorf("di: external must have form '<import>.<type>'. got %q ", dependency)
@@ -454,12 +434,10 @@ func (c *diCommand) toDependency(modfile *mod.File, dependency string) (*di.Depe
 	}
 	dataType := dependency[i+1:]
 	// Create the dependency
-	dep := &di.Dependency{
-		Import:  importPath,
-		Type:    dataType,
-		ModFile: modfile,
-	}
-	return dep, nil
+	return &di.Type{
+		Import: importPath,
+		Type:   dataType,
+	}, nil
 }
 
 type v8Command struct {

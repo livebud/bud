@@ -40,9 +40,8 @@ func (i *Injector) load(in *LoadInput, dep *Dependency) (*Node, error) {
 			Original: dep,
 		}, nil
 	}
-
 	// Find the declaration that would instantiate this dependency
-	decl, err := i.Find(dep)
+	decl, err := dep.Declaration(i.Parser, i.Searcher)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package parser_test
 
 import (
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -130,4 +131,26 @@ func TestAliasLookup(t *testing.T) {
 	method := middleware.Method("Middleware")
 	is.True(method != nil)
 	is.Equal(method.Name(), "Middleware")
+}
+
+func TestNetHTTP(t *testing.T) {
+	is := is.New(t)
+	modCache := modcache.Default()
+	module := mod.New(modCache)
+	p := parser.New(module)
+	modfile, err := module.Find(".")
+	is.NoErr(err)
+	dir, err := modfile.ResolveDirectory("net/http")
+	is.NoErr(err)
+	pkg, err := p.Parse(dir)
+	is.NoErr(err)
+	stct := pkg.Struct("Request")
+	if stct == nil {
+		fmt.Println(len(pkg.Files()))
+		for _, file := range pkg.Files() {
+			fmt.Println(file.Path())
+		}
+	}
+	is.True(stct != nil)
+	is.Equal(stct.Name(), "Request")
 }

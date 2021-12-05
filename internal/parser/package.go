@@ -10,11 +10,12 @@ import (
 )
 
 // newPackage creates a new package
-func newPackage(directory string, node *ast.Package, parser *Parser) *Package {
+func newPackage(dir string, module *mod.Module, node *ast.Package, parser *Parser) *Package {
 	pkg := &Package{
-		node:      node,
-		directory: directory,
-		parser:    parser,
+		node:   node,
+		dir:    dir,
+		module: module,
+		parser: parser,
 	}
 	pkg.files = files(pkg)
 	return pkg
@@ -22,10 +23,11 @@ func newPackage(directory string, node *ast.Package, parser *Parser) *Package {
 
 // Package struct
 type Package struct {
-	directory string
-	files     []*File
-	node      *ast.Package
-	parser    *Parser
+	dir    string
+	files  []*File
+	node   *ast.Package
+	module *mod.Module
+	parser *Parser
 }
 
 // Name of the package
@@ -35,7 +37,7 @@ func (pkg *Package) Name() string {
 
 // Directory returns the directory of the package
 func (pkg *Package) Directory() string {
-	return pkg.directory
+	return pkg.dir
 }
 
 // Files returns a list of files
@@ -45,7 +47,7 @@ func (pkg *Package) Files() []*File {
 
 // Modfile returns the modfile or fails
 func (pkg *Package) Modfile() (*mod.File, error) {
-	return pkg.parser.modfile(pkg.directory)
+	return pkg.module.Find(pkg.dir)
 }
 
 // Import returns the import path to this package
@@ -54,7 +56,7 @@ func (pkg *Package) Import() (path string, err error) {
 	if err != nil {
 		return "", err
 	}
-	return modfile.ResolveImport(pkg.directory)
+	return modfile.ResolveImport(pkg.dir)
 }
 
 // ResolveDirectory resolves a directory from an import path

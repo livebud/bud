@@ -38,7 +38,7 @@ func goRun(cacheDir, appDir string) (string, string, error) {
 
 func TestDirectory(t *testing.T) {
 	is := is.New(t)
-	dir := modcache.Directory()
+	dir := modcache.Default().Directory()
 	if env := os.Getenv("GOMODCACHE"); env != "" {
 		is.Equal(dir, env)
 	} else {

@@ -27,11 +27,6 @@ func Default() *Cache {
 	return New(getModDir())
 }
 
-// Directory returns the module cache from the default location
-func Directory() string {
-	return getModDir()
-}
-
 // New module cache relative to the cache directory
 func New(cacheDir string) *Cache {
 	return &Cache{cacheDir}
