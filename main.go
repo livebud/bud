@@ -373,7 +373,7 @@ func (c *diCommand) Run(ctx context.Context) error {
 		return err
 	}
 	parser := parser.New(module)
-	injector := di.New(modfile, parser, di.TypeMap{})
+	injector := di.New(modfile, parser, di.Map{})
 	fn := &di.Function{
 		Hoist: c.Hoist,
 	}

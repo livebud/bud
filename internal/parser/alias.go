@@ -20,6 +20,10 @@ func (a *Alias) Name() string {
 	return a.ts.Name.Name
 }
 
+func (a *Alias) Kind() Kind {
+	return KindAlias
+}
+
 // Private returns true if the field is private
 func (a *Alias) Private() bool {
 	return unicode.IsLower(rune(a.ts.Name.Name[0]))

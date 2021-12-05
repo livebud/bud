@@ -5,10 +5,14 @@ import (
 	"gitlab.com/mnm/bud/internal/parser"
 )
 
-type TypeMap = map[string]string
+type Map = map[Dependency]Dependency
 
-func New(modFile *mod.File, parser *parser.Parser, typeMap TypeMap) *Injector {
-	return &Injector{modFile, parser, typeMap}
+func New(modFile *mod.File, parser *parser.Parser, typeMap Map) *Injector {
+	tm := map[string]Dependency{}
+	for from, to := range typeMap {
+		tm[from.ID()] = to
+	}
+	return &Injector{modFile, parser, tm}
 }
 
 type Injector struct {
@@ -16,8 +20,8 @@ type Injector struct {
 	modFile *mod.File
 	// Go parser
 	parser *parser.Parser
-	// Type mapping
-	typeMap TypeMap
+	// Type aliasing
+	typeMap map[string]Dependency
 }
 
 // Load the dependency graph, but don't generate any code. Load is intentionally

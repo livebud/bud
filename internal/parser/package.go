@@ -102,10 +102,21 @@ func files(pkg *Package) (files []*File) {
 	return files
 }
 
+// Kind of declaration
+type Kind uint8
+
+const (
+	KindBuiltin Kind = iota + 1
+	KindStruct
+	KindInterface
+	KindAlias
+)
+
 // Declaration interface
 type Declaration interface {
 	Name() string
 	Package() *Package
+	Kind() Kind
 }
 
 // Functions returns all the functions in a package
@@ -261,6 +272,10 @@ type builtin string
 // Name is the built-in type
 func (b builtin) Name() string {
 	return string(b)
+}
+
+func (b builtin) Kind() Kind {
+	return KindBuiltin
 }
 
 // Directory for builtin is blank

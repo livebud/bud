@@ -11,18 +11,22 @@ var ErrNoMatch = errors.New("no match")
 
 // Finder finds a declaration that will instantiate the data type
 type Finder interface {
-	Find(modFile *mod.File, importPath, dataType string) (Declaration, error)
+	Find(modFile *mod.File, dep Dependency) (Declaration, error)
 }
 
-func (i *Injector) Find(modFile *mod.File, importPath, dataType string) (Declaration, error) {
+func (i *Injector) Find(modFile *mod.File, dep Dependency) (Declaration, error) {
 	// If modfile is nil, we default to the project modfile
 	if modFile == nil {
 		modFile = i.modFile
 	}
+	// Check if we have a type alias
+	if alias, ok := i.typeMap[dep.ID()]; ok {
+		dep = alias
+	}
 	// Resolve the absolute directory based on the import
-	dir, err := modFile.ResolveDirectory(importPath)
+	dir, err := modFile.ResolveDirectory(dep.ImportPath())
 	if err != nil {
-		return nil, fmt.Errorf("di: unable to find dependency %q.%s: %w", importPath, dataType, err)
+		return nil, fmt.Errorf("di: unable to find dependency %s: %w", dep.ID(), err)
 	}
 	// Parse the package
 	pkg, err := i.parser.Parse(dir)
@@ -31,7 +35,7 @@ func (i *Injector) Find(modFile *mod.File, importPath, dataType string) (Declara
 	}
 	// Look through the functions
 	for _, fn := range pkg.Functions() {
-		decl, err := tryFunction(fn, importPath, dataType)
+		decl, err := tryFunction(fn, dep.ImportPath(), dep.TypeName())
 		if err != nil {
 			if err == ErrNoMatch {
 				continue
@@ -42,7 +46,7 @@ func (i *Injector) Find(modFile *mod.File, importPath, dataType string) (Declara
 	}
 	// Look through the structs
 	for _, stct := range pkg.Structs() {
-		decl, err := tryStruct(stct, dataType)
+		decl, err := tryStruct(stct, dep.TypeName())
 		if err != nil {
 			if err == ErrNoMatch {
 				continue
@@ -51,5 +55,5 @@ func (i *Injector) Find(modFile *mod.File, importPath, dataType string) (Declara
 		}
 		return decl, nil
 	}
-	return nil, fmt.Errorf("di: unclear how to provide %q.%s", importPath, dataType)
+	return nil, fmt.Errorf("di: unclear how to provide %s", dep.ID())
 }

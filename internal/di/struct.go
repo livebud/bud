@@ -58,6 +58,7 @@ func (s *Struct) Generate(gen Generator, inputs []*Variable) (outputs []*Variabl
 		Import: s.Import,
 		Name:   result,
 		Type:   s.Name,
+		Kind:   parser.KindStruct,
 	}
 	if s.needsRef {
 		identifier = "&" + identifier
@@ -72,7 +73,8 @@ type StructField struct {
 	Import string
 	Type   string
 
-	modFile *mod.File // Optional, defaults to project modfile
+	modFile *mod.File   // Modfile for the module containing this type
+	kind    parser.Kind // Kind of type
 }
 
 var _ Dependency = (*StructField)(nil)
@@ -90,7 +92,7 @@ func (s *StructField) TypeName() string {
 }
 
 func (s *StructField) Find(finder Finder) (Declaration, error) {
-	return finder.Find(s.modFile, s.Import, s.Type)
+	return finder.Find(s.modFile, s)
 }
 
 // Check to see if the struct initializes the dependency.
@@ -137,7 +139,8 @@ func tryStruct(stct *parser.Struct, dataType string) (*Struct, error) {
 		if err != nil {
 			return nil, err
 		}
-		modFile, err := def.Package().Modfile()
+		pkg := def.Package()
+		modFile, err := pkg.Modfile()
 		if err != nil {
 			return nil, err
 		}
@@ -145,6 +148,7 @@ func tryStruct(stct *parser.Struct, dataType string) (*Struct, error) {
 			Name:    field.Name(),
 			Import:  importPath,
 			Type:    t.String(),
+			kind:    def.Kind(),
 			modFile: modFile,
 		})
 	}
@@ -155,14 +159,23 @@ func tryStruct(stct *parser.Struct, dataType string) (*Struct, error) {
 // the result type doesn't need to be exact.
 func maybePrefixField(field *StructField, input *Variable) string {
 	if field.Type == input.Type {
+		if isInterface(field.kind) && !isInterface(input.Kind) {
+			// Create a pointer to the input when field is an interface type, but the
+			// input is not an interface.
+			return "&" + input.Name
+		}
 		return input.Name
 	}
 	// Want *T, got T. Need to reference.
 	if strings.HasPrefix(field.Type, "*") && !strings.HasPrefix(input.Type, "*") {
 		return "&" + input.Name
 	}
-	// Want T, got*T. Need to dereference.
+	// Want T, got *T. Need to dereference.
 	if !strings.HasPrefix(field.Type, "*") && strings.HasPrefix(input.Type, "*") {
+		if isInterface(field.kind) {
+			// Don't dereference the type when the field is an interface type
+			return input.Name
+		}
 		return "*" + input.Name
 	}
 	// We really shouldn't reach here.

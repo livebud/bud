@@ -42,7 +42,7 @@ func goRun(cacheDir, appDir string) (string, error) {
 }
 
 type Test struct {
-	TypeMap  di.TypeMap
+	Map      di.Map
 	Function *di.Function
 	Hoist    bool
 	Modules  modcache.Modules
@@ -80,8 +80,8 @@ func runTest(t testing.TB, test Test) {
 	modFile, err := module.Find(appDir)
 	is.NoErr(err)
 	parser := parser.New(module)
-	typeMap := di.TypeMap{}
-	for from, to := range test.TypeMap {
+	typeMap := di.Map{}
+	for from, to := range test.Map {
 		typeMap[from] = to
 	}
 	injector := di.New(modFile, parser, typeMap)
@@ -90,7 +90,6 @@ func runTest(t testing.TB, test Test) {
 		is.Equal(test.Expect, err.Error())
 		return
 	}
-	fmt.Println(node.Print())
 	provider := node.Generate(test.Function.Target)
 	code := provider.File(test.Function.Name)
 	fmt.Println(code)
@@ -104,7 +103,7 @@ func runTest(t testing.TB, test Test) {
 	is.NoErr(err)
 	stdout, err := goRun(modCache.Directory(), appDir)
 	is.NoErr(err)
-	diff.TestString(t, stdout, redent(test.Expect))
+	diff.TestString(t, redent(test.Expect), stdout)
 }
 
 const goMod = `module app.com
@@ -1661,6 +1660,222 @@ func TestSlice(t *testing.T) {
 				type Web struct {
 					Logs []*log.Log
 					*Logger
+				}
+			`,
+		},
+	})
+}
+
+func TestStructMap(t *testing.T) {
+	runTest(t, Test{
+		Map: di.Map{
+			toType("app.com/js", "VM"): toType("app.com/js/v8", "*VM"),
+		},
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []di.Dependency{},
+			Results: []di.Dependency{
+				toType("app.com/web", "*Web"),
+			},
+		},
+		Expect: `
+			&web.Web{VM: &v8.VM{}}
+		`,
+		Files: map[string]string{
+			"go.mod":  goMod,
+			"main.go": mainGo,
+			"web/web.go": `
+				package web
+
+				import (
+					"app.com/js"
+				)
+
+				type Web struct {
+					VM js.VM
+				}
+			`,
+			"js/js.go": `
+				package js
+
+				type VM interface {
+					Eval(input string) (string, error)
+				}
+			`,
+			"js/v8/v8.go": `
+				package v8
+
+				type VM struct {}
+
+				func (v *VM) Eval(input string) (string, error) {
+					return "", nil
+				}
+			`,
+		},
+	})
+}
+
+func TestFunctionMap(t *testing.T) {
+	runTest(t, Test{
+		Map: di.Map{
+			toType("app.com/js", "VM"): toType("app.com/js/v8", "*VM"),
+		},
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []di.Dependency{},
+			Results: []di.Dependency{
+				toType("app.com/web", "*Web"),
+			},
+		},
+		Expect: `
+			&web.Web{VM: &v8.VM{}}
+		`,
+		Files: map[string]string{
+			"go.mod":  goMod,
+			"main.go": mainGo,
+			"web/web.go": `
+				package web
+
+				import (
+					"app.com/js"
+				)
+
+				func New(vm js.VM) *Web {
+					return &Web{vm}
+				}
+
+				type Web struct {
+					VM js.VM
+				}
+			`,
+			"js/js.go": `
+				package js
+
+				type VM interface {
+					Eval(input string) (string, error)
+				}
+			`,
+			"js/v8/v8.go": `
+				package v8
+
+				type VM struct {}
+
+				func (v *VM) Eval(input string) (string, error) {
+					return "", nil
+				}
+			`,
+		},
+	})
+}
+
+func TestStructMapNeedsPointer(t *testing.T) {
+	runTest(t, Test{
+		Map: di.Map{
+			toType("app.com/js", "VM"): toType("app.com/js/v8", "*VM"),
+		},
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []di.Dependency{},
+			Results: []di.Dependency{
+				toType("app.com/web", "*Web"),
+			},
+		},
+		Expect: `
+			&web.Web{VM: &v8.VM{}}
+		`,
+		Files: map[string]string{
+			"go.mod":  goMod,
+			"main.go": mainGo,
+			"web/web.go": `
+				package web
+
+				import (
+					"app.com/js"
+				)
+
+				type Web struct {
+					VM js.VM
+				}
+			`,
+			"js/js.go": `
+				package js
+
+				type VM interface {
+					Eval(input string) (string, error)
+				}
+			`,
+			"js/v8/v8.go": `
+				package v8
+
+				func New() VM {
+					return VM{}
+				}
+
+				type VM struct {}
+
+				func (v *VM) Eval(input string) (string, error) {
+					return "", nil
+				}
+			`,
+		},
+	})
+}
+
+func TestFunctionMapNeedsPointer(t *testing.T) {
+	runTest(t, Test{
+		Map: di.Map{
+			toType("app.com/js", "VM"): toType("app.com/js/v8", "*VM"),
+		},
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []di.Dependency{},
+			Results: []di.Dependency{
+				toType("app.com/web", "*Web"),
+			},
+		},
+		Expect: `
+			&web.Web{VM: &v8.VM{}}
+		`,
+		Files: map[string]string{
+			"go.mod":  goMod,
+			"main.go": mainGo,
+			"web/web.go": `
+				package web
+
+				import (
+					"app.com/js"
+				)
+
+				func New(vm js.VM) *Web {
+					return &Web{vm}
+				}
+
+				type Web struct {
+					VM js.VM
+				}
+			`,
+			"js/js.go": `
+				package js
+
+				type VM interface {
+					Eval(input string) (string, error)
+				}
+			`,
+			"js/v8/v8.go": `
+				package v8
+
+				func New() VM {
+					return VM{}
+				}
+
+				type VM struct {}
+
+				func (v *VM) Eval(input string) (string, error) {
+					return "", nil
 				}
 			`,
 		},

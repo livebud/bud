@@ -35,6 +35,10 @@ func (stct *Struct) Name() string {
 	return stct.ts.Name.Name
 }
 
+func (stct *Struct) Kind() Kind {
+	return KindStruct
+}
+
 // Private returns true if the field is private
 func (stct *Struct) Private() bool {
 	return unicode.IsLower(rune(stct.ts.Name.Name[0]))

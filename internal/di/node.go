@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"gitlab.com/mnm/bud/internal/imports"
+	"gitlab.com/mnm/bud/internal/parser"
 )
 
 // node in the dependency injection graph
@@ -51,6 +52,7 @@ func (n *Node) Generate(target string) *Provider {
 			Import: "", // error doesn't have an import
 			Name:   "err",
 			Type:   "error",
+			Kind:   parser.KindInterface,
 		})
 	}
 	// Create the provider
@@ -184,6 +186,43 @@ func (g *generator) MarkError(hasError bool) {
 	g.HasError = hasError
 }
 
+func (node *Node) Print() string {
+	out := "digraph G {\n"
+	seen := map[string]bool{}
+	out += "  " + node.print(seen)
+	out += "\n}\n"
+	return out
+}
+
+func (node *Node) format() string {
+	return `"` + node.Import + `".` + toTypeName(node.Type)
+}
+
+func (node *Node) print(seen map[string]bool) string {
+	id := node.format()
+	if seen[id] {
+		return ""
+	}
+	seen[id] = true
+	var outs []string
+	for _, dep := range node.Dependencies {
+		str := new(strings.Builder)
+		label := dep.Type
+		fmt.Fprintf(str, `%q -> %q`, dep.format(), id)
+		if dep.External {
+			label += " (external)"
+		}
+		fmt.Fprintf(str, ` [label=%q];`, label)
+		outs = append(outs, str.String())
+		subgraph := dep.print(seen)
+		if subgraph == "" {
+			continue
+		}
+		outs = append(outs, subgraph)
+	}
+	return strings.Join(outs, "\n  ")
+}
+
 // Helper function to turn *Web into *web.Web
 func toDataType(packageName string, dataType string) string {
 	if strings.Contains(dataType, ".") {
@@ -199,38 +238,5 @@ func toDataType(packageName string, dataType string) string {
 func toTypeName(dataType string) string {
 	parts := strings.SplitN(dataType, ".", 2)
 	last := parts[len(parts)-1]
-	return strings.TrimPrefix(last, "*")
-}
-
-func (n *Node) Print() string {
-	out := "digraph G {\n"
-	seen := map[string]bool{}
-	out += "  " + print(n, seen)
-	out += "\n}\n"
-	return out
-}
-
-func print(node *Node, seen map[string]bool) string {
-	id := node.ID()
-	if seen[id] {
-		return ""
-	}
-	seen[id] = true
-	var outs []string
-	for _, dep := range node.Dependencies {
-		str := new(strings.Builder)
-		label := dep.Type
-		fmt.Fprintf(str, `%q -> %q`, getID(dep.Import, dep.Type), id)
-		if dep.External {
-			label += " (external)"
-		}
-		fmt.Fprintf(str, ` [label=%q];`, label)
-		outs = append(outs, str.String())
-		subgraph := print(dep, seen)
-		if subgraph == "" {
-			continue
-		}
-		outs = append(outs, subgraph)
-	}
-	return strings.Join(outs, "\n  ")
+	return strings.TrimRight(last, "[]*")
 }

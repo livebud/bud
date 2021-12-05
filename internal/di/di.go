@@ -1,8 +1,6 @@
 package di
 
-type ID interface {
-	ID() string
-}
+import "gitlab.com/mnm/bud/internal/parser"
 
 type Dependency interface {
 	ID() string
@@ -23,9 +21,10 @@ type Generator interface {
 }
 
 type Variable struct {
-	Import string // Import path
-	Type   string // Type of the variable
-	Name   string // Name of the variable
+	Import string      // Import path
+	Type   string      // Type of the variable
+	Name   string      // Name of the variable
+	Kind   parser.Kind // Kind of type (struct, interface, etc.)
 }
 
 type External struct {
@@ -38,4 +37,9 @@ type Declaration interface {
 	ID() string
 	Dependencies() []Dependency
 	Generate(gen Generator, inputs []*Variable) (outputs []*Variable)
+}
+
+// Check if the field or variable is an interface
+func isInterface(k parser.Kind) bool {
+	return k == parser.KindInterface
 }

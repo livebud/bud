@@ -33,6 +33,10 @@ func (iface *Interface) Name() string {
 	return iface.ts.Name.Name
 }
 
+func (iface *Interface) Kind() Kind {
+	return KindInterface
+}
+
 func (iface *Interface) Method(name string) *InterfaceMethod {
 	if iface.node.Methods == nil {
 		return nil

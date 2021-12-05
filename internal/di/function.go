@@ -103,25 +103,31 @@ func tryFunction(fn *parser.Function, importPath, dataType string) (*function, e
 			return nil, err
 		}
 		function.Params = append(function.Params, &Type{
-			modFile: modFile,
 			Import:  importPath,
 			Type:    parser.Unqualify(pt).String(),
+			kind:    def.Kind(),
+			modFile: modFile,
 		})
 	}
 	for _, result := range results {
-		resultType := result.Type()
+		rt := result.Type()
 		name := result.Name()
 		if name == "" {
-			name = parser.TypeName(resultType)
+			name = parser.TypeName(rt)
 		}
-		importPath, err := parser.ImportPath(resultType)
+		importPath, err := parser.ImportPath(rt)
 		if err != nil {
 			return nil, err
 		}
-		unqualified := parser.Unqualify(resultType)
+		def, err := result.Definition()
+		if err != nil {
+			return nil, fmt.Errorf("di: unable to find definition for %q.%s > %w", importPath, parser.Unqualify(rt).String(), err)
+		}
+		unqualified := parser.Unqualify(rt)
 		function.Results = append(function.Results, &Type{
 			Import: importPath,
 			Type:   unqualified.String(),
+			kind:   def.Kind(),
 			name:   name,
 		})
 		continue
@@ -138,16 +144,6 @@ type function struct {
 }
 
 var _ Declaration = (*function)(nil)
-
-// type functionParam struct {
-// 	Import string // Import path
-// 	Type   string // Result type
-// }
-
-// type functionResult struct {
-// 	Import string // Import path
-// 	Type   string // Result type
-// }
 
 func (fn *function) ID() string {
 	return `"` + fn.Import + `".` + fn.Name
@@ -175,7 +171,7 @@ func (fn *function) hasError() bool {
 func (fn *function) Generate(gen Generator, inputs []*Variable) (outputs []*Variable) {
 	var params []string
 	for i, input := range inputs {
-		params = append(params, maybePrefixParam(fn.Params[i].Type, input))
+		params = append(params, maybePrefixParam(fn.Params[i], input))
 	}
 	identifier := gen.Identifier(fn.Import, fn.Name)
 	var results []string
@@ -185,6 +181,7 @@ func (fn *function) Generate(gen Generator, inputs []*Variable) (outputs []*Vari
 		outputs = append(outputs, &Variable{
 			Import: result.Import,
 			Type:   result.Type,
+			Kind:   result.kind,
 			Name:   name,
 		})
 	}
@@ -200,16 +197,25 @@ func (fn *function) Generate(gen Generator, inputs []*Variable) (outputs []*Vari
 
 // maybePrefix allows us to reference and derefence values during generate so
 // the result type doesn't need to be exact.
-func maybePrefixParam(dataType string, input *Variable) string {
-	if dataType == input.Type {
+func maybePrefixParam(param *Type, input *Variable) string {
+	if param.Type == input.Type {
+		if isInterface(param.kind) && !isInterface(input.Kind) {
+			// Create a pointer to the input when the param is an interface type, but
+			// the input is not an interface.
+			return "&" + input.Name
+		}
 		return input.Name
 	}
 	// Want *T, got T. Need to reference.
-	if strings.HasPrefix(dataType, "*") && !strings.HasPrefix(input.Type, "*") {
+	if strings.HasPrefix(param.Type, "*") && !strings.HasPrefix(input.Type, "*") {
 		return "&" + input.Name
 	}
-	// Want T, got*T. Need to dereference.
-	if !strings.HasPrefix(dataType, "*") && strings.HasPrefix(input.Type, "*") {
+	// Want T, got *T. Need to dereference.
+	if !strings.HasPrefix(param.Type, "*") && strings.HasPrefix(input.Type, "*") {
+		if isInterface(param.kind) {
+			// Don't dereference the type when the param is an interface type
+			return input.Name
+		}
 		return "*" + input.Name
 	}
 	// We really shouldn't reach here.
