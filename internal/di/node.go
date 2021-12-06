@@ -117,7 +117,8 @@ func (g *generator) External(n *Node) *External {
 // Helper to create an identifier variable based on the import and type name.
 // This function will also add an import automatically if the importPath doesn't
 // match our target path.
-func (g *generator) Identifier(importPath, name string) string {
+func (g *generator) Identifier(importPath, typeName string) string {
+	name := strings.TrimLeft(typeName, "*[]")
 	if g.Target != importPath {
 		pkg := g.Imports.Add(importPath)
 		return toDataType(pkg, name)

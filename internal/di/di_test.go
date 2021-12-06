@@ -91,6 +91,7 @@ func runTest(t testing.TB, test Test) {
 	}
 	provider := node.Generate(test.Function.Target)
 	code := provider.File(test.Function.Name)
+	// fmt.Println(code)
 	// TODO: provide a modFile method for doing this, modfile.ResolveDirectory
 	// also stats the final dir, which doesn't exist yet.
 	targetDir := modFile.Directory(strings.TrimPrefix(test.Function.Target, modFile.ModulePath()))
@@ -1874,6 +1875,134 @@ func TestFunctionMapNeedsPointer(t *testing.T) {
 
 				func (v *VM) Eval(input string) (string, error) {
 					return "", nil
+				}
+			`,
+		},
+	})
+}
+
+func TestInputStruct(t *testing.T) {
+	runTest(t, Test{
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []di.Dependency{},
+			Results: []di.Dependency{
+				&di.Struct{
+					Import: "app.com/gen/web",
+					Type:   "Web",
+					Fields: []*di.StructField{
+						{
+							Name:   "A",
+							Import: "app.com/web",
+							Type:   "*A",
+						},
+						{
+							Name:   "B",
+							Import: "app.com/web",
+							Type:   "B",
+						},
+					},
+				},
+			},
+		},
+		Expect: `
+			web.Web{
+				A: &web.A{},
+				B: web.B{b: "b"},
+			}
+		`,
+		Files: map[string]string{
+			"go.mod":  goMod,
+			"main.go": mainGo,
+			"gen/web/web.go": `
+				package web
+
+				import (
+					"app.com/web"
+				)
+
+				type Web struct {
+					*web.A
+					B web.B
+				}
+			`,
+			"web/web.go": `
+				package web
+
+				type A struct {
+				}
+
+				func New() B {
+					return B{"b"}
+				}
+
+				type B struct {
+					b string
+				}
+			`,
+		},
+	})
+}
+
+func TestInputStructPointer(t *testing.T) {
+	runTest(t, Test{
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []di.Dependency{},
+			Results: []di.Dependency{
+				&di.Struct{
+					Import: "app.com/gen/web",
+					Type:   "*Web",
+					Fields: []*di.StructField{
+						{
+							Name:   "A",
+							Import: "app.com/web",
+							Type:   "*A",
+						},
+						{
+							Name:   "B",
+							Import: "app.com/web",
+							Type:   "B",
+						},
+					},
+				},
+			},
+		},
+		Expect: `
+			&web.Web{
+				A: &web.A{},
+				B: web.B{b: "b"},
+			}
+		`,
+		Files: map[string]string{
+			"go.mod":  goMod,
+			"main.go": mainGo,
+			"gen/web/web.go": `
+				package web
+
+				import (
+					"app.com/web"
+				)
+
+				type Web struct {
+					*web.A
+					B web.B
+				}
+			`,
+			"web/web.go": `
+				package web
+
+				type A struct {
+				}
+
+				func New() B {
+					return B{"b"}
+				}
+
+				type B struct {
+					b string
 				}
 			`,
 		},

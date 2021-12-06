@@ -12,17 +12,16 @@ import (
 // Struct is a dependency that can be defined in memory. Struct is also a
 // declaration that can be referenced and be used to generate initializers.
 type Struct struct {
-	Import   string
-	Name     string
-	Fields   []*StructField
-	needsRef bool
+	Import string
+	Type   string
+	Fields []*StructField
 }
 
 var _ Dependency = (*Struct)(nil)
 var _ Declaration = (*Struct)(nil)
 
 func (s *Struct) ID() string {
-	return `"` + s.Import + `".` + s.Name
+	return `"` + s.Import + `".` + s.Type
 }
 
 func (s *Struct) ImportPath() string {
@@ -30,7 +29,7 @@ func (s *Struct) ImportPath() string {
 }
 
 func (s *Struct) TypeName() string {
-	return s.Name
+	return s.Type
 }
 
 // Find a declaration that provides this type
@@ -52,17 +51,16 @@ func (s *Struct) Generate(gen Generator, inputs []*Variable) (outputs []*Variabl
 		value := maybePrefixField(field, input)
 		params = append(params, field.Name+": "+value)
 	}
-	identifier := gen.Identifier(s.Import, s.Name)
-	result := gen.Variable(s.Import, s.Name)
+	identifier := gen.Identifier(s.Import, s.Type)
+	result := gen.Variable(s.Import, s.Type)
 	output := &Variable{
 		Import: s.Import,
 		Name:   result,
-		Type:   s.Name,
+		Type:   s.Type,
 		Kind:   parser.KindStruct,
 	}
-	if s.needsRef {
+	if strings.HasPrefix(s.Type, "*") {
 		identifier = "&" + identifier
-		output.Type = "*" + output.Type
 	}
 	gen.WriteString(fmt.Sprintf("%s := %s{%s}\n", result, identifier, strings.Join(params, ", ")))
 	return append(outputs, output)
@@ -114,9 +112,9 @@ func tryStruct(stct *parser.Struct, dataType string) (*Struct, error) {
 		return nil, err
 	}
 	decl := &Struct{
-		Import:   importPath,
-		Name:     stct.Name(),
-		needsRef: strings.HasPrefix(dataType, "*"),
+		Import: importPath,
+		Type:   dataType,
+		// needsRef: strings.HasPrefix(dataType, "*"),
 	}
 	for _, field := range stct.Fields() {
 		// Disallow any private fields. This is restrictive but it makes sure
