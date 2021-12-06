@@ -303,6 +303,60 @@ func TestFlagStringMapDefault(t *testing.T) {
 	is.Equal(flags["b"], "2")
 }
 
+func TestArgStringMap(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	var args map[string]string
+	cli.Arg("arg", "cli arg").StringMap(&args)
+	// Can have only one arg
+	err := cli.Parse([]string{"a:1 + 1"})
+	is.NoErr(err)
+	is.Equal(len(args), 1)
+	is.Equal(args["a"], "1 + 1")
+}
+
+func TestArgStringMapRequired(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	var args map[string]string
+	cli.Arg("arg", "cli arg").StringMap(&args)
+	err := cli.Parse([]string{})
+	is.Equal(err.Error(), "missing arg")
+}
+
+func TestArgStringMapDefault(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	var args map[string]string
+	cli.Arg("arg", "cli arg").StringMap(&args).Default(map[string]string{
+		"a": "1",
+		"b": "2",
+	})
+	err := cli.Parse([]string{})
+	is.NoErr(err)
+	is.Equal(len(args), 2)
+	is.Equal(args["a"], "1")
+	is.Equal(args["b"], "2")
+}
+
 func TestSub(t *testing.T) {
 	is := is.New(t)
 	actual := new(bytes.Buffer)

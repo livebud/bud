@@ -24,6 +24,12 @@ func (a *Arg) Strings(target *[]string) *Strings {
 	return value
 }
 
+func (a *Arg) StringMap(target *map[string]string) *StringMap {
+	value := &StringMap{target: target}
+	a.value = &stringMapValue{inner: value}
+	return value
+}
+
 func (a *Arg) verify(name string) error {
 	return a.value.verify(name)
 }

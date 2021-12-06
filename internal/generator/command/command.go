@@ -68,10 +68,3 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 	file.Write(code)
 	return nil
 }
-
-type Parser struct {
-}
-
-func (p *Parser) Parse() (*State, error) {
-	return &State{}, nil
-}
