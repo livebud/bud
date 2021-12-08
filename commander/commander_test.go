@@ -22,8 +22,8 @@ func TestHelp(t *testing.T) {
 	err := cmd.Parse([]string{"-h"})
 	is.NoErr(err)
 	isEqual(t, actual.String(), `
-{bold}Usage:{reset}
-  cli
+  {bold}Usage:{reset}
+    cli
 
 `)
 }
@@ -414,15 +414,15 @@ func TestSubHelp(t *testing.T) {
 	err := cli.Parse([]string{"-h"})
 	is.NoErr(err)
 	isEqual(t, actual.String(), `
-{bold}Usage:{reset}
-  bud [flags] [command]
+  {bold}Usage:{reset}
+    bud {dim}[flags]{reset} {dim}[command]{reset}
 
-{bold}Flags:{reset}
-  --log		specify the logger
+  {bold}Flags:{reset}
+    --log  {dim}specify the logger{reset}
 
-{bold}Commands:{reset}
-  build		build your application
-  run		run your application
+  {bold}Commands:{reset}
+    build  {dim}build your application{reset}
+    run    {dim}run your application{reset}
 
 `)
 }
@@ -454,16 +454,16 @@ func TestSubHelpShort(t *testing.T) {
 	err := cli.Parse([]string{"-h"})
 	is.NoErr(err)
 	isEqual(t, actual.String(), `
-{bold}Usage:{reset}
-  bud [flags] [command]
+  {bold}Usage:{reset}
+    bud {dim}[flags]{reset} {dim}[command]{reset}
 
-{bold}Flags:{reset}
-  --log, -L		specify the logger
-  --debug		set the debugger
+  {bold}Flags:{reset}
+    -L, --log  {dim}specify the logger{reset}
+    --debug    {dim}set the debugger{reset}
 
-{bold}Commands:{reset}
-  build		build your application
-  run		run your application
+  {bold}Commands:{reset}
+    build  {dim}build your application{reset}
+    run    {dim}run your application{reset}
 
 `)
 }

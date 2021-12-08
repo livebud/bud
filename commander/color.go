@@ -5,10 +5,13 @@ import (
 	"text/template"
 )
 
+var reset = color("\033[0m")
+var dim = color("\033[37m")
+
 var colors = template.FuncMap{
-	"reset":     color("\033[0m"),
+	"reset":     reset,
 	"bold":      color("\033[1m"),
-	"dim":       color("\033[37m"),
+	"dim":       dim,
 	"underline": color("\033[4m"),
 	"teal":      color("\033[36m"),
 	"blue":      color("\033[34m"),
