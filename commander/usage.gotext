@@ -1,20 +1,16 @@
 
-{{bold}}Usage:{{reset}}
-  {{ $.Name }}{{ if $.Flags }} [flags]{{ end }}{{ if $.Commands }} [command]{{ end }}
+  {{bold}}Usage:{{reset}}
+    {{ $.Name }}{{ if $.Flags }} {{dim}}[flags]{{reset}}{{ end }}{{ if $.Commands }} {{dim}}[command]{{reset}}{{ end }}
 
 {{- if $.Flags}}
 
-{{bold}}Flags:{{reset}}
-{{- range $flag := $.Flags }}
-  --{{$flag.Name}}{{with $flag.Short}}, -{{.}}{{end}}		{{$flag.Usage}}
-{{- end }}
+  {{bold}}Flags:{{reset}}
+    {{ $.Flags.Usage }}
 {{- end }}
 
 {{- if $.Commands }}
 
-{{bold}}Commands:{{reset}}
-{{- range $cmd := $.Commands }}
-  {{$cmd.Name}}		{{$cmd.Usage}}
-{{- end }}
+  {{bold}}Commands:{{reset}}
+    {{ $.Commands.Usage }}
 {{- end }}
 

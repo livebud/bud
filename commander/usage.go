@@ -2,7 +2,10 @@ package commander
 
 import (
 	"bytes"
+	"fmt"
 	"sort"
+	"strings"
+	"text/tabwriter"
 	"text/template"
 )
 
@@ -22,12 +25,22 @@ func (g *generateCommand) Name() string {
 	return g.c.name
 }
 
-func (g *generateCommand) Usage() string {
-	return g.c.usage
+type generateCommands []*generateCommand
+
+func (cmds generateCommands) Usage() (string, error) {
+	buf := new(bytes.Buffer)
+	tw := tabwriter.NewWriter(buf, 0, 0, 2, ' ', 0)
+	for _, cmd := range cmds {
+		tw.Write([]byte("\t\t" + cmd.c.name + "\t" + dim() + cmd.c.usage + reset() + "\n"))
+	}
+	if err := tw.Flush(); err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(buf.String()), nil
 }
 
-func (g *generateCommand) Commands() (commands []*generateCommand) {
-	commands = make([]*generateCommand, len(g.c.commands))
+func (g *generateCommand) Commands() (commands generateCommands) {
+	commands = make(generateCommands, len(g.c.commands))
 	i := 0
 	for _, cmd := range g.c.commands {
 		commands[i] = &generateCommand{cmd}
@@ -40,12 +53,25 @@ func (g *generateCommand) Commands() (commands []*generateCommand) {
 	return commands
 }
 
-func (g *generateCommand) Flags() (flags []*generateFlag) {
-	flags = make([]*generateFlag, len(g.c.flags))
+func (g *generateCommand) Flags() (flags generateFlags) {
+	flags = make(generateFlags, len(g.c.flags))
 	for i, flag := range g.c.flags {
 		flags[i] = &generateFlag{flag}
 	}
+	// Sort by name
+	sort.Slice(flags, func(i, j int) bool {
+		if hasShort(flags[i]) == hasShort(flags[j]) {
+			// Both have shorts or don't have shorts, so sort by name
+			return flags[i].f.name < flags[j].f.name
+		}
+		// Shorts above non-shorts
+		return flags[i].f.short > flags[j].f.short
+	})
 	return flags
+}
+
+func hasShort(flag *generateFlag) bool {
+	return flag.f.short != 0
 }
 
 type generateFlag struct {
@@ -56,13 +82,39 @@ func (g *generateFlag) Name() string {
 	return g.f.name
 }
 
-func (g *generateFlag) Usage() string {
-	return g.f.usage
+type generateFlags []*generateFlag
+
+func (flags generateFlags) hasShortFlags() bool {
+	for _, flag := range flags {
+		if flag.f.short != 0 {
+			return true
+		}
+	}
+	return false
 }
 
-func (g *generateFlag) Short() string {
-	if g.f.short == 0 {
-		return ""
+func (flags generateFlags) Usage() (string, error) {
+	buf := new(bytes.Buffer)
+	tw := tabwriter.NewWriter(buf, 0, 0, 2, ' ', 0)
+	hasShortFlags := flags.hasShortFlags()
+	for _, flag := range flags {
+		tw.Write([]byte("\t\t"))
+		fmt.Println(hasShortFlags, flag.Name())
+		if flag.f.short != 0 {
+			tw.Write([]byte("-" + string(flag.f.short) + ", "))
+		}
+		//  else if hasShortFlags {
+		// 	fmt.Println("indenting", flag.f.name)
+		// 	// Only indent if we have other short flag options
+		// 	tw.Write([]byte("      "))
+		// }
+		tw.Write([]byte("--" + flag.f.name))
+		tw.Write([]byte("\t"))
+		tw.Write([]byte(dim() + flag.f.usage + reset()))
+		tw.Write([]byte("\n"))
 	}
-	return string(g.f.short)
+	if err := tw.Flush(); err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(buf.String()), nil
 }

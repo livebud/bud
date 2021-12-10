@@ -71,6 +71,10 @@ func (f *File) AddRequire(importPath, version string) error {
 	return f.file.AddRequire(importPath, version)
 }
 
+func (f *File) Replace(oldPath, newPath string) error {
+	return f.AddReplace(oldPath, "", newPath, "")
+}
+
 func (f *File) AddReplace(oldPath, oldVers, newPath, newVers string) error {
 	return f.file.AddReplace(oldPath, oldVers, newPath, newVers)
 }

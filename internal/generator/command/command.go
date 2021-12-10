@@ -2,6 +2,8 @@ package command
 
 import (
 	_ "embed"
+	"fmt"
+	"path/filepath"
 
 	"gitlab.com/mnm/bud/internal/di"
 
@@ -21,20 +23,11 @@ type Generator struct {
 	Injector *di.Injector
 }
 
-type State struct {
-	Imports []*imports.Import
-}
-
-func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
+func (g *Generator) GenerateFile(f gen.F, file *gen.File) (err error) {
 	// TODO: consider also building when only commands are present
 	if err := gen.Exists(f, "bud/web/web.go"); err != nil {
 		return err
 	}
-	// 1. Load all the commands
-	// TODO: fill in
-	// 2. DI a virtual *Command
-	// TODO: fill in
-	// 3. Generate
 	imports := imports.New()
 	imports.AddStd("context", "errors", "os")
 	// imports.AddStd("fmt")
@@ -59,12 +52,101 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 	imports.AddNamed("router", "gitlab.com/mnm/bud/router")
 	imports.AddNamed("svelte", "gitlab.com/mnm/bud/svelte")
 
-	code, err := generator.Generate(State{
+	name := filepath.Base(g.Modfile.Directory())
+
+	// 1. Load all the commands
+	state := &State{
 		Imports: imports.List(),
+		Command: &Command{
+			Name:  name,
+			Usage: "start your application",
+			Subs: []*Command{
+				{
+					Name:  "deploy",
+					Usage: "deploy your application",
+					Deps: []di.Dependency{
+						&di.Type{
+							Import: "gitlab.com/mnm/bud/js/v8",
+							Type:   "*Pool",
+						},
+					},
+					Flags: []*Flag{
+						{
+							Name:    "access-key",
+							Usage:   "include a test",
+							Type:    "*bool",
+							Default: "true",
+						},
+						{
+							Name:    "secret-key",
+							Usage:   "include a test",
+							Type:    "*bool",
+							Default: "true",
+						},
+					},
+				},
+				{
+					Name:  "new",
+					Usage: "new scaffolding",
+					Subs: []*Command{
+						{
+							Name:  "view",
+							Usage: "new view",
+							Args: []*Arg{
+								{
+									Name:  "name",
+									Usage: "name of the view",
+									Type:  "string",
+								},
+							},
+							Flags: []*Flag{
+								{
+									Name:    "with-test",
+									Usage:   "include a test",
+									Type:    "*bool",
+									Default: "true",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// // 2. DI a virtual *Command
+	state.Provider, err = g.Injector.Wire(&di.Function{
+		Name:   "load",
+		Target: g.Modfile.ModulePath("bud", "command"),
+		Params: []di.Dependency{
+			&di.Type{Import: "gitlab.com/mnm/bud/go/mod", Type: "*File"},
+			&di.Type{Import: "gitlab.com/mnm/bud/gen", Type: "*FileSystem"},
+		},
+		Results: []di.Dependency{
+			&di.Struct{
+				Import: g.Modfile.ModulePath("bud", "command"),
+				Type:   "*Command",
+				Fields: []*di.StructField{
+					{
+						Name:   "Web",
+						Import: g.Modfile.ModulePath("bud", "web"),
+						Type:   "*Server",
+					},
+				},
+			},
+		},
 	})
 	if err != nil {
 		return err
 	}
+
+	// 3. Generate
+	code, err := generator.Generate(state)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	fmt.Println(string(code))
 	file.Write(code)
 	return nil
 }

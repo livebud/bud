@@ -1,0 +1,160 @@
+package command_test
+
+import (
+	"bytes"
+	"context"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"gitlab.com/mnm/bud/fsync"
+
+	"gitlab.com/mnm/bud/internal/di"
+	"gitlab.com/mnm/bud/internal/parser"
+
+	"gitlab.com/mnm/bud/gen"
+
+	"gitlab.com/mnm/bud/go/mod"
+	"gitlab.com/mnm/bud/internal/generator/command"
+	"gitlab.com/mnm/bud/internal/modcache"
+
+	"github.com/lithammer/dedent"
+	"github.com/matryer/is"
+	"github.com/matthewmueller/diff"
+	"gitlab.com/mnm/bud/vfs"
+)
+
+func redent(s string) string {
+	return strings.TrimSpace(dedent.Dedent(s)) + "\n"
+}
+
+func goRun(cacheDir, appDir string, args ...string) (string, error) {
+	ctx := context.Background()
+	mainPath := filepath.Join("bud", "main.go")
+	args = append([]string{"run", "-mod=mod", mainPath}, args...)
+	cmd := exec.CommandContext(ctx, "go", args...)
+	cmd.Env = append(os.Environ(), "GOMODCACHE="+cacheDir, "GOPRIVATE=*")
+	stdout := new(bytes.Buffer)
+	cmd.Stdout = stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	cmd.Dir = appDir
+	err := cmd.Run()
+	if err != nil {
+		return "", err
+	}
+	return stdout.String(), nil
+}
+
+var webServer = gen.GenerateFile(func(f gen.F, file *gen.File) error {
+	file.Write([]byte(redent(`
+			package web
+
+			import (
+				"net/http"
+			)
+
+			type Server struct {}
+
+			func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+				w.Write([]byte("mock web server"))
+			}
+		`)))
+	return nil
+})
+
+var mainGo = gen.GenerateFile(func(f gen.F, file *gen.File) error {
+	file.Write([]byte(redent(`
+			package main
+
+			import (
+				command "app.com/bud/command"
+				os "os"
+			)
+
+			func main() {
+				os.Exit(command.Parse(os.Args[1:]...))
+			}
+		`)))
+	return nil
+})
+
+type Test struct {
+	Skip   bool
+	Files  map[string]string
+	Args   []string
+	Expect string
+}
+
+func runTest(t *testing.T, test Test) {
+	t.Helper()
+	if test.Skip {
+		t.SkipNow()
+	}
+	is := is.New(t)
+	appDir := t.TempDir()
+	modCache := modcache.Default()
+	module := mod.New(modCache)
+	budFile, err := module.Find(".")
+	is.NoErr(err)
+	// Write application files
+	if test.Files != nil {
+		vmap := vfs.Map{}
+		for path, code := range test.Files {
+			switch path {
+			case "go.mod":
+				modFile, err := module.Parse(path, []byte(code))
+				is.NoErr(err)
+				err = modFile.Replace("gitlab.com/mnm/bud", budFile.Directory())
+				is.NoErr(err)
+				vmap[path] = string(modFile.Format())
+			default:
+				vmap[path] = redent(code)
+			}
+		}
+		err := vfs.Write(appDir, vmap)
+		is.NoErr(err)
+	}
+	// Setup genFS
+	appFS := vfs.OS(appDir)
+	genFS := gen.New(appFS)
+	modFile, err := module.Find(appDir)
+	is.NoErr(err)
+	parser := parser.New(module)
+	injector := di.New(modFile, parser, di.Map{})
+	genFS.Add(map[string]gen.Generator{
+		"bud/main.go":    mainGo,
+		"bud/web/web.go": webServer,
+		"bud/command/command.go": gen.FileGenerator(&command.Generator{
+			Modfile:  modFile,
+			Injector: injector,
+		}),
+	})
+	err = fsync.Dir(genFS, "bud", appFS, "bud")
+	is.NoErr(err)
+	stdout, err := goRun(modCache.Directory(), appDir, test.Args...)
+	is.NoErr(err)
+	diff.TestString(t, test.Expect, stdout)
+}
+
+const goMod = `
+module app.com
+
+require (
+  github.com/hexops/valast v1.4.1
+	gitlab.com/mnm/bud v0.0.0
+)
+`
+
+func TestRoot(t *testing.T) {
+	runTest(t, Test{
+		Skip: true,
+		Files: map[string]string{
+			"go.mod": goMod,
+		},
+		Args:   []string{"-h"},
+		Expect: ``,
+	})
+}

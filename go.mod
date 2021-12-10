@@ -9,6 +9,7 @@ require (
 	github.com/gitchander/permutation v0.0.0-20201214100618-1f3e7285f953
 	github.com/gobwas/glob v0.2.3
 	github.com/jackc/puddle v1.1.4
+	github.com/lithammer/dedent v1.1.0
 	github.com/matryer/is v1.4.0
 	github.com/matthewmueller/diff v0.0.0-20210410144936-5c82685ba722
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac
@@ -25,7 +26,6 @@ require (
 	github.com/gedex/inflector v0.0.0-20170307190818-16278e9db813 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/lithammer/dedent v1.1.0 // indirect
 	github.com/rogpeppe/go-internal v1.8.1-0.20211023094830-115ce09fd6b4 // indirect
 	github.com/sergi/go-diff v1.0.0 // indirect
 	golang.org/x/sys v0.0.0-20211117180635-dee7805ff2e1 // indirect

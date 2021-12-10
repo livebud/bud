@@ -26,7 +26,10 @@ func (i *Injector) Find(modFile *mod.File, dep Dependency) (Declaration, error) 
 	// Resolve the absolute directory based on the import
 	dir, err := modFile.ResolveDirectory(dep.ImportPath())
 	if err != nil {
-		return nil, fmt.Errorf("di: unable to find dependency %s: %w", dep.ID(), err)
+		// This error shouldn't be wrapped because it can be an fs.ErrNotExist which
+		// is ignored by fsync.Dir. If a dependency doesn't exist, di should error
+		// out with it's own error type.
+		return nil, fmt.Errorf("di: unable to find dependency %s > %s", dep.ID(), err)
 	}
 	// Parse the package
 	pkg, err := i.parser.Parse(dir)

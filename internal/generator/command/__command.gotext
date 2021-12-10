@@ -49,22 +49,6 @@ func Load() (*CLI, error) {
 	return &CLI{cmd}, nil
 }
 
-func load() (*Command, error) {
-	wd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-	modFile, err := mod.Default().Find(wd)
-	if err != nil {
-		return nil, err
-	}
-	genFS := gen.New(os.DirFS(modFile.Directory()))
-	genFS.Add(map[string]gen.Generator{
-		"bud/plugin": gen.DirGenerator(&plugin.Generator{Modfile: modFile}),
-	})
-	return provideCommand(genFS, modFile)
-}
-
 type CLI struct {
 	cmd *Command
 }
@@ -75,7 +59,7 @@ func (c *CLI) Parse(args ...string) error {
 	cmd := commander.New("app")
 	cmd.Run(c.cmd.Run)
 
-	{{/* { // $ bud deploy
+	{ // $ bud deploy
 		cmd := cmd.Command("deploy", "deploy to production")
 		cmd.Flag("access-key", "aws access key").String(&c.cmd.deployCommand.AccessKey)
 		cmd.Flag("secret-key", "aws secret key").String(&c.cmd.deployCommand.SecretKey)
@@ -91,39 +75,93 @@ func (c *CLI) Parse(args ...string) error {
 			cmd.Flag("with-test", "add a test").Bool(&c.cmd.newViewCommand.WithTest).Default(true)
 			cmd.Run(c.cmd.newViewCommand.Run)
 		}
-	} */}}
+	}
 
 	return cmd.Parse(args)
 }
 
-type Command struct {
-	Web *web.Server
-}
 
-func (c *Command) Run(ctx context.Context) error {
-	console.Info("Listening on http://localhost:3000")
-	return c.Web.ListenAndServe(ctx, ":3000")
-}
-
-// TODO: generate with DI
-// go run main.go -C ../hackernews tool di -d="bud/command.*Command" -t="bud/command"  -e="gitlab.com/mnm/bud/gen".FS -e="gitlab.com/mnm/bud/go/mod.*File" -m "gitlab.com/mnm/bud/js.VM:gitlab.com/mnm/bud/js/v8.*Pool"
-func provideCommand(genFS gen.FS, modFile *mod.File) (*Command, error) {
-	hnClient := hn.New()
-	controllerController := &controller.Controller{HN: hnClient}
-	jsPool := js.New()
-	svelteCompiler := svelte.New(jsPool)
-	svelteTransformable := svelte.NewTransformable(svelteCompiler)
-	tailwindTransform := tailwind.New(modFile)
-	transformTransformer, err := transform.PrivateLoad(svelteTransformable, tailwindTransform)
+// TODO: generate with di using the newCmd
+func load() (*Command, error) {
+	awsConfig := aws.New()
+	webServer := &web.Server{Config: awsConfig}
+	commandcommand, err := NewCommand(webServer)
 	if err != nil {
 		return nil, err
 	}
-	viewServer := view.New(genFS, modFile, jsPool, transformTransformer)
-	controller1Controller := controller1.New(controllerController, viewServer)
-	hotServer := hot.New(genFS)
-	publicMiddleware := public.New(genFS)
-	routerRouter := router.New()
-	webServer := web.New(controller1Controller, hotServer, publicMiddleware, routerRouter, viewServer)
-	commandCommand := &Command{Web: webServer}
-	return commandCommand, err
+	command1deployCommand, err := NewDeployCommand(awsConfig)
+	if err != nil {
+		return nil, err
+	}
+	command2newViewCommand, err := NewNewViewCommand()
+	if err != nil {
+		return nil, err
+	}
+	command3webServeCommand, err := NewWebServeCommand(webServer)
+	if err != nil {
+		return nil, err
+	}
+	command4Command := New(commandcommand, command1deployCommand, command2newViewCommand, command3webServeCommand)
+	return command4Command, err
 }
+
+func New(
+	command *command,
+	deployCommand *deployCommand,
+	newViewCommand *newViewCommand,
+	webServeCommand *webServeCommand,
+) *Command {
+	return &Command{
+		command:         command,
+		deployCommand:   deployCommand,
+		newViewCommand:  newViewCommand,
+		webServeCommand: webServeCommand,
+	}
+}
+
+type Command struct {
+	command         *command
+	deployCommand   *deployCommand
+	newViewCommand  *newViewCommand
+	webServeCommand *webServeCommand
+}
+
+func NewCommand(web *web.Server) (*command, error) {
+	return &command{
+		Web: web,
+	}, nil
+}
+
+// Root app command
+type command struct {
+	Web *web.Server
+}
+
+func (c *command) Run(ctx context.Context) error {
+	fmt.Println("run or build command")
+	return nil
+}
+
+// Deploy command
+type deployCommand = deploy.Command
+
+func NewDeployCommand(awsConfig *aws.Config) (*deployCommand, error) {
+	return &deployCommand{
+		Config: awsConfig,
+	}, nil
+}
+
+type newViewCommand = new_view.Command
+
+func NewNewViewCommand() (*newViewCommand, error) {
+	return &newViewCommand{}, nil
+}
+
+type webServeCommand = web_serve.Command
+
+func NewWebServeCommand(web *web.Server) (*webServeCommand, error) {
+	return &webServeCommand{
+		Web: web,
+	}, nil
+}
+
