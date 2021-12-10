@@ -171,16 +171,16 @@ type runCommand struct {
 
 func (c *runCommand) Run(ctx context.Context) error {
 	module := mod.New(modcache.Default())
-	modfile, err := module.Find(c.bud.Chdir)
+	modFile, err := module.Find(c.bud.Chdir)
 	if err != nil {
 		return err
 	}
-	// parser := parser.New(module)
-	// injector := di.New(parser)
-	genfs := gen.New(os.DirFS(modfile.Directory()))
+	parser := parser.New(module)
+	injector := di.New(modFile, parser, di.Map{})
+	genfs := gen.New(os.DirFS(modFile.Directory()))
 	genfs.Add(map[string]gen.Generator{
 		"go.mod": gen.FileGenerator(&gomod.Generator{
-			Modfile: modfile,
+			Modfile: modFile,
 			Go: &gomod.Go{
 				Version: "1.17",
 			},
@@ -203,10 +203,10 @@ func (c *runCommand) Run(ctx context.Context) error {
 			},
 		}),
 		"bud/plugin": gen.DirGenerator(&plugin.Generator{
-			Modfile: modfile,
+			Modfile: modFile,
 		}),
 		"bud/generate/main.go": gen.FileGenerator(&generate.Generator{
-			Modfile: modfile,
+			Modfile: modFile,
 			Embed:   c.Embed,
 			Hot:     c.Hot,
 			Minify:  c.Minify,
@@ -217,31 +217,32 @@ func (c *runCommand) Run(ctx context.Context) error {
 		// TODO: separate the following from the generators to give the generators
 		// a chance to add files that are picked up by these compiler plugins.
 		"bud/command/command.go": gen.FileGenerator(&command.Generator{
-			Modfile: modfile,
+			Modfile:  modFile,
+			Injector: injector,
 		}),
 		"bud/controller/controller.go": gen.FileGenerator(&controller.Generator{
-			Modfile: modfile,
+			Modfile: modFile,
 		}),
 		"bud/transform/transform.go": gen.FileGenerator(&transform.Generator{
-			Modfile: modfile,
+			Modfile: modFile,
 		}),
 		"bud/view/view.go": gen.FileGenerator(&view.Generator{
-			Modfile: modfile,
+			Modfile: modFile,
 		}),
 		"bud/public/public.go": gen.FileGenerator(&public.Generator{
-			Modfile: modfile,
+			Modfile: modFile,
 			Embed:   c.Embed,
 			Minify:  c.Minify,
 		}),
 		"bud/web/web.go": gen.FileGenerator(&web.Generator{
-			Modfile: modfile,
+			Modfile: modFile,
 		}),
 		"bud/main.go": gen.FileGenerator(&maingo.Generator{
-			Modfile: modfile,
+			Modfile: modFile,
 		}),
 	})
 	// Sync genfs
-	if err := fsync.Dir(genfs, ".", vfs.OS(modfile.Directory()), "."); err != nil {
+	if err := fsync.Dir(genfs, ".", vfs.OS(modFile.Directory()), "."); err != nil {
 		return err
 	}
 	// Intentionally use a different context for running subprocesses because
@@ -250,14 +251,14 @@ func (c *runCommand) Run(ctx context.Context) error {
 	runCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	// Run generate (if it exists) to support user-defined generators
-	generatePath := filepath.Join(modfile.Directory(), "bud", "generate", "main.go")
+	generatePath := filepath.Join(modFile.Directory(), "bud", "generate", "main.go")
 	if _, err := os.Stat(generatePath); nil == err {
-		if err := gobin.Run(runCtx, modfile.Directory(), generatePath); err != nil {
+		if err := gobin.Run(runCtx, modFile.Directory(), generatePath); err != nil {
 			return err
 		}
 	}
 	// If bud/main.go doesn't exist, run the welcome server
-	mainPath := filepath.Join(modfile.Directory(), "bud", "main.go")
+	mainPath := filepath.Join(modFile.Directory(), "bud", "main.go")
 	if _, err := os.Stat(mainPath); err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return err
@@ -266,11 +267,11 @@ func (c *runCommand) Run(ctx context.Context) error {
 		address := fmt.Sprintf(":%d", c.Port)
 		console.Info("Listening on http://localhost%s", address)
 		return http.ListenAndServe(address, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("Welcome!\n"))
+			w.Write([]byte("Welcome Server!\n"))
 		}))
 	}
 	// Run the main server
-	if err := gobin.Run(runCtx, modfile.Directory(), mainPath); err != nil {
+	if err := gobin.Run(runCtx, modFile.Directory(), mainPath); err != nil {
 		return err
 	}
 	return nil
@@ -285,15 +286,17 @@ type buildCommand struct {
 
 func (c *buildCommand) Run(ctx context.Context) error {
 	module := mod.New(modcache.Default())
-	modfile, err := module.Find(c.bud.Chdir)
+	modFile, err := module.Find(c.bud.Chdir)
 	if err != nil {
 		return err
 	}
-	fmt.Println("building...", modfile.Directory(), c.Embed, c.Hot, c.Minify)
-	genfs := gen.New(os.DirFS(modfile.Directory()))
+	parser := parser.New(module)
+	injector := di.New(modFile, parser, di.Map{})
+	fmt.Println("building...", modFile.Directory(), c.Embed, c.Hot, c.Minify)
+	genfs := gen.New(os.DirFS(modFile.Directory()))
 	genfs.Add(map[string]gen.Generator{
 		"bud/generate/main.go": gen.FileGenerator(&generate.Generator{
-			Modfile: modfile,
+			Modfile: modFile,
 			Embed:   c.Embed,
 			Hot:     c.Hot,
 			Minify:  c.Minify,
@@ -301,8 +304,12 @@ func (c *buildCommand) Run(ctx context.Context) error {
 		"bud/generator/generator.go": gen.FileGenerator(&generator.Generator{
 			// fill in
 		}),
+		"bud/command/command.go": gen.FileGenerator(&command.Generator{
+			Modfile:  modFile,
+			Injector: injector,
+		}),
 		"go.mod": gen.FileGenerator(&gomod.Generator{
-			Modfile: modfile,
+			Modfile: modFile,
 			Go: &gomod.Go{
 				Version: "1.17",
 			},
@@ -328,31 +335,31 @@ func (c *buildCommand) Run(ctx context.Context) error {
 			// Fill in
 		}),
 		"bud/web/web.go": gen.FileGenerator(&web.Generator{
-			Modfile: modfile,
+			Modfile: modFile,
 		}),
 		"bud/main.go": gen.FileGenerator(&maingo.Generator{
 			// fill in
 		}),
 	})
 	// Sync genfs
-	if err := fsync.Dir(genfs, ".", vfs.OS(modfile.Directory()), "."); err != nil {
+	if err := fsync.Dir(genfs, ".", vfs.OS(modFile.Directory()), "."); err != nil {
 		return err
 	}
 	// Run generate (if it exists) to support user-defined generators
-	generatePath := filepath.Join(modfile.Directory(), "bud", "generate", "main.go")
+	generatePath := filepath.Join(modFile.Directory(), "bud", "generate", "main.go")
 	if _, err := os.Stat(generatePath); nil == err {
-		if err := gobin.Run(ctx, modfile.Directory(), generatePath); err != nil {
+		if err := gobin.Run(ctx, modFile.Directory(), generatePath); err != nil {
 			return err
 		}
 	}
 	// Verify that bud/main.go exists
-	mainPath := filepath.Join(modfile.Directory(), "bud", "main.go")
+	mainPath := filepath.Join(modFile.Directory(), "bud", "main.go")
 	if _, err := os.Stat(mainPath); err != nil {
 		return err
 	}
 	// Build the main server
-	outPath := filepath.Join(modfile.Directory(), "bud", "main")
-	if err := gobin.Build(ctx, modfile.Directory(), mainPath, outPath); err != nil {
+	outPath := filepath.Join(modFile.Directory(), "bud", "main")
+	if err := gobin.Build(ctx, modFile.Directory(), mainPath, outPath); err != nil {
 		return err
 	}
 	return nil

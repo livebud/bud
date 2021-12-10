@@ -9,13 +9,15 @@ import (
 )
 {{- end }}
 
-func Parse(args ...string) int {
-	cli, err := Load()
+func Run(args ...string) int {
+	cmd, err := loadCommand()
 	if err != nil {
 		console.Error(err.Error())
 		return 1
 	}
-	if err := cli.Parse(args...); err != nil {
+	cli := commander.New("bud")
+	cli.Run(cmd.Run)
+	if err := cli.Parse(args); err != nil {
 		if errors.Is(err, context.Canceled) {
 			// Unfortunately interrupts like SIGINT trigger a non-zero exit code,
 			// regardless of whether you do os.Exit(0) or not. We're going to use exit
@@ -29,27 +31,16 @@ func Parse(args ...string) int {
 	return 0
 }
 
-func Load() (*CLI, error) {
-	wd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-	modFile, err := mod.Default().Find(wd)
-	if err != nil {
-		return nil, err
-	}
-	genFS := gen.New(os.DirFS(modFile.Directory()))
-	genFS.Add(map[string]gen.Generator{
-		"bud/plugin": gen.DirGenerator(&plugin.Generator{Modfile: modFile}),
-	})
-	cmd, err := load()
-	if err != nil {
-		return nil, err
-	}
-	return &CLI{cmd}, nil
+type Command struct {
+	Web *web.Server
 }
 
-func load() (*Command, error) {
+func (c *Command) Run(ctx context.Context) error {
+	console.Info("Listening on http://localhost:3000")
+	return c.Web.ListenAndServe(ctx, ":3000")
+}
+
+func loadCommand() (*Command, error) {
 	wd, err := os.Getwd()
 	if err != nil {
 		return nil, err
@@ -63,46 +54,6 @@ func load() (*Command, error) {
 		"bud/plugin": gen.DirGenerator(&plugin.Generator{Modfile: modFile}),
 	})
 	return provideCommand(genFS, modFile)
-}
-
-type CLI struct {
-	cmd *Command
-}
-
-func (c *CLI) Parse(args ...string) error {
-	// $ bud run
-	// $ bud build
-	cmd := commander.New("app")
-	cmd.Run(c.cmd.Run)
-
-	{{/* { // $ bud deploy
-		cmd := cmd.Command("deploy", "deploy to production")
-		cmd.Flag("access-key", "aws access key").String(&c.cmd.deployCommand.AccessKey)
-		cmd.Flag("secret-key", "aws secret key").String(&c.cmd.deployCommand.SecretKey)
-		cmd.Run(c.cmd.deployCommand.Run)
-	}
-
-	{ // $ bud new
-		cmd := cmd.Command("new", "new scaffolding")
-
-		{ // $ bud new view
-			cmd := cmd.Command("view", "create a new view")
-			cmd.Arg("name", "name of the view").String(&c.cmd.newViewCommand.Name)
-			cmd.Flag("with-test", "add a test").Bool(&c.cmd.newViewCommand.WithTest).Default(true)
-			cmd.Run(c.cmd.newViewCommand.Run)
-		}
-	} */}}
-
-	return cmd.Parse(args)
-}
-
-type Command struct {
-	Web *web.Server
-}
-
-func (c *Command) Run(ctx context.Context) error {
-	console.Info("Listening on http://localhost:3000")
-	return c.Web.ListenAndServe(ctx, ":3000")
 }
 
 // TODO: generate with DI
