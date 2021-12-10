@@ -115,30 +115,30 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) (err error) {
 	}
 
 	// // 2. DI a virtual *Command
-	state.Provider, err = g.Injector.Wire(&di.Function{
-		Name:   "load",
-		Target: g.Modfile.ModulePath("bud", "command"),
-		Params: []di.Dependency{
-			&di.Type{Import: "gitlab.com/mnm/bud/go/mod", Type: "*File"},
-			&di.Type{Import: "gitlab.com/mnm/bud/gen", Type: "*FileSystem"},
-		},
-		Results: []di.Dependency{
-			&di.Struct{
-				Import: g.Modfile.ModulePath("bud", "command"),
-				Type:   "*Command",
-				Fields: []*di.StructField{
-					{
-						Name:   "Web",
-						Import: g.Modfile.ModulePath("bud", "web"),
-						Type:   "*Server",
-					},
-				},
-			},
-		},
-	})
-	if err != nil {
-		return err
-	}
+	// state.Provider, err = g.Injector.Wire(&di.Function{
+	// 	Name:   "load",
+	// 	Target: g.Modfile.ModulePath("bud", "command"),
+	// 	Params: []di.Dependency{
+	// 		&di.Type{Import: "gitlab.com/mnm/bud/go/mod", Type: "*File"},
+	// 		&di.Type{Import: "gitlab.com/mnm/bud/gen", Type: "*FileSystem"},
+	// 	},
+	// 	Results: []di.Dependency{
+	// 		&di.Struct{
+	// 			Import: g.Modfile.ModulePath("bud", "command"),
+	// 			Type:   "*Command",
+	// 			Fields: []*di.StructField{
+	// 				{
+	// 					Name:   "Web",
+	// 					Import: g.Modfile.ModulePath("bud", "web"),
+	// 					Type:   "*Server",
+	// 				},
+	// 			},
+	// 		},
+	// 	},
+	// })
+	// if err != nil {
+	// 	return err
+	// }
 
 	// 3. Generate
 	code, err := generator.Generate(state)
@@ -146,7 +146,7 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) (err error) {
 		fmt.Println(err)
 		return err
 	}
-	fmt.Println(string(code))
+	// fmt.Println(string(code))
 	file.Write(code)
 	return nil
 }
