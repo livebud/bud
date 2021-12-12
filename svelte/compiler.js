@@ -4909,7 +4909,7 @@ var bud_svelte = (() => {
   }
   function analyze(expression2) {
     const map = new WeakMap();
-    const globals2 = new Map();
+    const globals2 = /* @__PURE__ */ new Map();
     const scope2 = new Scope$1(null, false);
     const references = [];
     let current_scope = scope2;
@@ -4994,9 +4994,9 @@ var bud_svelte = (() => {
     constructor(parent, block) {
       this.parent = parent;
       this.block = block;
-      this.declarations = new Map();
-      this.initialised_declarations = new Set();
-      this.references = new Set();
+      this.declarations = /* @__PURE__ */ new Map();
+      this.initialised_declarations = /* @__PURE__ */ new Set();
+      this.references = /* @__PURE__ */ new Set();
     }
     add_declaration(node2) {
       if (node2.type === "VariableDeclaration") {
@@ -5921,7 +5921,7 @@ ${state.indent})`));
           throw new Error(`Could not find owner for node`);
         }
         if (!state.deconflicted.has(owner)) {
-          state.deconflicted.set(owner, new Map());
+          state.deconflicted.set(owner, /* @__PURE__ */ new Map());
         }
         const deconflict_map = state.deconflicted.get(owner);
         if (!deconflict_map.has(node2.name)) {
@@ -12756,24 +12756,24 @@ ${str}`);
     }
     return NUL;
   }
-  var disallowed_contents = new Map([
-    ["li", new Set(["li"])],
-    ["dt", new Set(["dt", "dd"])],
-    ["dd", new Set(["dt", "dd"])],
+  var disallowed_contents = /* @__PURE__ */ new Map([
+    ["li", /* @__PURE__ */ new Set(["li"])],
+    ["dt", /* @__PURE__ */ new Set(["dt", "dd"])],
+    ["dd", /* @__PURE__ */ new Set(["dt", "dd"])],
     [
       "p",
       new Set("address article aside blockquote div dl fieldset footer form h1 h2 h3 h4 h5 h6 header hgroup hr main menu nav ol p pre section table ul".split(" "))
     ],
-    ["rt", new Set(["rt", "rp"])],
-    ["rp", new Set(["rt", "rp"])],
-    ["optgroup", new Set(["optgroup"])],
-    ["option", new Set(["option", "optgroup"])],
-    ["thead", new Set(["tbody", "tfoot"])],
-    ["tbody", new Set(["tbody", "tfoot"])],
-    ["tfoot", new Set(["tbody"])],
-    ["tr", new Set(["tr", "tbody"])],
-    ["td", new Set(["td", "th", "tr"])],
-    ["th", new Set(["td", "th", "tr"])]
+    ["rt", /* @__PURE__ */ new Set(["rt", "rp"])],
+    ["rp", /* @__PURE__ */ new Set(["rt", "rp"])],
+    ["optgroup", /* @__PURE__ */ new Set(["optgroup"])],
+    ["option", /* @__PURE__ */ new Set(["option", "optgroup"])],
+    ["thead", /* @__PURE__ */ new Set(["tbody", "tfoot"])],
+    ["tbody", /* @__PURE__ */ new Set(["tbody", "tfoot"])],
+    ["tfoot", /* @__PURE__ */ new Set(["tbody"])],
+    ["tr", /* @__PURE__ */ new Set(["tr", "tbody"])],
+    ["td", /* @__PURE__ */ new Set(["td", "th", "tr"])],
+    ["th", /* @__PURE__ */ new Set(["td", "th", "tr"])]
   ]);
   function closing_tag_omitted(current2, next) {
     if (disallowed_contents.has(current2)) {
@@ -12790,7 +12790,7 @@ ${str}`);
     const next = str.charCodeAt(i + 1);
     return (code << 10) + next - 56613888;
   }
-  var globals = new Set([
+  var globals = /* @__PURE__ */ new Set([
     "alert",
     "Array",
     "BigInt",
@@ -12851,7 +12851,7 @@ ${str}`);
     "URL",
     "window"
   ]);
-  var reserved = new Set([
+  var reserved = /* @__PURE__ */ new Set([
     "arguments",
     "await",
     "break",
@@ -13146,14 +13146,14 @@ ${str}`);
     return [];
   }
   var valid_tag_name = /^\!?[a-zA-Z]{1,}:?[a-zA-Z0-9\-]*/;
-  var meta_tags = new Map([
+  var meta_tags = /* @__PURE__ */ new Map([
     ["svelte:head", "Head"],
     ["svelte:options", "Options"],
     ["svelte:window", "Window"],
     ["svelte:body", "Body"]
   ]);
   var valid_meta_tags = Array.from(meta_tags.keys()).concat("svelte:self", "svelte:component", "svelte:fragment");
-  var specials = new Map([
+  var specials = /* @__PURE__ */ new Map([
     [
       "script",
       {
@@ -13255,7 +13255,7 @@ ${str}`);
         depth: parser2.stack.length
       };
     }
-    const unique_names = new Set();
+    const unique_names = /* @__PURE__ */ new Set();
     let attribute;
     while (attribute = read_attribute(parser2, unique_names)) {
       element.attributes.push(attribute);
@@ -14220,10 +14220,10 @@ ${this.frame}`;
   }
   var Block$1 = class {
     constructor(options) {
-      this.dependencies = new Set();
-      this.binding_group_initialised = new Set();
+      this.dependencies = /* @__PURE__ */ new Set();
+      this.binding_group_initialised = /* @__PURE__ */ new Set();
       this.event_listeners = [];
-      this.variables = new Map();
+      this.variables = /* @__PURE__ */ new Map();
       this.has_update_method = false;
       this.parent = options.parent;
       this.renderer = options.renderer;
@@ -14254,13 +14254,13 @@ ${this.frame}`;
       this.has_outro_method = false;
       this.outros = 0;
       this.get_unique_name = this.renderer.component.get_unique_name_maker();
-      this.aliases = new Map();
+      this.aliases = /* @__PURE__ */ new Map();
       if (this.key)
         this.aliases.set("key", this.get_unique_name("key"));
     }
     assign_variable_names() {
-      const seen = new Set();
-      const dupes = new Set();
+      const seen = /* @__PURE__ */ new Set();
+      const dupes = /* @__PURE__ */ new Set();
       let i = this.wrappers.length;
       while (i--) {
         const wrapper = this.wrappers[i];
@@ -14271,7 +14271,7 @@ ${this.frame}`;
         }
         seen.add(wrapper.var.name);
       }
-      const counts = new Map();
+      const counts = /* @__PURE__ */ new Map();
       i = this.wrappers.length;
       while (i--) {
         const wrapper = this.wrappers[i];
@@ -14853,7 +14853,7 @@ ${this.frame}`;
   function add_event_handler(block, target, handler) {
     handler.render(block, target);
   }
-  var reserved_keywords = new Set(["$$props", "$$restProps", "$$slots"]);
+  var reserved_keywords = /* @__PURE__ */ new Set(["$$props", "$$restProps", "$$slots"]);
   function is_reserved_keyword(name) {
     return reserved_keywords.has(name);
   }
@@ -14937,7 +14937,7 @@ ${this.frame}`;
           name: "log",
           loc
         };
-        const dependencies = new Set();
+        const dependencies = /* @__PURE__ */ new Set();
         this.node.expressions.forEach((expression2) => {
           add_to_set(dependencies, expression2.dependencies);
         });
@@ -15423,7 +15423,7 @@ ${this.frame}`;
     }
   };
   var svg_attributes = "accent-height accumulate additive alignment-baseline allowReorder alphabetic amplitude arabic-form ascent attributeName attributeType autoReverse azimuth baseFrequency baseline-shift baseProfile bbox begin bias by calcMode cap-height class clip clipPathUnits clip-path clip-rule color color-interpolation color-interpolation-filters color-profile color-rendering contentScriptType contentStyleType cursor cx cy d decelerate descent diffuseConstant direction display divisor dominant-baseline dur dx dy edgeMode elevation enable-background end exponent externalResourcesRequired fill fill-opacity fill-rule filter filterRes filterUnits flood-color flood-opacity font-family font-size font-size-adjust font-stretch font-style font-variant font-weight format from fr fx fy g1 g2 glyph-name glyph-orientation-horizontal glyph-orientation-vertical glyphRef gradientTransform gradientUnits hanging height href horiz-adv-x horiz-origin-x id ideographic image-rendering in in2 intercept k k1 k2 k3 k4 kernelMatrix kernelUnitLength kerning keyPoints keySplines keyTimes lang lengthAdjust letter-spacing lighting-color limitingConeAngle local marker-end marker-mid marker-start markerHeight markerUnits markerWidth mask maskContentUnits maskUnits mathematical max media method min mode name numOctaves offset onabort onactivate onbegin onclick onend onerror onfocusin onfocusout onload onmousedown onmousemove onmouseout onmouseover onmouseup onrepeat onresize onscroll onunload opacity operator order orient orientation origin overflow overline-position overline-thickness panose-1 paint-order pathLength patternContentUnits patternTransform patternUnits pointer-events points pointsAtX pointsAtY pointsAtZ preserveAlpha preserveAspectRatio primitiveUnits r radius refX refY rendering-intent repeatCount repeatDur requiredExtensions requiredFeatures restart result rotate rx ry scale seed shape-rendering slope spacing specularConstant specularExponent speed spreadMethod startOffset stdDeviation stemh stemv stitchTiles stop-color stop-opacity strikethrough-position strikethrough-thickness string stroke stroke-dasharray stroke-dashoffset stroke-linecap stroke-linejoin stroke-miterlimit stroke-opacity stroke-width style surfaceScale systemLanguage tabindex tableValues target targetX targetY text-anchor text-decoration text-rendering textLength to transform type u1 u2 underline-position underline-thickness unicode unicode-bidi unicode-range units-per-em v-alphabetic v-hanging v-ideographic v-mathematical values version vert-adv-y vert-origin-x vert-origin-y viewBox viewTarget visibility width widths word-spacing writing-mode x x-height x1 x2 xChannelSelector xlink:actuate xlink:arcrole xlink:href xlink:role xlink:show xlink:title xlink:type xml:base xml:lang xml:space y y1 y2 yChannelSelector z zoomAndPan".split(" ");
-  var svg_attribute_lookup = new Map();
+  var svg_attribute_lookup = /* @__PURE__ */ new Map();
   svg_attributes.forEach((name) => {
     svg_attribute_lookup.set(name.toLowerCase(), name);
   });
@@ -15460,7 +15460,7 @@ ${this.frame}`;
     if (parent.node.name === "select") {
       parent.select_binding_dependencies = dependencies;
       dependencies.forEach((prop) => {
-        parent.renderer.component.indirect_dependencies.set(prop, new Set());
+        parent.renderer.component.indirect_dependencies.set(prop, /* @__PURE__ */ new Set());
       });
     }
   }
@@ -15717,7 +15717,7 @@ ${this.frame}`;
     if (!metadata.property_name)
       metadata.property_name = name;
   });
-  var boolean_attribute = new Set([
+  var boolean_attribute = /* @__PURE__ */ new Set([
     "allowfullscreen",
     "allowpaymentrequest",
     "async",
@@ -15759,7 +15759,7 @@ ${this.frame}`;
       style_props.forEach((prop) => {
         let value2;
         if (is_dynamic(prop.value)) {
-          const prop_dependencies = new Set();
+          const prop_dependencies = /* @__PURE__ */ new Set();
           value2 = prop.value.map((chunk) => {
             if (chunk.type === "Text") {
               return string_literal(chunk.data);
@@ -16102,7 +16102,7 @@ ${this.frame}`;
     const { parts } = flatten_reference(value2.raw_expression);
     let keypath = parts.join(".");
     const contexts = [];
-    const contextual_dependencies = new Set();
+    const contextual_dependencies = /* @__PURE__ */ new Set();
     const { template_scope } = value2.expression;
     const add_contextual_dependency = (dep) => {
       contextual_dependencies.add(dep);
@@ -16257,7 +16257,7 @@ ${this.frame}`;
 				});
 			}
 		`);
-      const alias_map = new Map();
+      const alias_map = /* @__PURE__ */ new Map();
       const args = [];
       for (let id2 of params) {
         const value2 = block.renderer.reference(id2.name);
@@ -16460,7 +16460,7 @@ ${this.frame}`;
     }
     if (main_execution_context)
       return;
-    const deps = new Set([name]);
+    const deps = /* @__PURE__ */ new Set([name]);
     deps.forEach((name2) => {
       const reactive_declarations = renderer.component.reactive_declarations.filter((x2) => x2.assignees.has(name2));
       reactive_declarations.forEach((declaration) => {
@@ -16739,9 +16739,9 @@ ${this.frame}`;
   var Expression = class {
     constructor(component, owner, template_scope, info, lazy) {
       this.type = "Expression";
-      this.references = new Set();
-      this.dependencies = new Set();
-      this.contextual_dependencies = new Set();
+      this.references = /* @__PURE__ */ new Set();
+      this.dependencies = /* @__PURE__ */ new Set();
+      this.contextual_dependencies = /* @__PURE__ */ new Set();
       this.declarations = [];
       this.uses_context = false;
       Object.defineProperties(this, {
@@ -16894,8 +16894,8 @@ ${this.frame}`;
               ;
             if (node3.type === "FunctionExpression" || node3.type === "ArrowFunctionExpression") {
               function_expression = node3;
-              dependencies = new Set();
-              contextual_dependencies = new Set();
+              dependencies = /* @__PURE__ */ new Set();
+              contextual_dependencies = /* @__PURE__ */ new Set();
             }
           }
         },
@@ -16979,7 +16979,7 @@ ${this.frame}`;
             if (scope2.has(object_name))
               return;
             const names2 = new Set(extract_names(assignee));
-            const traced = new Set();
+            const traced = /* @__PURE__ */ new Set();
             names2.forEach((name) => {
               const dependencies2 = template_scope.dependencies_for_name.get(name);
               if (dependencies2) {
@@ -17392,8 +17392,8 @@ ${this.frame}`;
       const handler = renderer.component.get_unique_name(`${this.var.name}_${binding_group.events.join("_")}_handler`);
       renderer.add_to_context(handler.name);
       const needs_lock = binding_group.bindings.some((binding) => binding.needs_lock);
-      const dependencies = new Set();
-      const contextual_dependencies = new Set();
+      const dependencies = /* @__PURE__ */ new Set();
+      const contextual_dependencies = /* @__PURE__ */ new Set();
       binding_group.bindings.forEach((binding) => {
         add_to_set(dependencies, binding.get_dependencies());
         add_to_set(contextual_dependencies, binding.handler.contextual_dependencies);
@@ -17520,7 +17520,7 @@ ${this.frame}`;
 			]));
 		`);
       if (this.node.name === "select") {
-        const dependencies = new Set();
+        const dependencies = /* @__PURE__ */ new Set();
         for (const attr of this.attributes) {
           for (const dep of attr.node.dependencies) {
             dependencies.add(dep);
@@ -17694,7 +17694,7 @@ ${this.frame}`;
           dependencies = expression2.dependencies;
         } else {
           snippet = name;
-          dependencies = new Set([name]);
+          dependencies = /* @__PURE__ */ new Set([name]);
         }
         const updater = b`@toggle_class(${this.var}, "${name}", ${snippet});`;
         block.chunks.hydrate.push(updater);
@@ -18267,7 +18267,7 @@ ${this.frame}`;
       }))
     };
     const properties2 = [];
-    const value_map = new Map();
+    const value_map = /* @__PURE__ */ new Map();
     lets.forEach((l) => {
       let value2;
       if (l.names.length > 1) {
@@ -18288,8 +18288,8 @@ ${this.frame}`;
       type: "ObjectPattern",
       properties: properties2
     };
-    const names2 = new Set();
-    const names_lookup = new Map();
+    const names2 = /* @__PURE__ */ new Set();
+    const names_lookup = /* @__PURE__ */ new Map();
     lets.forEach((l) => {
       l.names.forEach((name) => {
         names2.add(name);
@@ -18523,7 +18523,7 @@ ${this.frame}`;
   var InlineComponentWrapper = class extends Wrapper {
     constructor(renderer, block, parent, node2, strip_whitespace, next_sibling) {
       super(renderer, block, parent, node2);
-      this.slots = new Map();
+      this.slots = /* @__PURE__ */ new Map();
       this.children = [];
       this.cannot_use_innerhtml();
       this.not_static_content();
@@ -18650,7 +18650,7 @@ ${this.frame}`;
           const levels = block.get_unique_name(`${this.var.name}_spread_levels`);
           const initial_props2 = [];
           const changes = [];
-          const all_dependencies = new Set();
+          const all_dependencies = /* @__PURE__ */ new Set();
           this.node.attributes.forEach((attr) => {
             add_to_set(all_dependencies, attr.dependencies);
           });
@@ -18970,7 +18970,7 @@ ${this.frame}`;
       super(renderer, block, parent, node2);
       this.fallback = null;
       this.var = { type: "Identifier", name: "slot" };
-      this.dependencies = new Set(["$$scope"]);
+      this.dependencies = /* @__PURE__ */ new Set(["$$scope"]);
       this.cannot_use_innerhtml();
       this.not_static_content();
       if (this.node.children.length) {
@@ -19002,7 +19002,7 @@ ${this.frame}`;
         get_slot_changes_fn = renderer.component.get_unique_name(`get_${sanitize(slot_name)}_slot_changes`);
         get_slot_context_fn = renderer.component.get_unique_name(`get_${sanitize(slot_name)}_slot_context`);
         const changes = x`{}`;
-        const spread_dynamic_dependencies = new Set();
+        const spread_dynamic_dependencies = /* @__PURE__ */ new Set();
         this.node.values.forEach((attribute) => {
           if (attribute.type === "Spread") {
             add_to_set(spread_dynamic_dependencies, Array.from(attribute.dependencies).filter((name) => this.is_dependency_dynamic(name)));
@@ -19127,7 +19127,7 @@ ${this.frame}`;
       const is_dynamic2 = !!this.node.children.find((node2) => node2.type !== "Text");
       if (is_dynamic2) {
         let value2;
-        const all_dependencies = new Set();
+        const all_dependencies = /* @__PURE__ */ new Set();
         if (this.node.children.length === 1) {
           const { expression: expression2 } = this.node.children[0];
           value2 = expression2.manipulate(block);
@@ -19183,7 +19183,7 @@ ${this.frame}`;
     scrollX: "pageXOffset",
     scrollY: "pageYOffset"
   };
-  var readonly = new Set([
+  var readonly = /* @__PURE__ */ new Set([
     "innerWidth",
     "innerHeight",
     "outerWidth",
@@ -19400,11 +19400,11 @@ ${this.frame}`;
     constructor(component, options) {
       this.context = [];
       this.initial_context = [];
-      this.context_lookup = new Map();
+      this.context_lookup = /* @__PURE__ */ new Map();
       this.blocks = [];
-      this.readonly = new Set();
+      this.readonly = /* @__PURE__ */ new Set();
       this.meta_bindings = [];
-      this.binding_groups = new Map();
+      this.binding_groups = /* @__PURE__ */ new Map();
       this.component = component;
       this.options = options;
       this.locate = component.locate;
@@ -19428,8 +19428,8 @@ ${this.frame}`;
         name: null,
         type: "component",
         key: null,
-        bindings: new Map(),
-        dependencies: new Set()
+        bindings: /* @__PURE__ */ new Map(),
+        dependencies: /* @__PURE__ */ new Set()
       });
       this.block.has_update_method = true;
       this.fragment = new FragmentWrapper(this, this.block, component.fragment.children, null, true, null);
@@ -20499,7 +20499,7 @@ Did you specify these with the most recent transformation maps first?`);
     }
     return get_attribute_value(attribute);
   }
-  var boolean_attributes = new Set([
+  var boolean_attributes = /* @__PURE__ */ new Set([
     "allowfullscreen",
     "allowpaymentrequest",
     "async",
@@ -20755,7 +20755,7 @@ Did you specify these with the most recent transformation maps first?`);
     const slot_fns = [];
     const children = node2.children;
     if (children.length) {
-      const slot_scopes = new Map();
+      const slot_scopes = /* @__PURE__ */ new Map();
       renderer.render(children, Object.assign({}, options, {
         slot_scopes
       }));
@@ -21052,7 +21052,7 @@ Did you specify these with the most recent transformation maps first?`);
         this.scope.add(context.key.name, this.expression.dependencies, this);
       });
       if (this.index) {
-        const dependencies = info.key ? this.expression.dependencies : new Set([]);
+        const dependencies = info.key ? this.expression.dependencies : /* @__PURE__ */ new Set([]);
         this.scope.add(this.index, dependencies, this);
       }
       this.key = info.key ? new Expression(component, this, this.scope, info.key) : null;
@@ -21085,7 +21085,7 @@ Did you specify these with the most recent transformation maps first?`);
         this.name = info.name;
         this.is_true = info.value === true;
         this.is_static = true;
-        this.dependencies = new Set();
+        this.dependencies = /* @__PURE__ */ new Set();
         this.chunks = this.is_true ? [] : info.value.map((node2) => {
           if (node2.type === "Text")
             return node2;
@@ -21099,7 +21099,7 @@ Did you specify these with the most recent transformation maps first?`);
     get_dependencies() {
       if (this.is_spread)
         return this.expression.dynamic_dependencies();
-      const dependencies = new Set();
+      const dependencies = /* @__PURE__ */ new Set();
       this.chunks.forEach((chunk) => {
         if (chunk.type === "Expression") {
           add_to_set(dependencies, chunk.dynamic_dependencies());
@@ -21130,7 +21130,7 @@ Did you specify these with the most recent transformation maps first?`);
       return this.is_static ? false : this.chunks.length === 1 ? this.chunks[0].node.type !== "Identifier" || this.scope.names.has(this.chunks[0].node.name) : true;
     }
   };
-  var read_only_media_attributes = new Set([
+  var read_only_media_attributes = /* @__PURE__ */ new Set([
     "duration",
     "buffered",
     "seekable",
@@ -21230,7 +21230,7 @@ Did you specify these with the most recent transformation maps first?`);
       this.expression = info.expression ? new Expression(component, this, scope2, info.expression) : null;
     }
   };
-  var elements_without_text = new Set([
+  var elements_without_text = /* @__PURE__ */ new Set([
     "audio",
     "datalist",
     "dl",
@@ -21261,7 +21261,7 @@ Did you specify these with the most recent transformation maps first?`);
       return parent_element.namespace || elements_without_text.has(parent_element.name);
     }
   };
-  var applicable = new Set(["Identifier", "ObjectExpression", "ArrayExpression", "Property"]);
+  var applicable = /* @__PURE__ */ new Set(["Identifier", "ObjectExpression", "ArrayExpression", "Property"]);
   var Let = class extends Node$1 {
     constructor(component, parent, scope2, info) {
       super(component, parent, scope2, info);
@@ -21304,11 +21304,11 @@ Did you specify these with the most recent transformation maps first?`);
     img: ["alt"],
     object: ["title", "aria-label", "aria-labelledby"]
   };
-  var a11y_distracting_elements = new Set([
+  var a11y_distracting_elements = /* @__PURE__ */ new Set([
     "blink",
     "marquee"
   ]);
-  var a11y_required_content = new Set([
+  var a11y_required_content = /* @__PURE__ */ new Set([
     "a",
     "h1",
     "h2",
@@ -21317,7 +21317,7 @@ Did you specify these with the most recent transformation maps first?`);
     "h5",
     "h6"
   ]);
-  var a11y_labelable = new Set([
+  var a11y_labelable = /* @__PURE__ */ new Set([
     "button",
     "input",
     "keygen",
@@ -21327,8 +21327,8 @@ Did you specify these with the most recent transformation maps first?`);
     "select",
     "textarea"
   ]);
-  var invisible_elements = new Set(["meta", "html", "script", "style"]);
-  var valid_modifiers = new Set([
+  var invisible_elements = /* @__PURE__ */ new Set(["meta", "html", "script", "style"]);
+  var valid_modifiers = /* @__PURE__ */ new Set([
     "preventDefault",
     "stopPropagation",
     "capture",
@@ -21338,14 +21338,14 @@ Did you specify these with the most recent transformation maps first?`);
     "self",
     "trusted"
   ]);
-  var passive_events = new Set([
+  var passive_events = /* @__PURE__ */ new Set([
     "wheel",
     "touchstart",
     "touchmove",
     "touchend",
     "touchcancel"
   ]);
-  var react_attributes = new Map([
+  var react_attributes = /* @__PURE__ */ new Map([
     ["className", "class"],
     ["htmlFor", "for"]
   ]);
@@ -21434,7 +21434,7 @@ Did you specify these with the most recent transformation maps first?`);
           case "Let": {
             const l = new Let(component, this, scope2, node2);
             this.lets.push(l);
-            const dependencies = new Set([l.name.name]);
+            const dependencies = /* @__PURE__ */ new Set([l.name.name]);
             l.names.forEach((name) => {
               scope2.add(name, dependencies, this);
             });
@@ -21554,8 +21554,8 @@ Did you specify these with the most recent transformation maps first?`);
     }
     validate_special_cases() {
       const { component, attributes, handlers: handlers2 } = this;
-      const attribute_map = new Map();
-      const handlers_map = new Map();
+      const attribute_map = /* @__PURE__ */ new Map();
+      const handlers_map = /* @__PURE__ */ new Map();
       attributes.forEach((attribute) => attribute_map.set(attribute.name, attribute));
       handlers2.forEach((handler) => handlers_map.set(handler.name, handler));
       if (this.name === "a") {
@@ -21939,7 +21939,7 @@ Did you specify these with the most recent transformation maps first?`);
       if (this.lets.length > 0) {
         this.scope = scope2.child();
         this.lets.forEach((l) => {
-          const dependencies = new Set([l.name.name]);
+          const dependencies = /* @__PURE__ */ new Set([l.name.name]);
           l.names.forEach((name) => {
             this.scope.add(name, dependencies, this);
           });
@@ -22033,7 +22033,7 @@ Did you specify these with the most recent transformation maps first?`);
   var Slot$1 = class extends Element$1 {
     constructor(component, parent, scope2, info) {
       super(component, parent, scope2, info);
-      this.values = new Map();
+      this.values = /* @__PURE__ */ new Map();
       info.attributes.forEach((attr) => {
         if (attr.type !== "Attribute" && attr.type !== "Spread") {
           return component.error(attr, compiler_errors.invalid_slot_directive);
@@ -22202,7 +22202,7 @@ Did you specify these with the most recent transformation maps first?`);
           case "Let": {
             const l = new Let(component, this, scope2, node2);
             this.lets.push(l);
-            const dependencies = new Set([l.name.name]);
+            const dependencies = /* @__PURE__ */ new Set([l.name.name]);
             l.names.forEach((name) => {
               scope2.add(name, dependencies, this);
             });
@@ -22411,7 +22411,7 @@ Did you specify these with the most recent transformation maps first?`);
           if (node2.type === "AssignmentExpression" || node2.type === "UpdateExpression") {
             const assignee = node2.type === "AssignmentExpression" ? node2.left : node2.argument;
             const names2 = new Set(extract_names(assignee));
-            const to_invalidate = new Set();
+            const to_invalidate = /* @__PURE__ */ new Set();
             for (const name2 of names2) {
               const variable = component.var_lookup.get(name2);
               if (variable && !variable.hoistable && !variable.global && !variable.module && (variable.subscribable || variable.name[0] === "$")) {
@@ -23553,8 +23553,8 @@ Did you specify these with the most recent transformation maps first?`);
     NodeExist2[NodeExist2["Probably"] = 1] = "Probably";
     NodeExist2[NodeExist2["Definitely"] = 2] = "Definitely";
   })(NodeExist || (NodeExist = {}));
-  var whitelist_attribute_selector = new Map([
-    ["details", new Set(["open"])]
+  var whitelist_attribute_selector = /* @__PURE__ */ new Map([
+    ["details", /* @__PURE__ */ new Set(["open"])]
   ]);
   var Selector$1 = class {
     constructor(node2, stylesheet) {
@@ -23822,10 +23822,10 @@ Did you specify these with the most recent transformation maps first?`);
       if (value2.type === "Text")
         return test_attribute(operator, expected_value, case_insensitive, value2.data);
     }
-    const possible_values = new Set();
+    const possible_values = /* @__PURE__ */ new Set();
     let prev_values = [];
     for (const chunk of attr.chunks) {
-      const current_possible_values = new Set();
+      const current_possible_values = /* @__PURE__ */ new Set();
       if (chunk.type === "Text") {
         current_possible_values.add(chunk.data);
       } else {
@@ -23906,7 +23906,7 @@ Did you specify these with the most recent transformation maps first?`);
     return parent;
   }
   function get_possible_element_siblings(node2, adjacent_only) {
-    const result = new Map();
+    const result = /* @__PURE__ */ new Map();
     let prev = node2;
     while (prev = prev.prev) {
       if (prev.type === "Element") {
@@ -23948,10 +23948,10 @@ Did you specify these with the most recent transformation maps first?`);
     return result;
   }
   function get_possible_last_child(block, adjacent_only) {
-    const result = new Map();
+    const result = /* @__PURE__ */ new Map();
     if (block.type === "EachBlock") {
       const each_result = loop_child(block.children, adjacent_only);
-      const else_result = block.else ? loop_child(block.else.children, adjacent_only) : new Map();
+      const else_result = block.else ? loop_child(block.else.children, adjacent_only) : /* @__PURE__ */ new Map();
       const not_exhaustive = !has_definite_elements(else_result);
       if (not_exhaustive) {
         mark_as_probably(each_result);
@@ -23961,7 +23961,7 @@ Did you specify these with the most recent transformation maps first?`);
       add_to_map(else_result, result);
     } else if (block.type === "IfBlock") {
       const if_result = loop_child(block.children, adjacent_only);
-      const else_result = block.else ? loop_child(block.else.children, adjacent_only) : new Map();
+      const else_result = block.else ? loop_child(block.else.children, adjacent_only) : /* @__PURE__ */ new Map();
       const not_exhaustive = !has_definite_elements(if_result) || !has_definite_elements(else_result);
       if (not_exhaustive) {
         mark_as_probably(if_result);
@@ -23970,9 +23970,9 @@ Did you specify these with the most recent transformation maps first?`);
       add_to_map(if_result, result);
       add_to_map(else_result, result);
     } else if (block.type === "AwaitBlock") {
-      const pending_result = block.pending ? loop_child(block.pending.children, adjacent_only) : new Map();
-      const then_result = block.then ? loop_child(block.then.children, adjacent_only) : new Map();
-      const catch_result = block.catch ? loop_child(block.catch.children, adjacent_only) : new Map();
+      const pending_result = block.pending ? loop_child(block.pending.children, adjacent_only) : /* @__PURE__ */ new Map();
+      const then_result = block.then ? loop_child(block.then.children, adjacent_only) : /* @__PURE__ */ new Map();
+      const catch_result = block.catch ? loop_child(block.catch.children, adjacent_only) : /* @__PURE__ */ new Map();
       const not_exhaustive = !has_definite_elements(pending_result) || !has_definite_elements(then_result) || !has_definite_elements(catch_result);
       if (not_exhaustive) {
         mark_as_probably(pending_result);
@@ -24011,7 +24011,7 @@ Did you specify these with the most recent transformation maps first?`);
     }
   }
   function loop_child(children, adjacent_only) {
-    const result = new Map();
+    const result = /* @__PURE__ */ new Map();
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
       if (child.type === "Element") {
@@ -24281,8 +24281,8 @@ Did you specify these with the most recent transformation maps first?`);
   var Stylesheet = class {
     constructor({ source, ast, component_name, filename, dev, get_css_hash = get_default_css_hash }) {
       this.children = [];
-      this.keyframes = new Map();
-      this.nodes_with_css_class = new Set();
+      this.keyframes = /* @__PURE__ */ new Map();
+      this.nodes_with_css_class = /* @__PURE__ */ new Set();
       this.source = source;
       this.ast = ast;
       this.filename = filename;
@@ -24409,7 +24409,7 @@ Did you specify these with the most recent transformation maps first?`);
   var test = typeof process !== "undefined" && process.env.TEST;
   var TemplateScope = class {
     constructor(parent) {
-      this.owners = new Map();
+      this.owners = /* @__PURE__ */ new Map();
       this.parent = parent;
       this.names = new Set(parent ? parent.names : []);
       this.dependencies_for_name = new Map(parent ? parent.dependencies_for_name : []);
@@ -24447,7 +24447,7 @@ Did you specify these with the most recent transformation maps first?`);
       this.children = map_children(component, this, scope2, info.children);
     }
   };
-  var internal_exports = new Set(["HtmlTag", "HtmlTagHydration", "SvelteComponent", "SvelteComponentDev", "SvelteComponentTyped", "SvelteElement", "action_destroyer", "add_attribute", "add_classes", "add_flush_callback", "add_location", "add_render_callback", "add_resize_listener", "add_transform", "afterUpdate", "append", "append_dev", "append_empty_stylesheet", "append_hydration", "append_hydration_dev", "append_styles", "assign", "attr", "attr_dev", "attribute_to_object", "beforeUpdate", "bind", "binding_callbacks", "blank_object", "bubble", "check_outros", "children", "claim_component", "claim_element", "claim_html_tag", "claim_space", "claim_svg_element", "claim_text", "clear_loops", "component_subscribe", "compute_rest_props", "compute_slots", "createEventDispatcher", "create_animation", "create_bidirectional_transition", "create_component", "create_in_transition", "create_out_transition", "create_slot", "create_ssr_component", "current_component", "custom_event", "dataset_dev", "debug", "destroy_block", "destroy_component", "destroy_each", "detach", "detach_after_dev", "detach_before_dev", "detach_between_dev", "detach_dev", "dirty_components", "dispatch_dev", "each", "element", "element_is", "empty", "end_hydrating", "escape", "escape_attribute_value", "escape_object", "escaped", "exclude_internal_props", "fix_and_destroy_block", "fix_and_outro_and_destroy_block", "fix_position", "flush", "getAllContexts", "getContext", "get_all_dirty_from_scope", "get_binding_group_value", "get_current_component", "get_custom_elements_slots", "get_root_for_style", "get_slot_changes", "get_spread_object", "get_spread_update", "get_store_value", "globals", "group_outros", "handle_promise", "hasContext", "has_prop", "identity", "init", "insert", "insert_dev", "insert_hydration", "insert_hydration_dev", "intros", "invalid_attribute_name_character", "is_client", "is_crossorigin", "is_empty", "is_function", "is_promise", "listen", "listen_dev", "loop", "loop_guard", "missing_component", "mount_component", "noop", "not_equal", "now", "null_to_empty", "object_without_properties", "onDestroy", "onMount", "once", "outro_and_destroy_block", "prevent_default", "prop_dev", "query_selector_all", "raf", "run", "run_all", "safe_not_equal", "schedule_update", "select_multiple_value", "select_option", "select_options", "select_value", "self", "setContext", "set_attributes", "set_current_component", "set_custom_element_data", "set_data", "set_data_dev", "set_input_type", "set_input_value", "set_now", "set_raf", "set_store_value", "set_style", "set_svg_attributes", "space", "spread", "src_url_equal", "start_hydrating", "stop_propagation", "subscribe", "svg_element", "text", "tick", "time_ranges_to_array", "to_number", "toggle_class", "transition_in", "transition_out", "trusted", "update_await_block_branch", "update_keyed_each", "update_slot", "update_slot_base", "validate_component", "validate_each_argument", "validate_each_keys", "validate_slots", "validate_store", "xlink_attr"]);
+  var internal_exports = /* @__PURE__ */ new Set(["HtmlTag", "HtmlTagHydration", "SvelteComponent", "SvelteComponentDev", "SvelteComponentTyped", "SvelteElement", "action_destroyer", "add_attribute", "add_classes", "add_flush_callback", "add_location", "add_render_callback", "add_resize_listener", "add_transform", "afterUpdate", "append", "append_dev", "append_empty_stylesheet", "append_hydration", "append_hydration_dev", "append_styles", "assign", "attr", "attr_dev", "attribute_to_object", "beforeUpdate", "bind", "binding_callbacks", "blank_object", "bubble", "check_outros", "children", "claim_component", "claim_element", "claim_html_tag", "claim_space", "claim_svg_element", "claim_text", "clear_loops", "component_subscribe", "compute_rest_props", "compute_slots", "createEventDispatcher", "create_animation", "create_bidirectional_transition", "create_component", "create_in_transition", "create_out_transition", "create_slot", "create_ssr_component", "current_component", "custom_event", "dataset_dev", "debug", "destroy_block", "destroy_component", "destroy_each", "detach", "detach_after_dev", "detach_before_dev", "detach_between_dev", "detach_dev", "dirty_components", "dispatch_dev", "each", "element", "element_is", "empty", "end_hydrating", "escape", "escape_attribute_value", "escape_object", "escaped", "exclude_internal_props", "fix_and_destroy_block", "fix_and_outro_and_destroy_block", "fix_position", "flush", "getAllContexts", "getContext", "get_all_dirty_from_scope", "get_binding_group_value", "get_current_component", "get_custom_elements_slots", "get_root_for_style", "get_slot_changes", "get_spread_object", "get_spread_update", "get_store_value", "globals", "group_outros", "handle_promise", "hasContext", "has_prop", "identity", "init", "insert", "insert_dev", "insert_hydration", "insert_hydration_dev", "intros", "invalid_attribute_name_character", "is_client", "is_crossorigin", "is_empty", "is_function", "is_promise", "listen", "listen_dev", "loop", "loop_guard", "missing_component", "mount_component", "noop", "not_equal", "now", "null_to_empty", "object_without_properties", "onDestroy", "onMount", "once", "outro_and_destroy_block", "prevent_default", "prop_dev", "query_selector_all", "raf", "run", "run_all", "safe_not_equal", "schedule_update", "select_multiple_value", "select_option", "select_options", "select_value", "self", "setContext", "set_attributes", "set_current_component", "set_custom_element_data", "set_data", "set_data_dev", "set_input_type", "set_input_value", "set_now", "set_raf", "set_store_value", "set_style", "set_svg_attributes", "space", "spread", "src_url_equal", "start_hydrating", "stop_propagation", "subscribe", "svg_element", "text", "tick", "time_ranges_to_array", "to_number", "toggle_class", "transition_in", "transition_out", "trusted", "update_await_block_branch", "update_keyed_each", "update_slot", "update_slot_base", "validate_component", "validate_each_argument", "validate_each_keys", "validate_slots", "validate_store", "xlink_attr"]);
   function is_used_as_reference(node2, parent) {
     if (!is_reference(node2, parent)) {
       return false;
@@ -24477,9 +24477,9 @@ Did you specify these with the most recent transformation maps first?`);
         g.set(v, []);
       g.get(u).push(v);
       return g;
-    }, new Map());
-    const visited = new Set();
-    const on_stack = new Set();
+    }, /* @__PURE__ */ new Map());
+    const visited = /* @__PURE__ */ new Set();
+    const on_stack = /* @__PURE__ */ new Set();
     const cycles = [];
     function visit(v) {
       visited.add(v);
@@ -24504,27 +24504,27 @@ Did you specify these with the most recent transformation maps first?`);
     constructor(ast, source, name, compile_options, stats, warnings) {
       this.ignore_stack = [];
       this.vars = [];
-      this.var_lookup = new Map();
+      this.var_lookup = /* @__PURE__ */ new Map();
       this.imports = [];
       this.exports_from = [];
       this.instance_exports_from = [];
-      this.hoistable_nodes = new Set();
-      this.node_for_declaration = new Map();
+      this.hoistable_nodes = /* @__PURE__ */ new Set();
+      this.node_for_declaration = /* @__PURE__ */ new Map();
       this.partly_hoisted = [];
       this.fully_hoisted = [];
       this.reactive_declarations = [];
-      this.reactive_declaration_nodes = new Set();
+      this.reactive_declaration_nodes = /* @__PURE__ */ new Set();
       this.has_reactive_assignments = false;
-      this.injected_reactive_declaration_vars = new Set();
-      this.helpers = new Map();
-      this.globals = new Map();
-      this.indirect_dependencies = new Map();
+      this.injected_reactive_declaration_vars = /* @__PURE__ */ new Set();
+      this.helpers = /* @__PURE__ */ new Map();
+      this.globals = /* @__PURE__ */ new Map();
+      this.indirect_dependencies = /* @__PURE__ */ new Map();
       this.elements = [];
-      this.aliases = new Map();
-      this.used_names = new Set();
-      this.globally_used_names = new Set();
-      this.slots = new Map();
-      this.slot_outlets = new Set();
+      this.aliases = /* @__PURE__ */ new Map();
+      this.used_names = /* @__PURE__ */ new Set();
+      this.globally_used_names = /* @__PURE__ */ new Set();
+      this.slots = /* @__PURE__ */ new Map();
+      this.slot_outlets = /* @__PURE__ */ new Set();
       this.name = { type: "Identifier", name };
       this.stats = stats;
       this.warnings = warnings;
@@ -24715,7 +24715,7 @@ Did you specify these with the most recent transformation maps first?`);
       return { type: "Identifier", name: alias };
     }
     get_unique_name_maker() {
-      const local_used_names = new Set();
+      const local_used_names = /* @__PURE__ */ new Set();
       function add(name) {
         local_used_names.add(name);
       }
@@ -25278,7 +25278,7 @@ ${frame}`
     }
     hoist_instance_declarations() {
       const { hoistable_nodes, var_lookup, injected_reactive_declaration_vars, imports } = this;
-      const top_level_function_declarations = new Map();
+      const top_level_function_declarations = /* @__PURE__ */ new Map();
       const { body } = this.ast.instance.content;
       for (let i = 0; i < body.length; i += 1) {
         const node2 = body[i];
@@ -25320,8 +25320,8 @@ ${frame}`
           top_level_function_declarations.set(node2.id.name, node2);
         }
       }
-      const checked = new Set();
-      const walking = new Set();
+      const checked = /* @__PURE__ */ new Set();
+      const walking = /* @__PURE__ */ new Set();
       const is_hoistable = (fn_declaration) => {
         if (fn_declaration.type === "ExportNamedDeclaration") {
           fn_declaration = fn_declaration.declaration;
@@ -25407,10 +25407,10 @@ ${frame}`
           this.push_ignores(ignores);
         if (node2.type === "LabeledStatement" && node2.label.name === "$") {
           this.reactive_declaration_nodes.add(node2);
-          const assignees = new Set();
-          const assignee_nodes = new Set();
-          const dependencies = new Set();
-          const module_dependencies = new Set();
+          const assignees = /* @__PURE__ */ new Set();
+          const assignee_nodes = /* @__PURE__ */ new Set();
+          const dependencies = /* @__PURE__ */ new Set();
+          const module_dependencies = /* @__PURE__ */ new Set();
           let scope2 = this.instance_scope;
           const map = this.instance_scope_map;
           walk(node2.body, {
@@ -25473,7 +25473,7 @@ ${frame}`
         if (ignores.length)
           this.pop_ignores();
       });
-      const lookup = new Map();
+      const lookup = /* @__PURE__ */ new Map();
       unsorted_reactive_declarations.forEach((declaration) => {
         declaration.assignees.forEach((name) => {
           if (!lookup.has(name)) {
