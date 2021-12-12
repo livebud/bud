@@ -9,7 +9,6 @@ import (
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/gotemplate"
-	"gitlab.com/mnm/bud/internal/modcache"
 )
 
 //go:embed gomod.gotext
@@ -33,14 +32,14 @@ type Replace struct {
 }
 
 type Generator struct {
-	Modfile  *mod.File
+	Module   *mod.Module
 	Go       *Go
 	Requires []*Require
 	Replaces []*Replace
 }
 
 func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
-	code, err := os.ReadFile(g.Modfile.Directory(file.Path()))
+	code, err := os.ReadFile(g.Module.Directory(file.Path()))
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return err
@@ -51,23 +50,24 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 }
 
 func (g *Generator) updateFile(f gen.F, file *gen.File, code []byte) error {
-	module := mod.New(modcache.Default())
-	modfile, err := module.Parse(file.Path(), code)
+	modFinder := mod.New()
+	module, err := modFinder.Parse(file.Path(), code)
 	if err != nil {
 		return err
 	}
+	modFile := module.File()
 	// Add any additional requires and replaces if they don't exist already
 	for _, require := range g.Requires {
-		if err := modfile.AddRequire(require.Path, require.Version); err != nil {
+		if err := modFile.AddRequire(require.Path, require.Version); err != nil {
 			return err
 		}
 	}
 	for _, replace := range g.Replaces {
-		if err := modfile.AddReplace(replace.Old, "", replace.New, ""); err != nil {
+		if err := modFile.AddReplace(replace.Old, "", replace.New, ""); err != nil {
 			return err
 		}
 	}
-	file.Write(modfile.Format())
+	file.Write(modFile.Format())
 	return nil
 }
 

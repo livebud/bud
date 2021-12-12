@@ -15,7 +15,7 @@ var template string
 var generator = gotemplate.MustParse("controller.gotext", template)
 
 type Generator struct {
-	Modfile *mod.File
+	Module *mod.Module
 }
 
 // var controllers = glob.MustCompile("controller/{*,**}.go")
@@ -24,9 +24,9 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 
 	imports := imports.New()
 	imports.AddStd("net/http")
-	imports.AddNamed("view", g.Modfile.ModulePath("bud/view"))
+	imports.AddNamed("view", g.Module.Import("bud/view"))
 	// TODO: replace with dynamic list
-	imports.AddNamed("controller", g.Modfile.ModulePath("controller"))
+	imports.AddNamed("controller", g.Module.Import("controller"))
 	code, err := generator.Generate(State{
 		Imports: imports.List(),
 	})

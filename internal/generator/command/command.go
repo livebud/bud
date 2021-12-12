@@ -19,7 +19,7 @@ var template string
 var generator = gotemplate.MustParse("command", template)
 
 type Generator struct {
-	Modfile  *mod.File
+	Module   *mod.Module
 	Injector *di.Injector
 }
 
@@ -31,7 +31,7 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) (err error) {
 	imports := imports.New()
 	imports.AddStd("context", "errors", "os")
 	// imports.AddStd("fmt")
-	imports.AddNamed("web", g.Modfile.ModulePath("bud/web"))
+	imports.AddNamed("web", g.Module.Import("bud/web"))
 	imports.AddNamed("commander", "gitlab.com/mnm/bud/commander")
 	imports.AddNamed("console", "gitlab.com/mnm/bud/log/console")
 	imports.AddNamed("plugin", "gitlab.com/mnm/bud/plugin")
@@ -52,7 +52,7 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) (err error) {
 	imports.AddNamed("router", "gitlab.com/mnm/bud/router")
 	imports.AddNamed("svelte", "gitlab.com/mnm/bud/svelte")
 
-	name := filepath.Base(g.Modfile.Directory())
+	name := filepath.Base(g.Module.Directory())
 
 	// 1. Load all the commands
 	state := &State{

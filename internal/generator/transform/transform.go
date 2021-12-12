@@ -15,7 +15,7 @@ var template string
 var generator = gotemplate.MustParse("transform.gotext", template)
 
 type Generator struct {
-	Modfile *mod.File
+	Module *mod.Module
 }
 
 type State struct {

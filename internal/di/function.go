@@ -98,15 +98,15 @@ func tryFunction(fn *parser.Function, importPath, dataType string) (*function, e
 		if err != nil {
 			return nil, fmt.Errorf("di: unable to find definition for %q.%s > %w", importPath, parser.Unqualify(pt).String(), err)
 		}
-		modFile, err := def.Package().Modfile()
+		module, err := def.Package().Module()
 		if err != nil {
 			return nil, err
 		}
 		function.Params = append(function.Params, &Type{
-			Import:  importPath,
-			Type:    parser.Unqualify(pt).String(),
-			kind:    def.Kind(),
-			modFile: modFile,
+			Import: importPath,
+			Type:   parser.Unqualify(pt).String(),
+			kind:   def.Kind(),
+			module: module,
 		})
 	}
 	for _, result := range results {

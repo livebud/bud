@@ -7,17 +7,17 @@ import (
 
 type Map = map[Dependency]Dependency
 
-func New(modFile *mod.File, parser *parser.Parser, typeMap Map) *Injector {
+func New(module *mod.Module, parser *parser.Parser, typeMap Map) *Injector {
 	tm := map[string]Dependency{}
 	for from, to := range typeMap {
 		tm[from.ID()] = to
 	}
-	return &Injector{modFile, parser, tm}
+	return &Injector{module, parser, tm}
 }
 
 type Injector struct {
-	// Modfile of the module where project dependencies will be wired
-	modFile *mod.File
+	// Module where project dependencies will be wired
+	module *mod.Module
 	// Go parser
 	parser *parser.Parser
 	// Type aliasing

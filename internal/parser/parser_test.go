@@ -2,6 +2,7 @@ package parser_test
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -22,7 +23,7 @@ func TestStructLookup(t *testing.T) {
 	err = vfs.Write(dir, testfile)
 	is.NoErr(err)
 	modCache := modcache.New(filepath.Join(dir, "mod"))
-	p := parser.New(mod.New(modCache))
+	p := parser.New(mod.New(mod.WithCache(modCache)))
 	pkg, err := p.Parse(filepath.Join(dir, "app", "hello"))
 	is.NoErr(err)
 	is.Equal(pkg.Name(), "hello")
@@ -35,9 +36,9 @@ func TestStructLookup(t *testing.T) {
 	is.Equal(def.Name(), "Struct")
 	pkg = def.Package()
 	is.Equal(pkg.Name(), "two")
-	modFile, err := pkg.Modfile()
+	modFile, err := pkg.Module()
 	is.NoErr(err)
-	is.Equal(modFile.ModulePath(), "mod.test/two")
+	is.Equal(modFile.Import(), "mod.test/two")
 	stct = pkg.Struct("Struct")
 	is.True(stct != nil)
 	field = stct.Field("Dep")
@@ -49,9 +50,9 @@ func TestStructLookup(t *testing.T) {
 	is.Equal(pkg.Name(), "inner")
 	stct = pkg.Struct("Dep")
 	is.True(stct != nil)
-	modFile, err = pkg.Modfile()
+	modFile, err = pkg.Module()
 	is.NoErr(err)
-	is.Equal(modFile.ModulePath(), "mod.test/three")
+	is.Equal(modFile.Import(), "mod.test/three")
 }
 
 func TestInterfaceLookup(t *testing.T) {
@@ -62,7 +63,7 @@ func TestInterfaceLookup(t *testing.T) {
 	err = vfs.Write(dir, testfile)
 	is.NoErr(err)
 	modCache := modcache.New(filepath.Join(dir, "mod"))
-	p := parser.New(mod.New(modCache))
+	p := parser.New(mod.New(mod.WithCache(modCache)))
 	pkg, err := p.Parse(filepath.Join(dir, "app", "hello"))
 	is.NoErr(err)
 	is.Equal(pkg.Name(), "hello")
@@ -75,9 +76,9 @@ func TestInterfaceLookup(t *testing.T) {
 	is.Equal(def.Name(), "Interface")
 	pkg = def.Package()
 	is.Equal(pkg.Name(), "two")
-	modFile, err := pkg.Modfile()
+	module, err := pkg.Module()
 	is.NoErr(err)
-	is.Equal(modFile.ModulePath(), "mod.test/two")
+	is.Equal(module.Import(), "mod.test/two")
 	iface := pkg.Interface("Interface")
 	is.True(iface != nil)
 	is.Equal(iface.Name(), "Interface")
@@ -95,10 +96,11 @@ func TestInterfaceLookup(t *testing.T) {
 	method = iface.Method("String")
 	is.True(method != nil)
 	is.Equal(method.Name(), "String")
-	modFile, err = pkg.Modfile()
+	module, err = pkg.Module()
 	is.NoErr(err)
-	is.Equal(modFile.ModulePath(), "mod.test/three")
+	is.Equal(module.Import(), "mod.test/three")
 }
+
 func TestAliasLookup(t *testing.T) {
 	is := is.New(t)
 	testfile, err := txtar.ParseFile("testdata/alias-lookup.txt")
@@ -107,7 +109,7 @@ func TestAliasLookup(t *testing.T) {
 	err = vfs.Write(dir, testfile)
 	is.NoErr(err)
 	modCache := modcache.New(filepath.Join(dir, "mod"))
-	p := parser.New(mod.New(modCache))
+	p := parser.New(mod.New(mod.WithCache(modCache)))
 	pkg, err := p.Parse(filepath.Join(dir, "app"))
 	is.NoErr(err)
 	is.Equal(pkg.Name(), "main")
@@ -135,12 +137,13 @@ func TestAliasLookup(t *testing.T) {
 
 func TestNetHTTP(t *testing.T) {
 	is := is.New(t)
-	modCache := modcache.Default()
-	module := mod.New(modCache)
-	p := parser.New(module)
-	modfile, err := module.Find(".")
+	wd, err := os.Getwd()
 	is.NoErr(err)
-	dir, err := modfile.ResolveDirectory("net/http")
+	modFinder := mod.New()
+	p := parser.New(modFinder)
+	module, err := modFinder.Find(wd)
+	is.NoErr(err)
+	dir, err := module.ResolveDirectory("net/http")
 	is.NoErr(err)
 	pkg, err := p.Parse(dir)
 	is.NoErr(err)

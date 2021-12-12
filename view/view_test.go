@@ -7,9 +7,9 @@ import (
 	"testing/fstest"
 
 	"github.com/matryer/is"
+	"github.com/matthewmueller/gotext"
 	"gitlab.com/mnm/bud/fsync"
 	"gitlab.com/mnm/bud/gen"
-	"github.com/matthewmueller/gotext"
 	"gitlab.com/mnm/bud/vfs"
 	"gitlab.com/mnm/bud/view"
 )

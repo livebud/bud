@@ -11,7 +11,6 @@ import (
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/gobin"
-	"gitlab.com/mnm/bud/internal/modcache"
 	"gitlab.com/mnm/bud/plugin"
 	"gitlab.com/mnm/bud/vfs"
 )
@@ -33,13 +32,13 @@ func TestPlugin(t *testing.T) {
 	ctx := context.Background()
 	err = gobin.Get(ctx, dir, "gitlab.com/mnm/testdata/bud-tailwind", "gitlab.com/mnm/testdata/bud-markdown")
 	is.NoErr(err)
-	module := mod.New(modcache.Default())
-	modfile, err := module.Find(dir)
+	modFinder := mod.New()
+	module, err := modFinder.Find(dir)
 	is.NoErr(err)
 	dirfs := os.DirFS(dir)
 	bf := gen.New(dirfs)
 	bf.Add(map[string]gen.Generator{
-		"bud/plugin": gen.DirGenerator(&plugin.Generator{Modfile: modfile}),
+		"bud/plugin": gen.DirGenerator(&plugin.Generator{Module: module}),
 	})
 	fis, err := fs.ReadDir(bf, "bud/plugin")
 	is.NoErr(err)

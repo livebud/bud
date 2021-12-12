@@ -46,9 +46,9 @@ func Test(t testing.TB) *Server {
 }
 
 // Live server serves view files on the fly. Used during development.
-func Live(modfile *mod.File, genfs gen.FS, vm js.VM, transformer *transform.Transformer) *Server {
-	dir := modfile.Directory()
-	dirfs := os.DirFS(modfile.Directory())
+func Live(module *mod.Module, genfs gen.FS, vm js.VM, transformer *transform.Transformer) *Server {
+	dir := module.Directory()
+	dirfs := os.DirFS(module.Directory())
 	genfs.Add(map[string]gen.Generator{
 		"bud/view":         dom.Runner(dir, transformer),
 		"bud/node_modules": dom.NodeModules(dir),

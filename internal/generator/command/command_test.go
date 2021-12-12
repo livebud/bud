@@ -96,8 +96,8 @@ func runTest(t *testing.T, test Test) {
 	is := is.New(t)
 	appDir := t.TempDir()
 	modCache := modcache.Default()
-	module := mod.New(modCache)
-	budFile, err := module.Find(".")
+	modFinder := mod.New(mod.WithCache(modCache))
+	budModule, err := modFinder.Find(".")
 	is.NoErr(err)
 	// Write application files
 	if test.Files != nil {
@@ -105,11 +105,11 @@ func runTest(t *testing.T, test Test) {
 		for path, code := range test.Files {
 			switch path {
 			case "go.mod":
-				modFile, err := module.Parse(path, []byte(code))
+				module, err := modFinder.Parse(path, []byte(code))
 				is.NoErr(err)
-				err = modFile.Replace("gitlab.com/mnm/bud", budFile.Directory())
+				err = module.File().Replace("gitlab.com/mnm/bud", budModule.Directory())
 				is.NoErr(err)
-				vmap[path] = string(modFile.Format())
+				vmap[path] = string(module.File().Format())
 			default:
 				vmap[path] = redent(code)
 			}
@@ -120,15 +120,15 @@ func runTest(t *testing.T, test Test) {
 	// Setup genFS
 	appFS := vfs.OS(appDir)
 	genFS := gen.New(appFS)
-	modFile, err := module.Find(appDir)
+	module, err := modFinder.Find(appDir)
 	is.NoErr(err)
-	parser := parser.New(module)
-	injector := di.New(modFile, parser, di.Map{})
+	parser := parser.New(modFinder)
+	injector := di.New(module, parser, di.Map{})
 	genFS.Add(map[string]gen.Generator{
 		"bud/main.go":    mainGo,
 		"bud/web/web.go": webServer,
 		"bud/command/command.go": gen.FileGenerator(&command.Generator{
-			Modfile:  modFile,
+			Module:   module,
 			Injector: injector,
 		}),
 	})

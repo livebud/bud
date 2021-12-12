@@ -15,7 +15,7 @@ var template string
 var generator = gotemplate.MustParse("web", template)
 
 type Generator struct {
-	Modfile *mod.File
+	Module *mod.Module
 }
 
 type State struct {
@@ -32,9 +32,9 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 	imports.AddNamed("middleware", "gitlab.com/mnm/bud/middleware")
 	imports.AddNamed("router", "gitlab.com/mnm/bud/router")
 	imports.AddNamed("commander", "gitlab.com/mnm/bud/commander")
-	imports.AddNamed("controller", g.Modfile.ModulePath("bud/controller"))
-	imports.AddNamed("public", g.Modfile.ModulePath("bud/public"))
-	imports.AddNamed("view", g.Modfile.ModulePath("bud/view"))
+	imports.AddNamed("controller", g.Module.Import("bud/controller"))
+	imports.AddNamed("public", g.Module.Import("bud/public"))
+	imports.AddNamed("view", g.Module.Import("bud/view"))
 	code, err := generator.Generate(State{
 		Imports: imports.List(),
 	})

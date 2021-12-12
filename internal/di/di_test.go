@@ -75,7 +75,7 @@ func runTest(t testing.TB, test Test) {
 		err := vfs.Write(appDir, vmap)
 		is.NoErr(err)
 	}
-	module := mod.New(modCache)
+	module := mod.New(mod.WithCache(modCache))
 	modFile, err := module.Find(appDir)
 	is.NoErr(err)
 	parser := parser.New(module)
@@ -94,7 +94,7 @@ func runTest(t testing.TB, test Test) {
 	// fmt.Println(code)
 	// TODO: provide a modFile method for doing this, modfile.ResolveDirectory
 	// also stats the final dir, which doesn't exist yet.
-	targetDir := modFile.Directory(strings.TrimPrefix(test.Function.Target, modFile.ModulePath()))
+	targetDir := modFile.Directory(strings.TrimPrefix(test.Function.Target, modFile.Import()))
 	err = os.MkdirAll(targetDir, 0755)
 	is.NoErr(err)
 	outPath := filepath.Join(targetDir, "di.go")

@@ -3,7 +3,6 @@ package generate
 import (
 	_ "embed"
 	"io/fs"
-	"path"
 
 	"gitlab.com/mnm/bud/go/mod"
 
@@ -18,10 +17,10 @@ var template string
 var generator = gotemplate.MustParse("generate", template)
 
 type Generator struct {
-	Modfile *mod.File
-	Embed   bool
-	Hot     bool
-	Minify  bool
+	Module *mod.Module
+	Embed  bool
+	Hot    bool
+	Minify bool
 }
 
 type State struct {
@@ -37,7 +36,7 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 	imports := imports.New()
 	imports.AddStd("os", "fmt")
 	imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
-	imports.AddNamed("generator", path.Join(g.Modfile.ModulePath(), "bud/generator"))
+	imports.AddNamed("generator", g.Module.Import("bud/generator"))
 	code, err := generator.Generate(&State{
 		Imports:   imports.List(),
 		Generator: g,

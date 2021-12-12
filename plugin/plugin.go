@@ -16,7 +16,7 @@ import (
 // If the import path is "gitlab.com/mnm/bud-tailwind/transform", then you'd
 // load this plugin with "bud/plugin/tailwind/transform".
 type Generator struct {
-	Modfile *mod.File
+	Module *mod.Module
 }
 
 type Plugin struct {
@@ -25,9 +25,9 @@ type Plugin struct {
 	Directory string
 }
 
-func Find(modfile *mod.File) (plugins []*Plugin, err error) {
+func Find(module *mod.Module) (plugins []*Plugin, err error) {
 	var importPaths []string
-	for _, req := range modfile.Requires() {
+	for _, req := range module.File().Requires() {
 		// The last path in the module path needs to start with "bud-"
 		if !strings.HasPrefix(path.Base(req.Mod.Path), "bud-") {
 			continue
@@ -40,7 +40,7 @@ func Find(modfile *mod.File) (plugins []*Plugin, err error) {
 	for i, importPath := range importPaths {
 		i, importPath := i, importPath
 		eg.Go(func() error {
-			dir, err := modfile.ResolveDirectory(importPath)
+			dir, err := module.ResolveDirectory(importPath)
 			if err != nil {
 				return err
 			}
@@ -60,7 +60,7 @@ func Find(modfile *mod.File) (plugins []*Plugin, err error) {
 }
 
 func (g *Generator) GenerateDir(f gen.F, dir *gen.Dir) error {
-	plugins, err := Find(g.Modfile)
+	plugins, err := Find(g.Module)
 	if err != nil {
 		return err
 	}

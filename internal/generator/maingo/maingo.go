@@ -15,7 +15,7 @@ var template string
 var generator = gotemplate.MustParse("maingo", template)
 
 type Generator struct {
-	Modfile *mod.File
+	Module *mod.Module
 }
 
 type State struct {
@@ -29,7 +29,7 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 	imports := imports.New()
 	imports.AddStd("os")
 	// imports.AddStd("fmt")
-	imports.Add(g.Modfile.ModulePath("bud/command"))
+	imports.Add(g.Module.Import("bud/command"))
 	code, err := generator.Generate(State{
 		Imports: imports.List(),
 	})

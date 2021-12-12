@@ -287,11 +287,11 @@ func (t *SelectorType) Definition() (Declaration, error) {
 	if err != nil {
 		return nil, err
 	}
-	modfile, err := pkg.Modfile()
+	module, err := pkg.Module()
 	if err != nil {
 		return nil, err
 	}
-	dir, err := modfile.ResolveDirectory(imp)
+	dir, err := module.ResolveDirectory(imp)
 	if err != nil {
 		return nil, err
 	}

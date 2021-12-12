@@ -71,8 +71,8 @@ type StructField struct {
 	Import string
 	Type   string
 
-	modFile *mod.File   // Modfile for the module containing this type
-	kind    parser.Kind // Kind of type
+	module *mod.Module // Module containing this type
+	kind   parser.Kind // Kind of type
 }
 
 var _ Dependency = (*StructField)(nil)
@@ -90,7 +90,7 @@ func (s *StructField) TypeName() string {
 }
 
 func (s *StructField) Find(finder Finder) (Declaration, error) {
-	return finder.Find(s.modFile, s)
+	return finder.Find(s.module, s)
 }
 
 // Check to see if the struct initializes the dependency.
@@ -138,16 +138,16 @@ func tryStruct(stct *parser.Struct, dataType string) (*Struct, error) {
 			return nil, err
 		}
 		pkg := def.Package()
-		modFile, err := pkg.Modfile()
+		module, err := pkg.Module()
 		if err != nil {
 			return nil, err
 		}
 		decl.Fields = append(decl.Fields, &StructField{
-			Name:    field.Name(),
-			Import:  importPath,
-			Type:    t.String(),
-			kind:    def.Kind(),
-			modFile: modFile,
+			Name:   field.Name(),
+			Import: importPath,
+			Type:   t.String(),
+			kind:   def.Kind(),
+			module: module,
 		})
 	}
 	return decl, nil

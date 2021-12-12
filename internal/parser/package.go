@@ -10,12 +10,12 @@ import (
 )
 
 // newPackage creates a new package
-func newPackage(dir string, module *mod.Module, node *ast.Package, parser *Parser) *Package {
+func newPackage(dir string, modFinder *mod.Finder, node *ast.Package, parser *Parser) *Package {
 	pkg := &Package{
-		node:   node,
-		dir:    dir,
-		module: module,
-		parser: parser,
+		node:      node,
+		dir:       dir,
+		modFinder: modFinder,
+		parser:    parser,
 	}
 	pkg.files = files(pkg)
 	return pkg
@@ -23,11 +23,11 @@ func newPackage(dir string, module *mod.Module, node *ast.Package, parser *Parse
 
 // Package struct
 type Package struct {
-	dir    string
-	files  []*File
-	node   *ast.Package
-	module *mod.Module
-	parser *Parser
+	dir       string
+	files     []*File
+	node      *ast.Package
+	modFinder *mod.Finder
+	parser    *Parser
 }
 
 // Name of the package
@@ -45,14 +45,14 @@ func (pkg *Package) Files() []*File {
 	return pkg.files
 }
 
-// Modfile returns the modfile or fails
-func (pkg *Package) Modfile() (*mod.File, error) {
-	return pkg.module.Find(pkg.dir)
+// Module returns the module or fails
+func (pkg *Package) Module() (*mod.Module, error) {
+	return pkg.modFinder.Find(pkg.dir)
 }
 
 // Import returns the import path to this package
 func (pkg *Package) Import() (path string, err error) {
-	modfile, err := pkg.Modfile()
+	modfile, err := pkg.Module()
 	if err != nil {
 		return "", err
 	}
@@ -61,7 +61,7 @@ func (pkg *Package) Import() (path string, err error) {
 
 // ResolveDirectory resolves a directory from an import path
 func (pkg *Package) ResolveDirectory(importPath string) (string, error) {
-	modfile, err := pkg.Modfile()
+	modfile, err := pkg.Module()
 	if err != nil {
 		return "", err
 	}
@@ -70,20 +70,11 @@ func (pkg *Package) ResolveDirectory(importPath string) (string, error) {
 
 // ResolveImport resolves a directory from an import path
 func (pkg *Package) ResolveImport(directory string) (string, error) {
-	modfile, err := pkg.Modfile()
+	modfile, err := pkg.Module()
 	if err != nil {
 		return "", err
 	}
 	return modfile.ResolveImport(directory)
-}
-
-// ModuleDirectory returns the directory that contains go.mod.
-func (pkg *Package) ModuleDirectory() (string, error) {
-	modfile, err := pkg.Modfile()
-	if err != nil {
-		return "", err
-	}
-	return modfile.Directory(), nil
 }
 
 // Files returns the Go files within the package

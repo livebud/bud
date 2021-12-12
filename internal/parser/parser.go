@@ -11,15 +11,15 @@ import (
 )
 
 // New Go parser.
-func New(module *mod.Module) *Parser {
+func New(modFinder *mod.Finder) *Parser {
 	return &Parser{
-		module: module,
+		modFinder: modFinder,
 	}
 }
 
 // Parser for parsing Go code.
 type Parser struct {
-	module *mod.Module
+	modFinder *mod.Finder
 }
 
 // Parse a dir containing Go files.
@@ -48,6 +48,6 @@ func (p *Parser) Parse(dir string) (*Package, error) {
 		}
 		parsedPackage.Files[path] = parsedFile
 	}
-	pkg := newPackage(dir, p.module, parsedPackage, p)
+	pkg := newPackage(dir, p.modFinder, parsedPackage, p)
 	return pkg, nil
 }

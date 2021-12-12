@@ -4,7 +4,6 @@ import (
 	"errors"
 	"go/build"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -20,8 +19,8 @@ func TestFind(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	module := mod.New(modcache.Default())
-	modFile, err := module.Find(wd)
+	modFinder := mod.New()
+	modFile, err := modFinder.Find(wd)
 	is.NoErr(err)
 	dir := modFile.Directory()
 	root := filepath.Join(wd, "..", "..")
@@ -31,7 +30,7 @@ func TestFindDefault(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	modFile, err := mod.Default().Find(wd)
+	modFile, err := mod.New().Find(wd)
 	is.NoErr(err)
 	dir := modFile.Directory()
 	root := filepath.Join(wd, "..", "..")
@@ -43,10 +42,10 @@ func TestResolveDirectory(t *testing.T) {
 	wd, err := os.Getwd()
 	is.NoErr(err)
 	modCache := modcache.Default()
-	module := mod.New(modCache)
-	modFile, err := module.Find(wd)
+	modFinder := mod.New(mod.WithCache(modCache))
+	module, err := modFinder.Find(wd)
 	is.NoErr(err)
-	dir, err := modFile.ResolveDirectory("github.com/matryer/is")
+	dir, err := module.ResolveDirectory("github.com/matryer/is")
 	is.NoErr(err)
 	expected := modCache.Directory("github.com", "matryer", "is")
 	is.True(strings.HasPrefix(dir, expected))
@@ -56,10 +55,10 @@ func TestResolveDirectoryNotOk(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	module := mod.New(modcache.Default())
-	modFile, err := module.Find(wd)
+	modFinder := mod.New()
+	module, err := modFinder.Find(wd)
 	is.NoErr(err)
-	dir, err := modFile.ResolveDirectory("github.com/matryer/is/zargle")
+	dir, err := module.ResolveDirectory("github.com/matryer/is/zargle")
 	is.Equal(dir, "")
 	is.True(errors.Is(err, os.ErrNotExist))
 }
@@ -68,10 +67,10 @@ func TestResolveStdDirectory(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	module := mod.New(modcache.Default())
-	modFile, err := module.Find(wd)
+	modFinder := mod.New()
+	module, err := modFinder.Find(wd)
 	is.NoErr(err)
-	dir, err := modFile.ResolveDirectory("net/http")
+	dir, err := module.ResolveDirectory("net/http")
 	is.NoErr(err)
 	expected := filepath.Join(build.Default.GOROOT, "src", "net", "http")
 	is.Equal(dir, expected)
@@ -81,20 +80,22 @@ func TestResolveImport(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	module := mod.New(modcache.Default())
-	modFile, err := module.Find(wd)
+	modFinder := mod.New()
+	module, err := modFinder.Find(wd)
 	is.NoErr(err)
-	im, err := modFile.ResolveImport(wd)
+	im, err := module.ResolveImport(wd)
 	is.NoErr(err)
-	is.Equal(path.Join(modFile.ModulePath(), "go", "mod"), im)
+	base := filepath.Base(wd)
+	is.Equal(module.Import("go", base), im)
 }
 
 func TestAddRequire(t *testing.T) {
 	is := is.New(t)
-	module := mod.New(modcache.Default())
+	modFinder := mod.New()
 	modPath := filepath.Join(t.TempDir(), "go.mod")
-	modFile, err := module.Parse(modPath, []byte(`module app.test`))
+	module, err := modFinder.Parse(modPath, []byte(`module app.test`))
 	is.NoErr(err)
+	modFile := module.File()
 	modFile.AddRequire("mod.test/two", "v2")
 	modFile.AddRequire("mod.test/one", "v1.2.4")
 	is.Equal(string(modFile.Format()), `module app.test
@@ -108,10 +109,11 @@ require (
 
 func TestAddReplace(t *testing.T) {
 	is := is.New(t)
-	module := mod.New(modcache.Default())
+	modFinder := mod.New()
 	modPath := filepath.Join(t.TempDir(), "go.mod")
-	modFile, err := module.Parse(modPath, []byte(`module app.test`))
+	module, err := modFinder.Parse(modPath, []byte(`module app.test`))
 	is.NoErr(err)
+	modFile := module.File()
 	modFile.AddReplace("mod.test/two", "", "mod.test/twotwo", "")
 	modFile.AddReplace("mod.test/one", "", "mod.test/oneone", "")
 	is.Equal(string(modFile.Format()), `module app.test
@@ -172,11 +174,12 @@ func TestLocalResolveDirectory(t *testing.T) {
 	})
 	is.NoErr(err)
 	appDir := t.TempDir()
-	module := mod.New(modCache)
-	modFile, err := module.Parse(filepath.Join(appDir, "go.mod"), []byte(`module app.test`))
+	modFinder := mod.New(mod.WithCache(modCache))
+	module, err := modFinder.Parse(filepath.Join(appDir, "go.mod"), []byte(`module app.test`))
 	is.NoErr(err)
+	modFile := module.File()
 	modFile.AddRequire("mod.test/module", "v1.2.4")
-	dir, err := modFile.ResolveDirectory("mod.test/module")
+	dir, err := module.ResolveDirectory("mod.test/module")
 	is.NoErr(err)
 	is.Equal(dir, filepath.Join(cacheDir, "mod.test", "module@v1.2.4"))
 }
@@ -184,7 +187,7 @@ func TestLocalResolveDirectory(t *testing.T) {
 // func TestModCacheRead(t *testing.T) {
 // 	is := is.New(t)
 // 	modPath := filepath.Join(t.TempDir(), "go.mod")
-// 	module:= mod.New(modcache.Default())
+// 	module:= mod.New()
 // 	modFile, err := mod.Parse(modCache, modPath, []byte(`
 // 		module mod.test
 
@@ -196,7 +199,7 @@ func TestLocalResolveDirectory(t *testing.T) {
 // 	is.True(len(des) > 0)
 // }
 
-func TestLoadCustom(t *testing.T) {
+func TestFindNested(t *testing.T) {
 	is := is.New(t)
 	cacheDir := t.TempDir()
 	modCache := modcache.New(cacheDir)
@@ -210,22 +213,75 @@ func TestLoadCustom(t *testing.T) {
 			"const.go": "package module\nconst Answer = 43",
 		},
 	})
+	is.NoErr(err)
 	appDir := t.TempDir()
-	vfs.Write(appDir, vfs.Map{
+	err = vfs.Write(appDir, vfs.Map{
 		"go.mod": "module app.com\nrequire mod.test/module v1.2.4",
 		"app.go": "package app\nimport \"mod.test/module\"\nvar a = module.Answer",
 	})
 	is.NoErr(err)
-	module := mod.New(modCache)
-	modfile1, err := module.Find(appDir)
+	modFinder := mod.New(mod.WithCache(modCache))
+	module1, err := modFinder.Find(appDir)
 	is.NoErr(err)
 
-	modfile2, err := modfile1.Load("mod.test/module")
+	module2, err := module1.Find("mod.test/module")
 	is.NoErr(err)
-	is.Equal(modfile2.ModulePath(), "mod.test/module")
-	is.Equal(modfile2.Directory(), modCache.Directory("mod.test", "module@v1.2.4"))
+	is.Equal(module2.Import(), "mod.test/module")
+	is.Equal(module2.Directory(), modCache.Directory("mod.test", "module@v1.2.4"))
 
-	// Ensure modfile1 is not overriden
-	is.Equal(modfile1.ModulePath(), "app.com")
-	is.Equal(modfile1.Directory(), appDir)
+	// Ensure module1 is not overriden
+	is.Equal(module1.Import(), "app.com")
+	is.Equal(module1.Directory(), appDir)
+}
+
+func TestFindNestedFS(t *testing.T) {
+	is := is.New(t)
+	cacheDir := t.TempDir()
+	modCache := modcache.New(cacheDir)
+	err := modCache.Write(modcache.Modules{
+		"mod.test/two@v0.0.1": modcache.Files{
+			"go.mod":   "module mod.test/two",
+			"const.go": "package two\nconst Answer = 10",
+		},
+		"mod.test/two@v0.0.2": modcache.Files{
+			"go.mod":   "module mod.test/two",
+			"const.go": "package two\nconst Answer = 20",
+		},
+		"mod.test/module@v1.2.3": modcache.Files{
+			"go.mod":   "module mod.test/module",
+			"const.go": "package module\nconst Answer = 42",
+		},
+		"mod.test/module@v1.2.4": modcache.Files{
+			"go.mod":   "module mod.test/module\nrequire mod.test/two v0.0.2",
+			"const.go": "package module\nimport \"mod.test/two\"\nconst Answer = two.Answer",
+		},
+	})
+	is.NoErr(err)
+	appDir := t.TempDir()
+	err = vfs.Write(appDir, vfs.Map{
+		"go.mod": "module app.com\nrequire mod.test/module v1.2.4",
+		"app.go": "package app\nimport \"mod.test/module\"\nvar a = module.Answer",
+	})
+	is.NoErr(err)
+	modFinder := mod.New(mod.WithCache(modCache))
+	module1, err := modFinder.Find(appDir)
+	is.NoErr(err)
+
+	module2, err := module1.Find("mod.test/module")
+	is.NoErr(err)
+	is.Equal(module2.Import(), "mod.test/module")
+	is.Equal(module2.Directory(), modCache.Directory("mod.test", "module@v1.2.4"))
+
+	module3, err := module2.Find("mod.test/two")
+	is.NoErr(err)
+	is.Equal(module3.Import(), "mod.test/two")
+	is.Equal(module3.Directory(), modCache.Directory("mod.test", "two@v0.0.2"))
+
+	// Ensure module1 is not overriden
+	is.Equal(module1.Import(), "app.com")
+	is.Equal(module1.Directory(), appDir)
+
+	// Ensure module2 is not overriden
+	is.Equal(module2.Import(), "mod.test/module")
+	is.Equal(module2.Directory(), modCache.Directory("mod.test", "module@v1.2.4"))
 }
