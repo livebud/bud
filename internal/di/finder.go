@@ -3,8 +3,10 @@ package di
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 
 	"gitlab.com/mnm/bud/go/mod"
+	"gitlab.com/mnm/bud/internal/parser"
 )
 
 var ErrNoMatch = errors.New("no match")
@@ -31,8 +33,12 @@ func (i *Injector) Find(module *mod.Module, dep Dependency) (Declaration, error)
 		// out with it's own error type.
 		return nil, fmt.Errorf("di: unable to find dependency %s > %s", dep.ID(), err)
 	}
+	rel, err := filepath.Rel(module.Directory(), dir)
+	if err != nil {
+		return nil, err
+	}
 	// Parse the package
-	pkg, err := i.parser.Parse(dir)
+	pkg, err := parser.New(module).Parse(rel)
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -17,7 +18,8 @@ import (
 
 func TestPlugin(t *testing.T) {
 	is := is.New(t)
-	dir := "_tmp"
+	dir, err := filepath.Abs("_tmp")
+	is.NoErr(err)
 	is.NoErr(os.RemoveAll(dir))
 	is.NoErr(os.MkdirAll(dir, 0755))
 	defer func() {
@@ -25,7 +27,7 @@ func TestPlugin(t *testing.T) {
 			is.NoErr(os.RemoveAll(dir))
 		}
 	}()
-	err := vfs.Write(dir, vfs.Map{
+	err = vfs.Write(dir, vfs.Map{
 		"go.mod": `module test.mod`,
 	})
 	is.NoErr(err)

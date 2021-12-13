@@ -98,10 +98,7 @@ func tryFunction(fn *parser.Function, importPath, dataType string) (*function, e
 		if err != nil {
 			return nil, fmt.Errorf("di: unable to find definition for %q.%s > %w", importPath, parser.Unqualify(pt).String(), err)
 		}
-		module, err := def.Package().Module()
-		if err != nil {
-			return nil, err
-		}
+		module := def.Package().Module()
 		function.Params = append(function.Params, &Type{
 			Import: importPath,
 			Type:   parser.Unqualify(pt).String(),

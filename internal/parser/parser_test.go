@@ -1,13 +1,13 @@
 package parser_test
 
 import (
-	"fmt"
-	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"gitlab.com/mnm/bud/internal/modcache"
 
+	"github.com/lithammer/dedent"
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/parser"
@@ -23,8 +23,11 @@ func TestStructLookup(t *testing.T) {
 	err = vfs.Write(dir, testfile)
 	is.NoErr(err)
 	modCache := modcache.New(filepath.Join(dir, "mod"))
-	p := parser.New(mod.New(mod.WithCache(modCache)))
-	pkg, err := p.Parse(filepath.Join(dir, "app", "hello"))
+	modFinder := mod.New(mod.WithCache(modCache))
+	module, err := modFinder.Find(filepath.Join(dir, "app"))
+	is.NoErr(err)
+	p := parser.New(module)
+	pkg, err := p.Parse("hello")
 	is.NoErr(err)
 	is.Equal(pkg.Name(), "hello")
 	stct := pkg.Struct("A")
@@ -36,8 +39,7 @@ func TestStructLookup(t *testing.T) {
 	is.Equal(def.Name(), "Struct")
 	pkg = def.Package()
 	is.Equal(pkg.Name(), "two")
-	modFile, err := pkg.Module()
-	is.NoErr(err)
+	modFile := pkg.Module()
 	is.Equal(modFile.Import(), "mod.test/two")
 	stct = pkg.Struct("Struct")
 	is.True(stct != nil)
@@ -50,8 +52,7 @@ func TestStructLookup(t *testing.T) {
 	is.Equal(pkg.Name(), "inner")
 	stct = pkg.Struct("Dep")
 	is.True(stct != nil)
-	modFile, err = pkg.Module()
-	is.NoErr(err)
+	modFile = pkg.Module()
 	is.Equal(modFile.Import(), "mod.test/three")
 }
 
@@ -63,8 +64,11 @@ func TestInterfaceLookup(t *testing.T) {
 	err = vfs.Write(dir, testfile)
 	is.NoErr(err)
 	modCache := modcache.New(filepath.Join(dir, "mod"))
-	p := parser.New(mod.New(mod.WithCache(modCache)))
-	pkg, err := p.Parse(filepath.Join(dir, "app", "hello"))
+	modFinder := mod.New(mod.WithCache(modCache))
+	module, err := modFinder.Find(filepath.Join(dir, "app"))
+	is.NoErr(err)
+	p := parser.New(module)
+	pkg, err := p.Parse("hello")
 	is.NoErr(err)
 	is.Equal(pkg.Name(), "hello")
 	stct := pkg.Struct("A")
@@ -76,8 +80,7 @@ func TestInterfaceLookup(t *testing.T) {
 	is.Equal(def.Name(), "Interface")
 	pkg = def.Package()
 	is.Equal(pkg.Name(), "two")
-	module, err := pkg.Module()
-	is.NoErr(err)
+	module = pkg.Module()
 	is.Equal(module.Import(), "mod.test/two")
 	iface := pkg.Interface("Interface")
 	is.True(iface != nil)
@@ -96,8 +99,7 @@ func TestInterfaceLookup(t *testing.T) {
 	method = iface.Method("String")
 	is.True(method != nil)
 	is.Equal(method.Name(), "String")
-	module, err = pkg.Module()
-	is.NoErr(err)
+	module = pkg.Module()
 	is.Equal(module.Import(), "mod.test/three")
 }
 
@@ -109,8 +111,11 @@ func TestAliasLookup(t *testing.T) {
 	err = vfs.Write(dir, testfile)
 	is.NoErr(err)
 	modCache := modcache.New(filepath.Join(dir, "mod"))
-	p := parser.New(mod.New(mod.WithCache(modCache)))
-	pkg, err := p.Parse(filepath.Join(dir, "app"))
+	modFinder := mod.New(mod.WithCache(modCache))
+	module, err := modFinder.Find(filepath.Join(dir, "app"))
+	is.NoErr(err)
+	p := parser.New(module)
+	pkg, err := p.Parse(".")
 	is.NoErr(err)
 	is.Equal(pkg.Name(), "main")
 	alias := pkg.Alias("Middleware")
@@ -135,25 +140,71 @@ func TestAliasLookup(t *testing.T) {
 	is.Equal(method.Name(), "Middleware")
 }
 
-func TestNetHTTP(t *testing.T) {
+type Module struct {
+	Modules map[string]map[string]string
+	Files   map[string]string
+}
+
+func redent(s string) string {
+	return strings.TrimSpace(dedent.Dedent(s)) + "\n"
+}
+
+func makeModule(t *testing.T, m Module) *mod.Module {
 	is := is.New(t)
-	wd, err := os.Getwd()
-	is.NoErr(err)
-	modFinder := mod.New()
-	p := parser.New(modFinder)
-	module, err := modFinder.Find(wd)
-	is.NoErr(err)
-	dir, err := module.ResolveDirectory("net/http")
-	is.NoErr(err)
-	pkg, err := p.Parse(dir)
-	is.NoErr(err)
-	stct := pkg.Struct("Request")
-	if stct == nil {
-		fmt.Println(len(pkg.Files()))
-		for _, file := range pkg.Files() {
-			fmt.Println(file.Path())
-		}
+	modCache := modcache.Default()
+	if m.Modules != nil {
+		cacheDir := t.TempDir()
+		modCache = modcache.New(cacheDir)
+		err := modCache.Write(m.Modules)
+		is.NoErr(err)
 	}
+	appDir := t.TempDir()
+	if m.Files != nil {
+		for path, file := range m.Files {
+			m.Files[path] = redent(file)
+		}
+		err := vfs.Write(appDir, vfs.Map(m.Files))
+		is.NoErr(err)
+	}
+	modFinder := mod.New(mod.WithCache(modCache))
+	module, err := modFinder.Find(appDir)
+	is.NoErr(err)
+	return module
+}
+
+func TestNetHTTP(t *testing.T) {
+	module := makeModule(t, Module{
+		Files: map[string]string{
+			"go.mod": `module app.com/app`,
+			"app.go": `
+				package app
+
+				import "net/http"
+
+				type A struct {
+					*http.Request
+				}
+			`,
+		},
+	})
+	is := is.New(t)
+	p := parser.New(module)
+	pkg, err := p.Parse(".")
+	is.NoErr(err)
+	stct := pkg.Struct("A")
+	is.True(stct != nil)
+	is.Equal(stct.Name(), "A")
+	field := stct.Field("Request")
+	is.True(field != nil)
+	is.Equal(field.Name(), "Request")
+	def, err := field.Definition()
+	is.NoErr(err)
+	is.Equal(def.Name(), "Request")
+	pkg = def.Package()
+	imp, err := pkg.Import()
+	is.NoErr(err)
+	is.Equal(imp, "std/net/http")
+	stct = def.Package().Struct("Request")
 	is.True(stct != nil)
 	is.Equal(stct.Name(), "Request")
 }

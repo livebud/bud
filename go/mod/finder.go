@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"go/build"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,7 +15,6 @@ import (
 // Finder struct
 type Finder struct {
 	cache *modcache.Cache
-	fsys  fs.FS
 }
 
 // Find first tries finding an explicit module file (go.mod). If no go.mod is

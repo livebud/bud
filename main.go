@@ -175,7 +175,7 @@ func (c *runCommand) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	parser := parser.New(modFinder)
+	parser := parser.New(module)
 	injector := di.New(module, parser, di.Map{})
 	genfs := gen.New(os.DirFS(module.Directory()))
 	genfs.Add(map[string]gen.Generator{
@@ -290,7 +290,7 @@ func (c *buildCommand) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	parser := parser.New(modFinder)
+	parser := parser.New(module)
 	injector := di.New(module, parser, di.Map{})
 	fmt.Println("building...", module.Directory(), c.Embed, c.Hot, c.Minify)
 	genfs := gen.New(os.DirFS(module.Directory()))
@@ -381,7 +381,7 @@ func (c *diCommand) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	parser := parser.New(modFinder)
+	parser := parser.New(module)
 	fn := &di.Function{
 		Hoist: c.Hoist,
 	}

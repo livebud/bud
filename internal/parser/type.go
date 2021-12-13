@@ -6,6 +6,7 @@ import (
 	"go/ast"
 	"go/printer"
 	"go/token"
+	"path/filepath"
 
 	"gitlab.com/mnm/bud/go/is"
 )
@@ -287,7 +288,7 @@ func (t *SelectorType) Definition() (Declaration, error) {
 	if err != nil {
 		return nil, err
 	}
-	module, err := pkg.Module()
+	module, err := pkg.Module().Find(imp)
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +296,11 @@ func (t *SelectorType) Definition() (Declaration, error) {
 	if err != nil {
 		return nil, err
 	}
-	newPkg, err := pkg.parser.Parse(dir)
+	rel, err := filepath.Rel(module.Directory(), dir)
+	if err != nil {
+		return nil, err
+	}
+	newPkg, err := New(module).Parse(rel)
 	if err != nil {
 		return nil, err
 	}

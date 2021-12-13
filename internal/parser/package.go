@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"go/ast"
+	"path/filepath"
 	"sort"
 
 	"gitlab.com/mnm/bud/go/is"
@@ -10,12 +11,12 @@ import (
 )
 
 // newPackage creates a new package
-func newPackage(dir string, modFinder *mod.Finder, node *ast.Package, parser *Parser) *Package {
+func newPackage(dir string, module *mod.Module, node *ast.Package) *Package {
+	absdir := filepath.Join(module.Directory(), dir)
 	pkg := &Package{
-		node:      node,
-		dir:       dir,
-		modFinder: modFinder,
-		parser:    parser,
+		node:   node,
+		dir:    absdir,
+		module: module,
 	}
 	pkg.files = files(pkg)
 	return pkg
@@ -23,11 +24,10 @@ func newPackage(dir string, modFinder *mod.Finder, node *ast.Package, parser *Pa
 
 // Package struct
 type Package struct {
-	dir       string
-	files     []*File
-	node      *ast.Package
-	modFinder *mod.Finder
-	parser    *Parser
+	dir    string
+	files  []*File
+	node   *ast.Package
+	module *mod.Module
 }
 
 // Name of the package
@@ -46,35 +46,23 @@ func (pkg *Package) Files() []*File {
 }
 
 // Module returns the module or fails
-func (pkg *Package) Module() (*mod.Module, error) {
-	return pkg.modFinder.Find(pkg.dir)
+func (pkg *Package) Module() *mod.Module {
+	return pkg.module
 }
 
 // Import returns the import path to this package
-func (pkg *Package) Import() (path string, err error) {
-	modfile, err := pkg.Module()
-	if err != nil {
-		return "", err
-	}
-	return modfile.ResolveImport(pkg.dir)
+func (pkg *Package) Import() (string, error) {
+	return pkg.module.ResolveImport(pkg.dir)
 }
 
 // ResolveDirectory resolves a directory from an import path
 func (pkg *Package) ResolveDirectory(importPath string) (string, error) {
-	modfile, err := pkg.Module()
-	if err != nil {
-		return "", err
-	}
-	return modfile.ResolveDirectory(importPath)
+	return pkg.Module().ResolveDirectory(importPath)
 }
 
 // ResolveImport resolves a directory from an import path
 func (pkg *Package) ResolveImport(directory string) (string, error) {
-	modfile, err := pkg.Module()
-	if err != nil {
-		return "", err
-	}
-	return modfile.ResolveImport(directory)
+	return pkg.Module().ResolveImport(directory)
 }
 
 // Files returns the Go files within the package

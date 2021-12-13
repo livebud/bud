@@ -75,15 +75,16 @@ func runTest(t testing.TB, test Test) {
 		err := vfs.Write(appDir, vmap)
 		is.NoErr(err)
 	}
-	module := mod.New(mod.WithCache(modCache))
-	modFile, err := module.Find(appDir)
+	// genfs := gen.New(os.DirFS(appDir))
+	modFinder := mod.New(mod.WithCache(modCache))
+	module, err := modFinder.Find(appDir)
 	is.NoErr(err)
 	parser := parser.New(module)
 	typeMap := di.Map{}
 	for from, to := range test.Map {
 		typeMap[from] = to
 	}
-	injector := di.New(modFile, parser, typeMap)
+	injector := di.New(module, parser, typeMap)
 	node, err := injector.Load(test.Function)
 	if err != nil {
 		is.Equal(test.Expect, err.Error())
@@ -94,7 +95,7 @@ func runTest(t testing.TB, test Test) {
 	// fmt.Println(code)
 	// TODO: provide a modFile method for doing this, modfile.ResolveDirectory
 	// also stats the final dir, which doesn't exist yet.
-	targetDir := modFile.Directory(strings.TrimPrefix(test.Function.Target, modFile.Import()))
+	targetDir := module.Directory(strings.TrimPrefix(test.Function.Target, module.Import()))
 	err = os.MkdirAll(targetDir, 0755)
 	is.NoErr(err)
 	outPath := filepath.Join(targetDir, "di.go")

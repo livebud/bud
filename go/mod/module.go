@@ -79,10 +79,6 @@ func (m *Module) resolveImport(dir string) (importPath string, err error) {
 	if err != nil {
 		return "", err
 	}
-	// Handle stdlib paths
-	if strings.HasPrefix(dir, stdDir) {
-		return filepath.Rel(stdDir, dir)
-	}
 	relPath, err := filepath.Rel(m.dir, abspath)
 	if err != nil {
 		return "", err

@@ -138,10 +138,7 @@ func tryStruct(stct *parser.Struct, dataType string) (*Struct, error) {
 			return nil, err
 		}
 		pkg := def.Package()
-		module, err := pkg.Module()
-		if err != nil {
-			return nil, err
-		}
+		module := pkg.Module()
 		decl.Fields = append(decl.Fields, &StructField{
 			Name:   field.Name(),
 			Import: importPath,

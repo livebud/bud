@@ -122,7 +122,7 @@ func runTest(t *testing.T, test Test) {
 	genFS := gen.New(appFS)
 	module, err := modFinder.Find(appDir)
 	is.NoErr(err)
-	parser := parser.New(modFinder)
+	parser := parser.New(module)
 	injector := di.New(module, parser, di.Map{})
 	genFS.Add(map[string]gen.Generator{
 		"bud/main.go":    mainGo,

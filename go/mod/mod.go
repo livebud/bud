@@ -29,15 +29,10 @@ func New(options ...Option) *Finder {
 	return finder
 }
 
+// WithCache uses a custom mod cache instead of the default
 func WithCache(cache *modcache.Cache) func(f *Finder) {
 	return func(f *Finder) {
 		f.cache = cache
-	}
-}
-
-func WithFS(fsys fs.FS) func(f *Finder) {
-	return func(f *Finder) {
-		f.fsys = fsys
 	}
 }
 
