@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 
 	"gitlab.com/mnm/bud/internal/modcache"
@@ -22,6 +21,7 @@ type Option = func(f *Finder)
 func New(options ...Option) *Finder {
 	finder := &Finder{
 		cache: modcache.Default(),
+		fsys:  osfs{},
 	}
 	for _, option := range options {
 		option(finder)
@@ -36,12 +36,23 @@ func WithCache(cache *modcache.Cache) func(f *Finder) {
 	}
 }
 
+// WithFS specifies an filesystem to use while finding
+func WithFS(fsys fs.FS) func(f *Finder) {
+	return func(f *Finder) {
+		f.fsys = fsys
+	}
+}
+
 // FindDirectory traverses up the filesystem until it finds a directory
 // containing go.mod or returns an error trying.
 func FindDirectory(dir string) (abs string, err error) {
+	return findDirectory(osfs{}, dir)
+}
+
+func findDirectory(fsys fs.FS, dir string) (abs string, err error) {
 	path := filepath.Join(dir, "go.mod")
 	// Check if this path exists, otherwise recursively traverse towards root
-	if _, err = os.Stat(path); err != nil {
+	if _, err = fs.Stat(fsys, path); err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return "", err
 		}
@@ -49,7 +60,7 @@ func FindDirectory(dir string) (abs string, err error) {
 		if nextDir == dir {
 			return "", ErrFileNotFound
 		}
-		return FindDirectory(filepath.Dir(dir))
+		return findDirectory(fsys, filepath.Dir(dir))
 	}
 	return dir, nil
 }

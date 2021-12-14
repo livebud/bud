@@ -16,6 +16,7 @@ type Module struct {
 	cache *modcache.Cache
 	file  *File
 	dir   string
+	fsys  fs.FS
 }
 
 // Directory returns the module directory (e.g. /Users/$USER/...)
@@ -41,26 +42,23 @@ func (m *Module) Find(importPath string) (*Module, error) {
 	}
 	finder := &Finder{
 		cache: m.cache,
+		fsys:  osfs{},
 	}
-	return finder.findModFile(absdir)
+	module, err := finder.findModFile(absdir)
+	if err != nil {
+		return nil, err
+	}
+	return module, nil
 }
 
 // Open a file within the module
 func (m *Module) Open(name string) (fs.File, error) {
-	return os.DirFS(m.dir).Open(name)
+	return m.fsys.Open(name)
 }
 
 // ResolveDirectory resolves an import to an absolute path
 func (m *Module) ResolveDirectory(importPath string) (directory string, err error) {
-	absdir, err := m.resolveDirectory(importPath)
-	if err != nil {
-		return "", err
-	}
-	// Ensure the resolved directory exists
-	if _, err := os.Stat(absdir); err != nil {
-		return "", fmt.Errorf("mod: unable to resolve directory for import path %q: %w", importPath, err)
-	}
-	return absdir, nil
+	return m.resolveDirectory(importPath)
 }
 
 // ResolveImport returns an import path from a local directory.
@@ -88,24 +86,40 @@ func (m *Module) resolveImport(dir string) (importPath string, err error) {
 
 // ResolveDirectory resolves an import to an absolute path
 func (m *Module) resolveDirectory(importPath string) (directory string, err error) {
+	// Handle standard library
 	if is.StdLib(importPath) {
 		return filepath.Join(stdDir, importPath), nil
 	}
+	// Handle local packages within fsys
 	modulePath := m.Import()
 	if contains(modulePath, importPath) {
-		directory = filepath.Join(m.dir, strings.TrimPrefix(importPath, modulePath))
-		return directory, nil
+		// Ensure the resolved relative dir exists
+		rel, err := filepath.Rel(modulePath, importPath)
+		if err != nil {
+			return "", err
+		}
+		if _, err := fs.Stat(m.fsys, rel); err != nil {
+			return "", fmt.Errorf("mod: unable to resolve directory for package path %q: %w", importPath, err)
+		}
+		// But return the absolute dir
+		absdir := filepath.Join(m.dir, rel)
+		return absdir, nil
 	}
-	// loop over replaces
+	// Handle replace
 	for _, rep := range m.file.Replaces() {
 		if contains(rep.Old.Path, importPath) {
 			relPath := strings.TrimPrefix(importPath, rep.Old.Path)
 			newPath := filepath.Join(rep.New.Path, relPath)
-			resolved := resolvePath(m.dir, newPath)
-			return resolved, nil
+			absdir := resolvePath(m.dir, newPath)
+			// Ensure the resolved directory exists. Use os because we're outside of
+			// outside of fsys.
+			if _, err := os.Stat(absdir); err != nil {
+				return "", fmt.Errorf("mod: unable to resolve directory for replaced import path %q: %w", importPath, err)
+			}
+			return absdir, nil
 		}
 	}
-	// loop over requires
+	// Handle require
 	for _, req := range m.file.Requires() {
 		if contains(req.Mod.Path, importPath) {
 			relPath := strings.TrimPrefix(importPath, req.Mod.Path)
@@ -113,10 +127,16 @@ func (m *Module) resolveDirectory(importPath string) (directory string, err erro
 			if err != nil {
 				return "", err
 			}
-			return filepath.Join(dir, relPath), nil
+			absdir := filepath.Join(dir, relPath)
+			// Ensure the resolved directory exists. Use os because we're outside of
+			// outside of fsys.
+			if _, err := os.Stat(absdir); err != nil {
+				return "", fmt.Errorf("mod: unable to resolve directory for required import path %q: %w", importPath, err)
+			}
+			return absdir, nil
 		}
 	}
-	return "", fmt.Errorf("mod: unable to resolve directory for import path %q", importPath)
+	return "", fmt.Errorf("mod: unable to resolve directory for import path %q: %w", importPath, fs.ErrNotExist)
 }
 
 func resolvePath(path string, rest ...string) (result string) {

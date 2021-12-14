@@ -8,6 +8,7 @@ import (
 
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/gen"
+	"gitlab.com/mnm/bud/vfs"
 )
 
 func TestOpen(t *testing.T) {
@@ -125,4 +126,45 @@ func TestAdd(t *testing.T) {
 	des, err := fs.ReadDir(efs, "duo/public")
 	is.Equal(errors.Is(err, fs.ErrNotExist), true)
 	is.Equal(des, nil)
+}
+
+func TestGoModGoMod(t *testing.T) {
+	is := is.New(t)
+	fsys := vfs.Map{
+		"app.go": "package app\nimport \"mod.test/module\"\nvar a = module.Answer",
+	}
+	genfs := gen.New(fsys)
+	genfs.Add(map[string]gen.Generator{
+		"go.mod": gen.GenerateFile(func(f gen.F, file *gen.File) error {
+			file.Write([]byte("module app.com\nrequire mod.test/module v1.2.4"))
+			return nil
+		}),
+	})
+	stat, err := fs.Stat(genfs, "go.mod/go.mod")
+	is.True(err != nil)
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.Equal(stat, nil)
+	stat, err = fs.Stat(genfs, "go.mod")
+	is.NoErr(err)
+	is.Equal(stat.Name(), "go.mod")
+}
+
+// TODO: support passing embeds into gen.Generator
+func TestGoModGoModEmbed(t *testing.T) {
+	t.SkipNow()
+	is := is.New(t)
+	fsys := vfs.Map{
+		"app.go": "package app\nimport \"mod.test/module\"\nvar a = module.Answer",
+	}
+	genfs := gen.New(fsys)
+	genfs.Add(map[string]gen.Generator{
+		"go.mod": &gen.Embed{Data: []byte("module app.com\nrequire mod.test/module v1.2.4")},
+	})
+	stat, err := fs.Stat(genfs, "go.mod/go.mod")
+	is.True(err != nil)
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.Equal(stat, nil)
+	stat, err = fs.Stat(genfs, "go.mod")
+	is.NoErr(err)
+	is.Equal(stat.Name(), "go.mod")
 }

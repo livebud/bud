@@ -3,11 +3,13 @@ package mod_test
 import (
 	"errors"
 	"go/build"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/modcache"
 	"gitlab.com/mnm/bud/vfs"
@@ -59,8 +61,8 @@ func TestResolveDirectoryNotOk(t *testing.T) {
 	module, err := modFinder.Find(wd)
 	is.NoErr(err)
 	dir, err := module.ResolveDirectory("github.com/matryer/is/zargle")
-	is.Equal(dir, "")
 	is.True(errors.Is(err, os.ErrNotExist))
+	is.Equal(dir, "")
 }
 
 func TestResolveStdDirectory(t *testing.T) {
@@ -284,4 +286,92 @@ func TestFindNestedFS(t *testing.T) {
 	// Ensure module2 is not overriden
 	is.Equal(module2.Import(), "mod.test/module")
 	is.Equal(module2.Directory(), modCache.Directory("mod.test", "module@v1.2.4"))
+}
+
+func TestFindFSNesting(t *testing.T) {
+	is := is.New(t)
+	cacheDir := t.TempDir()
+	modCache := modcache.New(cacheDir)
+	err := modCache.Write(modcache.Modules{
+		"mod.test/two@v0.0.1": modcache.Files{
+			"go.mod":   "module mod.test/two",
+			"const.go": "package two\nconst Answer = 10",
+		},
+		"mod.test/two@v0.0.2": modcache.Files{
+			"go.mod":   "module mod.test/two",
+			"const.go": "package two\nconst Answer = 20",
+		},
+		"mod.test/module@v1.2.3": modcache.Files{
+			"go.mod":   "module mod.test/module",
+			"const.go": "package module\nconst Answer = 42",
+		},
+		"mod.test/module@v1.2.4": modcache.Files{
+			"go.mod":   "module mod.test/module\nrequire mod.test/two v0.0.2",
+			"const.go": "package module\nimport \"mod.test/two\"\nconst Answer = two.Answer",
+		},
+	})
+	is.NoErr(err)
+	fsys := vfs.Map{
+		"app.go": "package app\nimport \"mod.test/module\"\nvar a = module.Answer",
+	}
+	genfs := gen.New(fsys)
+	genfs.Add(map[string]gen.Generator{
+		"go.mod": gen.GenerateFile(func(f gen.F, file *gen.File) error {
+			file.Write([]byte("module app.com\nrequire mod.test/module v1.2.4"))
+			return nil
+		}),
+		"hello/hello.go": gen.GenerateFile(func(f gen.F, file *gen.File) error {
+			file.Write([]byte("package hello\nconst Hi = \"hello\""))
+			return nil
+		}),
+	})
+	modFinder := mod.New(mod.WithCache(modCache), mod.WithFS(genfs))
+	module, err := modFinder.Find(".")
+	is.NoErr(err)
+	is.Equal(module.Directory(), ".")
+	// Resolving a local package
+	dir, err := module.ResolveDirectory("app.com/hello")
+	is.NoErr(err)
+	is.Equal(dir, "hello")
+	// Resolve dependencies
+	module2, err := module.Find("mod.test/module")
+	is.NoErr(err)
+	is.Equal(module2.Import(), "mod.test/module")
+	is.Equal(module2.Directory(), modCache.Directory("mod.test", "module@v1.2.4"))
+	module3, err := module2.Find("mod.test/two")
+	is.NoErr(err)
+	is.Equal(module3.Import(), "mod.test/two")
+	is.Equal(module3.Directory(), modCache.Directory("mod.test", "two@v0.0.2"))
+}
+
+func TestOpen(t *testing.T) {
+	is := is.New(t)
+	fsys := vfs.Map{
+		"app.go": "package app\nvar a = 10",
+	}
+	genfs := gen.New(fsys)
+	genfs.Add(map[string]gen.Generator{
+		"go.mod": gen.GenerateFile(func(f gen.F, file *gen.File) error {
+			file.Write([]byte("module app.com"))
+			return nil
+		}),
+		"hello/hello.go": gen.GenerateFile(func(f gen.F, file *gen.File) error {
+			file.Write([]byte("package hello\nconst Hi = \"hello\""))
+			return nil
+		}),
+	})
+	modFinder := mod.New(mod.WithFS(genfs))
+	module, err := modFinder.Find(".")
+	is.NoErr(err)
+	is.Equal(module.Import(), "app.com")
+	des, err := fs.ReadDir(module, ".")
+	is.NoErr(err)
+	is.Equal(len(des), 3)
+	is.Equal(des[0].Name(), "app.go")
+	is.Equal(des[1].Name(), "go.mod")
+	is.Equal(des[2].Name(), "hello")
+	is.Equal(des[2].IsDir(), true)
+	code, err := fs.ReadFile(module, "hello/hello.go")
+	is.NoErr(err)
+	is.Equal(string(code), "package hello\nconst Hi = \"hello\"")
 }

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"go/build"
-	"os"
+	"io/fs"
 	"path/filepath"
 	"strings"
 
@@ -14,6 +14,7 @@ import (
 
 // Finder struct
 type Finder struct {
+	fsys  fs.FS
 	cache *modcache.Cache
 }
 
@@ -53,21 +54,26 @@ func (f *Finder) parse(path string, data []byte) (*Module, error) {
 		return nil, err
 	}
 	dir := filepath.Dir(path)
+	fsys, err := subFS(f.fsys, dir)
+	if err != nil {
+		return nil, err
+	}
 	return &Module{
 		file:  &File{modfile},
 		cache: f.cache,
+		fsys:  fsys,
 		dir:   dir,
 	}, nil
 }
 
 // Find the go.mod file from anywhere in your project.
 func (f *Finder) findModFile(path string) (*Module, error) {
-	moduleDir, err := FindDirectory(path)
+	moduleDir, err := findDirectory(f.fsys, path)
 	if err != nil {
 		return nil, fmt.Errorf("%w in %q", ErrFileNotFound, path)
 	}
 	modulePath := filepath.Join(moduleDir, "go.mod")
-	moduleData, err := os.ReadFile(modulePath)
+	moduleData, err := fs.ReadFile(f.fsys, modulePath)
 	if err != nil {
 		return nil, err
 	}

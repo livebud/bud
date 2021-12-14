@@ -1016,8 +1016,14 @@ func TestDotReadDirEmpty(t *testing.T) {
 	is := is.New(t)
 	gfs := gen.New(os.DirFS(t.TempDir()))
 	gfs.Add(map[string]gen.Generator{
-		"bud/generate/main.go": &gen.Embed{Data: []byte("package main")},
-		"go.mod":               &gen.Embed{Data: []byte("module pkg")},
+		"bud/generate/main.go": gen.GenerateFile(func(f gen.F, file *gen.File) error {
+			file.Write([]byte("package main"))
+			return nil
+		}),
+		"go.mod": gen.GenerateFile(func(f gen.F, file *gen.File) error {
+			file.Write([]byte("module pkg"))
+			return nil
+		}),
 	})
 	des, err := fs.ReadDir(gfs, ".")
 	is.NoErr(err)
@@ -1033,8 +1039,14 @@ func TestDotReadDirFiles(t *testing.T) {
 	is.NoErr(err)
 	gfs := gen.New(os.DirFS(tmp))
 	gfs.Add(map[string]gen.Generator{
-		"bud/generate/main.go": &gen.Embed{Data: []byte("package main")},
-		"go.mod":               &gen.Embed{Data: []byte("module pkg")},
+		"bud/generate/main.go": gen.GenerateFile(func(f gen.F, file *gen.File) error {
+			file.Write([]byte("package main"))
+			return nil
+		}),
+		"go.mod": gen.GenerateFile(func(f gen.F, file *gen.File) error {
+			file.Write([]byte("module pkg"))
+			return nil
+		}),
 	})
 	des, err := fs.ReadDir(gfs, ".")
 	is.NoErr(err)

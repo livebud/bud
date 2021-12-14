@@ -100,6 +100,9 @@ func (f *openFile) Seek(offset int64, whence int) (int64, error) {
 type GenerateFile func(f F, file *File) error
 
 func (fn GenerateFile) open(f F, key, relative, target string) (fs.File, error) {
+	if relative != "." {
+		return nil, fs.ErrNotExist
+	}
 	file := newFile(target)
 	if err := fn(f, file); err != nil {
 		return nil, err
@@ -139,5 +142,5 @@ type fileServer interface {
 }
 
 func FileServer(server fileServer) Generator {
-	return GenerateFile(server.ServeFile)
+	return ServeFile(server.ServeFile)
 }
