@@ -38,10 +38,7 @@ func (fn *Function) Dependencies() []Dependency {
 // Generate the function declaration that can be called to initialize the
 // required dependencies
 func (fn *Function) Generate(g Generator, ins []*Variable) (outs []*Variable) {
-	// fmt.Println(ins[0].Import, ins[0].Name, ins[0].Type)
 	return ins
-	// panic("Generate Not done yet.")
-	// return outs
 }
 
 // Check to see if the function initializes the dependency.

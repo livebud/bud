@@ -2,7 +2,6 @@ package commander
 
 import (
 	"bytes"
-	"fmt"
 	"sort"
 	"strings"
 	"text/tabwriter"
@@ -96,18 +95,11 @@ func (flags generateFlags) hasShortFlags() bool {
 func (flags generateFlags) Usage() (string, error) {
 	buf := new(bytes.Buffer)
 	tw := tabwriter.NewWriter(buf, 0, 0, 2, ' ', 0)
-	hasShortFlags := flags.hasShortFlags()
 	for _, flag := range flags {
 		tw.Write([]byte("\t\t"))
-		fmt.Println(hasShortFlags, flag.Name())
 		if flag.f.short != 0 {
 			tw.Write([]byte("-" + string(flag.f.short) + ", "))
 		}
-		//  else if hasShortFlags {
-		// 	fmt.Println("indenting", flag.f.name)
-		// 	// Only indent if we have other short flag options
-		// 	tw.Write([]byte("      "))
-		// }
 		tw.Write([]byte("--" + flag.f.name))
 		tw.Write([]byte("\t"))
 		tw.Write([]byte(dim() + flag.f.usage + reset()))

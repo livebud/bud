@@ -426,8 +426,8 @@ func (c *diCommand) Run(ctx context.Context) error {
 	if c.Verbose {
 		fmt.Println(node.Print())
 	}
-	provider := node.Generate(fn.Target)
-	fmt.Println(provider.File("Load"))
+	provider := node.Generate("Load", fn.Target)
+	fmt.Fprintln(os.Stdout, provider.File())
 	return nil
 }
 
@@ -477,7 +477,7 @@ func (c *v8Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(result)
+	fmt.Fprintln(os.Stdout, result)
 	return nil
 }
 

@@ -39,18 +39,18 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) (err error) {
 	imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
 
 	// TODO: pull from DI
-	imports.AddNamed("js", "gitlab.com/mnm/bud/js/v8")
-	imports.AddNamed("controller1", "gitlab.com/mnm/bud/example/hn/bud/controller")
-	imports.AddNamed("tailwind", "gitlab.com/mnm/bud-tailwind/transform/tailwind")
-	imports.AddNamed("public", "gitlab.com/mnm/bud/example/hn/bud/public")
-	imports.AddNamed("transform", "gitlab.com/mnm/bud/example/hn/bud/transform")
-	imports.AddNamed("view", "gitlab.com/mnm/bud/example/hn/bud/view")
-	imports.AddNamed("web", "gitlab.com/mnm/bud/example/hn/bud/web")
-	imports.AddNamed("controller", "gitlab.com/mnm/bud/example/hn/controller")
-	imports.AddNamed("hn", "gitlab.com/mnm/bud/example/hn/internal/hn")
-	imports.AddNamed("hot", "gitlab.com/mnm/bud/hot")
-	imports.AddNamed("router", "gitlab.com/mnm/bud/router")
-	imports.AddNamed("svelte", "gitlab.com/mnm/bud/svelte")
+	// imports.AddNamed("js", "gitlab.com/mnm/bud/js/v8")
+	// imports.AddNamed("controller1", "gitlab.com/mnm/bud/example/hn/bud/controller")
+	// imports.AddNamed("tailwind", "gitlab.com/mnm/bud-tailwind/transform/tailwind")
+	// imports.AddNamed("public", "gitlab.com/mnm/bud/example/hn/bud/public")
+	// imports.AddNamed("transform", "gitlab.com/mnm/bud/example/hn/bud/transform")
+	// imports.AddNamed("view", "gitlab.com/mnm/bud/example/hn/bud/view")
+	// imports.AddNamed("web", "gitlab.com/mnm/bud/example/hn/bud/web")
+	// imports.AddNamed("controller", "gitlab.com/mnm/bud/example/hn/controller")
+	// imports.AddNamed("hn", "gitlab.com/mnm/bud/example/hn/internal/hn")
+	// imports.AddNamed("hot", "gitlab.com/mnm/bud/hot")
+	// imports.AddNamed("router", "gitlab.com/mnm/bud/router")
+	// imports.AddNamed("svelte", "gitlab.com/mnm/bud/svelte")
 
 	name := filepath.Base(g.Module.Directory())
 
@@ -114,31 +114,37 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) (err error) {
 		},
 	}
 
-	// // 2. DI a virtual *Command
-	// state.Provider, err = g.Injector.Wire(&di.Function{
-	// 	Name:   "load",
-	// 	Target: g.Modfile.ModulePath("bud", "command"),
-	// 	Params: []di.Dependency{
-	// 		&di.Type{Import: "gitlab.com/mnm/bud/go/mod", Type: "*File"},
-	// 		&di.Type{Import: "gitlab.com/mnm/bud/gen", Type: "*FileSystem"},
-	// 	},
-	// 	Results: []di.Dependency{
-	// 		&di.Struct{
-	// 			Import: g.Modfile.ModulePath("bud", "command"),
-	// 			Type:   "*Command",
-	// 			Fields: []*di.StructField{
-	// 				{
-	// 					Name:   "Web",
-	// 					Import: g.Modfile.ModulePath("bud", "web"),
-	// 					Type:   "*Server",
-	// 				},
-	// 			},
-	// 		},
-	// 	},
-	// })
-	// if err != nil {
-	// 	return err
-	// }
+	// 2. DI a virtual *Command
+	state.Provider, err = g.Injector.Wire(&di.Function{
+		Name:   "load",
+		Target: g.Module.Import("bud", "command"),
+		Params: []di.Dependency{
+			&di.Type{Import: "gitlab.com/mnm/bud/go/mod", Type: "*Module"},
+			&di.Type{Import: "gitlab.com/mnm/bud/gen", Type: "*FileSystem"},
+		},
+		Results: []di.Dependency{
+			&di.Struct{
+				Import: g.Module.Import("bud", "command"),
+				Type:   "*Command",
+				Fields: []*di.StructField{
+					{
+						Name:   "Web",
+						Import: g.Module.Import("bud", "web"),
+						Type:   "*Server",
+					},
+				},
+			},
+			&di.Error{},
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	// Merge in the providers
+	for _, im := range state.Provider.Imports {
+		imports.AddNamed(im.Name, im.Path)
+	}
 
 	// 3. Generate
 	code, err := generator.Generate(state)
@@ -146,7 +152,6 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) (err error) {
 		fmt.Println(err)
 		return err
 	}
-	// fmt.Println(string(code))
 	file.Write(code)
 	return nil
 }

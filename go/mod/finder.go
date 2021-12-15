@@ -20,16 +20,17 @@ type Finder struct {
 
 // Find first tries finding an explicit module file (go.mod). If no go.mod is
 // found, then Find will try inferring a virtual module file from $GOPATH.
-func (f *Finder) Find(dir string) (*Module, error) {
+// Fullpath should be an absolute path if you're using the default filesystem.
+func (f *Finder) Find(fullpath string) (*Module, error) {
 	// First search for go.mod
-	modfile, err := f.findModFile(dir)
+	modfile, err := f.findModFile(fullpath)
 	if nil == err {
 		return modfile, nil
 	} else if !errors.Is(err, ErrFileNotFound) {
 		return nil, err
 	}
 	// If that fails, try inferring from the $GOPATH
-	return f.Infer(dir)
+	return f.Infer(fullpath)
 }
 
 // Infer the module path from the $GOPATH. This only works if you work inside

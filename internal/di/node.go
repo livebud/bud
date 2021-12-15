@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/internal/parser"
 )
 
 // node in the dependency injection graph
@@ -32,7 +31,7 @@ func (n *Node) ID() string {
 }
 
 // Build a provider for the target import path
-func (n *Node) Generate(target string) *Provider {
+func (n *Node) Generate(fnName, target string) *Provider {
 	// Build context
 	g := &generator{
 		Seen:    map[string][]*Variable{},
@@ -47,16 +46,13 @@ func (n *Node) Generate(target string) *Provider {
 		output.Type = g.DataType(output.Import, output.Type)
 	}
 	// Add an error if we have one
-	if g.HasError {
-		outputs = append(outputs, &Variable{
-			Import: "", // error doesn't have an import
-			Name:   "err",
-			Type:   "error",
-			Kind:   parser.KindInterface,
-		})
+	rightmost := outputs[len(outputs)-1]
+	if !g.HasError && rightmost.Type == "error" {
+		rightmost.Name = "nil"
 	}
 	// Create the provider
 	return &Provider{
+		Name:      fnName,
 		Target:    target,
 		Imports:   g.Imports.List(),
 		Externals: g.Externals,
@@ -130,6 +126,9 @@ func (g *generator) Identifier(importPath, typeName string) string {
 // data type. This function will also add an import automatically if the
 // importPath doesn't match our target path.
 func (g *generator) DataType(importPath, dataType string) string {
+	if importPath == "" {
+		return dataType
+	}
 	if g.Target != importPath {
 		pkg := g.Imports.Add(importPath)
 		return toDataType(pkg, dataType)

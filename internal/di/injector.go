@@ -95,7 +95,7 @@ func (i *Injector) Wire(fn *Function) (*Provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	return node.Generate(fn.Target), nil
+	return node.Generate(fn.Name, fn.Target), nil
 }
 
 // GenerateFile generates a provider function into string
@@ -104,7 +104,7 @@ func (i *Injector) Generate(fn *Function) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	code := provider.Function(fn.Name)
+	code := provider.Function()
 	return code, nil
 }
 
@@ -114,6 +114,6 @@ func (i *Injector) GenerateFile(fn *Function) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	code := provider.File(fn.Name)
+	code := provider.File()
 	return code, nil
 }

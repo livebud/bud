@@ -11,6 +11,7 @@ import (
 // Provider is the result of generating. Provider can generate functions or
 // files or be used for it's template variables.
 type Provider struct {
+	Name      string            // Name of the function
 	Target    string            // Target import path
 	Imports   []*imports.Import // Imports needed
 	Externals []*External       // External variables
@@ -19,13 +20,9 @@ type Provider struct {
 }
 
 // Function wraps the body code in a function
-func (p *Provider) Function(fnName string) string {
+func (p *Provider) Function() string {
 	c := new(strings.Builder)
-	var params []string
-	for _, external := range sortByName(p.Externals) {
-		params = append(params, external.Name+" "+external.Type)
-	}
-	paramList := strings.Join(params, ", ")
+	params := p.Params()
 	var resultTypes []string
 	var resultNames []string
 	for _, field := range p.Results {
@@ -36,7 +33,7 @@ func (p *Provider) Function(fnName string) string {
 	if len(resultTypes) > 1 {
 		resultList = "(" + resultList + ")"
 	}
-	fmt.Fprintf(c, "func %s(%s) %s {\n", fnName, paramList, resultList)
+	fmt.Fprintf(c, "func %s(%s) %s {\n", p.Name, params, resultList)
 	fmt.Fprintf(c, "\t%s", strings.Join(strings.Split(p.Code, "\n"), "\n\t"))
 	fmt.Fprintf(c, "return %s\n", strings.Join(resultNames, ", "))
 	fmt.Fprintf(c, "}\n")
@@ -51,10 +48,23 @@ func sortByName(externals []*External) []*External {
 	return externals
 }
 
+func (p *Provider) Params() (params Params) {
+	for _, external := range sortByName(p.Externals) {
+		params = append(params, external.Name+" "+external.Type)
+	}
+	return params
+}
+
+type Params []string
+
+func (params Params) String() string {
+	return strings.Join(params, ", ")
+}
+
 // File wraps the body code in a file
-func (p *Provider) File(fnName string) string {
+func (p *Provider) File() string {
 	c := new(strings.Builder)
-	body := p.Function(fnName)
+	body := p.Function()
 	c.WriteString(`package ` + imports.AssumedName(p.Target) + "\n\n")
 	c.WriteString("// GENERATED. DO NOT EDIT.\n\n")
 	c.WriteString("import (\n")

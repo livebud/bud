@@ -50,6 +50,11 @@ func (pkg *Package) Module() *mod.Module {
 
 // Import returns the import path to this package
 func (pkg *Package) Import() (string, error) {
+	// TODO: move this logic into go/mod itself.
+	if pkg.module.Directory() == "." {
+		subpaths := filepath.SplitList(pkg.dir)
+		return pkg.module.Import(subpaths...), nil
+	}
 	return pkg.module.ResolveImport(pkg.dir)
 }
 

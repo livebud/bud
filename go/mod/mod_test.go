@@ -91,6 +91,20 @@ func TestResolveImport(t *testing.T) {
 	is.Equal(module.Import("go", base), im)
 }
 
+// func TestVirtualResolveImport(t *testing.T) {
+// 	panic("Not implemented yet")
+// 	is := is.New(t)
+// 	wd, err := os.Getwd()
+// 	is.NoErr(err)
+// 	modFinder := mod.New()
+// 	module, err := modFinder.Find(wd)
+// 	is.NoErr(err)
+// 	im, err := module.ResolveImport(wd)
+// 	is.NoErr(err)
+// 	base := filepath.Base(wd)
+// 	is.Equal(module.Import("go", base), im)
+// }
+
 func TestAddRequire(t *testing.T) {
 	is := is.New(t)
 	modFinder := mod.New()

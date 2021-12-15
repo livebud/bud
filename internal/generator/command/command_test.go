@@ -53,13 +53,14 @@ var webServer = gen.GenerateFile(func(f gen.F, file *gen.File) error {
 			package web
 
 			import (
-				"net/http"
+				"context"
 			)
 
-			type Server struct {}
+			type Server struct {
+			}
 
-			func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-				w.Write([]byte("mock web server"))
+			func (s *Server) ListenAndServe(ctx context.Context, address string) error {
+				return nil
 			}
 		`)))
 	return nil
@@ -94,10 +95,12 @@ func runTest(t *testing.T, test Test) {
 		t.SkipNow()
 	}
 	is := is.New(t)
+	wd, err := os.Getwd()
+	is.NoErr(err)
 	appDir := t.TempDir()
 	modCache := modcache.Default()
 	modFinder := mod.New(mod.WithCache(modCache))
-	budModule, err := modFinder.Find(".")
+	budModule, err := modFinder.Find(wd)
 	is.NoErr(err)
 	// Write application files
 	if test.Files != nil {
@@ -120,7 +123,8 @@ func runTest(t *testing.T, test Test) {
 	// Setup genFS
 	appFS := vfs.OS(appDir)
 	genFS := gen.New(appFS)
-	module, err := modFinder.Find(appDir)
+	modFinder = mod.New(mod.WithCache(modCache), mod.WithFS(genFS))
+	module, err := modFinder.Find(".")
 	is.NoErr(err)
 	parser := parser.New(module)
 	injector := di.New(module, parser, di.Map{})
@@ -150,7 +154,6 @@ require (
 
 func TestRoot(t *testing.T) {
 	runTest(t, Test{
-		Skip: true,
 		Files: map[string]string{
 			"go.mod": goMod,
 		},

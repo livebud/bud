@@ -34,36 +34,23 @@ func Load() (*CLI, error) {
 	if err != nil {
 		return nil, err
 	}
-	modFile, err := mod.Default().Find(wd)
+	modFinder := mod.New()
+	module, err := modFinder.Find(wd)
 	if err != nil {
 		return nil, err
 	}
-	genFS := gen.New(os.DirFS(modFile.Directory()))
+	genFS := gen.New(os.DirFS(module.Directory()))
 	genFS.Add(map[string]gen.Generator{
-		"bud/plugin": gen.DirGenerator(&plugin.Generator{Modfile: modFile}),
+		"bud/plugin": gen.DirGenerator(&plugin.Generator{Module: module}),
 	})
-	cmd, err := load()
+	cmd, err := load({{ $.Provider.Params }})
 	if err != nil {
 		return nil, err
 	}
 	return &CLI{cmd}, nil
 }
 
-func load() (*Command, error) {
-	wd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-	modFile, err := mod.Default().Find(wd)
-	if err != nil {
-		return nil, err
-	}
-	genFS := gen.New(os.DirFS(modFile.Directory()))
-	genFS.Add(map[string]gen.Generator{
-		"bud/plugin": gen.DirGenerator(&plugin.Generator{Modfile: modFile}),
-	})
-	return provideCommand(genFS, modFile)
-}
+{{ $.Provider.Function }}
 
 type CLI struct {
 	cmd *Command
@@ -103,27 +90,4 @@ type Command struct {
 func (c *Command) Run(ctx context.Context) error {
 	console.Info("Listening on http://localhost:3000")
 	return c.Web.ListenAndServe(ctx, ":3000")
-}
-
-// TODO: generate with DI
-// go run main.go -C ../hackernews tool di -d="bud/command.*Command" -t="bud/command"  -e="gitlab.com/mnm/bud/gen".FS -e="gitlab.com/mnm/bud/go/mod.*File" -m "gitlab.com/mnm/bud/js.VM:gitlab.com/mnm/bud/js/v8.*Pool"
-func provideCommand(genFS gen.FS, modFile *mod.File) (*Command, error) {
-	hnClient := hn.New()
-	controllerController := &controller.Controller{HN: hnClient}
-	jsPool := js.New()
-	svelteCompiler := svelte.New(jsPool)
-	svelteTransformable := svelte.NewTransformable(svelteCompiler)
-	tailwindTransform := tailwind.New(modFile)
-	transformTransformer, err := transform.PrivateLoad(svelteTransformable, tailwindTransform)
-	if err != nil {
-		return nil, err
-	}
-	viewServer := view.New(genFS, modFile, jsPool, transformTransformer)
-	controller1Controller := controller1.New(controllerController, viewServer)
-	hotServer := hot.New(genFS)
-	publicMiddleware := public.New(genFS)
-	routerRouter := router.New()
-	webServer := web.New(controller1Controller, hotServer, publicMiddleware, routerRouter, viewServer)
-	commandCommand := &Command{Web: webServer}
-	return commandCommand, err
 }

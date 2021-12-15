@@ -90,9 +90,8 @@ func runTest(t testing.TB, test Test) {
 		is.Equal(test.Expect, err.Error())
 		return
 	}
-	provider := node.Generate(test.Function.Target)
-	code := provider.File(test.Function.Name)
-	// fmt.Println(code)
+	provider := node.Generate(test.Function.Name, test.Function.Target)
+	code := provider.File()
 	// TODO: provide a modFile method for doing this, modfile.ResolveDirectory
 	// also stats the final dir, which doesn't exist yet.
 	targetDir := module.Directory(strings.TrimPrefix(test.Function.Target, module.Import()))
@@ -173,6 +172,7 @@ func TestFunctionAll(t *testing.T) {
 			Target: "app.com/gen/web",
 			Results: []di.Dependency{
 				toType("app.com/web", "*Web"),
+				&di.Error{},
 			},
 		},
 		Expect: `
@@ -430,6 +430,7 @@ func TestFunctionHasError(t *testing.T) {
 			Target: "app.com/gen/web",
 			Results: []di.Dependency{
 				toType("app.com/web", "*Web"),
+				&di.Error{},
 			},
 		},
 		Expect: `env: unable to load environment`,
@@ -2004,6 +2005,74 @@ func TestInputStructPointer(t *testing.T) {
 
 				type B struct {
 					b string
+				}
+			`,
+		},
+	})
+}
+
+func TestErrorResultNoError(t *testing.T) {
+	runTest(t, Test{
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []di.Dependency{},
+			Results: []di.Dependency{
+				toType("app.com/web", "*Web"),
+				&di.Error{},
+			},
+		},
+		Expect: `
+			&web.Web{}
+		`,
+		Files: map[string]string{
+			"go.mod":  goMod,
+			"main.go": mainGoWithErr,
+			"web/web.go": `
+				package web
+
+				// New web
+				func New() *Web {
+					return &Web{}
+				}
+
+				// Web struct
+				type Web struct {
+				}
+			`,
+		},
+	})
+}
+
+func TestErrorResultWithError(t *testing.T) {
+	runTest(t, Test{
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []di.Dependency{},
+			Results: []di.Dependency{
+				toType("app.com/web", "*Web"),
+				&di.Error{},
+			},
+		},
+		Expect: `
+			unable to create web
+		`,
+		Files: map[string]string{
+			"go.mod":  goMod,
+			"main.go": mainGoWithErr,
+			"web/web.go": `
+				package web
+
+				import "errors"
+
+				// New web
+				func New() (*Web, error) {
+					return &Web{}, errors.New("unable to create web")
+				}
+
+				// Web struct
+				type Web struct {
 				}
 			`,
 		},
