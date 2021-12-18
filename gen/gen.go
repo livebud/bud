@@ -1,6 +1,7 @@
 package gen
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -11,6 +12,10 @@ import (
 	"gitlab.com/mnm/bud/internal/pubsub"
 	"golang.org/x/sync/errgroup"
 )
+
+// ErrSkipped allows you to skip generating files, without producing an error.
+// TODO: consider moving to vfs.
+var ErrSkipped = errors.New("skipped")
 
 type FS interface {
 	Open(name string) (fs.File, error)
@@ -117,6 +122,33 @@ func (i *innerFS) open(name string) (fs.File, error) {
 	return file, nil
 }
 
+// Entry set is used to ensure merged entries are unique by filename
+func newEntrySet() *entrySet {
+	return &entrySet{set: map[string]struct{}{}}
+}
+
+type entrySet struct {
+	set     map[string]struct{}
+	entries []fs.DirEntry
+}
+
+func (e *entrySet) Add(des ...fs.DirEntry) {
+	for _, de := range des {
+		name := de.Name()
+		if _, ok := e.set[name]; !ok {
+			e.entries = append(e.entries, de)
+			e.set[name] = struct{}{}
+		}
+	}
+}
+
+func (e *entrySet) List() []fs.DirEntry {
+	sort.Slice(e.entries, func(i, j int) bool {
+		return e.entries[i].Name() < e.entries[j].Name()
+	})
+	return e.entries
+}
+
 // Merge the generator entries with the dirfs entries
 // Currently only used for "."
 func (i *innerFS) mergeEntries(name string) (fs.File, error) {
@@ -124,14 +156,14 @@ func (i *innerFS) mergeEntries(name string) (fs.File, error) {
 	if err != nil {
 		return nil, err
 	}
-	var entries []fs.DirEntry
+	entries := newEntrySet()
 	// Read all the entries from the generators
 	if rdir, ok := file.(fs.ReadDirFile); ok {
 		des, err := rdir.ReadDir(-1)
 		if err != nil {
 			return nil, err
 		}
-		entries = append(entries, des...)
+		entries.Add(des...)
 	}
 	// Read all the entries from dirfs
 	if i.dirfs != nil {
@@ -139,14 +171,11 @@ func (i *innerFS) mergeEntries(name string) (fs.File, error) {
 		if err != nil {
 			return nil, err
 		}
-		entries = append(entries, des...)
+		entries.Add(des...)
 	}
-	sort.Slice(entries, func(i, j int) bool {
-		return entries[i].Name() < entries[j].Name()
-	})
 	return &openDir{
 		path:    name,
-		entries: entries,
+		entries: entries.List(),
 	}, nil
 
 }

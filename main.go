@@ -170,14 +170,19 @@ type runCommand struct {
 }
 
 func (c *runCommand) Run(ctx context.Context) error {
-	modFinder := mod.New()
-	module, err := modFinder.Find(c.bud.Chdir)
+	absdir, err := mod.FindDirectory(c.bud.Chdir)
+	if err != nil {
+		return err
+	}
+	dirfs := vfs.OS(absdir)
+	genfs := gen.New(dirfs)
+	modFinder := mod.New(mod.WithFS(genfs))
+	module, err := modFinder.Find(".")
 	if err != nil {
 		return err
 	}
 	parser := parser.New(module)
 	injector := di.New(module, parser, di.Map{})
-	genfs := gen.New(os.DirFS(module.Directory()))
 	genfs.Add(map[string]gen.Generator{
 		"go.mod": gen.FileGenerator(&gomod.Generator{
 			Module: module,
@@ -242,7 +247,7 @@ func (c *runCommand) Run(ctx context.Context) error {
 		}),
 	})
 	// Sync genfs
-	if err := fsync.Dir(genfs, ".", vfs.OS(module.Directory()), "."); err != nil {
+	if err := fsync.Dir(module, ".", dirfs, "."); err != nil {
 		return err
 	}
 	// Intentionally use a different context for running subprocesses because

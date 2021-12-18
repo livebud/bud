@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"gitlab.com/mnm/bud/fsync/set"
+	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/vfs"
 )
 
@@ -147,7 +148,8 @@ func apply(sfs fs.FS, tfs vfs.ReadWritable, ops []Op) error {
 			dir := filepath.Dir(op.Path)
 			data, err := fs.ReadFile(sfs, op.Path)
 			if err != nil {
-				if errors.Is(err, fs.ErrNotExist) {
+				// Don't error out on skipped files
+				if errors.Is(err, gen.ErrSkipped) {
 					continue
 				}
 				return err
@@ -161,7 +163,8 @@ func apply(sfs fs.FS, tfs vfs.ReadWritable, ops []Op) error {
 		case UpdateType:
 			data, err := fs.ReadFile(sfs, op.Path)
 			if err != nil {
-				if errors.Is(err, fs.ErrNotExist) {
+				// Don't error out on skipped files
+				if errors.Is(err, gen.ErrSkipped) {
 					continue
 				}
 				return err

@@ -28,10 +28,7 @@ func (i *Injector) Find(module *mod.Module, dep Dependency) (Declaration, error)
 	// Resolve the absolute directory based on the import
 	dir, err := module.ResolveDirectory(dep.ImportPath())
 	if err != nil {
-		// This error shouldn't be wrapped because it can be an fs.ErrNotExist which
-		// is ignored by fsync.Dir. If a dependency doesn't exist, di should error
-		// out with it's own error type.
-		return nil, fmt.Errorf("di: unable to find dependency %s > %s", dep.ID(), err)
+		return nil, fmt.Errorf("di: unable to find dependency %s > %w", dep.ID(), err)
 	}
 	rel, err := filepath.Rel(module.Directory(), dir)
 	if err != nil {

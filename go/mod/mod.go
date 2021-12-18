@@ -46,7 +46,11 @@ func WithFS(fsys fs.FS) func(f *Finder) {
 // FindDirectory traverses up the filesystem until it finds a directory
 // containing go.mod or returns an error trying.
 func FindDirectory(dir string) (abs string, err error) {
-	return findDirectory(osfs{}, dir)
+	dir, err = findDirectory(osfs{}, dir)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Abs(dir)
 }
 
 func findDirectory(fsys fs.FS, dir string) (abs string, err error) {

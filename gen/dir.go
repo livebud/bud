@@ -42,6 +42,10 @@ func (d *Dir) Watch(pattern string, event Event) {
 	d.watch[pattern] |= event
 }
 
+func (d *Dir) Skip() error {
+	return fmt.Errorf("%w directory %q", ErrSkipped, d.path)
+}
+
 func (d *Dir) open(f F, key, relative, path string) (fs.File, error) {
 	// Add all the generators to a radix tree
 	radix := newRadix()

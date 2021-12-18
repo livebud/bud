@@ -1,6 +1,7 @@
 package gen
 
 import (
+	"fmt"
 	"io"
 	"io/fs"
 	"path/filepath"
@@ -36,6 +37,10 @@ func (f *File) Mode(mode fs.FileMode) {
 
 func (f *File) Watch(pattern string, event Event) {
 	f.watch[pattern] |= event
+}
+
+func (f *File) Skip() error {
+	return fmt.Errorf("%w file %q", ErrSkipped, f.path)
 }
 
 func (f *File) open(fsys F, key, relative, path string) (fs.File, error) {

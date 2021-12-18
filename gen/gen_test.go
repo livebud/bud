@@ -14,6 +14,7 @@ import (
 
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/gen"
+	"gitlab.com/mnm/bud/vfs"
 )
 
 func View() map[string]gen.Generator {
@@ -1051,4 +1052,61 @@ func TestDotReadDirFiles(t *testing.T) {
 	des, err := fs.ReadDir(gfs, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 4)
+}
+
+func TestReadDirDuplicates(t *testing.T) {
+	is := is.New(t)
+	fsys := vfs.Map{
+		"go.mod": `module app.com`,
+	}
+	genfs := gen.New(fsys)
+	genfs.Add(map[string]gen.Generator{
+		"go.mod": gen.GenerateFile(func(f gen.F, file *gen.File) error {
+			file.Write([]byte("module app.cool"))
+			return nil
+		}),
+	})
+	des, err := fs.ReadDir(genfs, ".")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
+	is.Equal(des[0].Name(), "go.mod")
+	code, err := fs.ReadFile(genfs, "go.mod")
+	is.NoErr(err)
+	is.Equal(string(code), "module app.cool")
+}
+
+func TestFileSkip(t *testing.T) {
+	is := is.New(t)
+	genfs := gen.New(nil)
+	genfs.Add(map[string]gen.Generator{
+		"go.mod": gen.GenerateFile(func(f gen.F, file *gen.File) error {
+			return file.Skip()
+		}),
+	})
+	des, err := fs.ReadDir(genfs, ".")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
+	is.Equal(des[0].Name(), "go.mod")
+	code, err := fs.ReadFile(genfs, "go.mod")
+	is.True(errors.Is(err, gen.ErrSkipped))
+	is.True(strings.Contains(err.Error(), `skipped file "go.mod"`))
+	is.Equal(code, nil)
+}
+
+func TestDirSkip(t *testing.T) {
+	is := is.New(t)
+	genfs := gen.New(nil)
+	genfs.Add(map[string]gen.Generator{
+		"bud": gen.GenerateDir(func(f gen.F, dir *gen.Dir) error {
+			return dir.Skip()
+		}),
+	})
+	des, err := fs.ReadDir(genfs, ".")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
+	is.Equal(des[0].Name(), "bud")
+	code, err := fs.ReadFile(genfs, "bud")
+	is.True(errors.Is(err, gen.ErrSkipped))
+	is.True(strings.Contains(err.Error(), `skipped directory "bud"`))
+	is.Equal(code, nil)
 }
