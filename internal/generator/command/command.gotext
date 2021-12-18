@@ -83,11 +83,21 @@ func (c *CLI) Parse(args ...string) error {
 	return cmd.Parse(args)
 }
 
+// Command root
 type Command struct {
-	Web *web.Server
+	web *web.Server
+	Deploy *deployCommand
 }
 
 func (c *Command) Run(ctx context.Context) error {
 	console.Info("Listening on http://localhost:3000")
-	return c.Web.ListenAndServe(ctx, ":3000")
+	return c.web.ListenAndServe(ctx, ":3000")
+}
+
+type deployCommand struct {
+}
+
+func (c *deployCommand) Run(ctx context.Context) error {
+	println("deploying!")
+	return nil
 }

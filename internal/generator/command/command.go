@@ -3,14 +3,12 @@ package command
 import (
 	_ "embed"
 	"fmt"
-	"path/filepath"
 
 	"gitlab.com/mnm/bud/internal/di"
 
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/gotemplate"
-	"gitlab.com/mnm/bud/internal/imports"
 )
 
 //go:embed command.gotext
@@ -28,111 +26,12 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) (err error) {
 	if err := gen.Exists(f, "bud/web/web.go"); err != nil {
 		return err
 	}
-	imports := imports.New()
-	imports.AddStd("context", "errors", "os")
-	// imports.AddStd("fmt")
-	imports.AddNamed("web", g.Module.Import("bud/web"))
-	imports.AddNamed("commander", "gitlab.com/mnm/bud/commander")
-	imports.AddNamed("console", "gitlab.com/mnm/bud/log/console")
-	imports.AddNamed("plugin", "gitlab.com/mnm/bud/plugin")
-	imports.AddNamed("mod", "gitlab.com/mnm/bud/go/mod")
-	imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
-
-	name := filepath.Base(g.Module.Directory())
-
-	// 1. Load all the commands
-	state := &State{
-		Command: &Command{
-			Name:  name,
-			Usage: "start your application",
-			Subs: []*Command{
-				{
-					Name:  "deploy",
-					Usage: "deploy your application",
-					Deps: []di.Dependency{
-						&di.Type{
-							Import: "gitlab.com/mnm/bud/js/v8",
-							Type:   "*Pool",
-						},
-					},
-					Flags: []*Flag{
-						{
-							Name:    "access-key",
-							Usage:   "include a test",
-							Type:    "*bool",
-							Default: "true",
-						},
-						{
-							Name:    "secret-key",
-							Usage:   "include a test",
-							Type:    "*bool",
-							Default: "true",
-						},
-					},
-				},
-				{
-					Name:  "new",
-					Usage: "new scaffolding",
-					Subs: []*Command{
-						{
-							Name:  "view",
-							Usage: "new view",
-							Args: []*Arg{
-								{
-									Name:  "name",
-									Usage: "name of the view",
-									Type:  "string",
-								},
-							},
-							Flags: []*Flag{
-								{
-									Name:    "with-test",
-									Usage:   "include a test",
-									Type:    "*bool",
-									Default: "true",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	// 2. DI a virtual *Command
-	state.Provider, err = g.Injector.Wire(&di.Function{
-		Name:   "load",
-		Target: g.Module.Import("bud", "command"),
-		Params: []di.Dependency{
-			&di.Type{Import: "gitlab.com/mnm/bud/go/mod", Type: "*Module"},
-			&di.Type{Import: "gitlab.com/mnm/bud/gen", Type: "*FileSystem"},
-		},
-		Results: []di.Dependency{
-			&di.Struct{
-				Import: g.Module.Import("bud", "command"),
-				Type:   "*Command",
-				Fields: []*di.StructField{
-					{
-						Name:   "Web",
-						Import: g.Module.Import("bud", "web"),
-						Type:   "*Server",
-					},
-				},
-			},
-			&di.Error{},
-		},
-	})
+	// Load command state
+	state, err := Load(g.Injector, g.Module)
 	if err != nil {
 		return err
 	}
-
-	// Merge in the providers
-	for _, im := range state.Provider.Imports {
-		imports.AddNamed(im.Name, im.Path)
-	}
-
-	// 3. Generate
-	state.Imports = imports.List()
+	// Generate our template
 	code, err := generator.Generate(state)
 	if err != nil {
 		fmt.Println(err)

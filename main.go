@@ -15,7 +15,6 @@ import (
 	"github.com/mattn/go-isatty"
 	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/gobin"
-	"gitlab.com/mnm/bud/internal/modcache"
 	"gitlab.com/mnm/bud/internal/parser"
 	v8 "gitlab.com/mnm/bud/js/v8"
 
@@ -51,34 +50,37 @@ func main() {
 }
 
 func do() error {
-	cmd := new(bud)
+	// $ bud
+	bud := new(bud)
 	cli := commander.New("bud")
-	cli.Flag("chdir", "Change the working directory").Short('C').String(&cmd.Chdir).Default(".")
+	cli.Flag("chdir", "Change the working directory").Short('C').String(&bud.Chdir).Default(".")
+	cli.Args("command", "custom command").Strings(&bud.Args)
+	cli.Run(bud.Run)
 
-	{
-		cmd := &runCommand{bud: cmd}
+	{ // $ bud run
+		cmd := &runCommand{bud: bud}
 		cli := cli.Command("run", "run the development server")
-		cli.Flag("embed", "embed the assets").Bool(&cmd.Embed).Default(false)
-		cli.Flag("hot", "hot reload the frontend").Bool(&cmd.Hot).Default(true)
-		cli.Flag("minify", "minify the assets").Bool(&cmd.Minify).Default(false)
+		cli.Flag("embed", "embed the assets").Bool(&bud.Embed).Default(false)
+		cli.Flag("hot", "hot reload the frontend").Bool(&bud.Hot).Default(true)
+		cli.Flag("minify", "minify the assets").Bool(&bud.Minify).Default(false)
 		cli.Flag("port", "port").Int(&cmd.Port).Default(3000)
 		cli.Run(cmd.Run)
 	}
 
-	{
-		cmd := &buildCommand{bud: cmd}
+	{ // $ bud build
+		cmd := &buildCommand{bud: bud}
 		cli := cli.Command("build", "build the production server")
-		cli.Flag("embed", "embed the assets").Bool(&cmd.Embed).Default(true)
-		cli.Flag("hot", "hot reload the frontend").Bool(&cmd.Hot).Default(false)
-		cli.Flag("minify", "minify the assets").Bool(&cmd.Minify).Default(true)
+		cli.Flag("embed", "embed the assets").Bool(&bud.Embed).Default(true)
+		cli.Flag("hot", "hot reload the frontend").Bool(&bud.Hot).Default(false)
+		cli.Flag("minify", "minify the assets").Bool(&bud.Minify).Default(true)
 		cli.Run(cmd.Run)
 	}
 
-	{
+	{ // $ bud tool
 		cli := cli.Command("tool", "extra tools")
 
-		{ // bud tool di
-			cmd := &diCommand{bud: cmd}
+		{ // $ bud tool di
+			cmd := &diCommand{bud: bud}
 			cli := cli.Command("di", "dependency injection generator")
 			cli.Flag("dependency", "generate dependency provider").Short('d').Strings(&cmd.Dependencies)
 			cli.Flag("external", "mark dependency as external").Short('e').Strings(&cmd.Externals).Optional()
@@ -89,73 +91,27 @@ func do() error {
 			cli.Run(cmd.Run)
 		}
 
-		{ // bud tool v8
-			cmd := &v8Command{bud: cmd}
+		{ // $ bud tool v8
+			cmd := &v8Command{bud: bud}
 			cli := cli.Command("v8", "Execute Javascript with V8")
 			cli.Arg("eval", "evaluate a script").Strings(&cmd.Eval).Optional()
 			cli.Run(cmd.Run)
 		}
 	}
 
-	cli.Arg("command", "custom command").String(&cmd.Custom)
-	cli.Run(cmd.Run)
-
 	return cli.Parse(os.Args[1:])
 }
 
 type bud struct {
 	Chdir  string
-	Custom string
-}
-
-func (c *bud) Run(ctx context.Context) error {
-	modFinder := mod.New(mod.WithCache(modcache.Default()))
-	module, err := modFinder.Find(c.Chdir)
-	if err != nil {
-		return err
-	}
-	fmt.Println(c.Custom+"ing...", module.Directory())
-	genfs := gen.New(os.DirFS(module.Directory()))
-	genfs.Add(map[string]gen.Generator{
-		"bud/command/main.go": gen.FileGenerator(&command.Generator{
-			// fill in
-		}),
-	})
-	// Sync genfs
-	if err := fsync.Dir(genfs, ".", vfs.OS(module.Directory()), "."); err != nil {
-		return err
-	}
-	// If bud/command/main.go doesn't exist, run the welcome server
-	commandPath := filepath.Join(module.Directory(), "bud", "command", "main.go")
-	if _, err := os.Stat(commandPath); err != nil {
-		if !errors.Is(err, fs.ErrNotExist) {
-			return err
-		}
-		return fmt.Errorf("unknown command %q", c.Custom)
-	}
-	// Run the command
-	// TODO: pass all arguments through
-	if err := gobin.Run(ctx, module.Directory(), commandPath, c.Custom); err != nil {
-		return err
-	}
-	return nil
-}
-
-type runCommand struct {
-	bud    *bud
 	Embed  bool
 	Hot    bool
 	Minify bool
-	Port   int
 	Args   []string
 }
 
-func (c *runCommand) Run(ctx context.Context) error {
-	absdir, err := mod.FindDirectory(c.bud.Chdir)
-	if err != nil {
-		return err
-	}
-	dirfs := vfs.OS(absdir)
+func (c *bud) Generate(dir string) error {
+	dirfs := vfs.OS(dir)
 	genfs := gen.New(dirfs)
 	modFinder := mod.New(mod.WithFS(genfs))
 	module, err := modFinder.Find(".")
@@ -169,7 +125,7 @@ func (c *runCommand) Run(ctx context.Context) error {
 	})
 	genfs.Add(map[string]gen.Generator{
 		"go.mod": gen.FileGenerator(&gomod.Generator{
-			Dir: absdir,
+			Dir: dir,
 			Go: &gomod.Go{
 				Version: "1.17",
 			},
@@ -230,24 +186,63 @@ func (c *runCommand) Run(ctx context.Context) error {
 			Module: module,
 		}),
 	})
-	// Sync genfs
+	// Sync with the project
 	if err := fsync.Dir(module, ".", dirfs, "."); err != nil {
 		return err
 	}
-	// Intentionally use a different context for running subprocesses because
-	// the subprocess should be the one handling the interrupt, not the parent
-	// process.
-	runCtx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	// Run generate (if it exists) to support user-defined generators
 	generatePath := filepath.Join(module.Directory(), "bud", "generate", "main.go")
 	if _, err := os.Stat(generatePath); nil == err {
-		if err := gobin.Run(runCtx, module.Directory(), generatePath); err != nil {
+		if err := gobin.Run(context.Background(), module.Directory(), generatePath); err != nil {
 			return err
 		}
 	}
+	return nil
+}
+
+func (c *bud) Run(ctx context.Context) error {
+	// Find the project directory
+	dir, err := mod.FindDirectory(c.Chdir)
+	if err != nil {
+		return err
+	}
+	// Generate the code
+	if err := c.Generate(dir); err != nil {
+		return err
+	}
+	// Ensure that main.go exists
+	commandPath := filepath.Join(dir, "bud", "command", "main.go")
+	if _, err := os.Stat(commandPath); err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+		return fmt.Errorf("unknown command %q", c.Args)
+	}
+	// Run the command, passing all arguments through
+	if err := gobin.Run(ctx, dir, commandPath, c.Args...); err != nil {
+		return err
+	}
+	return nil
+}
+
+type runCommand struct {
+	bud  *bud
+	Port int
+	Args []string
+}
+
+func (c *runCommand) Run(ctx context.Context) error {
+	// Find the project directory
+	dir, err := mod.FindDirectory(c.bud.Chdir)
+	if err != nil {
+		return err
+	}
+	// Generate the code
+	if err := c.bud.Generate(dir); err != nil {
+		return err
+	}
 	// If bud/main.go doesn't exist, run the welcome server
-	mainPath := filepath.Join(absdir, "bud", "main.go")
+	mainPath := filepath.Join(dir, "bud", "main.go")
 	if _, err := os.Stat(mainPath); err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return err
@@ -259,101 +254,37 @@ func (c *runCommand) Run(ctx context.Context) error {
 			w.Write([]byte("Welcome Server!\n"))
 		}))
 	}
-	// Run the main server
-	if err := gobin.Run(runCtx, absdir, mainPath); err != nil {
+	// Run the main server. Intentionally use a new background context for running
+	// subprocesses because the subprocess should be the one handling the
+	// interrupt, not the parent process.
+	if err := gobin.Run(context.Background(), dir, mainPath); err != nil {
 		return err
 	}
 	return nil
 }
 
 type buildCommand struct {
-	bud    *bud
-	Embed  bool
-	Hot    bool
-	Minify bool
+	bud *bud
 }
 
 func (c *buildCommand) Run(ctx context.Context) error {
-	absdir, err := mod.FindDirectory(c.bud.Chdir)
+	// Find the project directory
+	dir, err := mod.FindDirectory(c.bud.Chdir)
 	if err != nil {
 		return err
 	}
-	dirfs := vfs.OS(absdir)
-	genfs := gen.New(dirfs)
-	modFinder := mod.New(mod.WithFS(genfs))
-	module, err := modFinder.Find(".")
-	if err != nil {
+	// Generate the code
+	if err := c.bud.Generate(dir); err != nil {
 		return err
-	}
-	parser := parser.New(module)
-	injector := di.New(module, parser, di.Map{})
-	fmt.Println("building...", module.Directory(), c.Embed, c.Hot, c.Minify)
-	genfs.Add(map[string]gen.Generator{
-		"bud/generate/main.go": gen.FileGenerator(&generate.Generator{
-			Module: module,
-			Embed:  c.Embed,
-			Hot:    c.Hot,
-			Minify: c.Minify,
-		}),
-		"bud/generator/generator.go": gen.FileGenerator(&generator.Generator{
-			// fill in
-		}),
-		"bud/command/command.go": gen.FileGenerator(&command.Generator{
-			Module:   module,
-			Injector: injector,
-		}),
-		"go.mod": gen.FileGenerator(&gomod.Generator{
-			Dir: absdir,
-			Go: &gomod.Go{
-				Version: "1.17",
-			},
-			Requires: []*gomod.Require{
-				{
-					Path:    `gitlab.com/mnm/bud`,
-					Version: `v0.0.0-20211017185247-da18ff96a31f`,
-				},
-			},
-			// TODO: remove
-			Replaces: []*gomod.Replace{
-				{
-					Old: "gitlab.com/mnm/bud",
-					New: "../bud",
-				},
-				{
-					Old: "gitlab.com/mnm/bud-tailwind",
-					New: "../bud-tailwind",
-				},
-			},
-		}),
-		"bud/controller/controller.go": gen.FileGenerator(&controller.Generator{
-			// Fill in
-		}),
-		"bud/web/web.go": gen.FileGenerator(&web.Generator{
-			Module: module,
-		}),
-		"bud/main.go": gen.FileGenerator(&maingo.Generator{
-			// fill in
-		}),
-	})
-	// Sync genfs
-	if err := fsync.Dir(genfs, ".", vfs.OS(module.Directory()), "."); err != nil {
-		return err
-	}
-	// Run generate (if it exists) to support user-defined generators
-	generatePath := filepath.Join(module.Directory(), "bud", "generate", "main.go")
-	if _, err := os.Stat(generatePath); nil == err {
-		if err := gobin.Run(ctx, module.Directory(), generatePath); err != nil {
-			return err
-		}
 	}
 	// Verify that bud/main.go exists
-	mainPath := filepath.Join(module.Directory(), "bud", "main.go")
+	mainPath := filepath.Join(dir, "bud", "main.go")
 	if _, err := os.Stat(mainPath); err != nil {
 		return err
 	}
 	// Build the main server
-	outPath := filepath.Join(module.Directory(), "bud", "main")
-	if err := gobin.Build(ctx, module.Directory(), mainPath, outPath); err != nil {
+	outPath := filepath.Join(dir, "bud", "main")
+	if err := gobin.Build(ctx, dir, mainPath, outPath); err != nil {
 		return err
 	}
 	return nil

@@ -8,7 +8,7 @@ import (
 
 type State struct {
 	Imports  []*imports.Import
-	Provider *di.Provider
+	Provider *Provider
 	Command  *Command
 }
 
@@ -76,3 +76,5 @@ type Arg struct {
 	Type    string
 	Default string
 }
+
+type Provider = di.Provider
