@@ -91,19 +91,28 @@ func TestResolveImport(t *testing.T) {
 	is.Equal(module.Import("go", base), im)
 }
 
-// func TestVirtualResolveImport(t *testing.T) {
-// 	panic("Not implemented yet")
-// 	is := is.New(t)
-// 	wd, err := os.Getwd()
-// 	is.NoErr(err)
-// 	modFinder := mod.New()
-// 	module, err := modFinder.Find(wd)
-// 	is.NoErr(err)
-// 	im, err := module.ResolveImport(wd)
-// 	is.NoErr(err)
-// 	base := filepath.Base(wd)
-// 	is.Equal(module.Import("go", base), im)
-// }
+func TestVirtualResolveImport(t *testing.T) {
+	is := is.New(t)
+	fsys := vfs.Map{
+		"app/go.mod":         `module app.com/app`,
+		"app/main.go":        "package app\nfunc main() {}",
+		"app/dep/dep.go":     "package dep\nfunc dep() {}",
+		"outside/outside.go": "package outside\nfunc outside() {}",
+	}
+	modFinder := mod.New(mod.WithFS(fsys))
+	module, err := modFinder.Find("app")
+	is.NoErr(err)
+	im, err := module.ResolveImport("app")
+	is.NoErr(err)
+	is.Equal(im, "app.com/app")
+	im, err = module.ResolveImport("app/dep")
+	is.NoErr(err)
+	is.Equal(im, "app.com/app/dep")
+	im, err = module.ResolveImport("outside")
+	is.True(err != nil)
+	is.Equal(err.Error(), `"outside" can't be outside the module directory "app"`)
+	is.Equal(im, "")
+}
 
 func TestAddRequire(t *testing.T) {
 	is := is.New(t)

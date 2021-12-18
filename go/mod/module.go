@@ -63,26 +63,17 @@ func (m *Module) ResolveDirectory(importPath string) (directory string, err erro
 
 // ResolveImport returns an import path from a local directory.
 func (m *Module) ResolveImport(directory string) (importPath string, err error) {
-	if !strings.HasPrefix(directory, m.dir) {
+	relPath, err := filepath.Rel(m.dir, filepath.Clean(directory))
+	if err != nil {
+		return "", err
+	} else if strings.HasPrefix(relPath, "..") {
 		return "", fmt.Errorf("%q can't be outside the module directory %q", directory, m.dir)
 	}
-	return m.resolveImport(directory)
+	return m.Import(relPath), nil
 }
 
 // dir containing the standard libraries
 var stdDir = filepath.Join(build.Default.GOROOT, "src")
-
-func (m *Module) resolveImport(dir string) (importPath string, err error) {
-	abspath, err := filepath.Abs(dir)
-	if err != nil {
-		return "", err
-	}
-	relPath, err := filepath.Rel(m.dir, abspath)
-	if err != nil {
-		return "", err
-	}
-	return m.Import(relPath), nil
-}
 
 // ResolveDirectory resolves an import to an absolute path
 func (m *Module) resolveDirectory(importPath string) (directory string, err error) {
