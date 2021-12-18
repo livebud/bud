@@ -33,6 +33,7 @@ type Command struct {
 	commands map[string]*Command
 	flags    []*Flag
 	args     []*Arg
+	restArgs *Args // optional, collects the rest of the args
 }
 
 func newCommand(config *config, name, usage string) *Command {
@@ -100,6 +101,10 @@ func (c *CLI) Arg(name, usage string) *Arg {
 	return c.root.Arg(name, usage)
 }
 
+func (c *CLI) Args(name, usage string) *Args {
+	return c.root.Args(name, usage)
+}
+
 func (c *CLI) Run(runner func(ctx context.Context) error) {
 	c.root.Run(runner)
 }
@@ -144,9 +149,18 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 	}
 	// Handle the remaining arguments
 	numArgs := len(c.args)
-	for i, arg := range c.fset.Args() {
+	restArgs := c.fset.Args()
+loop:
+	for i, arg := range restArgs {
 		if i >= numArgs {
-			return fmt.Errorf("unexpected %s", arg)
+			if c.restArgs == nil {
+				return fmt.Errorf("unexpected %s", arg)
+			}
+			// Loop over the remaining unset args, appending them to restArgs
+			for _, arg := range restArgs[i:] {
+				c.restArgs.value.Set(arg)
+			}
+			break loop
 		}
 		if err := c.args[i].value.Set(arg); err != nil {
 			return err
@@ -158,7 +172,7 @@ func (c *Command) parse(ctx context.Context, args []string) error {
 	}
 	// Print usage if there's no run function defined
 	if c.run == nil {
-		if len(c.fset.Args()) == 0 {
+		if len(restArgs) == 0 {
 			return c.printUsage()
 		}
 		return fmt.Errorf("unexpected %s", c.fset.Arg(0))
@@ -186,6 +200,20 @@ func (c *Command) Arg(name, usage string) *Arg {
 	}
 	c.args = append(c.args, arg)
 	return arg
+}
+
+func (c *Command) Args(name, usage string) *Args {
+	if c.restArgs != nil {
+		// Panic is okay here because settings commands should be done during
+		// initialization. We want to fail fast for invalid usage.
+		panic("commander: you can only use cmd.Args(name, usage) once per command")
+	}
+	args := &Args{
+		Name:  name,
+		Usage: usage,
+	}
+	c.restArgs = args
+	return args
 }
 
 func (c *Command) Flag(name, usage string) *Flag {
