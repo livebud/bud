@@ -54,6 +54,10 @@ func (i *Injector) Load(fn *Function) (*Node, error) {
 
 // Load the dependencies recursively. This produces a dependency graph of nodes.
 func (i *Injector) load(externals map[string]bool, dep Dependency) (*Node, error) {
+	// Replace dep with mapped type alias if we have one
+	if alias, ok := i.typeMap[dep.ID()]; ok {
+		dep = alias
+	}
 	// Handle external nodes
 	importPath := dep.ImportPath()
 	typeName := dep.TypeName()

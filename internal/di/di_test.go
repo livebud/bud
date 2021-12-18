@@ -2078,3 +2078,77 @@ func TestErrorResultWithError(t *testing.T) {
 		},
 	})
 }
+
+func TestMappedExternal(t *testing.T) {
+	runTest(t, Test{
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []di.Dependency{
+				toType("app.com/gen", "*FileSystem"),
+			},
+			Results: []di.Dependency{
+				toType("app.com/web", "*Web"),
+			},
+		},
+		Map: di.Map{
+			toType("app.com/gen", "FS"): toType("app.com/gen", "*FileSystem"),
+		},
+		Expect: `
+			&web.Web{genfs: &gen.FileSystem{
+				fsys: os.dirFS("."),
+			}}
+		`,
+		Files: map[string]string{
+			"go.mod": goMod,
+			"main.go": `
+				package main
+
+				import (
+					"os"
+					"fmt"
+					"github.com/hexops/valast"
+					gen "app.com/gen"
+					genweb "app.com/gen/web"
+				)
+
+				func main() {
+					fsys := os.DirFS(".")
+					genfs := gen.New(fsys)
+					actual := genweb.Load(genfs)
+					fmt.Fprintf(os.Stdout, "%s\n", valast.String(actual))
+				}
+			`,
+			"web/web.go": `
+				package web
+
+				import "app.com/gen"
+
+				// New web
+				func New(genfs gen.FS) (*Web) {
+					return &Web{genfs}
+				}
+
+				// Web struct
+				type Web struct {
+					genfs gen.FS
+				}
+			`,
+			"gen/gen.go": `
+				package gen
+
+				import "io/fs"
+
+				type FS interface{}
+
+				type FileSystem struct {
+					fsys fs.FS
+				}
+
+				func New(fsys fs.FS) *FileSystem {
+					return &FileSystem{fsys}
+				}
+			`,
+		},
+	})
+}

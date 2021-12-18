@@ -38,25 +38,10 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) (err error) {
 	imports.AddNamed("mod", "gitlab.com/mnm/bud/go/mod")
 	imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
 
-	// TODO: pull from DI
-	// imports.AddNamed("js", "gitlab.com/mnm/bud/js/v8")
-	// imports.AddNamed("controller1", "gitlab.com/mnm/bud/example/hn/bud/controller")
-	// imports.AddNamed("tailwind", "gitlab.com/mnm/bud-tailwind/transform/tailwind")
-	// imports.AddNamed("public", "gitlab.com/mnm/bud/example/hn/bud/public")
-	// imports.AddNamed("transform", "gitlab.com/mnm/bud/example/hn/bud/transform")
-	// imports.AddNamed("view", "gitlab.com/mnm/bud/example/hn/bud/view")
-	// imports.AddNamed("web", "gitlab.com/mnm/bud/example/hn/bud/web")
-	// imports.AddNamed("controller", "gitlab.com/mnm/bud/example/hn/controller")
-	// imports.AddNamed("hn", "gitlab.com/mnm/bud/example/hn/internal/hn")
-	// imports.AddNamed("hot", "gitlab.com/mnm/bud/hot")
-	// imports.AddNamed("router", "gitlab.com/mnm/bud/router")
-	// imports.AddNamed("svelte", "gitlab.com/mnm/bud/svelte")
-
 	name := filepath.Base(g.Module.Directory())
 
 	// 1. Load all the commands
 	state := &State{
-		Imports: imports.List(),
 		Command: &Command{
 			Name:  name,
 			Usage: "start your application",
@@ -147,6 +132,7 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) (err error) {
 	}
 
 	// 3. Generate
+	state.Imports = imports.List()
 	code, err := generator.Generate(state)
 	if err != nil {
 		fmt.Println(err)

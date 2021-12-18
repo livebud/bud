@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/fs"
 	"os"
+	"path/filepath"
 
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
@@ -32,26 +33,26 @@ type Replace struct {
 }
 
 type Generator struct {
-	Module   *mod.Module
+	Dir      string
 	Go       *Go
 	Requires []*Require
 	Replaces []*Replace
 }
 
 func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
-	code, err := os.ReadFile(g.Module.Directory(file.Path()))
+	path := filepath.Join(g.Dir, "go.mod")
+	code, err := os.ReadFile(path)
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
 		return g.createFile(f, file)
 	}
-	return g.updateFile(f, file, code)
+	return g.updateFile(f, file, path, code)
 }
 
-func (g *Generator) updateFile(f gen.F, file *gen.File, code []byte) error {
-	modFinder := mod.New()
-	module, err := modFinder.Parse(file.Path(), code)
+func (g *Generator) updateFile(f gen.F, file *gen.File, path string, code []byte) error {
+	module, err := mod.New().Parse(path, code)
 	if err != nil {
 		return err
 	}

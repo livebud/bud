@@ -21,20 +21,18 @@ func (i *Injector) Find(module *mod.Module, dep Dependency) (Declaration, error)
 	if module == nil {
 		module = i.module
 	}
-	// Check if we have a type alias
-	if alias, ok := i.typeMap[dep.ID()]; ok {
-		dep = alias
+	module, err := module.Find(dep.ImportPath())
+	if err != nil {
+		return nil, fmt.Errorf("di: unable to find module for dependency %s > %w", dep.ID(), err)
 	}
-	// Resolve the absolute directory based on the import
 	dir, err := module.ResolveDirectory(dep.ImportPath())
 	if err != nil {
-		return nil, fmt.Errorf("di: unable to find dependency %s > %w", dep.ID(), err)
+		return nil, fmt.Errorf("di: unable to find directory for dependency %s > %w", dep.ID(), err)
 	}
 	rel, err := filepath.Rel(module.Directory(), dir)
 	if err != nil {
 		return nil, err
 	}
-	// Parse the package
 	pkg, err := parser.New(module).Parse(rel)
 	if err != nil {
 		return nil, err

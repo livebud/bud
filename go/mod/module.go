@@ -36,15 +36,20 @@ func (m *Module) File() *File {
 
 // Find a dependency from an import path
 func (m *Module) Find(importPath string) (*Module, error) {
-	absdir, err := m.resolveDirectory(importPath)
+	dir, err := m.resolveDirectory(importPath)
 	if err != nil {
 		return nil, err
 	}
+	// If it's a local dir, use the current fs, otherwise use OS's fs.
+	fsys := m.fsys
+	if filepath.IsAbs(dir) {
+		fsys = osfs{}
+	}
 	finder := &Finder{
 		cache: m.cache,
-		fsys:  osfs{},
+		fsys:  fsys,
 	}
-	module, err := finder.findModFile(absdir)
+	module, err := finder.findModFile(dir)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +106,10 @@ func (m *Module) resolveDirectory(importPath string) (directory string, err erro
 		if contains(rep.Old.Path, importPath) {
 			relPath := strings.TrimPrefix(importPath, rep.Old.Path)
 			newPath := filepath.Join(rep.New.Path, relPath)
-			absdir := resolvePath(m.dir, newPath)
+			absdir, err := resolvePath(m.dir, newPath)
+			if err != nil {
+				return "", err
+			}
 			// Ensure the resolved directory exists. Use os because we're outside of
 			// outside of fsys.
 			if _, err := os.Stat(absdir); err != nil {
@@ -130,8 +138,9 @@ func (m *Module) resolveDirectory(importPath string) (directory string, err erro
 	return "", fmt.Errorf("mod: unable to resolve directory for import path %q: %w", importPath, fs.ErrNotExist)
 }
 
-func resolvePath(path string, rest ...string) (result string) {
-	result = path
+// Resolve allows `path` to be replaced by an absolute path in `rest`
+func resolvePath(path string, rest ...string) (string, error) {
+	result := path
 	for _, p := range rest {
 		if filepath.IsAbs(p) {
 			result = p
@@ -139,7 +148,7 @@ func resolvePath(path string, rest ...string) (result string) {
 		}
 		result = filepath.Join(result, p)
 	}
-	return result
+	return filepath.Abs(result)
 }
 
 func contains(basePath, importPath string) bool {

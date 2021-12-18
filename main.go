@@ -120,25 +120,6 @@ func (c *bud) Run(ctx context.Context) error {
 		"bud/command/main.go": gen.FileGenerator(&command.Generator{
 			// fill in
 		}),
-		"go.mod": gen.FileGenerator(&gomod.Generator{
-			Module: module,
-			Go: &gomod.Go{
-				Version: "1.17",
-			},
-			Requires: []*gomod.Require{
-				{
-					Path:    `gitlab.com/mnm/bud`,
-					Version: `v0.0.0-20211017185247-da18ff96a31f`,
-				},
-			},
-			// TODO: remove
-			Replaces: []*gomod.Replace{
-				{
-					Old: "gitlab.com/mnm/bud",
-					New: "../bud",
-				},
-			},
-		}),
 	})
 	// Sync genfs
 	if err := fsync.Dir(genfs, ".", vfs.OS(module.Directory()), "."); err != nil {
@@ -182,10 +163,13 @@ func (c *runCommand) Run(ctx context.Context) error {
 		return err
 	}
 	parser := parser.New(module)
-	injector := di.New(module, parser, di.Map{})
+	injector := di.New(module, parser, di.Map{
+		toType("gitlab.com/mnm/bud/gen", "FS"): toType("gitlab.com/mnm/bud/gen", "*FileSystem"),
+		toType("gitlab.com/mnm/bud/js", "VM"):  toType("gitlab.com/mnm/bud/js/v8", "*Pool"),
+	})
 	genfs.Add(map[string]gen.Generator{
 		"go.mod": gen.FileGenerator(&gomod.Generator{
-			Module: module,
+			Dir: absdir,
 			Go: &gomod.Go{
 				Version: "1.17",
 			},
@@ -263,7 +247,7 @@ func (c *runCommand) Run(ctx context.Context) error {
 		}
 	}
 	// If bud/main.go doesn't exist, run the welcome server
-	mainPath := filepath.Join(module.Directory(), "bud", "main.go")
+	mainPath := filepath.Join(absdir, "bud", "main.go")
 	if _, err := os.Stat(mainPath); err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return err
@@ -276,7 +260,7 @@ func (c *runCommand) Run(ctx context.Context) error {
 		}))
 	}
 	// Run the main server
-	if err := gobin.Run(runCtx, module.Directory(), mainPath); err != nil {
+	if err := gobin.Run(runCtx, absdir, mainPath); err != nil {
 		return err
 	}
 	return nil
@@ -290,15 +274,20 @@ type buildCommand struct {
 }
 
 func (c *buildCommand) Run(ctx context.Context) error {
-	modFinder := mod.New()
-	module, err := modFinder.Find(c.bud.Chdir)
+	absdir, err := mod.FindDirectory(c.bud.Chdir)
+	if err != nil {
+		return err
+	}
+	dirfs := vfs.OS(absdir)
+	genfs := gen.New(dirfs)
+	modFinder := mod.New(mod.WithFS(genfs))
+	module, err := modFinder.Find(".")
 	if err != nil {
 		return err
 	}
 	parser := parser.New(module)
 	injector := di.New(module, parser, di.Map{})
 	fmt.Println("building...", module.Directory(), c.Embed, c.Hot, c.Minify)
-	genfs := gen.New(os.DirFS(module.Directory()))
 	genfs.Add(map[string]gen.Generator{
 		"bud/generate/main.go": gen.FileGenerator(&generate.Generator{
 			Module: module,
@@ -314,7 +303,7 @@ func (c *buildCommand) Run(ctx context.Context) error {
 			Injector: injector,
 		}),
 		"go.mod": gen.FileGenerator(&gomod.Generator{
-			Module: module,
+			Dir: absdir,
 			Go: &gomod.Go{
 				Version: "1.17",
 			},
@@ -508,4 +497,8 @@ func stdin() io.Reader {
 		return strings.NewReader("")
 	}
 	return os.Stdin
+}
+
+func toType(importPath, dataType string) *di.Type {
+	return &di.Type{Import: importPath, Type: dataType}
 }

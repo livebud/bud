@@ -54,9 +54,13 @@ var webServer = gen.GenerateFile(func(f gen.F, file *gen.File) error {
 
 			import (
 				"context"
+				"gitlab.com/mnm/bud/gen"
+				"gitlab.com/mnm/bud/go/mod"
 			)
 
 			type Server struct {
+				FS *gen.FileSystem
+				Module *mod.Module
 			}
 
 			func (s *Server) ListenAndServe(ctx context.Context, address string) error {

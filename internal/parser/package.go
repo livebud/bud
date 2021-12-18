@@ -10,10 +10,10 @@ import (
 
 // newPackage creates a new package
 func newPackage(dir string, module *mod.Module, node *ast.Package) *Package {
-	absdir := filepath.Join(module.Directory(), dir)
+	dir = filepath.Join(module.Directory(), dir)
 	pkg := &Package{
 		node:   node,
-		dir:    absdir,
+		dir:    dir,
 		module: module,
 	}
 	pkg.files = files(pkg)

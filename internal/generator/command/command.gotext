@@ -43,7 +43,7 @@ func Load() (*CLI, error) {
 	genFS.Add(map[string]gen.Generator{
 		"bud/plugin": gen.DirGenerator(&plugin.Generator{Module: module}),
 	})
-	cmd, err := load({{ $.Provider.Params }})
+	cmd, err := load(genFS, module)
 	if err != nil {
 		return nil, err
 	}
