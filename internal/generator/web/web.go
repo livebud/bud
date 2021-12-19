@@ -23,7 +23,7 @@ type State struct {
 }
 
 func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
-	if err := gen.Exists(f, "bud/controller/controller.go"); err != nil {
+	if err := gen.SkipUnless(f, "bud/controller/controller.go"); err != nil {
 		return err
 	}
 	imports := imports.New()

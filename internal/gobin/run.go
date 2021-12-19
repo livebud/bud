@@ -1,9 +1,12 @@
 package gobin
 
 import (
+	"bufio"
 	"context"
+	"io"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 // Run calls `go run -mod=mod main.go ...`
@@ -11,12 +14,22 @@ func Run(ctx context.Context, dir, mainpath string, args ...string) error {
 	cmd := exec.CommandContext(ctx, "go", append([]string{"run", "-mod=mod", mainpath}, args...)...)
 	cmd.Env = os.Environ()
 	cmd.Stdout = os.Stdout
-	// stderr := new(bytes.Buffer)
-	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	cmd.Dir = dir
-	err := cmd.Run()
+	// Setup a stderr pipe
+	stderr, err := cmd.StderrPipe()
 	if err != nil {
+		return err
+	}
+	// Start the command
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	// Process stderr output
+	if err := processStderr(stderr); err != nil {
+		return err
+	}
+	if err = cmd.Wait(); err != nil {
 		if isCleanExit(err) {
 			return nil
 		}
@@ -34,4 +47,20 @@ func isCleanExit(err error) bool {
 		}
 	}
 	return false
+}
+
+// Process stderr output
+func processStderr(rc io.ReadCloser) error {
+	scanner := bufio.NewScanner(rc)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.Contains(line, "go: found ") {
+			continue
+		}
+		if strings.Contains(line, "exit status ") {
+			continue
+		}
+		os.Stderr.WriteString(line + "\n")
+	}
+	return scanner.Err()
 }

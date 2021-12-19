@@ -10,6 +10,6 @@ import (
 {{- end }}
 
 func main() {
-	exitCode := command.Parse(os.Args[1:]...)
+	exitCode := program.Run(os.Args[1:]...)
 	os.Exit(exitCode)
 }

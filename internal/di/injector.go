@@ -12,7 +12,11 @@ func New(module *mod.Module, parser *parser.Parser, typeMap Map) *Injector {
 	for from, to := range typeMap {
 		tm[from.ID()] = to
 	}
-	return &Injector{module, parser, tm}
+	return &Injector{
+		module:  module,
+		parser:  parser,
+		typeMap: tm,
+	}
 }
 
 type Injector struct {

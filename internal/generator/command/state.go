@@ -1,15 +1,18 @@
 package command
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/matthewmueller/gotext"
+	"github.com/matthewmueller/text"
 	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/imports"
 )
 
 type State struct {
-	Imports  []*imports.Import
-	Provider *Provider
-	Command  *Command
+	Imports []*imports.Import
+	Command *Command
 }
 
 type Command struct {
@@ -20,6 +23,14 @@ type Command struct {
 	Subs    []*Command
 	Deps    []di.Dependency
 	Context bool
+}
+
+func (c *Command) Slim() string {
+	return gotext.Slim(c.Name)
+}
+
+func (c *Command) Pascal() string {
+	return gotext.Pascal(c.Name)
 }
 
 func (c *Command) Structs() (structs []*commandStruct) {
@@ -70,11 +81,46 @@ type Flag struct {
 	Short   byte
 }
 
+func (f *Flag) Pascal() string {
+	return gotext.Pascal(f.Name)
+}
+
+func (f *Flag) Slug() string {
+	return text.Slug(f.Name)
+}
+
+func (f *Flag) Method() (string, error) {
+	return methodName(f.Type)
+}
+
 type Arg struct {
 	Name    string
 	Usage   string
 	Type    string
 	Default string
+}
+
+func (a *Arg) Pascal() string {
+	return gotext.Pascal(a.Name)
+}
+
+func (a *Arg) Slug() string {
+	return text.Slug(a.Name)
+}
+
+func (a *Arg) Method() (string, error) {
+	return methodName(a.Type)
+}
+
+func methodName(dataType string) (string, error) {
+	switch strings.TrimLeft(dataType, "*") {
+	case "bool":
+		return "Bool", nil
+	case "string":
+		return "String", nil
+	default:
+		return "", fmt.Errorf("command: unhandled type for method %q", dataType)
+	}
 }
 
 type Provider = di.Provider

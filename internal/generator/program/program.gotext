@@ -1,0 +1,66 @@
+package program
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+func Run(args ...string) int {
+	if err := run(args...); err != nil {
+		if errors.Is(err, context.Canceled) {
+			// Unfortunately interrupts like SIGINT trigger a non-zero exit code,
+			// regardless of whether you do os.Exit(0) or not. We're going to use exit
+			// code 3 to distinguish between non-zero exit codes so "bud run" can know
+			// that we exited cleanly on an interrupt.
+			return 3
+		}
+		console.Error(err.Error())
+		return 1
+	}
+	return 0
+}
+
+func run(args ...string) error {
+	program, err := Load()
+	if err != nil {
+		return err
+	}
+	return program.Run(args...)
+}
+
+func Load() (*Program, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+	modFinder := mod.New()
+	module, err := modFinder.Find(wd)
+	if err != nil {
+		return nil, err
+	}
+	genFS := gen.New(os.DirFS(module.Directory()))
+	genFS.Add(map[string]gen.Generator{
+		"bud/plugin": gen.DirGenerator(&plugin.Generator{Module: module}),
+	})
+	cli, err := loadCLI(genFS, module)
+	if err != nil {
+		return nil, err
+	}
+	return &Program{
+		cli: cli,
+	}, nil
+}
+
+type Program struct {
+	cli *command.CLI
+}
+
+func (p *Program) Run(args ...string) error {
+	return p.cli.Parse(args...)
+}
+
+{{ $.Provider.Function }}

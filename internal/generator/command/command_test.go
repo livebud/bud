@@ -18,6 +18,8 @@ import (
 
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/generator/command"
+	"gitlab.com/mnm/bud/internal/generator/maingo"
+	"gitlab.com/mnm/bud/internal/generator/program"
 	"gitlab.com/mnm/bud/internal/modcache"
 
 	"github.com/lithammer/dedent"
@@ -70,22 +72,6 @@ var webServer = gen.GenerateFile(func(f gen.F, file *gen.File) error {
 	return nil
 })
 
-var mainGo = gen.GenerateFile(func(f gen.F, file *gen.File) error {
-	file.Write([]byte(redent(`
-			package main
-
-			import (
-				command "app.com/bud/command"
-				os "os"
-			)
-
-			func main() {
-				os.Exit(command.Parse(os.Args[1:]...))
-			}
-		`)))
-	return nil
-})
-
 type Test struct {
 	Skip   bool
 	Files  map[string]string
@@ -133,11 +119,16 @@ func runTest(t *testing.T, test Test) {
 	parser := parser.New(module)
 	injector := di.New(module, parser, di.Map{})
 	genFS.Add(map[string]gen.Generator{
-		"bud/main.go":    mainGo,
-		"bud/web/web.go": webServer,
-		"bud/command/command.go": gen.FileGenerator(&command.Generator{
+		"bud/main.go": gen.FileGenerator(&maingo.Generator{
+			Module: module,
+		}),
+		"bud/program/program.go": gen.FileGenerator(&program.Generator{
 			Module:   module,
 			Injector: injector,
+		}),
+		"bud/web/web.go": webServer,
+		"bud/command/command.go": gen.FileGenerator(&command.Generator{
+			Module: module,
 		}),
 	})
 	err = fsync.Dir(genFS, "bud", appFS, "bud")
@@ -158,6 +149,7 @@ require (
 
 func TestRoot(t *testing.T) {
 	runTest(t, Test{
+		Skip: true,
 		Files: map[string]string{
 			"go.mod": goMod,
 		},

@@ -80,7 +80,7 @@ func (f *File) ImportPath(name string) (path string, err error) {
 			return strconv.Unquote(imp.Path.Value)
 		}
 	}
-	return "", fmt.Errorf("parser: unable to find import path from %q in %q", name, f.path)
+	return "", fmt.Errorf("parser: unable to find import path for %q in %q", name, f.path)
 }
 
 // ImportName finds an import name by import path
@@ -95,7 +95,7 @@ func (f *File) ImportName(path string) (name string, err error) {
 		}
 		return imp.Name.Name, nil
 	}
-	return "", fmt.Errorf("parser: unable to find import name from %q in %q", path, f.path)
+	return "", fmt.Errorf("parser: unable to find import name for %q in %q", path, f.path)
 }
 
 // Functions returns all the functions in the file

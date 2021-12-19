@@ -2152,3 +2152,7 @@ func TestMappedExternal(t *testing.T) {
 		},
 	})
 }
+
+// TODO: consider renaming Target to Import
+// TODO: consider moving Hoist outside of Function
+// TODO: consider transitioning to a builder pattern input

@@ -9,84 +9,56 @@ import (
 )
 {{- end }}
 
-func Parse(args ...string) int {
-	cli, err := Load()
-	if err != nil {
-		console.Error(err.Error())
-		return 1
-	}
-	if err := cli.Parse(args...); err != nil {
-		if errors.Is(err, context.Canceled) {
-			// Unfortunately interrupts like SIGINT trigger a non-zero exit code,
-			// regardless of whether you do os.Exit(0) or not. We're going to use exit
-			// code 3 to distinguish between non-zero exit codes so "bud run" can know
-			// that we exited cleanly on an interrupt.
-			return 3
-		}
-		console.Error(err.Error())
-		return 1
-	}
-	return 0
+func Load(cmd *Command) *CLI {
+	return &CLI{cmd}
 }
-
-func Load() (*CLI, error) {
-	wd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-	modFinder := mod.New()
-	module, err := modFinder.Find(wd)
-	if err != nil {
-		return nil, err
-	}
-	genFS := gen.New(os.DirFS(module.Directory()))
-	genFS.Add(map[string]gen.Generator{
-		"bud/plugin": gen.DirGenerator(&plugin.Generator{Module: module}),
-	})
-	cmd, err := load(genFS, module)
-	if err != nil {
-		return nil, err
-	}
-	return &CLI{cmd}, nil
-}
-
-{{ $.Provider.Function }}
 
 type CLI struct {
 	cmd *Command
 }
 
 func (c *CLI) Parse(args ...string) error {
-	// $ bud run
-	// $ bud build
-	cmd := commander.New("app")
+	// $ bud run/build
+	cmd := commander.New(`hn`)
 	cmd.Run(c.cmd.Run)
 
-	{{/* { // $ bud deploy
-		cmd := cmd.Command("deploy", "deploy to production")
-		cmd.Flag("access-key", "aws access key").String(&c.cmd.deployCommand.AccessKey)
-		cmd.Flag("secret-key", "aws secret key").String(&c.cmd.deployCommand.SecretKey)
-		cmd.Run(c.cmd.deployCommand.Run)
+	{ // $ hn deploy
+		cmd := cmd.Command(`deploy`, `deploy your application`)
+		cmd.Flag(`access-key`, `AWS access key`).String(&c.cmd.Deploy.AccessKey)
+		cmd.Flag(`secret-key`, `AWS secret key`).String(&c.cmd.Deploy.SecretKey)
+		cmd.Run(c.cmd.Deploy.Run)
 	}
 
-	{ // $ bud new
-		cmd := cmd.Command("new", "new scaffolding")
+	{ // $ hn new
+		cmd := cmd.Command(`new`, `new scaffolding`)
+		cmd.Flag(`dry-run`, `include a dry run`).Bool(&c.cmd.New.DryRun)
+		cmd.Run(c.cmd.Run)
 
-		{ // $ bud new view
-			cmd := cmd.Command("view", "create a new view")
-			cmd.Arg("name", "name of the view").String(&c.cmd.newViewCommand.Name)
-			cmd.Flag("with-test", "add a test").Bool(&c.cmd.newViewCommand.WithTest).Default(true)
-			cmd.Run(c.cmd.newViewCommand.Run)
+		{ // $ new view
+			cmd := cmd.Command(`view`, `new view`)
+			cmd.Flag(`with-test`, `include a test`).Bool(&c.cmd.New.View.WithTest)
+			cmd.Arg(`name`, `name of the view`).String(&c.cmd.New.View.Name)
+			cmd.Run(c.cmd.Run)
 		}
-	} */}}
+	}
 
 	return cmd.Parse(args)
 }
 
+func LoadCommand(web *web.Server, deploy *DeployCommand, newc *NewCommand) *Command {
+	cmd := &Command{
+		web: web,
+		Deploy: deploy,
+		New: newc,
+	}
+	return cmd
+}
+
 // Command root
 type Command struct {
-	web *web.Server
-	Deploy *deployCommand
+	web    *web.Server
+	Deploy *DeployCommand
+	New    *NewCommand
 }
 
 func (c *Command) Run(ctx context.Context) error {
@@ -94,10 +66,34 @@ func (c *Command) Run(ctx context.Context) error {
 	return c.web.ListenAndServe(ctx, ":3000")
 }
 
-type deployCommand struct {
+func LoadDeployCommand(vm *v8.Pool) *DeployCommand {
+	return &DeployCommand{
+		Command: &deploy.Command{VM: vm},
+	}
 }
 
-func (c *deployCommand) Run(ctx context.Context) error {
-	println("deploying!")
-	return nil
+type DeployCommand struct {
+	*deploy.Command
+}
+
+func LoadNewCommand(vm *v8.Pool, view *NewViewCommand) *NewCommand {
+	return &NewCommand{
+		Command: &new.Command{V8: vm},
+		View:    view,
+	}
+}
+
+type NewCommand struct {
+	*new.Command
+	View *NewViewCommand
+}
+
+func LoadNewViewCommand() *NewViewCommand {
+	return &NewViewCommand{
+		Command: &new_view.Command{},
+	}
+}
+
+type NewViewCommand struct {
+	*new_view.Command
 }

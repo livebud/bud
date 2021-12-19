@@ -4,8 +4,6 @@ import (
 	_ "embed"
 	"fmt"
 
-	"gitlab.com/mnm/bud/internal/di"
-
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/gotemplate"
@@ -14,20 +12,19 @@ import (
 //go:embed command.gotext
 var template string
 
-var generator = gotemplate.MustParse("command", template)
+var generator = gotemplate.MustParse("command.gotext", template)
 
 type Generator struct {
-	Module   *mod.Module
-	Injector *di.Injector
+	Module *mod.Module
 }
 
-func (g *Generator) GenerateFile(f gen.F, file *gen.File) (err error) {
+func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 	// TODO: consider also building when only commands are present
-	if err := gen.Exists(f, "bud/web/web.go"); err != nil {
+	if err := gen.SkipUnless(f, "bud/web/web.go"); err != nil {
 		return err
 	}
 	// Load command state
-	state, err := Load(g.Injector, g.Module)
+	state, err := Load(g.Module)
 	if err != nil {
 		return err
 	}
@@ -37,6 +34,11 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) (err error) {
 		fmt.Println(err)
 		return err
 	}
+	// fmt.Println(string(code))
 	file.Write(code)
 	return nil
 }
+
+// func (g *Generator) generateDI(f gen.F, file *gen.File) error {
+
+// }

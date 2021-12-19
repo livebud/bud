@@ -184,14 +184,14 @@ func (i *innerFS) link(from, to string, event Event) {
 	i.graph.Link(from, to, event)
 }
 
-// Check if many different paths exist at once
-func Exists(f fs.FS, paths ...string) error {
+// SkipUnless will return ErrSkipped unless all the paths exists
+func SkipUnless(f fs.FS, paths ...string) error {
 	eg := new(errgroup.Group)
 	for _, path := range paths {
 		path := path
 		eg.Go(func() error {
 			if _, err := fs.Stat(f, path); err != nil {
-				return fmt.Errorf("exists %s > %w", path, err)
+				return fmt.Errorf("%w %q", ErrSkipped, path)
 			}
 			return nil
 		})

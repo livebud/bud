@@ -23,13 +23,13 @@ type State struct {
 }
 
 func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
-	if err := gen.Exists(f, "bud/command/command.go"); err != nil {
+	if err := gen.SkipUnless(f, "bud/program/program.go"); err != nil {
 		return err
 	}
 	imports := imports.New()
 	imports.AddStd("os")
 	// imports.AddStd("fmt")
-	imports.Add(g.Module.Import("bud/command"))
+	imports.Add(g.Module.Import("bud/program"))
 	code, err := generator.Generate(State{
 		Imports: imports.List(),
 	})

@@ -522,14 +522,14 @@ func TestDirFS(t *testing.T) {
 	df := gen.New(os.DirFS("."))
 	df.Add(map[string]gen.Generator{
 		"duo/dfs/gen.go": gen.GenerateFile(func(f gen.F, file *gen.File) error {
-			if err := gen.Exists(f, "gen.go"); err != nil {
+			if _, err := fs.Stat(f, "gen.go"); err != nil {
 				return err
 			}
 			file.Write([]byte(`package gen`))
 			return nil
 		}),
 		"duo/public/public.go": gen.GenerateFile(func(f gen.F, file *gen.File) error {
-			if err := gen.Exists(f, "public/public.go"); err != nil {
+			if _, err := fs.Stat(f, "public/public.go"); err != nil {
 				return err
 			}
 			file.Write([]byte(`package public`))
@@ -540,7 +540,7 @@ func TestDirFS(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(string(code), `package gen`)
 	code, err = fs.ReadFile(df, "duo/public/public.go")
-	is.Equal(err.Error(), "open duo/public/public.go > exists public/public.go > open public/public.go > file does not exist")
+	is.Equal(err.Error(), "open duo/public/public.go > open public/public.go > file does not exist")
 	is.Equal(code, nil)
 	stat, err := fs.Stat(df, "gen.go")
 	is.NoErr(err)

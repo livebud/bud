@@ -23,6 +23,7 @@ import (
 	"gitlab.com/mnm/bud/internal/generator/generator"
 	"gitlab.com/mnm/bud/internal/generator/gomod"
 	"gitlab.com/mnm/bud/internal/generator/maingo"
+	"gitlab.com/mnm/bud/internal/generator/program"
 	"gitlab.com/mnm/bud/internal/generator/public"
 	"gitlab.com/mnm/bud/internal/generator/transform"
 	"gitlab.com/mnm/bud/internal/generator/view"
@@ -44,7 +45,9 @@ import (
 
 func main() {
 	if err := do(); err != nil {
-		console.Error(err.Error())
+		if !isExitStatus(err) {
+			console.Error(err.Error())
+		}
 		os.Exit(1)
 	}
 }
@@ -162,8 +165,7 @@ func (c *bud) Generate(dir string) error {
 		// TODO: separate the following from the generators to give the generators
 		// a chance to add files that are picked up by these compiler plugins.
 		"bud/command/command.go": gen.FileGenerator(&command.Generator{
-			Module:   module,
-			Injector: injector,
+			Module: module,
 		}),
 		"bud/controller/controller.go": gen.FileGenerator(&controller.Generator{
 			Module: module,
@@ -181,6 +183,10 @@ func (c *bud) Generate(dir string) error {
 		}),
 		"bud/web/web.go": gen.FileGenerator(&web.Generator{
 			Module: module,
+		}),
+		"bud/program/program.go": gen.FileGenerator(&program.Generator{
+			Module:   module,
+			Injector: injector,
 		}),
 		"bud/main.go": gen.FileGenerator(&maingo.Generator{
 			Module: module,
@@ -211,15 +217,15 @@ func (c *bud) Run(ctx context.Context) error {
 		return err
 	}
 	// Ensure that main.go exists
-	commandPath := filepath.Join(dir, "bud", "command", "main.go")
-	if _, err := os.Stat(commandPath); err != nil {
+	mainPath := filepath.Join(dir, "bud", "main.go")
+	if _, err := os.Stat(mainPath); err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
 		return fmt.Errorf("unknown command %q", c.Args)
 	}
 	// Run the command, passing all arguments through
-	if err := gobin.Run(ctx, dir, commandPath, c.Args...); err != nil {
+	if err := gobin.Run(ctx, dir, mainPath, c.Args...); err != nil {
 		return err
 	}
 	return nil
@@ -432,4 +438,8 @@ func stdin() io.Reader {
 
 func toType(importPath, dataType string) *di.Type {
 	return &di.Type{Import: importPath, Type: dataType}
+}
+
+func isExitStatus(err error) bool {
+	return strings.Contains(err.Error(), "exit status ")
 }
