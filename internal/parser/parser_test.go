@@ -3,13 +3,12 @@ package parser_test
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/modcache"
+	"gitlab.com/mnm/bud/internal/modtest"
 
-	"github.com/lithammer/dedent"
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/parser"
@@ -143,40 +142,8 @@ func TestAliasLookup(t *testing.T) {
 	is.Equal(method.Name(), "Middleware")
 }
 
-type Module struct {
-	Modules map[string]map[string]string
-	Files   map[string]string
-}
-
-func redent(s string) string {
-	return strings.TrimSpace(dedent.Dedent(s)) + "\n"
-}
-
-func makeModule(t *testing.T, m Module) *mod.Module {
-	is := is.New(t)
-	modCache := modcache.Default()
-	if m.Modules != nil {
-		cacheDir := t.TempDir()
-		modCache = modcache.New(cacheDir)
-		err := modCache.Write(m.Modules)
-		is.NoErr(err)
-	}
-	appDir := t.TempDir()
-	if m.Files != nil {
-		for path, file := range m.Files {
-			m.Files[path] = redent(file)
-		}
-		err := vfs.Write(appDir, vfs.Map(m.Files))
-		is.NoErr(err)
-	}
-	modFinder := mod.New(mod.WithCache(modCache), mod.WithFS(os.DirFS(appDir)))
-	module, err := modFinder.Find(".")
-	is.NoErr(err)
-	return module
-}
-
 func TestNetHTTP(t *testing.T) {
-	module := makeModule(t, Module{
+	module := modtest.Make(t, modtest.Module{
 		Files: map[string]string{
 			"go.mod": `module app.com/app`,
 			"app.go": `

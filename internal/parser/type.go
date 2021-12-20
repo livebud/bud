@@ -41,6 +41,27 @@ func getType(f Fielder, x ast.Expr) Type {
 	}
 }
 
+// Optional inner interface
+type inner interface {
+	Inner() Type
+}
+
+// Innermost returns the innermost type
+// e.g. []*ast.Package becomes ast.Package
+// e.g. []*string becomes string
+func Innermost(t Type) Type {
+	u, ok := t.(inner)
+	if !ok {
+		return t
+	}
+	return Innermost(u.Inner())
+}
+
+// IsBuiltin returns true if the type is built into Go
+func IsBuiltin(t Type) bool {
+	return is.Builtin(TypeName(t))
+}
+
 // Qualify adds a package to a type
 // e.g. []*Package becomes []*ast.Package
 func Qualify(t Type, qualifier string) Type {
@@ -69,6 +90,22 @@ func Unqualify(t Type) Type {
 // Optional unqualify interface
 type unqualify interface {
 	Unqualify() Type
+}
+
+// Requalify changes the type qualifier
+// e.g. []*v8.VM becomes []*js.VM
+// e.g. []*string becomes []*string
+func Requalify(t Type, replace string) Type {
+	st, ok := Innermost(t).(*SelectorType)
+	if !ok {
+		return t
+	}
+	// Optimize the common case, where what we're requalifying has the same name.
+	id, ok := st.n.X.(*ast.Ident)
+	if ok && id.Name == replace {
+		return t
+	}
+	return Qualify(Unqualify(t), replace)
 }
 
 // Definition tries going to the type's definition
@@ -105,11 +142,7 @@ func TypeName(t Type) string {
 	if !ok {
 		return ""
 	}
-	name := tn.Name()
-	if name == "error" {
-		return "err"
-	}
-	return name
+	return tn.Name()
 }
 
 type typeName interface {

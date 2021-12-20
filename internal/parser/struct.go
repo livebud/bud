@@ -3,7 +3,10 @@ package parser
 import (
 	"fmt"
 	"go/ast"
+	"strings"
 	"unicode"
+
+	"github.com/fatih/structtag"
 )
 
 // Struct struct
@@ -152,6 +155,31 @@ func (stct *Struct) FieldAt(nth int) (field *Field, err error) {
 	return nil, fmt.Errorf("struct %q in %q has no field at %d", stct.Name(), stct.file.Path(), nth)
 }
 
+func (stct *Struct) Methods() (methods []*Function) {
+	for _, file := range stct.Package().Files() {
+		for _, fn := range file.Functions() {
+			recv := fn.Receiver()
+			if recv == nil {
+				continue
+			}
+			if TypeName(recv.Type()) != stct.Name() {
+				continue
+			}
+			methods = append(methods, fn)
+		}
+	}
+	return methods
+}
+
+func (stct *Struct) Method(name string) *Function {
+	for _, method := range stct.Methods() {
+		if method.Name() == name {
+			return method
+		}
+	}
+	return nil
+}
+
 // Field is a regular struct field
 type Field struct {
 	stct     *Struct
@@ -192,4 +220,54 @@ func (f *Field) Type() Type {
 // Definition gets the definition of the type
 func (f *Field) Definition() (Declaration, error) {
 	return Definition(f.Type())
+}
+
+// Tags returns the field tags if there are any
+func (f *Field) Tags() (tags Tags, err error) {
+	if f.node.Tag == nil {
+		return tags, nil
+	}
+	// Trim the backticks from both sides before parsing
+	value := strings.Trim(f.node.Tag.Value, "`")
+	taglist, err := structtag.Parse(value)
+	if err != nil {
+		return nil, err
+	}
+	for _, tag := range taglist.Tags() {
+		tags = append(tags, &Tag{
+			Key:     tag.Key,
+			Value:   tag.Name,
+			Options: tag.Options,
+		})
+	}
+	return tags, nil
+}
+
+type Tags []*Tag
+
+// Has checks if we have a tag with the given key
+func (tags Tags) Has(key string) bool {
+	for _, tag := range tags {
+		if tag.Key == key {
+			return true
+		}
+	}
+	return false
+}
+
+// Get the tag value or return an empty string
+func (tags Tags) Get(key string) string {
+	for _, tag := range tags {
+		if tag.Key == key {
+			return tag.Value
+		}
+	}
+	return ""
+}
+
+// Tag is a struct tag on a field
+type Tag struct {
+	Key     string
+	Value   string
+	Options []string
 }

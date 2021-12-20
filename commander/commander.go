@@ -18,7 +18,7 @@ var usage string
 var defaultUsage = template.Must(template.New("usage").Funcs(colors).Parse(usage))
 
 func New(name string) *CLI {
-	config := &config{"", os.Stderr, defaultUsage, []os.Signal{os.Interrupt}}
+	config := &config{"", os.Stdout, defaultUsage, []os.Signal{os.Interrupt}}
 	return &CLI{newCommand(config, name, ""), config}
 }
 

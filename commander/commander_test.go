@@ -429,26 +429,9 @@ func TestSubHelp(t *testing.T) {
 	is := is.New(t)
 	actual := new(bytes.Buffer)
 	cli := commander.New("bud").Writer(actual)
-	cli.Flag("log", "specify the logger").Bool(nil).Default(false)
-	var trace []string
-	cli.Run(func(ctx context.Context) error {
-		trace = append(trace, "bud")
-		return nil
-	})
-	{
-		sub := cli.Command("run", "run your application")
-		sub.Run(func(ctx context.Context) error {
-			trace = append(trace, "run")
-			return nil
-		})
-	}
-	{
-		sub := cli.Command("build", "build your application")
-		sub.Run(func(ctx context.Context) error {
-			trace = append(trace, "build")
-			return nil
-		})
-	}
+	cli.Flag("log", "specify the logger").Bool(nil)
+	cli.Command("run", "run your application")
+	cli.Command("build", "build your application")
 	err := cli.Parse([]string{"-h"})
 	is.NoErr(err)
 	isEqual(t, actual.String(), `
@@ -464,6 +447,28 @@ func TestSubHelp(t *testing.T) {
 
 `)
 }
+
+func TestEmptyUsage(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	cli := commander.New("bud").Writer(actual)
+	cli.Flag("log", "").Bool(nil)
+	cli.Command("run", "")
+	err := cli.Parse([]string{"-h"})
+	is.NoErr(err)
+	isEqual(t, actual.String(), `
+  {bold}Usage:{reset}
+    bud {dim}[flags]{reset} {dim}[command]{reset}
+
+  {bold}Flags:{reset}
+    --log
+
+  {bold}Commands:{reset}
+    run
+
+`)
+}
+
 func TestSubHelpShort(t *testing.T) {
 	is := is.New(t)
 	actual := new(bytes.Buffer)

@@ -30,7 +30,11 @@ func (cmds generateCommands) Usage() (string, error) {
 	buf := new(bytes.Buffer)
 	tw := tabwriter.NewWriter(buf, 0, 0, 2, ' ', 0)
 	for _, cmd := range cmds {
-		tw.Write([]byte("\t\t" + cmd.c.name + "\t" + dim() + cmd.c.usage + reset() + "\n"))
+		tw.Write([]byte("\t\t" + cmd.c.name))
+		if cmd.c.usage != "" {
+			tw.Write([]byte("\t" + dim() + cmd.c.usage + reset()))
+		}
+		tw.Write([]byte("\n"))
 	}
 	if err := tw.Flush(); err != nil {
 		return "", err
@@ -101,8 +105,10 @@ func (flags generateFlags) Usage() (string, error) {
 			tw.Write([]byte("-" + string(flag.f.short) + ", "))
 		}
 		tw.Write([]byte("--" + flag.f.name))
-		tw.Write([]byte("\t"))
-		tw.Write([]byte(dim() + flag.f.usage + reset()))
+		if flag.f.usage != "" {
+			tw.Write([]byte("\t"))
+			tw.Write([]byte(dim() + flag.f.usage + reset()))
+		}
 		tw.Write([]byte("\n"))
 	}
 	if err := tw.Flush(); err != nil {

@@ -166,6 +166,7 @@ func (c *bud) Generate(dir string) error {
 		// a chance to add files that are picked up by these compiler plugins.
 		"bud/command/command.go": gen.FileGenerator(&command.Generator{
 			Module: module,
+			Parser: parser,
 		}),
 		"bud/controller/controller.go": gen.FileGenerator(&controller.Generator{
 			Module: module,

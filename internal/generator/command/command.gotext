@@ -19,16 +19,18 @@ type CLI struct {
 
 {{- define "command" }}
 {{- range $flag := $.Flags }}
-cmd.Flag(`{{ $flag.Slug }}`, `{{ $flag.Usage }}`).{{ $flag.Method }}(&c.m.{{ $.Full.Pascal }}Command.{{ $flag.Pascal }}){{ if $flag.Default }}.Default({{ $flag.Default }}){{ end }}
+cmd.Flag(`{{ $flag.Slug }}`, `{{ $flag.Help }}`).{{ $flag.Method }}(&c.m.{{ $.Full.Pascal }}Command.{{ $flag.Pascal }}){{ if $flag.Default }}.Default({{ $flag.Default }}){{ end }}
 {{- end }}
 {{- range $arg := $.Args }}
-cmd.Arg(`{{ $arg.Slug }}`, `{{ $arg.Usage }}`).{{ $arg.Method }}(&c.m.{{ $.Full.Pascal }}Command.{{ $arg.Pascal }}){{ if $arg.Default }}.Default({{ $arg.Default }}){{ end }}
+cmd.Arg(`{{ $arg.Slug }}`, `{{ $arg.Help }}`).{{ $arg.Method }}(&c.m.{{ $.Full.Pascal }}Command.{{ $arg.Pascal }}){{ if $arg.Default }}.Default({{ $arg.Default }}){{ end }}
 {{- end }}
+{{- if $.Runnable }}
 cmd.Run(c.m.{{ $.Full.Pascal }}Command.Run)
+{{ end }}
 {{- range $sub := $.Subs }}
 
 { // $ {{ $.Name }} {{ $sub.Name }}
-	cmd := cmd.Command(`{{ $sub.Name }}`, `{{ $sub.Usage}}`)
+	cmd := cmd.Command(`{{ $sub.Name }}`, `{{ $sub.Help}}`)
 	{{- template "command" $sub }}
 }
 {{- end }}
@@ -70,13 +72,13 @@ func (c *Command) Run(ctx context.Context) error {
 
 // Load{{ $cmd.Full.Pascal }}Command loads the command
 func Load{{ $cmd.Full.Pascal }}Command(
-{{- range $field := $cmd.Fields }}
-{{ $field.Camel }} {{ $field.Type }},
+{{- range $dep := $cmd.Deps }}
+{{ $dep.Camel }} {{ $dep.Type }},
 {{- end }}
 ) *{{ $cmd.Full.Pascal }}Command {
 	return &{{ $cmd.Full.Pascal }}Command{
-		{{- range $field := $cmd.Fields }}
-		{{ $field.Name }}: {{ $field.Camel }},
+		{{- range $dep := $cmd.Deps }}
+		{{ $dep.Name }}: {{ $dep.Camel }},
 		{{- end }}
 	}
 }

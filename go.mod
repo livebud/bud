@@ -6,6 +6,7 @@ require (
 	github.com/armon/go-radix v1.0.0
 	github.com/cespare/xxhash v1.1.0
 	github.com/evanw/esbuild v0.12.24
+	github.com/fatih/structtag v1.2.0
 	github.com/gitchander/permutation v0.0.0-20201214100618-1f3e7285f953
 	github.com/gobwas/glob v0.2.3
 	github.com/jackc/puddle v1.1.4

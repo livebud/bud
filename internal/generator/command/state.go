@@ -47,11 +47,11 @@ type Command struct {
 	Import   *imports.Import
 	Name     string
 	Slug     string
-	Usage    string
+	Help     string
 	Flags    []*Flag
 	Args     []*Arg
 	Subs     []*Command
-	Fields   []*Field
+	Deps     []*Dep
 	Context  bool
 	Runnable bool
 }
@@ -77,7 +77,7 @@ func (f Full) Pascal() string {
 
 type Flag struct {
 	Name    string
-	Usage   string
+	Help    string
 	Type    string
 	Default string
 	Short   byte
@@ -97,7 +97,7 @@ func (f *Flag) Method() (string, error) {
 
 type Arg struct {
 	Name    string
-	Usage   string
+	Help    string
 	Type    string
 	Default string
 }
@@ -114,12 +114,12 @@ func (a *Arg) Method() (string, error) {
 	return methodName(a.Type)
 }
 
-type Field struct {
-	Import string
+type Dep struct {
+	Import *imports.Import
 	Name   string
 	Type   string
 }
 
-func (f *Field) Camel() string {
-	return gotext.Camel(f.Type)
+func (d *Dep) Camel() string {
+	return gotext.Camel(d.Type)
 }

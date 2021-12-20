@@ -2,11 +2,11 @@ package command
 
 import (
 	_ "embed"
-	"fmt"
 
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/gotemplate"
+	"gitlab.com/mnm/bud/internal/parser"
 )
 
 //go:embed command.gotext
@@ -16,6 +16,7 @@ var generator = gotemplate.MustParse("command.gotext", template)
 
 type Generator struct {
 	Module *mod.Module
+	Parser *parser.Parser
 }
 
 func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
@@ -24,14 +25,13 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 		return err
 	}
 	// Load command state
-	state, err := Load(g.Module)
+	state, err := Load(g.Module, g.Parser)
 	if err != nil {
 		return err
 	}
 	// Generate our template
 	code, err := generator.Generate(state)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	// fmt.Println(string(code))
