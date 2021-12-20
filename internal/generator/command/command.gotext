@@ -9,91 +9,82 @@ import (
 )
 {{- end }}
 
-func Load(cmd *Command) *CLI {
-	return &CLI{cmd}
+func Load(m *Map) *CLI {
+	return &CLI{m}
 }
 
 type CLI struct {
-	cmd *Command
+	m *Map
 }
+
+{{- define "command" }}
+{{- range $flag := $.Flags }}
+cmd.Flag(`{{ $flag.Slug }}`, `{{ $flag.Usage }}`).{{ $flag.Method }}(&c.m.{{ $.Full.Pascal }}Command.{{ $flag.Pascal }}){{ if $flag.Default }}.Default({{ $flag.Default }}){{ end }}
+{{- end }}
+{{- range $arg := $.Args }}
+cmd.Arg(`{{ $arg.Slug }}`, `{{ $arg.Usage }}`).{{ $arg.Method }}(&c.m.{{ $.Full.Pascal }}Command.{{ $arg.Pascal }}){{ if $arg.Default }}.Default({{ $arg.Default }}){{ end }}
+{{- end }}
+cmd.Run(c.m.{{ $.Full.Pascal }}Command.Run)
+{{- range $sub := $.Subs }}
+
+{ // $ {{ $.Name }} {{ $sub.Name }}
+	cmd := cmd.Command(`{{ $sub.Name }}`, `{{ $sub.Usage}}`)
+	{{- template "command" $sub }}
+}
+{{- end }}
+{{- end }}
 
 func (c *CLI) Parse(args ...string) error {
 	// $ bud run/build
-	cmd := commander.New(`hn`)
-	cmd.Run(c.cmd.Run)
-
-	{ // $ hn deploy
-		cmd := cmd.Command(`deploy`, `deploy your application`)
-		cmd.Flag(`access-key`, `AWS access key`).String(&c.cmd.Deploy.AccessKey)
-		cmd.Flag(`secret-key`, `AWS secret key`).String(&c.cmd.Deploy.SecretKey)
-		cmd.Run(c.cmd.Deploy.Run)
-	}
-
-	{ // $ hn new
-		cmd := cmd.Command(`new`, `new scaffolding`)
-		cmd.Flag(`dry-run`, `include a dry run`).Bool(&c.cmd.New.DryRun)
-		cmd.Run(c.cmd.Run)
-
-		{ // $ new view
-			cmd := cmd.Command(`view`, `new view`)
-			cmd.Flag(`with-test`, `include a test`).Bool(&c.cmd.New.View.WithTest)
-			cmd.Arg(`name`, `name of the view`).String(&c.cmd.New.View.Name)
-			cmd.Run(c.cmd.Run)
-		}
-	}
+	cmd := commander.New(`{{ $.Command.Slug }}`)
+	{{- template "command" $.Command }}
 
 	return cmd.Parse(args)
 }
 
-func LoadCommand(web *web.Server, deploy *DeployCommand, newc *NewCommand) *Command {
-	cmd := &Command{
-		web: web,
-		Deploy: deploy,
-		New: newc,
-	}
-	return cmd
+// Map contains all of the commands
+type Map struct {
+	Command *Command
+	{{- range $cmd := $.Commands }}
+	{{ $cmd.Full.Pascal }}Command *{{ $cmd.Full.Pascal }}Command
+	{{- end }}
 }
 
-// Command root
+// LoadCommand loads the root command
+func LoadCommand(web *web.Server) *Command {
+	return &Command{web}
+}
+
+// Command is the root command
 type Command struct {
-	web    *web.Server
-	Deploy *DeployCommand
-	New    *NewCommand
+	web *web.Server
 }
 
+// Run starts the web server
 func (c *Command) Run(ctx context.Context) error {
 	console.Info("Listening on http://localhost:3000")
 	return c.web.ListenAndServe(ctx, ":3000")
 }
 
-func LoadDeployCommand(vm *v8.Pool) *DeployCommand {
-	return &DeployCommand{
-		Command: &deploy.Command{VM: vm},
+{{- range $cmd := $.Commands }}
+
+// Load{{ $cmd.Full.Pascal }}Command loads the command
+func Load{{ $cmd.Full.Pascal }}Command(
+{{- range $field := $cmd.Fields }}
+{{ $field.Camel }} {{ $field.Type }},
+{{- end }}
+) *{{ $cmd.Full.Pascal }}Command {
+	return &{{ $cmd.Full.Pascal }}Command{
+		{{- range $field := $cmd.Fields }}
+		{{ $field.Name }}: {{ $field.Camel }},
+		{{- end }}
 	}
 }
 
-type DeployCommand struct {
-	*deploy.Command
-}
+{{- if $cmd.Import }}
 
-func LoadNewCommand(vm *v8.Pool, view *NewViewCommand) *NewCommand {
-	return &NewCommand{
-		Command: &new.Command{V8: vm},
-		View:    view,
-	}
-}
+// {{ $cmd.Full.Pascal }}Command is an alias to `{{ $cmd.Import.Path }}`
+type {{ $cmd.Full.Pascal }}Command = {{ $cmd.Import.Name }}.Command
+{{- end }}
 
-type NewCommand struct {
-	*new.Command
-	View *NewViewCommand
-}
-
-func LoadNewViewCommand() *NewViewCommand {
-	return &NewViewCommand{
-		Command: &new_view.Command{},
-	}
-}
-
-type NewViewCommand struct {
-	*new_view.Command
-}
+{{- end }}

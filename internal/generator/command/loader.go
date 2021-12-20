@@ -1,11 +1,8 @@
 package command
 
 import (
-	"path/filepath"
-
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/bail"
-	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/imports"
 )
 
@@ -38,36 +35,30 @@ func (l *loader) Load() (state *State, err error) {
 	l.imports.AddNamed("new_view", l.module.Import("command", "new", "view"))
 	// Load the commands
 	state.Command = l.loadCommand("command", ".")
+	// state.Structs = l.loadStructs(flatten(state.Command))
+	// state.Functions = l.loadFunctions(flatten(state.Command))
 	// Load the imports
 	state.Imports = l.imports.List()
 	return state, nil
 }
 
 func (l *loader) loadCommand(base, dir string) *Command {
-	command := new(Command)
-	command.Name = filepath.Base(dir)
-	if command.Name == "." {
-		command.Name = imports.AssumedName(l.module.Import())
-	}
-	// des, err := fs.ReadDir(l.module, filepath.Join(base, dir))
-	// if err != nil {
-	// 	l.Bail(err)
-	// }
-	// fmt.Println(command.Name)
-	// for _, de := range des {
-	// 	fmt.Println(de.Name())
-	// }
 	return &Command{
-		Name:  command.Name,
+		Slug:  imports.AssumedName(l.module.Import()),
 		Usage: "start your application",
 		Subs: []*Command{
 			{
 				Name:  "deploy",
 				Usage: "deploy your application",
-				Deps: []di.Dependency{
-					&di.Type{
+				Import: &imports.Import{
+					Path: l.module.Import("command", "deploy"),
+					Name: l.imports.Add(l.module.Import("command", "deploy")),
+				},
+				Fields: []*Field{
+					&Field{
 						Import: "gitlab.com/mnm/bud/js/v8",
-						Type:   "*Pool",
+						Name:   "VM",
+						Type:   "*v8.Pool",
 					},
 				},
 				Flags: []*Flag{
@@ -82,14 +73,24 @@ func (l *loader) loadCommand(base, dir string) *Command {
 						Type:  "string",
 					},
 				},
+				Parents: []string{},
 			},
 			{
-				Name:  "new",
-				Usage: "new scaffolding",
+				Name:    "new",
+				Usage:   "new scaffolding",
+				Parents: []string{},
+				Import: &imports.Import{
+					Path: l.module.Import("command", "new"),
+					Name: l.imports.Add(l.module.Import("command", "new")),
+				},
 				Subs: []*Command{
 					{
 						Name:  "view",
 						Usage: "new view",
+						Import: &imports.Import{
+							Path: l.module.Import("command", "new", "view"),
+							Name: l.imports.Add(l.module.Import("command", "new", "view")),
+						},
 						Args: []*Arg{
 							{
 								Name:  "name",
@@ -105,9 +106,89 @@ func (l *loader) loadCommand(base, dir string) *Command {
 								Default: "true",
 							},
 						},
+						Parents: []string{"new"},
 					},
 				},
 			},
 		},
 	}
 }
+
+// func (l *loader) loadFunctions(commands []*Command) (fns []*Function) {
+// 	return []*Function{
+// 		&Function{
+// 			Name: "deploy",
+// 			Params: []*Param{
+// 				&Param{
+// 					Name: "vm",
+// 					Type: "*v8.Pool",
+// 				},
+// 			},
+// 		},
+// 		&Function{
+// 			Name: "new",
+// 			Params: []*Param{
+// 				&Param{
+// 					Name: "vm",
+// 					Type: "*v8.Pool",
+// 				},
+// 			},
+// 		},
+// 		&Function{
+// 			Name: "new view",
+// 		},
+// 	}
+// }
+
+// func (l *loader) loadStructs(commands []*Command) (stcts []*Struct) {
+// 	return []*Struct{
+// 		&Struct{
+// 			Name: "Command",
+// 			Fields: []*Field{
+// 				&Field{
+// 					Name: "web",
+// 					Type: "*web.Server",
+// 				},
+// 				&Field{
+// 					Name: "Deploy",
+// 					Type: "*DeployCommand",
+// 				},
+// 				&Field{
+// 					Name: "New",
+// 					Type: "*NewCommand",
+// 				},
+// 			},
+// 		},
+// 		&Struct{
+// 			Name: "DeployCommand",
+// 			Fields: []*Field{
+// 				&Field{
+// 					Name: "Command",
+// 					Type: "*deploy.Command",
+// 				},
+// 			},
+// 		},
+// 		&Struct{
+// 			Name: "NewCommand",
+// 			Fields: []*Field{
+// 				&Field{
+// 					Name: "Command",
+// 					Type: "*new.Command",
+// 				},
+// 				&Field{
+// 					Name: "View",
+// 					Type: "*NewViewCommand",
+// 				},
+// 			},
+// 		},
+// 		&Struct{
+// 			Name: "NewViewCommand",
+// 			Fields: []*Field{
+// 				&Field{
+// 					Name: "Command",
+// 					Type: "*new_view.Command",
+// 				},
+// 			},
+// 		},
+// 	}
+// }

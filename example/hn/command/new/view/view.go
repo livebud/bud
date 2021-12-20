@@ -10,7 +10,7 @@ type Command struct {
 	WithTest bool   `flag:"with-test" help:"include a view test" default:"true"`
 }
 
-func (c *Command) View(ctx context.Context) error {
+func (c *Command) Run(ctx context.Context) error {
 	fmt.Println("creating new view", c.Name, c.WithTest)
 	return nil
 }

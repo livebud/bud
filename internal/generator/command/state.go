@@ -6,71 +6,73 @@ import (
 
 	"github.com/matthewmueller/gotext"
 	"github.com/matthewmueller/text"
-	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/imports"
 )
 
+func methodName(dataType string) (string, error) {
+	switch strings.TrimLeft(dataType, "*") {
+	case "bool":
+		return "Bool", nil
+	case "string":
+		return "String", nil
+	default:
+		return "", fmt.Errorf("command: unhandled type for method %q", dataType)
+	}
+}
+
+// Flatten out the commands
+func flatten(commands []*Command) (results []*Command) {
+	for _, cmd := range commands {
+		results = append(results, cmd)
+		results = append(results, flatten(cmd.Subs)...)
+	}
+	return results
+}
+
 type State struct {
 	Imports []*imports.Import
+	// Functions []*Function
+	// Structs   []*Struct
 	Command *Command
 }
 
-type Command struct {
-	Name    string
-	Usage   string
-	Flags   []*Flag
-	Args    []*Arg
-	Subs    []*Command
-	Deps    []di.Dependency
-	Context bool
+// Flatten out the commands, intentionally ignoring the root command
+// because that is custom generated.
+func (s *State) Commands() []*Command {
+	return flatten(s.Command.Subs)
 }
 
-func (c *Command) Slim() string {
-	return gotext.Slim(c.Name)
+type Command struct {
+	Parents  []string
+	Import   *imports.Import
+	Name     string
+	Slug     string
+	Usage    string
+	Flags    []*Flag
+	Args     []*Arg
+	Subs     []*Command
+	Fields   []*Field
+	Context  bool
+	Runnable bool
 }
 
 func (c *Command) Pascal() string {
 	return gotext.Pascal(c.Name)
 }
 
-func (c *Command) Structs() (structs []*commandStruct) {
-	stct := &commandStruct{
-		Name: c.Name,
+func (c *Command) Full() Full {
+	// Make a copy
+	parents := make([]string, len(c.Parents))
+	for i, parent := range c.Parents {
+		parents[i] = parent
 	}
-	structs = append(structs, stct)
-	for _, sub := range c.Subs {
-		stct.Fields = append(stct.Fields, &commandStructField{
-			Name: sub.Name,
-		})
-		structs = append(structs, sub.Structs()...)
-	}
-	return structs
+	return Full(strings.Join(append(parents, c.Name), " "))
 }
 
-type commandStruct struct {
-	Name   string
-	Fields []*commandStructField
-}
+type Full string
 
-func (c *commandStruct) Camel(suffix ...string) string {
-	return gotext.Camel(append([]string{c.Name}, suffix...)...)
-}
-
-func (c *commandStruct) Pascal(suffix ...string) string {
-	return gotext.Pascal(append([]string{c.Name}, suffix...)...)
-}
-
-type commandStructField struct {
-	Name string
-	Type string
-}
-
-func (c *commandStructField) Camel(suffix ...string) string {
-	return gotext.Camel(append([]string{c.Name}, suffix...)...)
-}
-
-func (c *commandStructField) Pascal(suffix ...string) string {
-	return gotext.Pascal(append([]string{c.Name}, suffix...)...)
+func (f Full) Pascal() string {
+	return gotext.Pascal(string(f))
 }
 
 type Flag struct {
@@ -112,15 +114,12 @@ func (a *Arg) Method() (string, error) {
 	return methodName(a.Type)
 }
 
-func methodName(dataType string) (string, error) {
-	switch strings.TrimLeft(dataType, "*") {
-	case "bool":
-		return "Bool", nil
-	case "string":
-		return "String", nil
-	default:
-		return "", fmt.Errorf("command: unhandled type for method %q", dataType)
-	}
+type Field struct {
+	Import string
+	Name   string
+	Type   string
 }
 
-type Provider = di.Provider
+func (f *Field) Camel() string {
+	return gotext.Camel(f.Type)
+}

@@ -12,7 +12,7 @@ type Command struct {
 	DryRun bool `flag:"dry-run" help:"run but don't write" default:"false"`
 }
 
-func (c *Command) View(ctx context.Context) error {
+func (c *Command) Run(ctx context.Context) error {
 	fmt.Println("creating new", c.DryRun)
 	return nil
 }
