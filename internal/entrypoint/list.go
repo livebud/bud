@@ -7,8 +7,9 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"unicode"
 	"unicode/utf8"
+
+	"gitlab.com/mnm/bud/internal/valid"
 
 	"github.com/matthewmueller/text"
 )
@@ -88,8 +89,7 @@ func list(fsys fs.FS, dir string, reserved *reserved) (views []*View, err error)
 			continue
 		}
 		// Handle files
-		// Ignore capitalized files and files that start with an underscore
-		if len(base) == 0 || base[0] == '_' || base[0] == '.' || unicode.IsUpper(firstRune(base)) {
+		if !valid.ViewEntry(base) {
 			continue
 		}
 		path := filepath.Join(dir, name)
