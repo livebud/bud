@@ -1,6 +1,7 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"path/filepath"
@@ -54,6 +55,10 @@ func (l *loader) loadRoot(base string) *Command {
 	command.Runnable = true
 	des, err := fs.ReadDir(l.module, base)
 	if err != nil {
+		// Return the build/run command without any subcommands
+		if errors.Is(err, fs.ErrNotExist) {
+			return command
+		}
 		l.Bail(err)
 	}
 	for _, de := range des {

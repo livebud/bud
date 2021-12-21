@@ -2,6 +2,7 @@ package command
 
 import (
 	_ "embed"
+	"fmt"
 
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
@@ -27,6 +28,7 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 	// Load command state
 	state, err := Load(g.Module, g.Parser)
 	if err != nil {
+		fmt.Println(state, err)
 		return err
 	}
 	// Generate our template

@@ -121,8 +121,19 @@ func isEqual(t testing.TB, actual, expect string) {
 	diff.TestString(t, redent(expect), redent(actual))
 }
 
-func TestRoot(t *testing.T) {
-	// is := is.New(t)
+func TestEmpty(t *testing.T) {
+	run := generate(t, modtest.Module{
+		Files: map[string]string{
+			"go.mod": goMod,
+		},
+	})
+	isEqual(t, run("-h"), `
+		Usage:
+		  app
+	`)
+}
+
+func TestExample(t *testing.T) {
 	run := generate(t, modtest.Module{
 		Files: map[string]string{
 			"go.mod": goMod,
@@ -133,17 +144,17 @@ func TestRoot(t *testing.T) {
 					"context"
 					"fmt"
 
-					v8 "gitlab.com/mnm/bud/js/v8"
+					router "gitlab.com/mnm/bud/router"
 				)
 
 				type Command struct {
-					VM        *v8.Pool
+					Router    *router.Router
 					AccessKey string ` + "`" + `flag:"access-key" help:"aws access key"` + "`" + `
 					SecretKey string ` + "`" + `flag:"secret-key" help:"aws secret key"` + "`" + `
 				}
 
 				func (c *Command) Run(ctx context.Context) error {
-					fmt.Println(c.VM, c.AccessKey, c.SecretKey)
+					fmt.Println(c.Router, c.AccessKey, c.SecretKey)
 					return nil
 				}
 			`,
@@ -154,11 +165,11 @@ func TestRoot(t *testing.T) {
 					"context"
 					"fmt"
 
-					v8 "gitlab.com/mnm/bud/js/v8"
+					router "gitlab.com/mnm/bud/router"
 				)
 
 				type Command struct {
-					V8     *v8.Pool
+					Router *router.Router
 					DryRun bool ` + "`" + `flag:"dry-run" help:"run but don't write" default:"false"` + "`" + `
 				}
 

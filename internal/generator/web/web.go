@@ -23,16 +23,15 @@ type State struct {
 }
 
 func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
-	if err := gen.SkipUnless(f, "bud/controller/controller.go"); err != nil {
+	if err := gen.SkipUnless(f, "bud/router/router.go"); err != nil {
 		return err
 	}
 	imports := imports.New()
 	imports.AddStd("net/http", "context", "errors", "os")
 	imports.AddNamed("hot", "gitlab.com/mnm/bud/hot")
 	imports.AddNamed("middleware", "gitlab.com/mnm/bud/middleware")
-	imports.AddNamed("router", "gitlab.com/mnm/bud/router")
 	imports.AddNamed("commander", "gitlab.com/mnm/bud/commander")
-	imports.AddNamed("controller", g.Module.Import("bud/controller"))
+	imports.AddNamed("router", g.Module.Import("bud/router"))
 	imports.AddNamed("public", g.Module.Import("bud/public"))
 	imports.AddNamed("view", g.Module.Import("bud/view"))
 	code, err := generator.Generate(State{

@@ -13,16 +13,11 @@ import (
 
 // New web server
 func New(
-	controller *controller.Controller,
+	router *router.Router,
 	hot *hot.Server,
 	public public.Middleware,
-	router *router.Router,
 	view *view.Server,
 ) *Server {
-	// Routing
-	router.Get("/", http.HandlerFunc(controller.Index))
-	router.Get("/:id", http.HandlerFunc(controller.Show))
-	router.Get("/new", view.Handler("/new"))
 	// Compose the middleware together
 	middleware := middleware.Compose(
 		public,

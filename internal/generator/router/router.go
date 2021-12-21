@@ -1,4 +1,4 @@
-package controller
+package router
 
 import (
 	_ "embed"
@@ -9,24 +9,25 @@ import (
 	"gitlab.com/mnm/bud/internal/imports"
 )
 
-//go:embed controller.gotext
+//go:embed router.gotext
 var template string
 
-var generator = gotemplate.MustParse("controller.gotext", template)
+var generator = gotemplate.MustParse("router.gotext", template)
 
 type Generator struct {
 	Module *mod.Module
 }
 
-// var controllers = glob.MustCompile("controller/{*,**}.go")
-
 func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
-
+	if err := gen.SkipUnless(f, "bud/action/action.go"); err != nil {
+		return err
+	}
 	imports := imports.New()
 	imports.AddStd("net/http")
+	imports.AddNamed("router", "gitlab.com/mnm/bud/router")
+	imports.AddNamed("action", g.Module.Import("bud/action"))
+	imports.AddNamed("public", g.Module.Import("bud/public"))
 	imports.AddNamed("view", g.Module.Import("bud/view"))
-	// TODO: replace with dynamic list
-	imports.AddNamed("controller", g.Module.Import("controller"))
 	code, err := generator.Generate(State{
 		Imports: imports.List(),
 	})

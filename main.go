@@ -18,13 +18,14 @@ import (
 	"gitlab.com/mnm/bud/internal/parser"
 	v8 "gitlab.com/mnm/bud/js/v8"
 
+	"gitlab.com/mnm/bud/internal/generator/action"
 	"gitlab.com/mnm/bud/internal/generator/command"
-	"gitlab.com/mnm/bud/internal/generator/controller"
 	"gitlab.com/mnm/bud/internal/generator/generator"
 	"gitlab.com/mnm/bud/internal/generator/gomod"
 	"gitlab.com/mnm/bud/internal/generator/maingo"
 	"gitlab.com/mnm/bud/internal/generator/program"
 	"gitlab.com/mnm/bud/internal/generator/public"
+	"gitlab.com/mnm/bud/internal/generator/router"
 	"gitlab.com/mnm/bud/internal/generator/transform"
 	"gitlab.com/mnm/bud/internal/generator/view"
 	"gitlab.com/mnm/bud/internal/generator/web"
@@ -168,7 +169,7 @@ func (c *bud) Generate(dir string) error {
 			Module: module,
 			Parser: parser,
 		}),
-		"bud/controller/controller.go": gen.FileGenerator(&controller.Generator{
+		"bud/action/action.go": gen.FileGenerator(&action.Generator{
 			Module: module,
 		}),
 		"bud/transform/transform.go": gen.FileGenerator(&transform.Generator{
@@ -181,6 +182,9 @@ func (c *bud) Generate(dir string) error {
 			Module: module,
 			Embed:  c.Embed,
 			Minify: c.Minify,
+		}),
+		"bud/router/router.go": gen.FileGenerator(&router.Generator{
+			Module: module,
 		}),
 		"bud/web/web.go": gen.FileGenerator(&web.Generator{
 			Module: module,

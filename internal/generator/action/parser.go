@@ -1,4 +1,4 @@
-package controller
+package action
 
 type Parser struct {
 }

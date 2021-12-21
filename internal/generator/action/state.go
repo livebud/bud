@@ -1,4 +1,4 @@
-package controller
+package action
 
 import (
 	"strconv"
@@ -10,11 +10,15 @@ import (
 
 // State is the target controller state
 type State struct {
-	Imports  []*imports.Import
-	Name     string
-	Path     string
-	Contexts []*Context
-	Actions  []*Action
+	Imports     []*imports.Import
+	Controllers []*Controller
+}
+
+type Controller struct {
+	Name    string
+	Path    string
+	Actions []*Action
+	Context *Context
 }
 
 // Action is the target action state
