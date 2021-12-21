@@ -23,6 +23,7 @@ func TestDir(t *testing.T) {
 	is.True(!valid.Dir(".ab"))
 	is.True(!valid.Dir("A"))
 	is.True(!valid.Dir("Ab"))
+	is.True(!valid.Dir("bud"))
 }
 
 func TestViewEntry(t *testing.T) {
@@ -41,4 +42,5 @@ func TestViewEntry(t *testing.T) {
 	is.True(!valid.ViewEntry(".ab"))
 	is.True(!valid.ViewEntry("A"))
 	is.True(!valid.ViewEntry("Ab"))
+	is.True(!valid.ViewEntry("bud"))
 }

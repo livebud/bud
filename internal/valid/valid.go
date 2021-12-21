@@ -8,28 +8,30 @@ import (
 
 // Dir validates that the name matches a valid directory
 func Dir(name string) bool {
-	// Ignore dirs with capital letters and files that start with an underscore or dot
-	if len(name) == 0 || name[0] == '_' || name[0] == '.' || strings.ToLower(name) != name {
-		return false
-	}
-	// Ignore _
-	if name[0] == '_' {
-		return false
-	}
-	return true
+	return !invalidDir(name)
+}
+
+// Invalid dir check
+func invalidDir(name string) bool {
+	return len(name) == 0 || // Empty string
+		name[0] == '_' || // Starts with _
+		name[0] == '.' || // Starts with .
+		name == "bud" || // Named bud (reserved)
+		strings.ToLower(name) != name // Has uppercase letters
 }
 
 // ViewEntry validates that name matches a valid view entrypoint
 func ViewEntry(name string) bool {
-	// Ignore capitalized files and files that start with an underscore or dot
-	if len(name) == 0 || name[0] == '_' || name[0] == '.' || unicode.IsUpper(firstRune(name)) {
-		return false
-	}
-	// Ignore _
-	if name[0] == '_' {
-		return false
-	}
-	return true
+	return !invalidViewEntry(name)
+}
+
+// Invalid view entry check
+func invalidViewEntry(name string) bool {
+	return len(name) == 0 || // Empty string
+		name[0] == '_' || // Starts with _
+		name[0] == '.' || // Starts with .
+		name == "bud" || // Named bud (reserved)
+		unicode.IsUpper(firstRune(name)) // Starts with a capital letter
 }
 
 func firstRune(s string) rune {
