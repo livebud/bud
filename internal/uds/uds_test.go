@@ -23,7 +23,7 @@ func TestListenTransport(t *testing.T) {
 	defer listener.Close()
 	server := &http.Server{
 		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("hi!"))
+			w.Write([]byte(r.URL.Path))
 		}),
 	}
 	go func() {
@@ -33,10 +33,10 @@ func TestListenTransport(t *testing.T) {
 		}
 	}()
 	client := &http.Client{Transport: uds.Transport(socketPath)}
-	res, err := client.Get("http://unix/")
+	res, err := client.Get("http://host/hello")
 	is.NoErr(err)
 	body, err := ioutil.ReadAll(res.Body)
 	is.NoErr(err)
-	is.Equal(string(body), "hi!")
+	is.Equal(string(body), "/hello")
 	is.NoErr(server.Close())
 }

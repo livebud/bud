@@ -1,4 +1,4 @@
-package commander
+package sig
 
 import (
 	"context"

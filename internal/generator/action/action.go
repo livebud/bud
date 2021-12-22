@@ -9,7 +9,7 @@ import (
 	"gitlab.com/mnm/bud/internal/imports"
 )
 
-//go:embed controller.gotext
+//go:embed action.gotext
 var template string
 
 var generator = gotemplate.MustParse("action.gotext", template)
@@ -21,9 +21,9 @@ type Generator struct {
 func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 	imports := imports.New()
 	imports.AddStd("net/http")
-	imports.AddNamed("view", g.Module.Import("bud/view"))
+	imports.AddNamed("view", "gitlab.com/mnm/bud/view")
 	// TODO: replace with dynamic list
-	imports.AddNamed("controller", g.Module.Import("controller"))
+	imports.AddNamed("action", g.Module.Import("action"))
 	code, err := generator.Generate(State{
 		Imports: imports.List(),
 	})

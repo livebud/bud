@@ -12,8 +12,8 @@ import (
 {{- end }}
 
 func New(
-	controller *controller.Controller,
-	view *view.Server,
+	controller *action.Controller,
+	view view.Renderer,
 ) *Controller {
 	return &Controller{
 		controller,
@@ -22,8 +22,8 @@ func New(
 }
 
 type Controller struct {
-	controller *controller.Controller
-	view       *view.Server
+	controller *action.Controller
+	view       view.Renderer
 }
 
 func (c *Controller) Index(w http.ResponseWriter, r *http.Request) {

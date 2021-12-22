@@ -87,15 +87,6 @@ func (g *generateFlag) Name() string {
 
 type generateFlags []*generateFlag
 
-func (flags generateFlags) hasShortFlags() bool {
-	for _, flag := range flags {
-		if flag.f.short != 0 {
-			return true
-		}
-	}
-	return false
-}
-
 func (flags generateFlags) Usage() (string, error) {
 	buf := new(bytes.Buffer)
 	tw := tabwriter.NewWriter(buf, 0, 0, 2, ' ', 0)

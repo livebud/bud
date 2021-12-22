@@ -10,6 +10,8 @@ import (
 	"io/ioutil"
 	"os"
 	"text/template"
+
+	"gitlab.com/mnm/bud/internal/sig"
 )
 
 //go:embed usage.gotext
@@ -79,7 +81,7 @@ func (c *CLI) Trap(signals ...os.Signal) {
 }
 
 func (c *CLI) Parse(args []string) error {
-	ctx, cancel := Trap(context.Background(), c.config.signals...)
+	ctx, cancel := sig.Trap(context.Background(), c.config.signals...)
 	defer cancel()
 	if err := c.root.parse(ctx, args); err != nil {
 		return err

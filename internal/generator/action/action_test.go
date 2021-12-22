@@ -6,12 +6,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
 
-	"github.com/lithammer/dedent"
 	"github.com/matryer/is"
-	"github.com/matthewmueller/diff"
 	"gitlab.com/mnm/bud/fsync"
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/di"
@@ -26,9 +23,13 @@ import (
 	"gitlab.com/mnm/bud/vfs"
 )
 
-func redent(s string) string {
-	return strings.TrimSpace(dedent.Dedent(s)) + "\n"
-}
+// func redent(s string) string {
+// 	return strings.TrimSpace(dedent.Dedent(s)) + "\n"
+// }
+
+// func isEqual(t testing.TB, actual, expect string) {
+// 	diff.TestString(t, redent(expect), redent(actual))
+// }
 
 func goRun(cacheDir, appDir string, args ...string) (string, error) {
 	ctx := context.Background()
@@ -97,10 +98,6 @@ require (
 	gitlab.com/mnm/bud v0.0.0
 )
 `
-
-func isEqual(t testing.TB, actual, expect string) {
-	diff.TestString(t, redent(expect), redent(actual))
-}
 
 func TestExample(t *testing.T) {
 	generate(t, modtest.Module{
