@@ -27,10 +27,10 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 		return err
 	}
 	imports := imports.New()
-	imports.AddStd("net/http", "context", "errors", "os")
+	imports.AddStd("net/http", "context")
 	imports.AddNamed("hot", "gitlab.com/mnm/bud/hot")
 	imports.AddNamed("middleware", "gitlab.com/mnm/bud/middleware")
-	imports.AddNamed("commander", "gitlab.com/mnm/bud/commander")
+	imports.AddNamed("web", "gitlab.com/mnm/bud/web")
 	imports.AddNamed("router", g.Module.Import("bud/router"))
 	imports.AddNamed("public", g.Module.Import("bud/public"))
 	imports.AddNamed("view", g.Module.Import("bud/view"))

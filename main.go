@@ -124,8 +124,9 @@ func (c *bud) Generate(dir string) error {
 	}
 	parser := parser.New(module)
 	injector := di.New(module, parser, di.Map{
-		toType("gitlab.com/mnm/bud/gen", "FS"): toType("gitlab.com/mnm/bud/gen", "*FileSystem"),
-		toType("gitlab.com/mnm/bud/js", "VM"):  toType("gitlab.com/mnm/bud/js/v8", "*Pool"),
+		toType("gitlab.com/mnm/bud/gen", "FS"):        toType("gitlab.com/mnm/bud/gen", "*FileSystem"),
+		toType("gitlab.com/mnm/bud/js", "VM"):         toType("gitlab.com/mnm/bud/js/v8", "*Pool"),
+		toType("gitlab.com/mnm/bud/view", "Renderer"): toType("gitlab.com/mnm/bud/view", "*Server"),
 	})
 	genfs.Add(map[string]gen.Generator{
 		"go.mod": gen.FileGenerator(&gomod.Generator{

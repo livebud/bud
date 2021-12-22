@@ -34,37 +34,5 @@ type Server struct {
 }
 
 func (s *Server) ListenAndServe(ctx context.Context, address string) error {
-	server := &http.Server{
-		Addr: address,
-		Handler: s,
-	}
-	// Make the server shutdownable
-	shutdown := shutdown(ctx, server)
-	// Serve requests
-	if err := server.ListenAndServe(); err != nil {
-		if !errors.Is(err, http.ErrServerClosed) {
-			return err
-		}
-	}
-	// Handle any errors that occurred while shutting down
-	if err := <-shutdown; err != nil {
-		return err
-	}
-	return nil
-}
-
-// shutdown the server when the context is cancelled
-func shutdown(ctx context.Context, server *http.Server) <-chan error {
-	shutdown := make(chan error, 1)
-	go func() {
-		<-ctx.Done()
-		// Wait for one more interrupt to force an immediate shutdown
-		forceCtx, cancel := commander.Trap(context.Background(), os.Interrupt)
-		defer cancel()
-		if err := server.Shutdown(forceCtx); err != nil {
-			shutdown <- err
-		}
-		close(shutdown)
-	}()
-	return shutdown
+	return web.ServeTCP(ctx, address, s)
 }

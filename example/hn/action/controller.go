@@ -1,4 +1,4 @@
-package controller
+package action
 
 import (
 	"context"
