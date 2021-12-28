@@ -1,4 +1,4 @@
-module {{$.Modfile.ModulePath}}
+module {{$.Module.Import}}
 
 go {{$.Go.Version}}
 

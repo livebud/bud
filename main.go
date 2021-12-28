@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"io"
@@ -9,33 +10,18 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/mattn/go-isatty"
 	"gitlab.com/mnm/bud/internal/di"
+	"gitlab.com/mnm/bud/internal/generator"
 	"gitlab.com/mnm/bud/internal/gobin"
 	"gitlab.com/mnm/bud/internal/parser"
 	v8 "gitlab.com/mnm/bud/js/v8"
 
-	"gitlab.com/mnm/bud/internal/generator/action"
-	"gitlab.com/mnm/bud/internal/generator/command"
-	"gitlab.com/mnm/bud/internal/generator/generator"
-	"gitlab.com/mnm/bud/internal/generator/gomod"
-	"gitlab.com/mnm/bud/internal/generator/maingo"
-	"gitlab.com/mnm/bud/internal/generator/program"
-	"gitlab.com/mnm/bud/internal/generator/public"
-	"gitlab.com/mnm/bud/internal/generator/router"
-	"gitlab.com/mnm/bud/internal/generator/transform"
-	"gitlab.com/mnm/bud/internal/generator/view"
-	"gitlab.com/mnm/bud/internal/generator/web"
-	"gitlab.com/mnm/bud/plugin"
-
-	"gitlab.com/mnm/bud/fsync"
 	"gitlab.com/mnm/bud/vfs"
-
-	"gitlab.com/mnm/bud/gen"
-	"gitlab.com/mnm/bud/internal/generator/generate"
 
 	"gitlab.com/mnm/bud/go/mod"
 
@@ -97,9 +83,14 @@ func do() error {
 
 		{ // $ bud tool v8
 			cmd := &v8Command{bud: bud}
-			cli := cli.Command("v8", "Execute Javascript with V8")
-			cli.Arg("eval", "evaluate a script").Strings(&cmd.Eval).Optional()
+			cli := cli.Command("v8", "Execute Javascript with V8 from stdin")
 			cli.Run(cmd.Run)
+
+			{ // $ bud tool v8 client
+				cmd := &v8ClientCommand{bud: bud}
+				cli := cli.Command("client", "V8 client used during development")
+				cli.Run(cmd.Run)
+			}
 		}
 	}
 
@@ -114,104 +105,34 @@ type bud struct {
 	Args   []string
 }
 
-func (c *bud) Generate(dir string) error {
+func (c *bud) Build(ctx context.Context, dir string) (string, error) {
 	dirfs := vfs.OS(dir)
-	genfs := gen.New(dirfs)
-	modFinder := mod.New(mod.WithFS(genfs))
-	module, err := modFinder.Find(".")
+	generator, err := generator.Load(dirfs)
 	if err != nil {
-		return err
+		return "", err
 	}
-	parser := parser.New(module)
-	injector := di.New(module, parser, di.Map{
-		toType("gitlab.com/mnm/bud/gen", "FS"):        toType("gitlab.com/mnm/bud/gen", "*FileSystem"),
-		toType("gitlab.com/mnm/bud/js", "VM"):         toType("gitlab.com/mnm/bud/js/v8", "*Pool"),
-		toType("gitlab.com/mnm/bud/view", "Renderer"): toType("gitlab.com/mnm/bud/view", "*Server"),
-	})
-	genfs.Add(map[string]gen.Generator{
-		"go.mod": gen.FileGenerator(&gomod.Generator{
-			Dir: dir,
-			Go: &gomod.Go{
-				Version: "1.17",
-			},
-			Requires: []*gomod.Require{
-				{
-					Path:    `gitlab.com/mnm/bud`,
-					Version: `v0.0.0-20211017185247-da18ff96a31f`,
-				},
-			},
-			// TODO: remove
-			Replaces: []*gomod.Replace{
-				{
-					Old: "gitlab.com/mnm/bud",
-					New: "../bud",
-				},
-				{
-					Old: "gitlab.com/mnm/bud-tailwind",
-					New: "../bud-tailwind",
-				},
-			},
-		}),
-		"bud/plugin": gen.DirGenerator(&plugin.Generator{
-			Module: module,
-		}),
-		"bud/generate/main.go": gen.FileGenerator(&generate.Generator{
-			Module: module,
-			Embed:  c.Embed,
-			Hot:    c.Hot,
-			Minify: c.Minify,
-		}),
-		"bud/generator/generator.go": gen.FileGenerator(&generator.Generator{
-			// fill in
-		}),
-		// TODO: separate the following from the generators to give the generators
-		// a chance to add files that are picked up by these compiler plugins.
-		"bud/command/command.go": gen.FileGenerator(&command.Generator{
-			Module: module,
-			Parser: parser,
-		}),
-		"bud/action/action.go": gen.FileGenerator(&action.Generator{
-			Module: module,
-		}),
-		"bud/transform/transform.go": gen.FileGenerator(&transform.Generator{
-			Module: module,
-		}),
-		"bud/view/view.go": gen.FileGenerator(&view.Generator{
-			Module: module,
-		}),
-		"bud/public/public.go": gen.FileGenerator(&public.Generator{
-			Module: module,
-			Embed:  c.Embed,
-			Minify: c.Minify,
-		}),
-		"bud/router/router.go": gen.FileGenerator(&router.Generator{
-			Module: module,
-		}),
-		"bud/web/web.go": gen.FileGenerator(&web.Generator{
-			Module: module,
-		}),
-		"bud/program/program.go": gen.FileGenerator(&program.Generator{
-			Module:   module,
-			Injector: injector,
-		}),
-		"bud/main.go": gen.FileGenerator(&maingo.Generator{
-			Module: module,
-		}),
-	})
-	// Sync with the project
-	if err := fsync.Dir(module, ".", dirfs, "."); err != nil {
-		return err
+	if err := generator.Generate(ctx); err != nil {
+		return "", err
 	}
-	// Run generate (if it exists) to support user-defined generators
-	generatePath := filepath.Join(module.Directory(), "bud", "generate", "main.go")
-	if _, err := os.Stat(generatePath); nil == err {
-		if err := gobin.Run(context.Background(), module.Directory(), generatePath); err != nil {
-			return err
-		}
+	mainPath := filepath.Join(dir, "bud", "main.go")
+	// Check to see if we generated a main.go
+	if _, err := os.Stat(mainPath); err != nil {
+		return "", err
 	}
-	return nil
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		return "", err
+	}
+	// Building over an existing binary is faster for some reason, so we'll use
+	// the cache directory for a consistent place to output builds
+	binPath := filepath.Join(cacheDir, filepath.ToSlash(generator.Module().Import()), "bud", "main")
+	if err := gobin.Build(ctx, dir, mainPath, binPath); err != nil {
+		return "", err
+	}
+	return binPath, nil
 }
 
+// Run a custom command
 func (c *bud) Run(ctx context.Context) error {
 	// Find the project directory
 	dir, err := mod.FindDirectory(c.Chdir)
@@ -219,19 +140,19 @@ func (c *bud) Run(ctx context.Context) error {
 		return err
 	}
 	// Generate the code
-	if err := c.Generate(dir); err != nil {
-		return err
-	}
-	// Ensure that main.go exists
-	mainPath := filepath.Join(dir, "bud", "main.go")
-	if _, err := os.Stat(mainPath); err != nil {
+	binPath, err := c.Build(ctx, dir)
+	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
 		return fmt.Errorf("unknown command %q", c.Args)
 	}
-	// Run the command, passing all arguments through
-	if err := gobin.Run(ctx, dir, mainPath, c.Args...); err != nil {
+	// Run the built binary
+	cmd := exec.Command(binPath, c.Args...)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	err = cmd.Run()
+	if err != nil {
 		return err
 	}
 	return nil
@@ -250,12 +171,8 @@ func (c *runCommand) Run(ctx context.Context) error {
 		return err
 	}
 	// Generate the code
-	if err := c.bud.Generate(dir); err != nil {
-		return err
-	}
-	// If bud/main.go doesn't exist, run the welcome server
-	mainPath := filepath.Join(dir, "bud", "main.go")
-	if _, err := os.Stat(mainPath); err != nil {
+	binPath, err := c.bud.Build(ctx, dir)
+	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
@@ -266,10 +183,12 @@ func (c *runCommand) Run(ctx context.Context) error {
 			w.Write([]byte("Welcome Server!\n"))
 		}))
 	}
-	// Run the main server. Intentionally use a new background context for running
-	// subprocesses because the subprocess should be the one handling the
-	// interrupt, not the parent process.
-	if err := gobin.Run(context.Background(), dir, mainPath); err != nil {
+	// Run the app
+	cmd := exec.Command(binPath, c.Args...)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	err = cmd.Run()
+	if err != nil {
 		return err
 	}
 	return nil
@@ -285,18 +204,8 @@ func (c *buildCommand) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	// Generate the code
-	if err := c.bud.Generate(dir); err != nil {
-		return err
-	}
-	// Verify that bud/main.go exists
-	mainPath := filepath.Join(dir, "bud", "main.go")
-	if _, err := os.Stat(mainPath); err != nil {
-		return err
-	}
-	// Build the main server
-	outPath := filepath.Join(dir, "bud", "main")
-	if err := gobin.Build(ctx, dir, mainPath, outPath); err != nil {
+	// Build the code
+	if _, err := c.bud.Build(ctx, dir); err != nil {
 		return err
 	}
 	return nil
@@ -400,8 +309,7 @@ func (c *diCommand) toDependency(module *mod.Module, dependency string) (di.Depe
 }
 
 type v8Command struct {
-	bud  *bud
-	Eval []string
+	bud *bud
 }
 
 func (c *v8Command) Run(ctx context.Context) error {
@@ -419,10 +327,6 @@ func (c *v8Command) Run(ctx context.Context) error {
 }
 
 func (c *v8Command) getScript() (string, error) {
-	if len(c.Eval) > 0 {
-		script := strings.Join(c.Eval, " ")
-		return script, nil
-	}
 	code, err := ioutil.ReadAll(stdin())
 	if err != nil {
 		return "", err
@@ -432,6 +336,32 @@ func (c *v8Command) getScript() (string, error) {
 		return "", errors.New("missing script to evaluate")
 	}
 	return script, nil
+}
+
+type v8ClientCommand struct {
+	bud *bud
+}
+
+func (c *v8ClientCommand) Run(ctx context.Context) error {
+	vm := v8.New()
+	dec := gob.NewDecoder(os.Stdin)
+	enc := gob.NewEncoder(os.Stdout)
+	for {
+		var expr string
+		if err := dec.Decode(&expr); err != nil {
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
+			return err
+		}
+		result, err := vm.Eval("<stdin>", string(expr))
+		if err != nil {
+			return err
+		}
+		if err := enc.Encode(result); err != nil {
+			return err
+		}
+	}
 }
 
 // input from stdin or empty object by default.

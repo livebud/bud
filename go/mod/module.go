@@ -40,14 +40,15 @@ func (m *Module) Find(importPath string) (*Module, error) {
 	if err != nil {
 		return nil, err
 	}
-	// If it's a local dir, use the current fs, otherwise use OS's fs.
-	fsys := m.fsys
-	if filepath.IsAbs(dir) {
-		fsys = osfs{}
+	// If it's a local path, that means it's inside the module, just return
+	// the existing module
+	if !filepath.IsAbs(dir) {
+		return m, nil
 	}
+	// Otherwise, it's outside the module and we need to find the module.
 	finder := &Finder{
 		cache: m.cache,
-		fsys:  fsys,
+		fsys:  osfs{},
 	}
 	module, err := finder.findModFile(dir)
 	if err != nil {
@@ -59,6 +60,11 @@ func (m *Module) Find(importPath string) (*Module, error) {
 // Open a file within the module
 func (m *Module) Open(name string) (fs.File, error) {
 	return m.fsys.Open(name)
+}
+
+// ReadDir implements the fs.ReadDirFS to pass the capability down
+func (m *Module) ReadDir(name string) ([]fs.DirEntry, error) {
+	return fs.ReadDir(m.fsys, name)
 }
 
 // ResolveDirectory resolves an import to an absolute path

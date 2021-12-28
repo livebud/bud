@@ -8,6 +8,7 @@ import (
 
 	"github.com/matthewmueller/text"
 
+	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/imports"
@@ -37,22 +38,43 @@ func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
 	state = new(State)
 	// Add initial imports
-	l.imports.AddStd("context")
 	l.imports.AddNamed("commander", "gitlab.com/mnm/bud/commander")
-	l.imports.AddNamed("console", "gitlab.com/mnm/bud/log/console")
-	l.imports.AddNamed("web", l.module.Import("bud", "web"))
+	l.imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
+	l.imports.AddNamed("mod", "gitlab.com/mnm/bud/go/mod")
 	// Load the commands
 	state.Command = l.loadRoot("command")
+	if !state.Command.Runnable && len(state.Command.Subs) == 0 {
+		return nil, gen.ErrSkipped
+	}
 	// Load the imports
 	state.Imports = l.imports.List()
 	return state, nil
+}
+
+func (l *loader) loadCommand() *Command {
+	command := new(Command)
+	command.Slug = imports.AssumedName(l.module.Import())
+	// If a generated web server is present, then the root command is runnable.
+	if _, err := fs.Stat(l.module, "bud/web/web.go"); nil == err {
+		l.imports.AddStd("context")
+		l.imports.AddNamed("console", "gitlab.com/mnm/bud/log/console")
+		l.imports.AddNamed("web", l.module.Import("bud", "web"))
+		command.Runnable = true
+	}
+	return command
 }
 
 // Load the root command, which is unfortunately a special case
 func (l *loader) loadRoot(base string) *Command {
 	command := new(Command)
 	command.Slug = imports.AssumedName(l.module.Import())
-	command.Runnable = true
+	// If a generated web server is present, then the root command is runnable.
+	if _, err := fs.Stat(l.module, "bud/web/web.go"); nil == err {
+		l.imports.AddStd("context")
+		l.imports.AddNamed("console", "gitlab.com/mnm/bud/log/console")
+		l.imports.AddNamed("web", l.module.Import("bud", "web"))
+		command.Runnable = true
+	}
 	des, err := fs.ReadDir(l.module, base)
 	if err != nil {
 		// Return the build/run command without any subcommands

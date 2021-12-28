@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	v8 "gitlab.com/mnm/bud/js/v8"
+	"gitlab.com/mnm/bud/js"
 )
 
 type Command struct {
-	V8     *v8.Pool
+	VM     js.VM
 	DryRun bool `flag:"dry-run" help:"run but don't write" default:"false"`
 }
 

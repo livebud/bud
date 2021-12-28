@@ -20,3 +20,15 @@ func toMemory(m Map) Memory {
 func (m Map) Open(name string) (fs.File, error) {
 	return toMemory(m).Open(name)
 }
+
+func (m Map) MkdirAll(path string, perm fs.FileMode) error {
+	return toMemory(m).MkdirAll(path, perm)
+}
+
+func (m Map) WriteFile(name string, data []byte, perm fs.FileMode) error {
+	return toMemory(m).WriteFile(name, data, perm)
+}
+
+func (m Map) RemoveAll(path string) error {
+	return toMemory(m).RemoveAll(path)
+}

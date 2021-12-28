@@ -2,7 +2,6 @@ package command
 
 import (
 	_ "embed"
-	"fmt"
 
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
@@ -21,14 +20,9 @@ type Generator struct {
 }
 
 func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
-	// TODO: consider also building when only commands are present
-	if err := gen.SkipUnless(f, "bud/web/web.go"); err != nil {
-		return err
-	}
 	// Load command state
 	state, err := Load(g.Module, g.Parser)
 	if err != nil {
-		fmt.Println(state, err)
 		return err
 	}
 	// Generate our template

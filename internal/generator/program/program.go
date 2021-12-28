@@ -32,7 +32,7 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 	}
 	// Add the imports
 	imports := imports.New()
-	imports.AddStd("os", "errors", "context")
+	imports.AddStd("os", "errors", "context", "runtime", "path/filepath")
 	// imports.AddStd("fmt")
 	imports.AddNamed("console", "gitlab.com/mnm/bud/log/console")
 	imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
@@ -65,7 +65,6 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 	if err != nil {
 		return err
 	}
-	// fmt.Println(string(code))
 	file.Write(code)
 	return nil
 }

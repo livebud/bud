@@ -11,6 +11,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/jackc/puddle v1.1.4 // indirect
 	github.com/stretchr/testify v1.6.1 // indirect
+	gitlab.com/mnm/bud-tailwind v0.0.0-20211218025321-2c7485847414 // indirect
 	go.kuoruan.net/v8go-polyfills v0.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200605160147-a5ece683394c // indirect
 	rogchap.com/v8go v0.6.0 // indirect

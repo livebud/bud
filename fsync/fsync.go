@@ -21,7 +21,8 @@ func Dir(sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string) error {
 	if err != nil {
 		return err
 	}
-	return apply(sfs, tfs, ops)
+	err = apply(sfs, tfs, ops)
+	return err
 }
 
 type OpType uint8

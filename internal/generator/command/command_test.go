@@ -1,118 +1,24 @@
 package command_test
 
 import (
-	"bytes"
-	"context"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
 	"testing"
 
-	"gitlab.com/mnm/bud/internal/modcache"
-
-	"gitlab.com/mnm/bud/fsync"
-	"gitlab.com/mnm/bud/internal/di"
-	"gitlab.com/mnm/bud/internal/modtest"
-	"gitlab.com/mnm/bud/internal/parser"
-
-	"gitlab.com/mnm/bud/gen"
-
-	"gitlab.com/mnm/bud/internal/generator/command"
-	"gitlab.com/mnm/bud/internal/generator/maingo"
-	"gitlab.com/mnm/bud/internal/generator/program"
+	"gitlab.com/mnm/bud/internal/test"
 
 	"github.com/lithammer/dedent"
 	"github.com/matryer/is"
 	"github.com/matthewmueller/diff"
-	"gitlab.com/mnm/bud/vfs"
 )
 
 func redent(s string) string {
 	return strings.TrimSpace(dedent.Dedent(s)) + "\n"
 }
 
-func goRun(cacheDir, appDir string, args ...string) (string, error) {
-	ctx := context.Background()
-	mainPath := filepath.Join("bud", "main.go")
-	args = append([]string{"run", "-mod=mod", mainPath}, args...)
-	cmd := exec.CommandContext(ctx, "go", args...)
-	cmd.Env = append(os.Environ(), "GOMODCACHE="+cacheDir, "GOPRIVATE=*", "NO_COLOR=1")
-	stdout := new(bytes.Buffer)
-	cmd.Stdout = stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	cmd.Dir = appDir
-	err := cmd.Run()
-	if err != nil {
-		return "", err
-	}
-	return stdout.String(), nil
-}
-
-var webServer = gen.GenerateFile(func(f gen.F, file *gen.File) error {
-	file.Write([]byte(redent(`
-			package web
-
-			import (
-				"context"
-				"gitlab.com/mnm/bud/gen"
-				"gitlab.com/mnm/bud/go/mod"
-			)
-
-			type Server struct {
-				FS *gen.FileSystem
-				Module *mod.Module
-			}
-
-			func (s *Server) ListenAndServe(ctx context.Context, address string) error {
-				return nil
-			}
-		`)))
-	return nil
-})
-
-// Generate commands
-func generate(t testing.TB, m modtest.Module) func(args ...string) string {
-	is := is.New(t)
-	m.AppDir = t.TempDir()
-	m.CacheDir = modcache.Default().Directory()
-	appfs := vfs.OS(m.AppDir)
-	genfs := gen.New(appfs)
-	m.FS = genfs
-	module := modtest.Make(t, m)
-	parser := parser.New(module)
-	injector := di.New(module, parser, di.Map{})
-	genfs.Add(map[string]gen.Generator{
-		"bud/main.go": gen.FileGenerator(&maingo.Generator{
-			Module: module,
-		}),
-		"bud/program/program.go": gen.FileGenerator(&program.Generator{
-			Module:   module,
-			Injector: injector,
-		}),
-		"bud/web/web.go": webServer,
-		"bud/command/command.go": gen.FileGenerator(&command.Generator{
-			Module: module,
-			Parser: parser,
-		}),
-	})
-	err := fsync.Dir(genfs, "bud", appfs, "bud")
-	is.NoErr(err)
-	return func(args ...string) string {
-		stdout, err := goRun(m.CacheDir, m.AppDir, args...)
-		if err != nil {
-			return err.Error()
-		}
-		return stdout
-	}
-}
-
-const goMod = `
+var goMod = `
 module app.com
 
 require (
-  github.com/hexops/valast v1.4.1
 	gitlab.com/mnm/bud v0.0.0
 )
 `
@@ -122,88 +28,154 @@ func isEqual(t testing.TB, actual, expect string) {
 }
 
 func TestEmpty(t *testing.T) {
-	run := generate(t, modtest.Module{
-		Files: map[string]string{
-			"go.mod": goMod,
-		},
-	})
-	isEqual(t, run("-h"), `
+	is := is.New(t)
+	generator := test.Generator(t)
+	app, err := generator.Generate()
+	is.NoErr(err)
+	is.True(!app.Exists("bud/command/command.go"))
+}
+
+func TestCommand(t *testing.T) {
+	is := is.New(t)
+	generator := test.Generator(t)
+	generator.Files["go.mod"] = goMod
+	generator.Files["internal/hn/hn.go"] = `
+		package hn
+
+		func New() *Client {
+			return &Client{"https://news.ycombinator.com"}
+		}
+
+		type Client struct {
+			base string
+		}
+
+		func (c *Client) String() string {
+			return c.base
+		}
+	`
+	generator.Files["command/deploy/deploy.go"] = `
+		package deploy
+
+		import (
+			"context"
+			"fmt"
+
+			"app.com/internal/hn"
+		)
+
+		type Command struct {
+			HN        *hn.Client
+			AccessKey string ` + "`" + `flag:"access-key" help:"aws access key"` + "`" + `
+			SecretKey string ` + "`" + `flag:"secret-key" help:"aws secret key"` + "`" + `
+		}
+
+		func (c *Command) Run(ctx context.Context) error {
+			fmt.Println(c.HN, c.AccessKey, c.SecretKey)
+			return nil
+		}
+	`
+	app, err := generator.Generate()
+	is.NoErr(err)
+	is.True(app.Exists("bud/main.go"))
+	isEqual(t, app.Run("-h"), `
 		Usage:
-		  app
+		  app [command]
+
+		Commands:
+		  deploy
 	`)
 }
 
-func TestExample(t *testing.T) {
-	run := generate(t, modtest.Module{
-		Files: map[string]string{
-			"go.mod": goMod,
-			"command/deploy/deploy.go": `
-				package deploy
+func TestNested(t *testing.T) {
+	is := is.New(t)
+	generator := test.Generator(t)
+	generator.Files["go.mod"] = goMod
+	generator.Files["command/deploy/deploy.go"] = `
+		package deploy
 
-				import (
-					"context"
-					"fmt"
+		import (
+			"context"
+			"fmt"
 
-					router "gitlab.com/mnm/bud/router"
-				)
+			router "gitlab.com/mnm/bud/router"
+		)
 
-				type Command struct {
-					Router    *router.Router
-					AccessKey string ` + "`" + `flag:"access-key" help:"aws access key"` + "`" + `
-					SecretKey string ` + "`" + `flag:"secret-key" help:"aws secret key"` + "`" + `
-				}
+		type Command struct {
+			Router    *router.Router
+			AccessKey string ` + "`" + `flag:"access-key" help:"aws access key"` + "`" + `
+			SecretKey string ` + "`" + `flag:"secret-key" help:"aws secret key"` + "`" + `
+		}
 
-				func (c *Command) Run(ctx context.Context) error {
-					fmt.Println(c.Router, c.AccessKey, c.SecretKey)
-					return nil
-				}
-			`,
-			"command/new/new.go": `
-				package new
+		func (c *Command) Run(ctx context.Context) error {
+			fmt.Println(c.Router, c.AccessKey, c.SecretKey)
+			return nil
+		}
+	`
+	generator.Files["command/new/new.go"] = `
+		package new
 
-				import (
-					"context"
-					"fmt"
+		import (
+			"context"
+			"fmt"
 
-					router "gitlab.com/mnm/bud/router"
-				)
+			router "gitlab.com/mnm/bud/router"
+		)
 
-				type Command struct {
-					Router *router.Router
-					DryRun bool ` + "`" + `flag:"dry-run" help:"run but don't write" default:"false"` + "`" + `
-				}
+		type Command struct {
+			Router *router.Router
+			DryRun bool ` + "`" + `flag:"dry-run" help:"run but don't write" default:"false"` + "`" + `
+		}
 
-				func (c *Command) Run(ctx context.Context) error {
-					fmt.Println("creating new", c.DryRun)
-					return nil
-				}
-			`,
-			"command/new/view/view.go": `
-				package view
+		func (c *Command) Run(ctx context.Context) error {
+			fmt.Println("creating new", c.DryRun)
+			return nil
+		}
+	`
+	generator.Files["command/new/view/view.go"] = `
+		package view
 
-				import (
-					"context"
-					"fmt"
-				)
+		import (
+			"context"
+			"fmt"
+		)
 
-				type Command struct {
-					Name     string ` + "`" + `arg:"name" help:"name of the view"` + "`" + `
-					WithTest bool   ` + "`" + `flag:"with-test" help:"include a view test" default:"true"` + "`" + `
-				}
+		type Command struct {
+			Name     string ` + "`" + `arg:"name" help:"name of the view"` + "`" + `
+			WithTest bool   ` + "`" + `flag:"with-test" help:"include a view test" default:"true"` + "`" + `
+		}
 
-				func (c *Command) Run(ctx context.Context) error {
-					fmt.Println("creating new view", c.Name, c.WithTest)
-					return nil
-				}
-			`,
-		},
-	})
-	isEqual(t, run("-h"), `
+		func (c *Command) Run(ctx context.Context) error {
+			fmt.Println("creating new view", c.Name, c.WithTest)
+			return nil
+		}
+	`
+	app, err := generator.Generate()
+	is.NoErr(err)
+	is.True(app.Exists("bud/main.go"))
+	isEqual(t, app.Run("-h"), `
 		Usage:
 		  app [command]
 
 		Commands:
 		  deploy
 		  new
+	`)
+	isEqual(t, app.Run("new", "-h"), `
+		Usage:
+		  new [flags] [command]
+
+		Flags:
+		  --dry-run  run but don't write
+
+		Commands:
+		  view
+	`)
+	isEqual(t, app.Run("new", "view", "-h"), `
+		Usage:
+		  view [flags]
+
+		Flags:
+		  --with-test  include a view test
 	`)
 }

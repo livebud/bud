@@ -2,7 +2,6 @@ package generate
 
 import (
 	_ "embed"
-	"io/fs"
 
 	"gitlab.com/mnm/bud/go/mod"
 
@@ -30,7 +29,7 @@ type State struct {
 
 func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 	// Don't create a generate file if custom user-generators don't exist
-	if _, err := fs.Stat(f, "bud/generator/generator.go"); err != nil {
+	if err := gen.SkipUnless(f, "bud/generator/generator.go"); err != nil {
 		return err
 	}
 	imports := imports.New()

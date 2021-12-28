@@ -2,29 +2,34 @@ package v8client
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"os"
-	"os/exec"
 	"runtime"
 	"sync/atomic"
 
-	"gitlab.com/mnm/bud/js"
 	"github.com/jackc/puddle"
+	"gitlab.com/mnm/bud/js"
 )
 
 var errLocked = errors.New("v8client: script can't be added after evaluating")
 
-// Launch V8 as a sidecar process. We use this in development to speed up
-// rebuilds by not linking V8 every time. It may also be used in environments
-// without cgo.
-func Launch(command string, args ...string) *Client {
-	return LaunchWithSize(int32(runtime.NumCPU()), command, args...)
+// New Client, using v8 as a sidecar process. We use this in development to
+// speed up rebuilds by not linking V8 every time. It may also be used in
+// environments without cgo.
+//
+// This requires the bud CLI to be in $PATH and is not recommended for
+// production.
+func New(command string, args ...string) *Client {
+	return NewWithSize(int32(runtime.NumCPU()), command, args...)
+}
+
+// Default launches the default client
+func Default() *Client {
+	return New("bud", "tool", "v8", "client")
 }
 
 var _ js.VM = (*Client)(nil)
 
-func LaunchWithSize(maxSize int32, command string, args ...string) *Client {
+func NewWithSize(maxSize int32, command string, args ...string) *Client {
 	pool := &Client{
 		locked:  new(atomicLock),
 		command: command,
@@ -42,60 +47,9 @@ type Client struct {
 	scripts []*script
 }
 
-func launchV8(ctx context.Context, command string, args ...string) (*Command, error) {
-	cmd := exec.CommandContext(ctx, command, args...)
-	cmd.Stderr = os.Stderr
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		return nil, err
-	}
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-	return &Command{
-		cmd:    cmd,
-		stdin:  json.NewEncoder(stdin),
-		stdout: json.NewDecoder(stdout),
-	}, nil
-}
-
-type Command struct {
-	cmd    *exec.Cmd
-	stdin  *json.Encoder
-	stdout *json.Decoder
-}
-
-func (c *Command) Eval(path, expr string) (value string, err error) {
-	if err := c.stdin.Encode(expr); err != nil {
-		return "", err
-	}
-	var raw string
-	if err := c.stdout.Decode(&raw); err != nil {
-		return "", err
-	}
-	return string(raw), nil
-}
-
-func (c *Command) Close() error {
-	if c.cmd.Process == nil {
-		return nil
-	}
-	if err := c.cmd.Process.Signal(os.Interrupt); err != nil {
-		return err
-	}
-	if err := c.cmd.Wait(); err != nil && err.Error() != "signal: interrupt" {
-		return err
-	}
-	return nil
-}
-
 func (c *Client) constructor(ctx context.Context) (interface{}, error) {
 	c.locked.Lock()
-	command, err := launchV8(ctx, c.command, c.args...)
+	command, err := launchBudToolV8(ctx, c.command, c.args...)
 	if err != nil {
 		return nil, err
 	}
@@ -143,24 +97,6 @@ func (c *Client) Acquire(ctx context.Context) (*ClientResource, error) {
 // Close the pool down
 func (c *Client) Close() {
 	c.puddle.Close()
-}
-
-// ClientResource worker
-type ClientResource struct {
-	res *puddle.Resource
-}
-
-func (e *ClientResource) Eval(path, expr string) (string, error) {
-	command := e.res.Value().(*Command)
-	value, err := command.Eval(path, expr)
-	if err != nil {
-		return "", err
-	}
-	return value, nil
-}
-
-func (e *ClientResource) Release() {
-	e.res.Release()
 }
 
 type script struct {

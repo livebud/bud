@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 )
 
@@ -51,4 +52,20 @@ func WriteAll(from, to string, fsys fs.FS) error {
 
 func Write(to string, fsys fs.FS) error {
 	return WriteAll(".", to, fsys)
+}
+
+// Exists will check if files exist at once, returning a map of the results.
+func Exists(f fs.FS, paths ...string) map[string]bool {
+	m := map[string]bool{}
+	wg := new(sync.WaitGroup)
+	wg.Add(len(paths))
+	for _, path := range paths {
+		path := path
+		if _, err := fs.Stat(f, path); nil == err {
+			m[path] = true
+		}
+		wg.Done()
+	}
+	wg.Wait()
+	return m
 }

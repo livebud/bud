@@ -10,7 +10,7 @@ import (
 func TestFiles(t *testing.T) {
 	is := is.New(t)
 	tr := tester.New(t)
-	tr.WriteFiles(map[string]string{
+	tr.Files(map[string]string{
 		"ok.txt": "whatever",
 	})
 	is.True(tr.Exists("ok.txt"))

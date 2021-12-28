@@ -4,16 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	v8 "gitlab.com/mnm/bud/js/v8"
+	"gitlab.com/mnm/bud/js"
 )
 
 type Command struct {
-	VM        *v8.Pool
+	VM        js.VM
 	AccessKey string `flag:"access-key" help:"aws access key"`
 	SecretKey string `flag:"secret-key" help:"aws secret key"`
 }
 
 func (c *Command) Run(ctx context.Context) error {
-	fmt.Println(c.VM, c.AccessKey, c.SecretKey)
+	fmt.Println("deploying", c.AccessKey, c.SecretKey)
 	return nil
 }

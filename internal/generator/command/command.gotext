@@ -9,7 +9,11 @@ import (
 )
 {{- end }}
 
-func Load(m *Map) *CLI {
+// Load the CLI
+// TODO: remove unused arguments. We currently need them because di will
+// remove these parameters if they're unused, breaking the signature. This
+// should be fixed in di.
+func Load(m *Map, _ gen.FS, _ *mod.Module) *CLI {
 	return &CLI{m}
 }
 
@@ -46,12 +50,13 @@ func (c *CLI) Parse(args ...string) error {
 
 // Map contains all of the commands
 type Map struct {
-	Command *Command
+	{{- if $.Command.Runnable }}Command *Command{{- end }}
 	{{- range $cmd := $.Commands }}
 	{{ $cmd.Full.Pascal }}Command *{{ $cmd.Full.Pascal }}Command
 	{{- end }}
 }
 
+{{- if $.Command.Runnable }}
 // LoadCommand loads the root command
 func LoadCommand(web *web.Server) *Command {
 	return &Command{web}
@@ -67,6 +72,7 @@ func (c *Command) Run(ctx context.Context) error {
 	console.Info("Listening on http://localhost:3000")
 	return c.web.ListenAndServe(ctx, ":3000")
 }
+{{- end }}
 
 {{- range $cmd := $.Commands }}
 

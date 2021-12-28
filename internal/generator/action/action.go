@@ -19,6 +19,9 @@ type Generator struct {
 }
 
 func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
+	if err := gen.SkipUnless(f, "action"); err != nil {
+		return err
+	}
 	imports := imports.New()
 	imports.AddStd("net/http")
 	imports.AddNamed("view", "gitlab.com/mnm/bud/view")

@@ -33,12 +33,11 @@ func run(args ...string) error {
 }
 
 func Load() (*Program, error) {
-	wd, err := os.Getwd()
+	dir, err := dirname()
 	if err != nil {
 		return nil, err
 	}
-	modFinder := mod.New()
-	module, err := modFinder.Find(wd)
+	module, err := mod.New().Find(dir)
 	if err != nil {
 		return nil, err
 	}
@@ -53,6 +52,15 @@ func Load() (*Program, error) {
 	return &Program{
 		cli: cli,
 	}, nil
+}
+
+// dirname gets the directory of this file
+func dirname() (string, error) {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		return "", errors.New("unable to get the current filename")
+	}
+	return filepath.Dir(filename), nil
 }
 
 type Program struct {
