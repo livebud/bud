@@ -38,18 +38,18 @@ type Generator struct {
 	Replaces  []*Replace
 }
 
-func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
+func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 	code, err := fs.ReadFile(g.FS, "go.mod")
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
-		return g.createFile(f, file)
+		return g.createFile(file)
 	}
-	return g.updateFile(f, file, code)
+	return g.updateFile(file, code)
 }
 
-func (g *Generator) updateFile(f gen.F, file *gen.File, code []byte) error {
+func (g *Generator) updateFile(file *gen.File, code []byte) error {
 	module, err := mod.New().Parse("go.mod", code)
 	if err != nil {
 		return err
@@ -77,7 +77,7 @@ type State struct {
 	Replaces []*Replace
 }
 
-func (g *Generator) createFile(f gen.F, file *gen.File) error {
+func (g *Generator) createFile(file *gen.File) error {
 	module, err := g.ModFinder.Parse("go.mod", []byte("module app.com"))
 	if err != nil {
 		return err

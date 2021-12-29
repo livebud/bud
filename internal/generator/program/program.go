@@ -26,8 +26,8 @@ type State struct {
 	Provider *di.Provider
 }
 
-func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
-	if err := gen.SkipUnless(f, "bud/command/command.go"); err != nil {
+func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
+	if err := gen.SkipUnless(g.Module, "bud/command/command.go"); err != nil {
 		return err
 	}
 	// Add the imports

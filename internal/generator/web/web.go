@@ -17,11 +17,11 @@ type Generator struct {
 	Module *mod.Module
 }
 
-func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
-	if err := gen.SkipUnless(f, "bud/router/router.go"); err != nil {
+func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
+	if err := gen.SkipUnless(g.Module, "bud/router/router.go"); err != nil {
 		return err
 	}
-	state, err := Load(g.Module, f)
+	state, err := Load(g.Module)
 	if err != nil {
 		return err
 	}

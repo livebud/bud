@@ -1,7 +1,6 @@
 package web
 
 import (
-	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/imports"
@@ -9,12 +8,12 @@ import (
 	"gitlab.com/mnm/bud/vfs"
 )
 
-func Load(module *mod.Module, f gen.F) (*State, error) {
+func Load(module *mod.Module) (*State, error) {
 	loader := &loader{
 		imports: imports.New(),
 		module:  module,
 	}
-	return loader.Load(f)
+	return loader.Load()
 }
 
 type loader struct {
@@ -24,7 +23,7 @@ type loader struct {
 }
 
 // Load the command state
-func (l *loader) Load(f gen.F) (state *State, err error) {
+func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
 	state = new(State)
 	// Add initial imports
@@ -37,7 +36,7 @@ func (l *loader) Load(f gen.F) (state *State, err error) {
 	l.imports.AddNamed("view", l.module.Import("bud/view"))
 	// Load the conditionals
 	state.HasHot = ldflag.Hot()
-	exists := vfs.Exists(f,
+	exists := vfs.Exists(l.module,
 		"bud/router",
 		"bud/public",
 		"bud/view",

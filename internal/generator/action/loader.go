@@ -50,6 +50,7 @@ func (l *loader) loadControllers() (controllers []*Controller) {
 		}
 		return controllers
 	}
+	fmt.Println(len(des))
 	for _, de := range des {
 		fmt.Println(de.Name())
 	}

@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/fsync"
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/generator"
@@ -73,7 +72,12 @@ func (g *Gen) Generate() (*App, error) {
 		}
 		g.Files["go.mod"] = code
 	}
-	appFS := vfs.Map(g.Files)
+	appDir := g.t.TempDir()
+	err := vfs.Write(appDir, vfs.Map(g.Files))
+	if err != nil {
+		return nil, err
+	}
+	appFS := vfs.OS(appDir)
 	gen, err := generator.Load(appFS, generator.WithCache(modCache))
 	if err != nil {
 		return nil, err
@@ -82,8 +86,9 @@ func (g *Gen) Generate() (*App, error) {
 		return nil, err
 	}
 	return &App{
-		t:  g.t,
-		fs: gen.Module(),
+		t:      g.t,
+		dir:    appDir,
+		module: gen.Module(),
 		env: env{
 			"HOME":       os.Getenv("HOME"),
 			"PATH":       os.Getenv("PATH"),
@@ -106,9 +111,9 @@ func (env env) List() (list []string) {
 
 type App struct {
 	t      testing.TB
-	fs     fs.FS
+	dir    string
+	module *mod.Module
 	env    env
-	runDir string // Initially empty
 	extras []*os.File
 }
 
@@ -122,45 +127,26 @@ func (a *App) Env(key, value string) *App {
 	return a
 }
 
-func (a *App) generate() (string, error) {
-	if a.runDir != "" {
-		return a.runDir, nil
-	}
-	a.runDir = a.t.TempDir()
-	if err := fsync.Dir(a.fs, ".", vfs.OS(a.runDir), "."); err != nil {
-		return "", err
-	}
-	return a.runDir, nil
-}
-
 func (a *App) build() (string, error) {
-	runDir, err := a.generate()
-	if err != nil {
-		return "", err
-	}
-	binPath := filepath.Join(a.runDir, "bud", "main")
+	binPath := filepath.Join(a.dir, "bud", "main")
 	mainPath := filepath.Join("bud", "main.go")
 	cmd := exec.Command("go", "build", "-o", binPath, "-mod", "mod", mainPath)
 	cmd.Env = a.env.List()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
-	cmd.Dir = runDir
+	cmd.Dir = a.dir
 	return binPath, cmd.Run()
 }
 
 func (a *App) run(binPath string, args ...string) (*exec.Cmd, error) {
-	runDir, err := a.generate()
-	if err != nil {
-		return nil, err
-	}
 	cmd := exec.Command(binPath, args...)
 	cmd.Env = a.env.List()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	cmd.ExtraFiles = a.extras
-	cmd.Dir = runDir
+	cmd.Dir = a.dir
 	return cmd, nil
 }
 
@@ -218,7 +204,7 @@ func (c *Command) Close() error {
 
 func (a *App) Exists(path string) bool {
 	is := is.New(a.t)
-	if _, err := fs.Stat(a.fs, path); err != nil {
+	if _, err := fs.Stat(a.module, path); err != nil {
 		if errors.Is(err, fs.ErrNotExist) || errors.Is(err, gen.ErrSkipped) {
 			return false
 		}

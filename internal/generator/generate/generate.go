@@ -27,9 +27,9 @@ type State struct {
 	Imports []*imports.Import
 }
 
-func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
+func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 	// Don't create a generate file if custom user-generators don't exist
-	if err := gen.SkipUnless(f, "bud/generator/generator.go"); err != nil {
+	if err := gen.SkipUnless(g.Module, "bud/generator/generator.go"); err != nil {
 		return err
 	}
 	imports := imports.New()

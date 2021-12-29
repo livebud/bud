@@ -21,6 +21,7 @@ type singleFlight struct {
 func (s *singleFlight) Open(name string) (fs.File, error) {
 	// TODO: support concurrency
 	if _, ok := s.cache[name]; ok {
+		// fmt.Println("hit", name)
 		return s.cache.Open(name)
 	}
 	value, err, _ := s.loader.Do(name, func() (interface{}, error) {
@@ -33,6 +34,7 @@ func (s *singleFlight) Open(name string) (fs.File, error) {
 			return nil, err
 		}
 		if stat.IsDir() {
+			// fmt.Println("caching", name)
 			s.cache[name] = &File{
 				ModTime: stat.ModTime(),
 				Mode:    stat.Mode(),
@@ -44,6 +46,7 @@ func (s *singleFlight) Open(name string) (fs.File, error) {
 		if err != nil {
 			return nil, err
 		}
+		// fmt.Println("caching", name)
 		s.cache[name] = &File{
 			Data:    data,
 			ModTime: stat.ModTime(),

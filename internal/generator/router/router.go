@@ -18,8 +18,8 @@ type Generator struct {
 	Module *mod.Module
 }
 
-func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
-	if err := gen.SkipUnless(f, "bud/action/action.go"); err != nil {
+func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
+	if err := gen.SkipUnless(g.Module, "bud/action/action.go"); err != nil {
 		return err
 	}
 	imports := imports.New()

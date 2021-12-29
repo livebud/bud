@@ -22,8 +22,8 @@ type State struct {
 	Imports []*imports.Import
 }
 
-func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
-	if err := gen.SkipUnless(f, "bud/program/program.go"); err != nil {
+func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
+	if err := gen.SkipUnless(g.Module, "bud/program/program.go"); err != nil {
 		return err
 	}
 	imports := imports.New()

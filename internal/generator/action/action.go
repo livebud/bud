@@ -22,8 +22,8 @@ type Generator struct {
 	Parser   *parser.Parser
 }
 
-func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
-	if err := gen.SkipUnless(f, "action"); err != nil {
+func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
+	if err := gen.SkipUnless(g.Module, "action"); err != nil {
 		return err
 	}
 	state, err := Load(g.Injector, g.Module, g.Parser)

@@ -29,7 +29,7 @@ type File struct {
 	Path string
 }
 
-func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
+func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 	code, err := generator.Generate(State{})
 	if err != nil {
 		return err

@@ -22,7 +22,7 @@ type State struct {
 	Imports []*imports.Import
 }
 
-func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
+func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 	imports := imports.New()
 	imports.AddNamed("transform", g.Module.Import("bud/transform"))
 	imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
