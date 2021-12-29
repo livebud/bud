@@ -133,7 +133,9 @@ func Load(appFS vfs.ReadWritable, options ...Option) (*Generator, error) {
 			Parser: parser,
 		}),
 		"bud/action/action.go": gen.FileGenerator(&action.Generator{
-			Module: module,
+			Injector: injector,
+			Module:   module,
+			Parser:   parser,
 		}),
 		"bud/transform/transform.go": gen.FileGenerator(&transform.Generator{
 			Module: module,

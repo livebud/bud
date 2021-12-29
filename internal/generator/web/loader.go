@@ -28,7 +28,7 @@ func (l *loader) Load(f gen.F) (state *State, err error) {
 	defer l.Recover(&err)
 	state = new(State)
 	// Add initial imports
-	l.imports.AddStd("net/http", "context")
+	l.imports.AddStd("net", "net/http", "context")
 	l.imports.AddNamed("hot", "gitlab.com/mnm/bud/hot")
 	l.imports.AddNamed("middleware", "gitlab.com/mnm/bud/middleware")
 	l.imports.AddNamed("web", "gitlab.com/mnm/bud/web")

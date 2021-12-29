@@ -82,39 +82,138 @@ func (g *Gen) Generate() (*App, error) {
 		return nil, err
 	}
 	return &App{
-		t:     g.t,
-		cache: modCache,
-		fs:    gen.Module(),
+		t:  g.t,
+		fs: gen.Module(),
+		env: env{
+			"HOME":       os.Getenv("HOME"),
+			"PATH":       os.Getenv("PATH"),
+			"GOPATH":     os.Getenv("GOPATH"),
+			"GOCACHE":    os.Getenv("GOCACHE"),
+			"GOMODCACHE": modCache.Directory(),
+			"NO_COLOR":   "1",
+		},
 	}, nil
+}
+
+type env map[string]string
+
+func (env env) List() (list []string) {
+	for key, value := range env {
+		list = append(list, key+"="+value)
+	}
+	return list
 }
 
 type App struct {
 	t      testing.TB
 	fs     fs.FS
-	cache  *modcache.Cache
+	env    env
 	runDir string // Initially empty
+	extras []*os.File
+}
+
+func (a *App) ExtraFiles(files ...*os.File) *App {
+	a.extras = append(a.extras, files...)
+	return a
+}
+
+func (a *App) Env(key, value string) *App {
+	a.env[key] = value
+	return a
+}
+
+func (a *App) generate() (string, error) {
+	if a.runDir != "" {
+		return a.runDir, nil
+	}
+	a.runDir = a.t.TempDir()
+	if err := fsync.Dir(a.fs, ".", vfs.OS(a.runDir), "."); err != nil {
+		return "", err
+	}
+	return a.runDir, nil
+}
+
+func (a *App) build() (string, error) {
+	runDir, err := a.generate()
+	if err != nil {
+		return "", err
+	}
+	binPath := filepath.Join(a.runDir, "bud", "main")
+	mainPath := filepath.Join("bud", "main.go")
+	cmd := exec.Command("go", "build", "-o", binPath, "-mod", "mod", mainPath)
+	cmd.Env = a.env.List()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	cmd.Dir = runDir
+	return binPath, cmd.Run()
+}
+
+func (a *App) run(binPath string, args ...string) (*exec.Cmd, error) {
+	runDir, err := a.generate()
+	if err != nil {
+		return nil, err
+	}
+	cmd := exec.Command(binPath, args...)
+	cmd.Env = a.env.List()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	cmd.ExtraFiles = a.extras
+	cmd.Dir = runDir
+	return cmd, nil
 }
 
 func (a *App) Run(args ...string) string {
-	if a.runDir == "" {
-		a.runDir = a.t.TempDir()
-		if err := fsync.Dir(a.fs, ".", vfs.OS(a.runDir), "."); err != nil {
-			return err.Error()
-		}
+	binPath, err := a.build()
+	if err != nil {
+		return err.Error()
 	}
-	mainPath := filepath.Join("bud", "main.go")
-	args = append([]string{"run", "-mod=mod", mainPath}, args...)
-	cmd := exec.Command("go", args...)
-	cmd.Env = append(os.Environ(), "GOMODCACHE="+a.cache.Directory(), "GOPRIVATE=*", "NO_COLOR=1")
+	cmd, err := a.run(binPath, args...)
+	if err != nil {
+		return err.Error()
+	}
 	stdout := new(bytes.Buffer)
 	cmd.Stdout = stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	cmd.Dir = a.runDir
 	if err := cmd.Run(); err != nil {
 		return err.Error()
 	}
 	return stdout.String()
+}
+
+func (a *App) Start(args ...string) (*Command, error) {
+	binPath, err := a.build()
+	if err != nil {
+		return nil, err
+	}
+	cmd, err := a.run(binPath, args...)
+	if err != nil {
+		return nil, err
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+	return &Command{
+		cmd: cmd,
+	}, nil
+}
+
+type Command struct {
+	cmd *exec.Cmd
+}
+
+func (c *Command) Wait() error {
+	return c.cmd.Wait()
+}
+
+func (c *Command) Close() error {
+	p := c.cmd.Process
+	if p != nil {
+		if err := p.Signal(os.Interrupt); err != nil {
+			p.Kill()
+		}
+	}
+	return c.cmd.Wait()
 }
 
 func (a *App) Exists(path string) bool {

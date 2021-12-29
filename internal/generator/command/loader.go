@@ -51,19 +51,6 @@ func (l *loader) Load() (state *State, err error) {
 	return state, nil
 }
 
-func (l *loader) loadCommand() *Command {
-	command := new(Command)
-	command.Slug = imports.AssumedName(l.module.Import())
-	// If a generated web server is present, then the root command is runnable.
-	if _, err := fs.Stat(l.module, "bud/web/web.go"); nil == err {
-		l.imports.AddStd("context")
-		l.imports.AddNamed("console", "gitlab.com/mnm/bud/log/console")
-		l.imports.AddNamed("web", l.module.Import("bud", "web"))
-		command.Runnable = true
-	}
-	return command
-}
-
 // Load the root command, which is unfortunately a special case
 func (l *loader) loadRoot(base string) *Command {
 	command := new(Command)
@@ -73,6 +60,7 @@ func (l *loader) loadRoot(base string) *Command {
 		l.imports.AddStd("context")
 		l.imports.AddNamed("console", "gitlab.com/mnm/bud/log/console")
 		l.imports.AddNamed("web", l.module.Import("bud", "web"))
+		l.imports.AddNamed("socket", "gitlab.com/mnm/bud/socket")
 		command.Runnable = true
 	}
 	des, err := fs.ReadDir(l.module, base)

@@ -591,7 +591,7 @@ func TestInterrupt(t *testing.T) {
 	if value := os.Getenv("TEST_INTERRUPT"); value == "" {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		cmd := exec.CommandContext(ctx, os.Args[0], append(os.Args[1:], "-test.v=true")...)
+		cmd := exec.CommandContext(ctx, os.Args[0], append(os.Args[1:], "-test.v=true", "-test.run=TestInterrupt")...)
 		cmd.Env = append(os.Environ(), "TEST_INTERRUPT=1")
 		stdout, err := cmd.StdoutPipe()
 		is.NoErr(err)

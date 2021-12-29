@@ -10,28 +10,14 @@ import (
 	"gitlab.com/mnm/bud/internal/sig"
 )
 
-// ServeUnix serves the handler over TCP.
-func ServeTCP(ctx context.Context, address string, handler http.Handler) error {
-	listener, err := net.Listen("tcp", address)
-	if err != nil {
-		return err
-	}
-	return serve(ctx, address, handler, listener)
-}
-
-// ServeUnix serves the handler over Unix Domain Sockets.
-func ServeUnix(ctx context.Context, path string, handler http.Handler) error {
-	listener, err := net.Listen("unix", path)
-	if err != nil {
-		return err
-	}
-	return serve(ctx, path, handler, listener)
+func Serve(ctx context.Context, ln net.Listener, handler http.Handler) error {
+	return serve(ctx, ln.Addr().String(), handler, ln)
 }
 
 // Serve the handler on the listener
-func serve(ctx context.Context, a string, h http.Handler, l net.Listener) error {
+func serve(ctx context.Context, addr string, h http.Handler, l net.Listener) error {
 	// Create the HTTP server
-	server := &http.Server{Addr: a, Handler: h}
+	server := &http.Server{Addr: addr, Handler: h}
 	// Make the server shutdownable
 	shutdown := shutdown(ctx, server)
 	// Serve requests

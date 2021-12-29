@@ -3,10 +3,13 @@ package action_test
 import (
 	"bytes"
 	"context"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/fsync"
@@ -20,6 +23,8 @@ import (
 	"gitlab.com/mnm/bud/internal/modcache"
 	"gitlab.com/mnm/bud/internal/modtest"
 	"gitlab.com/mnm/bud/internal/parser"
+	"gitlab.com/mnm/bud/internal/test"
+	"gitlab.com/mnm/bud/socket"
 	"gitlab.com/mnm/bud/vfs"
 )
 
@@ -94,44 +99,86 @@ const goMod = `
 module app.com
 
 require (
-  github.com/hexops/valast v1.4.1
 	gitlab.com/mnm/bud v0.0.0
+	gitlab.com/mnm/bud-tailwind v0.0.0-20211228175933-3ca601f1a518
 )
 `
 
+const hnClient = `
+package hn
+
+import "context"
+
+func New() *Client {
+	return &Client{"https://news.ycombinator.com/"}
+}
+
+type Client struct {
+	baseURL string
+}
+
+func (c *Client) FrontPage(ctx context.Context) (string, error) {
+	return "https://news.ycombinator.com/", nil
+}
+
+func (c *Client) Find(ctx context.Context, id string) (string, error) {
+	return "https://news.ycombinator.com/item?id=" + id, nil
+}
+`
+
 func TestExample(t *testing.T) {
-	generate(t, modtest.Module{
-		Files: map[string]string{
-			"go.mod": goMod,
-			"controller/controller.go": `
-				package controller
+	t.SkipNow()
+	is := is.New(t)
+	generator := test.Generator(t)
+	generator.Files["go.mod"] = goMod
+	generator.Files["internal/hn/client.go"] = hnClient
+	generator.Files["action/action.go"] = `
+		package action
 
-				import (
-					"context"
+		import (
+			"context"
 
-					"gitlab.com/mnm/bud/router"
-				)
+			"app.com/internal/hn"
+		)
 
-				type Controller struct {
-					Router *router.Router
-				}
+		type Controller struct {
+			HN *hn.Client
+		}
 
-				func (c *Controller) Index(ctx context.Context) (*hn.News, error) {
-					return c.HN.FrontPage(ctx)
-				}
+		func (c *Controller) Index(ctx context.Context) (string, error) {
+			return c.HN.FrontPage(ctx)
+		}
 
-				type ShowOut struct {
-					Story *hn.Story ` + "`" + `json:"story"` + "`" + `
-				}
-
-				func (c *Controller) Show(ctx context.Context, id string) (*ShowOut, error) {
-					story, err := c.HN.Find(ctx, id)
-					if err != nil {
-						return nil, err
-					}
-					return &ShowOut{story}, nil
-				}
-			`,
-		},
-	})
+		func (c *Controller) Show(ctx context.Context, id string) (string, error) {
+			return c.HN.Find(ctx, id)
+		}
+	`
+	app, err := generator.Generate()
+	is.NoErr(err)
+	app.Exists("bud/action/action.go")
+	app.Exists("bud/main.go")
+	socketPath := filepath.Join(t.TempDir(), "tmp.sock")
+	listener, err := socket.Listen(socketPath)
+	is.NoErr(err)
+	defer listener.Close()
+	files, env, err := socket.Files(listener)
+	is.NoErr(err)
+	app.ExtraFiles(files...)
+	app.Env(env.Key(), env.Value())
+	cmd, err := app.Start()
+	is.NoErr(err)
+	defer cmd.Close()
+	transport, err := socket.Transport(socketPath)
+	is.NoErr(err)
+	client := http.Client{
+		Timeout:   time.Second,
+		Transport: transport,
+	}
+	res, err := client.Get("http://host/")
+	is.NoErr(err)
+	is.Equal(res.StatusCode, 200)
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	is.NoErr(err)
+	is.Equal(string(body), `https://news.ycombinator.com/`)
 }

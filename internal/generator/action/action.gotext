@@ -1,4 +1,4 @@
-package controller
+package action
 
 // GENERATED. DO NOT EDIT.
 
@@ -12,18 +12,18 @@ import (
 {{- end }}
 
 func New(
-	controller *action.Controller,
 	view view.Renderer,
+	controller *action.Controller,
 ) *Controller {
 	return &Controller{
-		controller,
 		view,
+		controller,
 	}
 }
 
 type Controller struct {
-	controller *action.Controller
 	view       view.Renderer
+	controller *action.Controller
 }
 
 func (c *Controller) Index(w http.ResponseWriter, r *http.Request) {

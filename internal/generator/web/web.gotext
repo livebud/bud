@@ -25,6 +25,7 @@ func New(
 		view,
 		router,
 	)
+	_ = middleware
 	handler := middleware.Middleware(http.NotFoundHandler())
 	return &Server{handler}
 }
@@ -33,6 +34,6 @@ type Server struct {
 	http.Handler
 }
 
-func (s *Server) ListenAndServe(ctx context.Context, address string) error {
-	return web.ServeTCP(ctx, address, s)
+func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
+	return web.Serve(ctx, ln, s)
 }
