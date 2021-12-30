@@ -1,6 +1,7 @@
 package valid
 
 import (
+	"path"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -32,6 +33,18 @@ func invalidViewEntry(name string) bool {
 		name[0] == '.' || // Starts with .
 		name == "bud" || // Named bud (reserved)
 		unicode.IsUpper(firstRune(name)) // Starts with a capital letter
+}
+
+func ActionFile(name string) bool {
+	return !invalidActionFile(name)
+}
+
+func invalidActionFile(name string) bool {
+	return len(name) == 0 || // Empty string
+		path.Ext(name) != ".go" ||
+		name[0] == '_' || // Starts with _
+		name[0] == '.' || // Starts with .
+		name == "bud.go" // Named bud (reserved)
 }
 
 func firstRune(s string) rune {

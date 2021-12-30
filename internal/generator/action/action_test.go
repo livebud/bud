@@ -126,7 +126,15 @@ func (c *Client) Find(ctx context.Context, id string) (string, error) {
 }
 `
 
-func TestExample(t *testing.T) {
+func TestNoController(t *testing.T) {
+	t.SkipNow()
+}
+
+func TestNoMethods(t *testing.T) {
+	t.SkipNow()
+}
+
+func TestSimple(t *testing.T) {
 	t.SkipNow()
 	is := is.New(t)
 	generator := test.Generator(t)

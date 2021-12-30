@@ -2,7 +2,6 @@ package parser
 
 import (
 	"go/ast"
-	"unicode"
 )
 
 type Alias struct {
@@ -26,7 +25,7 @@ func (a *Alias) Kind() Kind {
 
 // Private returns true if the field is private
 func (a *Alias) Private() bool {
-	return unicode.IsLower(rune(a.ts.Name.Name[0]))
+	return isPrivate(a.ts.Name.Name)
 }
 
 func (a *Alias) Package() *Package {

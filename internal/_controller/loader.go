@@ -9,10 +9,10 @@ import (
 
 	"github.com/go-duo/duoc/compiler"
 	"github.com/go-duo/duoc/di"
-	"github.com/go-duo/duoc/internal/go/imports"
 	"github.com/go-duo/duoc/go/is"
 	"github.com/go-duo/duoc/go/mod"
 	"github.com/go-duo/duoc/go/parser"
+	"github.com/go-duo/duoc/internal/go/imports"
 	text "github.com/go-duo/duoc/internal/gotext"
 )
 

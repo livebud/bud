@@ -44,3 +44,25 @@ func TestViewEntry(t *testing.T) {
 	is.True(!valid.ViewEntry("Ab"))
 	is.True(!valid.ViewEntry("bud"))
 }
+
+func TestActionFile(t *testing.T) {
+	is := is.New(t)
+	is.True(valid.ActionFile("a.go"))
+	is.True(valid.ActionFile("ab.go"))
+	is.True(valid.ActionFile("a_.go"))
+	is.True(valid.ActionFile("ab_.go"))
+	is.True(valid.ActionFile("ab-.go"))
+	is.True(valid.ActionFile("aA.go"))
+	is.True(valid.ActionFile("aB.go"))
+	is.True(valid.ActionFile("A.go"))
+	is.True(!valid.ActionFile(""))
+	is.True(!valid.ActionFile("_a.go"))
+	is.True(!valid.ActionFile("_ab.go"))
+	is.True(!valid.ActionFile(".a.go"))
+	is.True(!valid.ActionFile(".ab.go"))
+	is.True(!valid.ActionFile("a"))
+	is.True(!valid.ActionFile("A"))
+	is.True(!valid.ActionFile("Ab"))
+	is.True(!valid.ActionFile("bud"))
+	is.True(!valid.ActionFile("bud.go"))
+}

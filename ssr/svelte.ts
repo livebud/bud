@@ -52,8 +52,12 @@ const defaultLayout = {
       },
       head: "",
       html: `
+        <!doctype html>
         <html>
-          <head>${slots.head(props)}</head>
+          <head>
+            <meta charset="utf-8"/>
+            ${slots.head(props)}
+          </head>
           <body>${slots.default(props)}</body>
         </html>
       `,

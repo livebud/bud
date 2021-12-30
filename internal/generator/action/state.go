@@ -5,74 +5,149 @@ import (
 	"strings"
 
 	"github.com/matthewmueller/gotext"
+	"github.com/matthewmueller/text"
 	"gitlab.com/mnm/bud/internal/imports"
 )
 
 // State is the target controller state
 type State struct {
-	Imports     []*imports.Import
-	Controllers []*Controller
+	Imports    []*imports.Import
+	Controller *Controller
 }
 
 type Controller struct {
-	Name    string
-	Path    string
-	Actions []*Action
-	Context *Context
+	Name        string
+	Route       string
+	Import      *imports.Import
+	Actions     []*Action
+	Context     *Context
+	Controllers []*Controller
+}
+
+func (c *Controller) Pascal() string {
+	return gotext.Pascal(c.Name)
 }
 
 // Action is the target action state
 type Action struct {
 	Name         string
-	Pascal       string
-	Short        string
-	View         *View
 	Key          string
-	Path         string
+	Route        string
+	View         bool
 	Method       string
 	Context      *Context
-	Inputs       []*ActionInput
-	Outputs      ActionOutputs
+	Params       ActionParams
+	Results      ActionResults
 	ResponseJSON bool
 }
 
-// View struct
-type View struct {
-	Path string
+func (a *Action) Pascal() string {
+	return gotext.Pascal(a.Name)
 }
 
-// ActionInput struct
-type ActionInput struct {
+func (a *Action) Short() string {
+	return gotext.Short(a.Name)
+}
+
+// type Function struct {
+// 	Params  []*ActionParam
+// 	Results ActionResults
+// }
+
+// // View struct
+// type View struct {
+// 	Path string
+// }
+
+type ActionParams []*ActionParam
+
+func (params ActionParams) Publics() (publics ActionParams) {
+	for _, param := range params {
+		if param.Private() {
+			continue
+		}
+		publics = append(publics, param)
+	}
+	return publics
+}
+
+// ActionParam struct
+type ActionParam struct {
 	Name     string
-	Pascal   string
-	Snake    string
 	Type     string
-	Variable string
-	JSON     string
+	Import   *imports.Import
+	Kind     string
+	Optional bool
 }
 
-// ActionOutputs fn
-type ActionOutputs []*ActionOutput
+func (a *ActionParam) Pascal() string {
+	return gotext.Pascal(a.Name)
+}
+
+func (a *ActionParam) Variable() string {
+	return gotext.Camel(a.Type)
+}
+
+func (a *ActionParam) Tag() string {
+	w := new(strings.Builder)
+
+	// json tag
+	w.WriteString(`json:"`)
+	if a.Name == "" {
+		w.WriteString(`-`)
+	} else {
+		w.WriteString(text.Snake(a.Name))
+	}
+	w.WriteString(`,omitempty"`)
+
+	// validate tag
+	w.WriteString(` validate:"`)
+	if !a.Optional {
+		w.WriteString(`required`)
+	}
+	w.WriteString(`"`)
+
+	return w.String()
+}
+
+// func (a *ActionParam) isContext() bool {
+// 	return a.Import != nil &&
+// 		a.Import.Path == "context" &&
+// 		a.Type == "Context"
+// }
+
+func (a *ActionParam) isContext() bool {
+	return a.Type == "context.Context"
+}
+
+func (a *ActionParam) Private() bool {
+	return a.isContext()
+}
+
+func (a *ActionParam) Public() bool {
+	return !a.Private()
+}
+
+// ActionResults fn
+type ActionResults []*ActionResult
 
 // Set helper
-func (outputs ActionOutputs) Set() string {
+func (outputs ActionResults) List() string {
 	if len(outputs) == 0 {
 		return ""
 	}
 	variables := make([]string, len(outputs))
 	for i, output := range outputs {
-		variables[i] = output.Variable
+		variables[i] = output.Variable()
 	}
-	results := strings.Join(variables, ", ")
-	// Tack on the operator
-	return results + " := "
+	return strings.Join(variables, ", ")
 }
 
 // Result expression if there is one
-func (outputs ActionOutputs) Result() string {
-	var results ActionOutputs
+func (outputs ActionResults) Result() string {
+	var results ActionResults
 	for _, output := range outputs {
-		if output.IsError {
+		if output.IsError() {
 			continue
 		}
 		results = append(results, output)
@@ -82,12 +157,12 @@ func (outputs ActionOutputs) Result() string {
 		return ""
 	}
 	if len(results) == 1 {
-		return results[0].Variable
+		return results[0].Variable()
 	}
 	if results.isArray() {
 		out := "[]interface{}{"
 		for _, result := range results {
-			out += result.Variable
+			out += result.Variable()
 			out += ","
 		}
 		out += "}"
@@ -96,9 +171,9 @@ func (outputs ActionOutputs) Result() string {
 	if results.isObject() {
 		out := "map[string]interface{}{"
 		for _, result := range results {
-			out += strconv.Quote(result.Snake)
+			out += strconv.Quote(result.Snake())
 			out += ": "
-			out += result.Variable
+			out += result.Variable()
 			out += ","
 		}
 		out += "}"
@@ -107,18 +182,18 @@ func (outputs ActionOutputs) Result() string {
 	return ""
 }
 
-func (outputs ActionOutputs) isArray() bool {
+func (outputs ActionResults) isArray() bool {
 	for _, output := range outputs {
-		if !output.Named {
+		if !output.Named() {
 			return true
 		}
 	}
 	return false
 }
 
-func (outputs ActionOutputs) isObject() bool {
+func (outputs ActionResults) isObject() bool {
 	for _, output := range outputs {
-		if output.Pascal == "" {
+		if output.Pascal() == "" {
 			return false
 		}
 	}
@@ -126,34 +201,50 @@ func (outputs ActionOutputs) isObject() bool {
 }
 
 // Error expression if there is one
-func (outputs ActionOutputs) Error() string {
+func (outputs ActionResults) Error() string {
 	for _, output := range outputs {
-		if output.IsError {
-			return output.Variable
+		if output.IsError() {
+			return output.Variable()
 		}
 	}
 	return ""
 }
 
-// ActionOutput struct
-type ActionOutput struct {
-	Name     string
-	Pascal   string
-	Named    bool
-	Snake    string
-	Type     string
-	Variable string
-	IsError  bool
-	Fields   []*ActionOutputField
-	Methods  []*ActionOutputMethod
+// ActionResult struct
+type ActionResult struct {
+	Name    string
+	Type    string
+	Kind    string
+	Fields  []*ActionResultField
+	Methods []*ActionResultMethod
 }
 
-// ActionOutputField struct
-type ActionOutputField struct {
+func (a *ActionResult) Pascal() string {
+	return gotext.Pascal(a.Name)
 }
 
-// ActionOutputMethod struct
-type ActionOutputMethod struct {
+func (a *ActionResult) Snake() string {
+	return text.Snake(a.Name)
+}
+
+func (a *ActionResult) Variable() string {
+	return gotext.Camel(a.Type)
+}
+
+func (a *ActionResult) Named() bool {
+	return a.Name != ""
+}
+
+func (a *ActionResult) IsError() bool {
+	return a.Type == "error"
+}
+
+// ActionResultField struct
+type ActionResultField struct {
+}
+
+// ActionResultMethod struct
+type ActionResultMethod struct {
 }
 
 // Context is the target context state
@@ -161,7 +252,7 @@ type Context struct {
 	Function string // Name of the function
 	Code     string // Function code
 	Inputs   []*ContextInput
-	Outputs  ContextOutputs
+	Results  ContextResults
 }
 
 // ContextInput struct
@@ -172,16 +263,16 @@ type ContextInput struct {
 	Type     string
 }
 
-// ContextOutput struct
-type ContextOutput struct {
+// ContextResult struct
+type ContextResult struct {
 	Variable string
 }
 
-// ContextOutputs is a list of context results
-type ContextOutputs []*ContextOutput
+// ContextResults is a list of context results
+type ContextResults []*ContextResult
 
 // List joins the outputs with a comma
-func (outputs ContextOutputs) List() string {
+func (outputs ContextResults) List() string {
 	var outs []string
 	for _, output := range outputs {
 		outs = append(outs, output.Variable)
@@ -190,7 +281,7 @@ func (outputs ContextOutputs) List() string {
 }
 
 // Result returns the result variable if there is one
-func (outputs ContextOutputs) Result() string {
+func (outputs ContextResults) Result() string {
 	if len(outputs) > 0 {
 		return gotext.Camel(outputs[0].Variable)
 	}
@@ -198,7 +289,7 @@ func (outputs ContextOutputs) Result() string {
 }
 
 // Error returns the error variable if there is one
-func (outputs ContextOutputs) Error() string {
+func (outputs ContextResults) Error() string {
 	if len(outputs) > 1 {
 		return gotext.Camel(outputs[1].Variable)
 	}

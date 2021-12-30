@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"go/ast"
 	"strings"
-	"unicode"
 
 	"github.com/fatih/structtag"
 )
@@ -44,7 +43,7 @@ func (stct *Struct) Kind() Kind {
 
 // Private returns true if the field is private
 func (stct *Struct) Private() bool {
-	return unicode.IsLower(rune(stct.ts.Name.Name[0]))
+	return isPrivate(stct.ts.Name.Name)
 }
 
 func (stct *Struct) Field(name string) *Field {
@@ -180,6 +179,22 @@ func (stct *Struct) Method(name string) *Function {
 	return nil
 }
 
+func (stct *Struct) PublicMethods() (methods []*Function) {
+	for _, file := range stct.Package().Files() {
+		for _, fn := range file.Functions() {
+			recv := fn.Receiver()
+			if recv == nil {
+				continue
+			}
+			if fn.Private() || TypeName(recv.Type()) != stct.Name() {
+				continue
+			}
+			methods = append(methods, fn)
+		}
+	}
+	return methods
+}
+
 // Field is a regular struct field
 type Field struct {
 	stct     *Struct
@@ -209,7 +224,7 @@ func (f *Field) Name() string {
 
 // Private returns true if the field is private
 func (f *Field) Private() bool {
-	return unicode.IsLower(rune(f.name[0]))
+	return isPrivate(f.name)
 }
 
 // Type of the field

@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"path"
 	"path/filepath"
+	"unicode"
 
 	"gitlab.com/mnm/bud/go/mod"
 )
@@ -131,4 +132,8 @@ func buildContext(fsys fs.FS) *build.Context {
 			return fsys.Open(path)
 		},
 	}
+}
+
+func isPrivate(name string) bool {
+	return unicode.IsLower(rune(name[0]))
 }

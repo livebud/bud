@@ -25737,14 +25737,14 @@ ${frame}`
 
   // compiler.ts
   function compile2(input) {
-    const { code, path, target, dev } = input;
+    const { code, path, target, dev, css } = input;
     const svelte = compile(code, {
       filename: path,
       generate: target,
       hydratable: true,
       format: "esm",
       dev,
-      css: dev
+      css
     });
     return JSON.stringify({
       CSS: svelte.css.code,

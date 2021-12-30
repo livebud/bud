@@ -19,8 +19,8 @@ func New(
 	router := router.New()
 	_ = public
 	// Action routing
-	router.Get("/", http.HandlerFunc(controller.Index))
-	router.Get("/:id", http.HandlerFunc(controller.Show))
+	router.Get("/", controller.Index)
+	router.Get("/:id", controller.Show)
 	router.Get("/new", view.Handler("/new"))
 	return router
 }

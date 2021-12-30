@@ -23,7 +23,7 @@ func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 		return err
 	}
 	imports := imports.New()
-	imports.AddStd("net/http")
+	// imports.AddStd("net/http")
 	imports.AddNamed("router", "gitlab.com/mnm/bud/router")
 	imports.AddNamed("action", g.Module.Import("bud/action"))
 	imports.AddNamed("public", g.Module.Import("bud/public"))

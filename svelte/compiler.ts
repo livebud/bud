@@ -5,6 +5,7 @@ type Input = {
   path: string
   target: "ssr" | "dom"
   dev: boolean
+  css: boolean
 }
 
 // Capitalized for Go
@@ -24,14 +25,14 @@ type Output =
 
 // Compile svelte code
 export function compile(input: Input): string {
-  const { code, path, target, dev } = input
+  const { code, path, target, dev, css } = input
   const svelte = compileSvelte(code, {
     filename: path,
     generate: target,
     hydratable: true,
     format: "esm",
     dev: dev,
-    css: dev,
+    css: css,
   })
   return JSON.stringify({
     CSS: svelte.css.code,

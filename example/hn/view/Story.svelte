@@ -27,7 +27,7 @@
   }
 </script>
 
-<li class="p-5 bg-white flex items-center">
+<div class="p-5 bg-white flex items-center">
   {#if i > 0}<div class="text-sm text-gray-500">{i}.</div>{/if}
   <div class="ml-5 text-orange-600">
     <svg
@@ -57,4 +57,4 @@
       <a href={`/${story.id}`}>{formatComments(story.num_comments)}</a>
     </div>
   </div>
-</li>
+</div>

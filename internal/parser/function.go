@@ -3,7 +3,6 @@ package parser
 import (
 	"go/ast"
 	"strings"
-	"unicode"
 )
 
 // Function struct
@@ -29,7 +28,7 @@ func (fn *Function) File() *File {
 
 // Private checks if the function is private or public
 func (fn *Function) Private() bool {
-	return unicode.IsLower(rune(fn.node.Name.Name[0]))
+	return isPrivate(fn.node.Name.Name)
 }
 
 // Name of the function
@@ -174,7 +173,7 @@ func (f *Receiver) Name() string {
 
 // Private returns true if the field is private
 func (f *Receiver) Private() bool {
-	return unicode.IsLower(rune(f.name[0]))
+	return isPrivate(f.name)
 }
 
 // Type of the field
@@ -212,7 +211,7 @@ func (f *Param) Name() string {
 
 // Private returns true if the field is private
 func (f *Param) Private() bool {
-	return unicode.IsLower(rune(f.name[0]))
+	return isPrivate(f.name)
 }
 
 // Type of the field
@@ -268,7 +267,7 @@ func (f *Result) Named() bool {
 
 // Private returns true if the field is private
 func (f *Result) Private() bool {
-	return unicode.IsLower(rune(f.name[0]))
+	return isPrivate(f.name)
 }
 
 // Type of the field

@@ -3,11 +3,13 @@ module gitlab.com/mnm/bud
 go 1.17
 
 require (
+	github.com/ajg/form v1.5.1
 	github.com/armon/go-radix v1.0.0
 	github.com/cespare/xxhash v1.1.0
 	github.com/evanw/esbuild v0.12.24
 	github.com/fatih/structtag v1.2.0
 	github.com/gitchander/permutation v0.0.0-20201214100618-1f3e7285f953
+	github.com/go-playground/validator/v10 v10.9.0
 	github.com/gobwas/glob v0.2.3
 	github.com/jackc/puddle v1.1.4
 	github.com/lithammer/dedent v1.1.0
@@ -26,10 +28,15 @@ require (
 
 require (
 	github.com/gedex/inflector v0.0.0-20170307190818-16278e9db813 // indirect
+	github.com/go-playground/locales v0.14.0 // indirect
+	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
+	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/rogpeppe/go-internal v1.8.1-0.20211023094830-115ce09fd6b4 // indirect
 	github.com/sergi/go-diff v1.0.0 // indirect
+	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
 	golang.org/x/sys v0.0.0-20211117180635-dee7805ff2e1 // indirect
+	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 )

@@ -14,14 +14,14 @@ func (c *Controller) Index(ctx context.Context) (*hn.News, error) {
 	return c.HN.FrontPage(ctx)
 }
 
-type ShowOut struct {
-	Story *hn.Story `json:"story"`
-}
-
-func (c *Controller) Show(ctx context.Context, id string) (*ShowOut, error) {
+func (c *Controller) Show(ctx context.Context, id string) (*ShowResponse, error) {
 	story, err := c.HN.Find(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	return &ShowOut{story}, nil
+	return &ShowResponse{story}, nil
+}
+
+type ShowResponse struct {
+	Story *hn.Story `json:"story"`
 }
