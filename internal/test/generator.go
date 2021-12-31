@@ -4,17 +4,22 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"io"
 	"io/fs"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/matryer/is"
+	"github.com/matthewmueller/diff"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/generator"
 	"gitlab.com/mnm/bud/internal/modcache"
@@ -62,11 +67,13 @@ func cleanup(t testing.TB, root, dir string) func() {
 	}
 }
 
+// TODO: remove gitlab.com/mnm/duo
 const goMod = `
 module app.com
 
 require (
 	gitlab.com/mnm/bud v0.0.0
+	gitlab.com/mnm/duo v0.0.0-20210911191412-34ebda55e203
 	gitlab.com/mnm/bud-tailwind v0.0.0-20211228175933-3ca601f1a518
 )
 `
@@ -235,11 +242,15 @@ func (a *App) Start(args ...string) (*Server, error) {
 		return nil, err
 	}
 	return &Server{
+		t:   a.t,
 		cmd: cmd,
 		ln:  ln,
 		client: &http.Client{
 			Timeout:   time.Second,
 			Transport: transport,
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
 		},
 	}, nil
 }
@@ -256,6 +267,7 @@ func (a *App) Exists(path string) bool {
 }
 
 type Server struct {
+	t      testing.TB
 	cmd    *exec.Cmd
 	ln     net.Listener
 	client *http.Client
@@ -277,11 +289,18 @@ func (c *Server) Close() error {
 	return nil
 }
 
-func (a *Server) Request(req *http.Request) (*http.Response, error) {
-	return a.client.Do(req)
+func (a *Server) Request(req *http.Request) (*Response, error) {
+	res, err := a.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return &Response{
+		t:        a.t,
+		Response: res,
+	}, nil
 }
 
-func (a *Server) Get(path string) (*http.Response, error) {
+func (a *Server) Get(path string) (*Response, error) {
 	req, err := http.NewRequest("GET", "http://host"+path, nil)
 	if err != nil {
 		return nil, err
@@ -289,26 +308,61 @@ func (a *Server) Get(path string) (*http.Response, error) {
 	return a.Request(req)
 }
 
-func (a *Server) Post(path, body string) (*http.Response, error) {
-	req, err := http.NewRequest("POST", "http://host"+path, bytes.NewBufferString(body))
+func (a *Server) Post(path string, body io.Reader) (*Response, error) {
+	req, err := http.NewRequest("POST", "http://host"+path, body)
 	if err != nil {
 		return nil, err
 	}
 	return a.Request(req)
 }
 
-func (a *Server) Put(path, body string) (*http.Response, error) {
-	req, err := http.NewRequest("PUT", "http://host"+path, bytes.NewBufferString(body))
+func (a *Server) Put(path string, body io.Reader) (*Response, error) {
+	req, err := http.NewRequest("PUT", "http://host"+path, body)
 	if err != nil {
 		return nil, err
 	}
 	return a.Request(req)
 }
 
-func (a *Server) Delete(path, body string) (*http.Response, error) {
-	req, err := http.NewRequest("DELETE", "http://host"+path, bytes.NewBufferString(body))
+func (a *Server) Delete(path string, body io.Reader) (*Response, error) {
+	req, err := http.NewRequest("DELETE", "http://host"+path, body)
 	if err != nil {
 		return nil, err
 	}
 	return a.Request(req)
+}
+
+type Response struct {
+	t testing.TB
+	*http.Response
+}
+
+var now = time.Date(2021, 12, 31, 0, 0, 0, 0, time.UTC)
+
+func (r *Response) Expect(expect string) {
+	// Make the date constant
+	if v := r.Response.Header.Get("Date"); v != "" {
+		r.Response.Header.Set("Date", now.Format(http.TimeFormat))
+	}
+	dumpBytes, err := httputil.DumpResponse(r.Response, true)
+	if err != nil {
+		diff.TestString(r.t, expect, err.Error())
+		return
+	}
+	dump := string(dumpBytes)
+	// Check the content length
+	// TODO: clean this up. Ideally we can check this before dumping the response.
+	// We just need to make sure to reset the body for the dump response
+	if v := r.Response.Header.Get("Content-Length"); v != "" {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			diff.TestString(r.t, expect, err.Error())
+			return
+		}
+		actual := fmt.Sprintf("Content-Length: %d", len(body))
+		expect := fmt.Sprintf("Content-Length: %s", v)
+		diff.TestString(r.t, expect, actual)
+		dump = strings.ReplaceAll(dump, "\r\n"+expect, "")
+	}
+	diff.TestHTTP(r.t, expect, dump)
 }

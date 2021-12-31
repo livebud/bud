@@ -3,10 +3,11 @@ package action
 import (
 	"io/fs"
 	"path"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+
+	"gitlab.com/mnm/bud/internal/valid"
 
 	"github.com/matthewmueller/gotext"
 	"github.com/matthewmueller/text"
@@ -44,47 +45,68 @@ type loader struct {
 	module   *mod.Module
 	parser   *parser.Parser
 	exist    map[string]bool
-
-	// cached
-	controllerPath string
 }
 
 // load fn
 func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
 	state = new(State)
-	state.Controller = l.loadController()
+	state.Controller = l.loadController("action")
 	state.Contexts = l.contexts.List()
 	state.Imports = l.imports.List()
 	return state, err
 }
 
-func (l *loader) loadController() *Controller {
-	pkg, err := l.parser.Parse("./action")
+func (l *loader) loadController(actionPath string) *Controller {
+	des, err := fs.ReadDir(l.module, actionPath)
 	if err != nil {
 		l.Bail(err)
 	}
-	l.controllerPath = l.loadControllerPath(pkg)
 	controller := new(Controller)
-	controller.Name = pkg.Name()
-	controller.Path = l.loadControllerPath(pkg)
-	controller.Actions = l.loadActions(pkg)
+	controller.Name = l.loadControllerName(actionPath)
+	controller.Pascal = gotext.Pascal(controller.Name)
+	controller.Path = text.Path(controller.Name)
+	shouldParse := false
+	for _, de := range des {
+		if !de.IsDir() && valid.ActionFile(de.Name()) {
+			shouldParse = true
+			continue
+		}
+		if de.IsDir() && valid.Dir(de.Name()) {
+			subController := l.loadController(path.Join(actionPath, de.Name()))
+			if subController == nil {
+				continue
+			}
+			controller.Controllers = append(controller.Controllers, subController)
+			continue
+		}
+	}
+	if !shouldParse {
+		return controller
+	}
+	pkg, err := l.parser.Parse(actionPath)
+	if err != nil {
+		l.Bail(err)
+	}
+	stct := pkg.Struct("Controller")
+	if stct == nil {
+		return controller
+	}
+	controller.Actions = l.loadActions(controller, stct)
 	return controller
 }
 
-func (l *loader) loadControllerPath(pkg *parser.Package) string {
-	controllerDir := filepath.Join(l.module.Directory(), "controller")
-	rel := strings.TrimPrefix(pkg.Directory(), controllerDir)
-	return text.Path(rel)
+func (l *loader) loadControllerName(actionPath string) string {
+	return text.Space(strings.TrimPrefix(actionPath, "action"))
 }
 
-func (l *loader) loadActions(pkg *parser.Package) (actions []*Action) {
-	for _, fn := range pkg.PublicFunctions() {
-		actions = append(actions, l.loadAction(fn))
+func (l *loader) loadActions(controller *Controller, stct *parser.Struct) (actions []*Action) {
+	for _, method := range stct.PublicMethods() {
+		actions = append(actions, l.loadAction(controller, method))
 	}
 	// Add the imports if we have more than one action
 	if len(actions) > 0 {
-		importPath, err := pkg.Import()
+		importPath, err := stct.File().Import()
 		if err != nil {
 			l.Bail(err)
 		}
@@ -95,20 +117,20 @@ func (l *loader) loadActions(pkg *parser.Package) (actions []*Action) {
 	return actions
 }
 
-func (l *loader) loadAction(fn *parser.Function) *Action {
+func (l *loader) loadAction(controller *Controller, method *parser.Function) *Action {
 	action := new(Action)
-	action.Name = fn.Name()
+	action.Name = method.Name()
 	action.Pascal = gotext.Pascal(action.Name)
 	action.Camel = gotext.Camel(action.Name)
-	action.Short = gotext.Short(action.Name)
+	action.Short = text.Lower(gotext.Short(action.Name))
 	// action.View = l.loadView(action.Name)
-	action.Key = text.Path(action.Name)
-	action.Path = l.loadActionPath(action.Name)
+	action.Key = text.Lower(text.Path(action.Name))
+	action.Path = l.loadActionPath(controller.Path, action.Name)
 	action.Method = l.loadActionMethod(action.Name)
-	action.Inputs = l.loadActionInputs(fn)
-	action.Outputs = l.loadActionOutputs(fn)
+	action.Inputs = l.loadActionInputs(method)
+	action.Outputs = l.loadActionOutputs(method)
 	action.ResponseJSON = len(action.Outputs) > 0
-	action.Context = l.loadContext(fn)
+	action.Context = l.loadContext(method)
 	return action
 }
 
@@ -140,19 +162,18 @@ func (l *loader) loadAction(fn *parser.Function) *Action {
 // }
 
 // Path is the route to the action
-func (l *loader) loadActionPath(actionName string) string {
-	basePath := l.controllerPath
+func (l *loader) loadActionPath(controllerPath, actionName string) string {
 	switch actionName {
 	case "Show", "Update", "Delete":
-		return path.Join(basePath, ":id")
+		return path.Join(controllerPath, ":id")
 	case "New":
-		return path.Join(basePath, "new")
+		return path.Join(controllerPath, "new")
 	case "Edit":
-		return path.Join(basePath, ":id", "edit")
+		return path.Join(controllerPath, ":id", "edit")
 	case "Index", "Create":
-		return basePath
+		return controllerPath
 	default:
-		return path.Join(basePath, text.Path(actionName))
+		return path.Join(controllerPath, text.Path(actionName))
 	}
 }
 
@@ -170,8 +191,8 @@ func (l *loader) loadActionMethod(actionName string) string {
 	}
 }
 
-func (l *loader) loadActionInputs(fn *parser.Function) (inputs []*ActionInput) {
-	for order, param := range fn.Params() {
+func (l *loader) loadActionInputs(method *parser.Function) (inputs []*ActionInput) {
+	for order, param := range method.Params() {
 		inputs = append(inputs, l.loadActionInput(order, param))
 	}
 	if len(inputs) > 0 {
@@ -231,8 +252,8 @@ func (l *loader) loadActionInputJSON(snake string) string {
 	return out
 }
 
-func (l *loader) loadActionOutputs(fn *parser.Function) (outputs []*ActionOutput) {
-	for order, result := range fn.Results() {
+func (l *loader) loadActionOutputs(method *parser.Function) (outputs []*ActionOutput) {
+	for order, result := range method.Results() {
 		outputs = append(outputs, l.loadActionOutput(order, result))
 	}
 	return outputs
@@ -272,8 +293,8 @@ func (l *loader) loadActionOutputFields() (fields []*ActionOutputField) {
 	return fields
 }
 
-func (l *loader) loadContext(fn *parser.Function) *Context {
-	recv := fn.Receiver()
+func (l *loader) loadContext(method *parser.Function) *Context {
+	recv := method.Receiver()
 	if recv == nil {
 		return nil
 	}

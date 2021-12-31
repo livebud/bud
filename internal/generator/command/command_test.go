@@ -15,14 +15,6 @@ func redent(s string) string {
 	return strings.TrimSpace(dedent.Dedent(s)) + "\n"
 }
 
-var goMod = `
-module app.com
-
-require (
-	gitlab.com/mnm/bud v0.0.0
-)
-`
-
 func isEqual(t testing.TB, actual, expect string) {
 	diff.TestString(t, redent(expect), redent(actual))
 }
@@ -38,7 +30,6 @@ func TestEmpty(t *testing.T) {
 func TestCommand(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["go.mod"] = goMod
 	generator.Files["internal/hn/hn.go"] = `
 		package hn
 
@@ -90,7 +81,6 @@ func TestCommand(t *testing.T) {
 func TestNested(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["go.mod"] = goMod
 	generator.Files["command/deploy/deploy.go"] = `
 		package deploy
 
@@ -179,3 +169,5 @@ func TestNested(t *testing.T) {
 		  --with-test  include a view test
 	`)
 }
+
+// TODO: test deeply nested

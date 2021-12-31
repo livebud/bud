@@ -16,9 +16,11 @@ type State struct {
 
 // Controller is the target controller state
 type Controller struct {
-	Name    string
-	Path    string
-	Actions []*Action
+	Name        string
+	Pascal      string
+	Path        string
+	Actions     []*Action
+	Controllers []*Controller
 }
 
 // Action is the target action state

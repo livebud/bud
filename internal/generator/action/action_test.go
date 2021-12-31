@@ -1,7 +1,6 @@
 package action_test
 
 import (
-	"io"
 	"testing"
 
 	"github.com/matryer/is"
@@ -30,25 +29,23 @@ func TestIndexString(t *testing.T) {
 	defer server.Close()
 	res, err := server.Get("/")
 	is.NoErr(err)
-	is.Equal(res.StatusCode, 200)
-	defer res.Body.Close()
-	body, err := io.ReadAll(res.Body)
 	is.NoErr(err)
-	is.Equal(string(body), `"Hello Users!"`)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		"Hello Users!"
+	`)
 }
 
-func TestAboutString(t *testing.T) {
+func TestAboutIndexString(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
 	generator.Files["action/about/action.go"] = `
 		package action
-
-		type Controller struct {
-		}
-
-		func (c *Controller) Index() string {
-			return "About"
-		}
+		type Controller struct {}
+		func (c *Controller) Index() string { return "About" }
 	`
 	app, err := generator.Generate()
 	is.NoErr(err)
@@ -59,9 +56,36 @@ func TestAboutString(t *testing.T) {
 	defer server.Close()
 	res, err := server.Get("/about")
 	is.NoErr(err)
-	is.Equal(res.StatusCode, 200)
-	defer res.Body.Close()
-	body, err := io.ReadAll(res.Body)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		"About"
+	`)
+}
+
+func TestCreateEmpty(t *testing.T) {
+	is := is.New(t)
+	generator := test.Generator(t)
+	generator.Files["action/action.go"] = `
+		package action
+		type Controller struct {}
+		func (c *Controller) Create() {
+		}
+	`
+	app, err := generator.Generate()
 	is.NoErr(err)
-	is.Equal(string(body), `"About"`)
+	is.True(app.Exists("bud/action/action.go"))
+	is.True(app.Exists("bud/main.go"))
+	server, err := app.Start()
+	is.NoErr(err)
+	defer server.Close()
+	res, err := server.Post("/", nil)
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 302 Found
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+		Location: /
+	`)
 }
