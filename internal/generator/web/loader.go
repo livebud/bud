@@ -7,7 +7,6 @@ import (
 	"gitlab.com/mnm/bud/internal/scan"
 
 	"github.com/matthewmueller/text"
-	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/imports"
@@ -23,7 +22,7 @@ func Load(module *mod.Module, parser *parser.Parser) (*State, error) {
 		"bud/view/view.go",
 	)
 	if len(exist) == 0 {
-		return nil, gen.ErrSkipped
+		return nil, fs.ErrNotExist
 	}
 	loader := &loader{
 		imports: imports.New(),

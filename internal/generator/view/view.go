@@ -2,6 +2,7 @@ package view
 
 import (
 	_ "embed"
+	"io/fs"
 
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
@@ -26,7 +27,7 @@ type State struct {
 func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 	exist := vfs.SomeExist(g.Module, "action")
 	if len(exist) == 0 {
-		return gen.ErrSkipped
+		return fs.ErrNotExist
 	}
 	imports := imports.New()
 	imports.AddNamed("transform", g.Module.Import("bud/transform"))

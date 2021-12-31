@@ -1162,7 +1162,7 @@ func TestExternalUnused(t *testing.T) {
 	})
 }
 
-func TestHoist(t *testing.T) {
+func TestHoistFull(t *testing.T) {
 	runTest(t, Test{
 		Function: &di.Function{
 			Name:   "Load",

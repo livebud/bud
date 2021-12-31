@@ -1088,8 +1088,8 @@ func TestFileSkip(t *testing.T) {
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "go.mod")
 	code, err := fs.ReadFile(genfs, "go.mod")
-	is.True(errors.Is(err, gen.ErrSkipped))
-	is.True(strings.Contains(err.Error(), `skipped file "go.mod"`))
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.True(strings.Contains(err.Error(), `"go.mod"`))
 	is.Equal(code, nil)
 }
 
@@ -1106,7 +1106,7 @@ func TestDirSkip(t *testing.T) {
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "bud")
 	code, err := fs.ReadFile(genfs, "bud")
-	is.True(errors.Is(err, gen.ErrSkipped))
-	is.True(strings.Contains(err.Error(), `skipped directory "bud"`))
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.True(strings.Contains(err.Error(), `"bud"`))
 	is.Equal(code, nil)
 }

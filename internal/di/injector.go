@@ -48,7 +48,6 @@ func (i *Injector) Load(fn *Function) (*Node, error) {
 		if err != nil {
 			return nil, err
 		}
-		node.unhoistable = true // Top-level results can't be hoisted
 		root.Dependencies = append(root.Dependencies, node)
 	}
 	if fn.Hoist {

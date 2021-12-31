@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/generator"
 	"gitlab.com/mnm/bud/internal/modcache"
@@ -248,7 +247,7 @@ func (a *App) Start(args ...string) (*Server, error) {
 func (a *App) Exists(path string) bool {
 	is := is.New(a.t)
 	if _, err := fs.Stat(a.module, path); err != nil {
-		if errors.Is(err, fs.ErrNotExist) || errors.Is(err, gen.ErrSkipped) {
+		if errors.Is(err, fs.ErrNotExist) {
 			return false
 		}
 		is.NoErr(err)

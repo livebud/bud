@@ -40,7 +40,7 @@ func (f *File) Watch(pattern string, event Event) {
 }
 
 func (f *File) Skip() error {
-	return fmt.Errorf("%w file %q", ErrSkipped, f.path)
+	return fmt.Errorf("%w: %q", fs.ErrNotExist, f.path)
 }
 
 func (f *File) open(fsys F, key, relative, path string) (fs.File, error) {

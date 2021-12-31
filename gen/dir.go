@@ -43,7 +43,7 @@ func (d *Dir) Watch(pattern string, event Event) {
 }
 
 func (d *Dir) Skip() error {
-	return fmt.Errorf("%w directory %q", ErrSkipped, d.path)
+	return fmt.Errorf("%w directory %q", fs.ErrNotExist, d.path)
 }
 
 func (d *Dir) open(f F, key, relative, path string) (fs.File, error) {

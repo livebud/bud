@@ -2,6 +2,7 @@ package public
 
 import (
 	_ "embed"
+	"io/fs"
 
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/vfs"
@@ -33,7 +34,7 @@ type File struct {
 func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 	exist := vfs.SomeExist(g.Module, "public")
 	if len(exist) == 0 {
-		return gen.ErrSkipped
+		return fs.ErrNotExist
 	}
 	code, err := generator.Generate(State{})
 	if err != nil {

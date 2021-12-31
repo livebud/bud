@@ -1,7 +1,6 @@
 package gen
 
 import (
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -15,7 +14,7 @@ import (
 
 // ErrSkipped allows you to skip generating files, without producing an error.
 // TODO: consider moving to vfs.
-var ErrSkipped = errors.New("skipped")
+// var ErrSkipped = errors.New("skipped")
 
 type FS interface {
 	Open(name string) (fs.File, error)
@@ -191,7 +190,7 @@ func SkipUnless(f fs.FS, paths ...string) error {
 		path := path
 		eg.Go(func() error {
 			if _, err := fs.Stat(f, path); err != nil {
-				return fmt.Errorf("%w %q", ErrSkipped, path)
+				return fmt.Errorf("%w %q", fs.ErrNotExist, path)
 			}
 			return nil
 		})

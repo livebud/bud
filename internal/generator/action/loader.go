@@ -1,6 +1,7 @@
 package action
 
 import (
+	"io/fs"
 	"path"
 	"path/filepath"
 	"sort"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/matthewmueller/gotext"
 	"github.com/matthewmueller/text"
-	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/is"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/bail"
@@ -22,7 +22,7 @@ import (
 func Load(injector *di.Injector, module *mod.Module, parser *parser.Parser) (*State, error) {
 	exist := vfs.SomeExist(module, "action")
 	if len(exist) == 0 {
-		return nil, gen.ErrSkipped
+		return nil, fs.ErrNotExist
 	}
 	loader := &loader{
 		contexts: newContextSet(),

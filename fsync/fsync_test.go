@@ -177,26 +177,6 @@ func TestNoDuo(t *testing.T) {
 	is.True(stat.ModTime().Equal(after))
 }
 
-func TestNotExistGenerator(t *testing.T) {
-	is := is.New(t)
-	// before := time.Date(2021, 8, 4, 14, 56, 0, 0, time.UTC)
-	after := time.Date(2021, 8, 4, 14, 57, 0, 0, time.UTC)
-	vfs.Now = func() time.Time { return after }
-
-	// starting points
-	sourceFS := gen.New(nil)
-	sourceFS.Add(map[string]gen.Generator{
-		"bud/generate/main.go": gen.GenerateFile(func(f gen.F, file *gen.File) error {
-			return fs.ErrNotExist
-		}),
-	})
-	targetFS := vfs.Memory{}
-
-	// sync
-	err := fsync.Dir(sourceFS, ".", targetFS, ".")
-	is.True(errors.Is(err, fs.ErrNotExist))
-}
-
 func TestSkipGenerator(t *testing.T) {
 	is := is.New(t)
 	// before := time.Date(2021, 8, 4, 14, 56, 0, 0, time.UTC)

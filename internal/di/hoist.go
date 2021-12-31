@@ -7,16 +7,17 @@ package di
 //
 // Start with hoisting true, but if we encounter any external along the way, the
 // hoisting of all children becomes false
-func Hoist(node *Node) *Node {
-	hoist(node)
-	return node
+func Hoist(root *Node) *Node {
+	// Hoisting only applies to ancestor dependencies
+	for _, result := range root.Dependencies {
+		for _, dep := range result.Dependencies {
+			hoist(dep)
+		}
+	}
+	return root
 }
 
 func hoist(node *Node) (shouldHoist bool) {
-	// Node has been marked as unhoistable
-	if node.unhoistable {
-		return false
-	}
 	// Default to hoisting
 	shouldHoist = true
 	// Dependencies that rely on an external node cannot be hoisted.

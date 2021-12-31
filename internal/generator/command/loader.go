@@ -8,7 +8,6 @@ import (
 
 	"github.com/matthewmueller/text"
 
-	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/imports"
@@ -44,7 +43,7 @@ func (l *loader) Load() (state *State, err error) {
 	// Load the commands
 	state.Command = l.loadRoot("command")
 	if !state.Command.Runnable && len(state.Command.Subs) == 0 {
-		return nil, gen.ErrSkipped
+		return nil, fs.ErrNotExist
 	}
 	// Load the imports
 	state.Imports = l.imports.List()
