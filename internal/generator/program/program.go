@@ -2,6 +2,7 @@ package program
 
 import (
 	_ "embed"
+	"fmt"
 
 	"gitlab.com/mnm/bud/internal/di"
 
@@ -53,7 +54,8 @@ func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 		},
 	})
 	if err != nil {
-		return err
+		// Don't wrap on purpose, this error gets swallowed up easily
+		return fmt.Errorf("program: unable to wire > %s", err)
 	}
 	for _, im := range provider.Imports {
 		imports.AddNamed(im.Name, im.Path)

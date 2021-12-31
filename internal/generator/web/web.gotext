@@ -14,18 +14,31 @@ import (
 // New web server
 func New(
 	router *router.Router,
+	controller *action.Controller,
 	hot *hot.Server,
+	{{- if $.HasPublic }}
 	public public.Middleware,
+	{{- end }}
+	{{- if $.HasView }}
 	view *view.Server,
+	{{- end }}
 ) *Server {
+	// Action routing
+	{{- range $action := $.Actions }}
+	router.{{ $action.Method }}(`{{ $action.Route }}`, controller.{{ $action.CallName }})
+	{{- end }}
 	// Compose the middleware together
 	middleware := middleware.Compose(
+		{{- if $.HasPublic }}
 		public,
+		{{- end }}
 		hot,
+		{{- if $.HasPublic }}
 		view,
+		{{- end }}
 		router,
 	)
-	_ = middleware
+	// 404 at the bottom of the middleware
 	handler := middleware.Middleware(http.NotFoundHandler())
 	return &Server{handler}
 }

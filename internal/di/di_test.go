@@ -43,7 +43,6 @@ func goRun(cacheDir, appDir string) (string, error) {
 type Test struct {
 	Map      di.Map
 	Function *di.Function
-	Hoist    bool
 	Modules  modcache.Modules
 	Files    map[string]string
 	Expect   string
@@ -92,7 +91,7 @@ func runTest(t testing.TB, test Test) {
 	}
 	provider := node.Generate(test.Function.Name, test.Function.Target)
 	code := provider.File()
-	// TODO: provide a modFile method for doing this, modfile.ResolveDirectory
+	// TODO: provide a module method for doing this, module.ResolveDirectory
 	// also stats the final dir, which doesn't exist yet.
 	targetDir := module.Directory(strings.TrimPrefix(test.Function.Target, module.Import()))
 	err = os.MkdirAll(targetDir, 0755)
@@ -2148,6 +2147,35 @@ func TestMappedExternal(t *testing.T) {
 				func New(fsys fs.FS) *FileSystem {
 					return &FileSystem{fsys}
 				}
+			`,
+		},
+	})
+}
+
+func TestHoistEmpty(t *testing.T) {
+	runTest(t, Test{
+		Function: &di.Function{
+			Hoist:  true,
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []di.Dependency{
+				toType("net/http", "ResponseWriter"),
+				toType("net/http", "*Request"),
+			},
+			Results: []di.Dependency{
+				toType("app.com/web", "*Controller"),
+			},
+		},
+		Expect: `
+			&web.Controller{}
+		`,
+		Files: map[string]string{
+			"go.mod":  goMod,
+			"main.go": mainGo,
+			"web/web.go": `
+				package web
+
+				type Controller struct {}
 			`,
 		},
 	})

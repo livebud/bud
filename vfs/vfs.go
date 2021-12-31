@@ -55,14 +55,17 @@ func Write(to string, fsys fs.FS) error {
 }
 
 // Exists will check if files exist at once, returning a map of the results.
-func Exists(f fs.FS, paths ...string) map[string]bool {
+func SomeExist(f fs.FS, paths ...string) map[string]bool {
 	m := map[string]bool{}
+	mu := sync.Mutex{}
 	wg := new(sync.WaitGroup)
 	wg.Add(len(paths))
 	for _, path := range paths {
 		path := path
 		if _, err := fs.Stat(f, path); nil == err {
+			mu.Lock()
 			m[path] = true
+			mu.Unlock()
 		}
 		wg.Done()
 	}

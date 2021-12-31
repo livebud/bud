@@ -7,6 +7,7 @@ import (
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
+	"gitlab.com/mnm/bud/vfs"
 )
 
 //go:embed view.gotext
@@ -23,6 +24,10 @@ type State struct {
 }
 
 func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
+	exist := vfs.SomeExist(g.Module, "action")
+	if len(exist) == 0 {
+		return gen.ErrSkipped
+	}
 	imports := imports.New()
 	imports.AddNamed("transform", g.Module.Import("bud/transform"))
 	imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")

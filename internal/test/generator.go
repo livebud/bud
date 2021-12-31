@@ -5,17 +5,21 @@ import (
 	"context"
 	"errors"
 	"io/fs"
+	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/generator"
 	"gitlab.com/mnm/bud/internal/modcache"
+	"gitlab.com/mnm/bud/socket"
 	"gitlab.com/mnm/bud/vfs"
 )
 
@@ -39,11 +43,42 @@ func replaceBud(code string) (string, error) {
 	return string(module.File().Format()), nil
 }
 
+// Cleanup individual files and root if no files left
+func cleanup(t testing.TB, root, dir string) func() {
+	t.Helper()
+	is := is.New(t)
+	return func() {
+		if t.Failed() {
+			return
+		}
+		is.NoErr(os.RemoveAll(dir))
+		fis, err := os.ReadDir(root)
+		if err != nil {
+			return
+		}
+		if len(fis) > 0 {
+			return
+		}
+		is.NoErr(os.RemoveAll(root))
+	}
+}
+
+const goMod = `
+module app.com
+
+require (
+	gitlab.com/mnm/bud v0.0.0
+	gitlab.com/mnm/bud-tailwind v0.0.0-20211228175933-3ca601f1a518
+)
+`
+
 func Generator(t testing.TB) *Gen {
 	return &Gen{
 		t:       t,
 		Modules: map[string]modcache.Files{},
-		Files:   map[string]string{},
+		Files: map[string]string{
+			"go.mod": goMod,
+		},
 	}
 }
 
@@ -72,7 +107,9 @@ func (g *Gen) Generate() (*App, error) {
 		}
 		g.Files["go.mod"] = code
 	}
-	appDir := g.t.TempDir()
+	appDir := filepath.Join("_tmp", g.t.Name())
+	g.t.Cleanup(cleanup(g.t, "_tmp", appDir))
+	// Write the files to the application directory
 	err := vfs.Write(appDir, vfs.Map(g.Files))
 	if err != nil {
 		return nil, err
@@ -139,7 +176,7 @@ func (a *App) build() (string, error) {
 	return binPath, cmd.Run()
 }
 
-func (a *App) run(binPath string, args ...string) (*exec.Cmd, error) {
+func (a *App) command(binPath string, args ...string) (*exec.Cmd, error) {
 	cmd := exec.Command(binPath, args...)
 	cmd.Env = a.env.List()
 	cmd.Stdout = os.Stdout
@@ -155,7 +192,7 @@ func (a *App) Run(args ...string) string {
 	if err != nil {
 		return err.Error()
 	}
-	cmd, err := a.run(binPath, args...)
+	cmd, err := a.command(binPath, args...)
 	if err != nil {
 		return err.Error()
 	}
@@ -167,39 +204,45 @@ func (a *App) Run(args ...string) string {
 	return stdout.String()
 }
 
-func (a *App) Start(args ...string) (*Command, error) {
+func (a *App) Start(args ...string) (*Server, error) {
 	binPath, err := a.build()
 	if err != nil {
 		return nil, err
 	}
-	cmd, err := a.run(binPath, args...)
+	// Setup the command
+	cmd, err := a.command(binPath, args...)
 	if err != nil {
 		return nil, err
 	}
+	// Start the unix domain socket
+	socketPath := filepath.Join(a.t.TempDir(), "tmp.sock")
+	ln, err := socket.Listen(socketPath)
+	if err != nil {
+		return nil, err
+	}
+	files, env, err := socket.Files(ln)
+	if err != nil {
+		return nil, err
+	}
+	transport, err := socket.Transport(socketPath)
+	if err != nil {
+		return nil, err
+	}
+	// Add socket configuration to the command
+	cmd.ExtraFiles = append(cmd.ExtraFiles, files...)
+	cmd.Env = append(cmd.Env, string(env))
+	// Start the webserver
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
-	return &Command{
+	return &Server{
 		cmd: cmd,
+		ln:  ln,
+		client: &http.Client{
+			Timeout:   time.Second,
+			Transport: transport,
+		},
 	}, nil
-}
-
-type Command struct {
-	cmd *exec.Cmd
-}
-
-func (c *Command) Wait() error {
-	return c.cmd.Wait()
-}
-
-func (c *Command) Close() error {
-	p := c.cmd.Process
-	if p != nil {
-		if err := p.Signal(os.Interrupt); err != nil {
-			p.Kill()
-		}
-	}
-	return c.cmd.Wait()
 }
 
 func (a *App) Exists(path string) bool {
@@ -211,4 +254,62 @@ func (a *App) Exists(path string) bool {
 		is.NoErr(err)
 	}
 	return true
+}
+
+type Server struct {
+	cmd    *exec.Cmd
+	ln     net.Listener
+	client *http.Client
+}
+
+func (c *Server) Close() error {
+	p := c.cmd.Process
+	if p != nil {
+		if err := p.Signal(os.Interrupt); err != nil {
+			p.Kill()
+		}
+	}
+	if err := c.cmd.Wait(); err != nil {
+		return err
+	}
+	if err := c.ln.Close(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a *Server) Request(req *http.Request) (*http.Response, error) {
+	return a.client.Do(req)
+}
+
+func (a *Server) Get(path string) (*http.Response, error) {
+	req, err := http.NewRequest("GET", "http://host"+path, nil)
+	if err != nil {
+		return nil, err
+	}
+	return a.Request(req)
+}
+
+func (a *Server) Post(path, body string) (*http.Response, error) {
+	req, err := http.NewRequest("POST", "http://host"+path, bytes.NewBufferString(body))
+	if err != nil {
+		return nil, err
+	}
+	return a.Request(req)
+}
+
+func (a *Server) Put(path, body string) (*http.Response, error) {
+	req, err := http.NewRequest("PUT", "http://host"+path, bytes.NewBufferString(body))
+	if err != nil {
+		return nil, err
+	}
+	return a.Request(req)
+}
+
+func (a *Server) Delete(path, body string) (*http.Response, error) {
+	req, err := http.NewRequest("DELETE", "http://host"+path, bytes.NewBufferString(body))
+	if err != nil {
+		return nil, err
+	}
+	return a.Request(req)
 }

@@ -13,6 +13,10 @@ func Hoist(node *Node) *Node {
 }
 
 func hoist(node *Node) (shouldHoist bool) {
+	// Node has been marked as unhoistable
+	if node.unhoistable {
+		return false
+	}
 	// Default to hoisting
 	shouldHoist = true
 	// Dependencies that rely on an external node cannot be hoisted.

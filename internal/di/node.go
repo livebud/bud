@@ -21,6 +21,10 @@ type Node struct {
 	// External types are passed in, not instantiated. This is true if the type
 	// matches an external dependency or this dependency is hoisted up.
 	External bool
+
+	// Unhoistable marks that a node cannot be hoisted. The only case we found so
+	// far is if the node is the original function result.
+	unhoistable bool
 }
 
 func (n *Node) ID() string {

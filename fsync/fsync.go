@@ -187,7 +187,7 @@ func apply(sfs fs.FS, tfs vfs.ReadWritable, ops []Op) error {
 func stamp(fsys fs.FS, path string) (stamp string, err error) {
 	stat, err := fs.Stat(fsys, path)
 	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
+		if errors.Is(err, fs.ErrNotExist) || errors.Is(err, gen.ErrSkipped) {
 			return "-1:-1", nil
 		}
 		return "", err

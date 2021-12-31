@@ -16,7 +16,6 @@ import (
 	"gitlab.com/mnm/bud/internal/generator/maingo"
 	"gitlab.com/mnm/bud/internal/generator/program"
 	"gitlab.com/mnm/bud/internal/generator/public"
-	"gitlab.com/mnm/bud/internal/generator/router"
 	"gitlab.com/mnm/bud/internal/generator/transform"
 	"gitlab.com/mnm/bud/internal/generator/view"
 	"gitlab.com/mnm/bud/internal/generator/web"
@@ -148,11 +147,9 @@ func Load(appFS vfs.ReadWritable, options ...Option) (*Generator, error) {
 			Embed:  option.Embed,
 			Minify: option.Minify,
 		}),
-		"bud/router/router.go": gen.FileGenerator(&router.Generator{
-			Module: module,
-		}),
 		"bud/web/web.go": gen.FileGenerator(&web.Generator{
 			Module: module,
+			Parser: parser,
 		}),
 		"bud/program/program.go": gen.FileGenerator(&program.Generator{
 			Module:   module,

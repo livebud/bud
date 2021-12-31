@@ -10,14 +10,6 @@ import (
 	"gitlab.com/mnm/bud/internal/tester"
 )
 
-const goMod = `
-module app.com
-
-require (
-	gitlab.com/mnm/bud v0.0.0
-)
-`
-
 func TestNoCommand(t *testing.T) {
 	is := is.New(t)
 	tr := tester.New(t)

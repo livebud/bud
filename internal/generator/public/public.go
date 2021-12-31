@@ -4,6 +4,7 @@ import (
 	_ "embed"
 
 	"gitlab.com/mnm/bud/go/mod"
+	"gitlab.com/mnm/bud/vfs"
 
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/gotemplate"
@@ -30,6 +31,10 @@ type File struct {
 }
 
 func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
+	exist := vfs.SomeExist(g.Module, "public")
+	if len(exist) == 0 {
+		return gen.ErrSkipped
+	}
 	code, err := generator.Generate(State{})
 	if err != nil {
 		return err

@@ -1,0 +1,108 @@
+package action
+
+// GENERATED. DO NOT EDIT.
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+{{- define "controller" }}
+
+// {{ $.Pascal }}Controller
+type {{ $.Pascal }}Controller struct {
+	{{- range $action := $.Actions }}
+	{{ $action.Pascal }} *{{ $.Pascal }}{{ $action.Pascal }}Action
+	{{- end }}
+}
+
+{{- range $action := $.Actions }}
+
+// {{ $.Pascal }}{{ $action.Pascal }}Action action
+type {{ $.Pascal }}{{ $action.Pascal }}Action struct {
+	View       view.Renderer
+	Controller *{{ $.Import.Name }}.Controller
+}
+
+func (a *{{ $.Pascal }}{{ $action.Pascal }}Action) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	a.serve(r.Context(), controller.New(w, r, a.View))
+}
+
+func (a *{{ $.Pascal }}{{ $action.Pascal }}Action) serve(contextContext context.Context, c *controller.Context) {
+	{{- if $action.Params }}
+	// Define the input struct
+	var in struct {
+		{{- range $param := $action.Params }}
+		{{- if $param.Public }}
+		{{$param.Pascal}} {{$param.Type}} `{{ $param.Tag }}`
+		{{- end }}
+		{{- end }}
+	}
+	// Unmarshal the request body
+	if err := c.Unmarshal(&in); err != nil {
+		c.Status(400).RenderError(err)
+		return
+	}
+	{{- end }}
+	fn := a.Controller.{{ $action.Name }}
+	{{ $action.Results.List }} := fn(
+		{{- range $param := $action.Params }}
+		{{- if $param.Private }}
+		{{ $param.Variable }},
+		{{- else }}
+		in.{{ $param.Pascal }},
+		{{- end }}
+		{{- end }}
+	)
+	{{- if $action.Results.Error }}
+	if {{ $action.Results.Error }} != nil {
+		c.Status(500).RenderError({{ $action.Results.Error }})
+		return
+	}
+	{{- end }}
+	{{- if $action.View }}
+	c.Status(200).Render(`{{ $action.Route }}`, {{ $action.Results.Result }})
+	{{- else if $action.Results.Result }}
+	c.Status(200).JSON({{ $action.Results.Result }})
+	{{- else }}
+	c.Status(204)
+	{{- end }}
+}
+{{- end }}
+
+{{- range $controller := $.Controllers }}
+{{- template "controller" $controller }}
+{{- end }}
+
+{{- end }}
+
+{{- template "controller" $.Controller }}
+
+
+
+// func (c *Controller) Show(w http.ResponseWriter, r *http.Request) {
+// 	// TODO: proper request body
+// 	query := r.URL.Query()
+// 	result, err := c.controller.Show(r.Context(), query.Get("id"))
+// 	if err != nil {
+// 		// TODO: multi-format
+// 		http.Error(w, err.Error(), 500)
+// 		return
+// 	}
+// 	// TODO: multi-format
+// 	res, err := c.view.Render("/:id", result)
+// 	if err != nil {
+// 		http.Error(w, err.Error(), 500)
+// 		return
+// 	}
+// 	w.WriteHeader(res.Status)
+// 	header := w.Header()
+// 	for key, value := range res.Headers {
+// 		header.Set(key, value)
+// 	}
+// 	w.Write([]byte(res.Body))
+// }

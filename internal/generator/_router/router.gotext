@@ -18,10 +18,11 @@ func New(
 ) *Router {
 	router := router.New()
 	_ = public
+
 	// Action routing
 	router.Get("/", controller.Index)
-	router.Get("/:id", controller.Show)
-	router.Get("/new", view.Handler("/new"))
+	// router.Get("/:id", controller.Show)
+	// router.Get("/new", view.Handler("/new"))
 	return router
 }
 

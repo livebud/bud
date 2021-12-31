@@ -1,14 +1,14 @@
 package action
 
 import (
+	// Embed templates
 	_ "embed"
-
-	"gitlab.com/mnm/bud/internal/di"
-	"gitlab.com/mnm/bud/internal/parser"
 
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/go/mod"
+	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/gotemplate"
+	"gitlab.com/mnm/bud/internal/parser"
 )
 
 //go:embed action.gotext
@@ -23,9 +23,6 @@ type Generator struct {
 }
 
 func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
-	if err := gen.SkipUnless(g.Module, "action"); err != nil {
-		return err
-	}
 	state, err := Load(g.Injector, g.Module, g.Parser)
 	if err != nil {
 		return err

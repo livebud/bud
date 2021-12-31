@@ -1,7 +1,5 @@
 package action
 
-// GENERATED. DO NOT EDIT.
-
 {{- if $.Imports }}
 
 import (
@@ -13,96 +11,131 @@ import (
 
 {{- define "controller" }}
 
-// {{ $.Pascal }}Controller
-type {{ $.Pascal }}Controller struct {
+// Controller struct
+type Controller struct {
 	{{- range $action := $.Actions }}
-	{{ $action.Pascal }} *{{ $.Pascal }}{{ $action.Pascal }}Action
+	{{$action.Pascal}} *{{$action.Pascal}}Action
 	{{- end }}
 }
 
 {{- range $action := $.Actions }}
 
-// {{ $.Pascal }}{{ $action.Pascal }}Action action
-type {{ $.Pascal }}{{ $action.Pascal }}Action struct {
-	View       view.Renderer
-	Controller *{{ $.Import.Name }}.Controller
+// {{$action.Pascal}}Action struct
+type {{$action.Pascal}}Action struct {
+	{{- if $action.View }}
+	View view.Map
+	{{- end }}
+	{{- if $action.Context }}
+	{{- range $input := $action.Context.Inputs }}
+	{{- if $input.Hoisted }}
+	{{$input.Name}} {{$input.Type}}
+	{{- end }}
+	{{- end }}
+	{{- end }}
 }
 
-func (a *{{ $.Pascal }}{{ $action.Pascal }}Action) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	a.serve(r.Context(), controller.New(w, r, a.View))
+// Key is a unique identifier of this action
+func ({{$action.Short}} *{{$action.Pascal}}Action) Key() string {
+	{{- if $.Path }}
+	return "/{{$.Path}}/{{$action.Key}}"
+	{{- else }}
+	return "/{{$action.Key}}"
+	{{- end }}
 }
 
-func (a *{{ $.Pascal }}{{ $action.Pascal }}Action) serve(contextContext context.Context, c *controller.Context) {
-	{{- if $action.Params }}
+// Path is the default RESTful path to this action
+func ({{$action.Short}} *{{$action.Pascal}}Action) Path() string {
+	return "/{{$action.Path}}"
+}
+
+// Method is the default RESTful method of this action
+func ({{$action.Short}} *{{$action.Pascal}}Action) Method() string {
+	return "{{$action.Method}}"
+}
+
+// ServeHTTP fn
+func ({{$action.Short}} *{{$action.Pascal}}Action) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	{{$action.Short}}.handler(r).ServeHTTP(w, r)
+}
+
+// Handler function
+func ({{$action.Short}} *{{$action.Pascal}}Action) handler(httpRequest *http.Request) http.Handler {
+	{{- if $action.Inputs }}
 	// Define the input struct
 	var in struct {
-		{{- range $param := $action.Params }}
-		{{- if $param.Public }}
-		{{$param.Pascal}} {{$param.Type}} `{{ $param.Tag }}`
-		{{- end }}
+		{{- range $input := $action.Inputs }}
+		{{$input.Pascal}} {{$input.Type}} {{$input.JSON}}
 		{{- end }}
 	}
 	// Unmarshal the request body
-	if err := c.Unmarshal(&in); err != nil {
-		c.Status(400).RenderError(err)
-		return
+	if err := request.Unmarshal(httpRequest, &in); err != nil {
+		return &response.Format{
+			JSON: response.Status(400).Set("Content-Type", "application/json").JSON(map[string]string{"error": err.Error()}),
+		}
 	}
 	{{- end }}
-	fn := a.Controller.{{ $action.Name }}
-	{{ $action.Results.List }} := fn(
-		{{- range $param := $action.Params }}
-		{{- if $param.Private }}
-		{{ $param.Variable }},
+	{{- if $action.Context }}
+	{{ $action.Context.Outputs.List }} := {{ $action.Context.Function }}(
+		{{- range $input := $action.Context.Inputs }}
+		{{- if $input.Hoisted }}
+		{{ $action.Short }}.{{ $input.Name }},
 		{{- else }}
-		in.{{ $param.Pascal }},
+		{{ $input.Variable }},
 		{{- end }}
 		{{- end }}
 	)
-	{{- if $action.Results.Error }}
-	if {{ $action.Results.Error }} != nil {
-		c.Status(500).RenderError({{ $action.Results.Error }})
-		return
+	{{- if $action.Context.Outputs.Error }}
+	if {{ $action.Context.Outputs.Error }} != nil {
+		return &response.Format{
+			JSON: response.Status(500).Set("Content-Type", "application/json").JSON(map[string]string{"error": {{ $action.Context.Outputs.Error }}.Error()}),
+		}
 	}
 	{{- end }}
-	{{- if $action.View }}
-	c.Status(200).Render(`{{ $action.Route }}`, {{ $action.Results.Result }})
-	{{- else if $action.Results.Result }}
-	c.Status(200).JSON({{ $action.Results.Result }})
+	fn := {{$action.Context.Outputs.Result}}.{{$action.Name}}
 	{{- else }}
-	c.Status(204)
+	fn := {{$.Name}}.{{$action.Name}}
 	{{- end }}
-}
-{{- end }}
+	// Call the controller
+	{{ $action.Outputs.Set }}fn(
+		{{- range $input := $action.Inputs }}
+		in.{{$input.Pascal}},
+		{{- end }}
+	)
+	{{- if $action.Outputs.Error }}
+	if {{ $action.Outputs.Error }} != nil {
+		return &response.Format{
+			JSON: response.Status(500).Set("Content-Type", "application/json").JSON(map[string]string{"error": {{ $action.Outputs.Error }}.Error()}),
+		}
+	}
+	{{- end }}
 
-{{- range $controller := $.Controllers }}
-{{- template "controller" $controller }}
+	// Respond
+	return &response.Format{
+		{{- if eq $action.Method "GET" }}
+		{{- if $action.View }}
+		HTML: response.Render({{ $action.Short }}.View["{{$action.View.Path}}"], {{ $action.Outputs.Result }}),
+		{{- end }}
+		{{- else }}
+		HTML: response.Status(302).Redirect("{{ $.Path }}"),
+		{{- end }}
+		{{- if $action.ResponseJSON }}
+		{{- if $action.Outputs.Result }}
+		JSON: response.JSON({{ $action.Outputs.Result }}),
+		{{- else }}
+		JSON: response.Status(200).Header("Content-Type", "application/json"),
+		{{- end }}
+		{{- else }}
+		JSON: response.Status(204),
+		{{- end }}
+	}
+}
 {{- end }}
 
 {{- end }}
 
 {{- template "controller" $.Controller }}
 
+{{- range $context := $.Contexts }}
 
-
-// func (c *Controller) Show(w http.ResponseWriter, r *http.Request) {
-// 	// TODO: proper request body
-// 	query := r.URL.Query()
-// 	result, err := c.controller.Show(r.Context(), query.Get("id"))
-// 	if err != nil {
-// 		// TODO: multi-format
-// 		http.Error(w, err.Error(), 500)
-// 		return
-// 	}
-// 	// TODO: multi-format
-// 	res, err := c.view.Render("/:id", result)
-// 	if err != nil {
-// 		http.Error(w, err.Error(), 500)
-// 		return
-// 	}
-// 	w.WriteHeader(res.Status)
-// 	header := w.Header()
-// 	for key, value := range res.Headers {
-// 		header.Set(key, value)
-// 	}
-// 	w.Write([]byte(res.Body))
-// }
+{{$context.Code}}
+{{- end }}
