@@ -229,8 +229,13 @@ func (l *loader) loadActionInputType(param *parser.Param) string {
 	if is.Builtin(dtString) {
 		return dtString
 	}
+	// Find the definition of the data type
+	dec, err := parser.Definition(dt)
+	if err != nil {
+		l.Bail(err)
+	}
 	// Find the import path
-	importPath, err := param.File().Import()
+	importPath, err := dec.Package().Import()
 	if err != nil {
 		l.Bail(err)
 	}

@@ -238,5 +238,5 @@ func toDataType(packageName string, dataType string) string {
 func toTypeName(dataType string) string {
 	parts := strings.SplitN(dataType, ".", 2)
 	last := parts[len(parts)-1]
-	return strings.TrimRight(last, "[]*")
+	return strings.TrimLeft(last, "[]*")
 }

@@ -114,6 +114,9 @@ func (g *Gen) Generate() (*App, error) {
 		g.Files["go.mod"] = code
 	}
 	appDir := filepath.Join("_tmp", g.t.Name())
+	if err := os.RemoveAll(appDir); err != nil {
+		return nil, err
+	}
 	g.t.Cleanup(cleanup(g.t, "_tmp", appDir))
 	// Write the files to the application directory
 	err := vfs.Write(appDir, vfs.Map(g.Files))
@@ -308,6 +311,15 @@ func (a *Server) Get(path string) (*Response, error) {
 	return a.Request(req)
 }
 
+func (a *Server) GetJSON(path string) (*Response, error) {
+	req, err := http.NewRequest("GET", "http://host"+path, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+	return a.Request(req)
+}
+
 func (a *Server) Post(path string, body io.Reader) (*Response, error) {
 	req, err := http.NewRequest("POST", "http://host"+path, body)
 	if err != nil {
@@ -316,11 +328,29 @@ func (a *Server) Post(path string, body io.Reader) (*Response, error) {
 	return a.Request(req)
 }
 
-func (a *Server) Put(path string, body io.Reader) (*Response, error) {
-	req, err := http.NewRequest("PUT", "http://host"+path, body)
+func (a *Server) PostJSON(path string, body io.Reader) (*Response, error) {
+	req, err := http.NewRequest("POST", "http://host"+path, body)
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Accept", "application/json")
+	return a.Request(req)
+}
+
+func (a *Server) Patch(path string, body io.Reader) (*Response, error) {
+	req, err := http.NewRequest("PATCH", "http://host"+path, body)
+	if err != nil {
+		return nil, err
+	}
+	return a.Request(req)
+}
+
+func (a *Server) PatchJSON(path string, body io.Reader) (*Response, error) {
+	req, err := http.NewRequest("PATCH", "http://host"+path, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
 	return a.Request(req)
 }
 
@@ -329,6 +359,15 @@ func (a *Server) Delete(path string, body io.Reader) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
+	return a.Request(req)
+}
+
+func (a *Server) DeleteJSON(path string, body io.Reader) (*Response, error) {
+	req, err := http.NewRequest("DELETE", "http://host"+path, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
 	return a.Request(req)
 }
 
