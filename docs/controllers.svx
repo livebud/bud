@@ -1,0 +1,157 @@
+# Controllers
+
+Controllers are the coordinators of our web application. Controllers receive requests from the router, fetch data from a database or model, then respond with JSON or render a view.
+
+## Folder Structure
+
+Controllers live in the `action/` directory. Each controller has it's own package. Controllers can be nested.
+
+```
+app/
+  go.mod
+  action/
+    action.go        -> root controller
+    posts/
+      posts.go       -> post controller
+      comments/
+        comments.go  -> comment controller
+    users/
+      users.go       -> user controller
+```
+
+## Directory Routing
+
+The layout of the `action/` directory influences routing:
+
+```
+app/
+  go.mod
+  action/
+    action.go        -> /
+    posts/
+      posts.go       -> /posts
+      comments/
+        comments.go  -> /posts/:post_id/comments
+    users/
+      users.go       -> /users
+```
+
+## Defining Actions
+
+Each controller has one or more actions. Actions handle incoming requests.
+
+Here's an example of a user controller in `action/users/users.go`:
+
+```go
+package users
+
+// Controller for users
+type Controller struct {
+  DB *pgx.Pool
+}
+
+// User data
+type User struct {
+  ID   int
+  Name string
+  Age  int
+}
+
+// Index lists users
+func (c *Controller) Index() ([]*User, error) {}
+
+// New user form
+func (c *Controller) New() {}
+
+// Create a user
+func (c *Controller) Create(name string, age int) (*User, error) {}
+
+// Show a user
+func (c *Controller) Show(id int) (*User, error) {}
+
+// Edit user form
+func (c *Controller) Edit(id int) {}
+
+// Update a user
+func (c *Controller) Update(id int, name *string, age *int) error {}
+
+// Delete a user
+func (c *Controller) Delete(id int) error {}
+```
+
+An action's signature defines what kind of request an action will accept and what kind of response to expect back.
+
+Zooming into the `Create` action:
+
+```go
+func (c *Controller) Create(name string, age int) (*User, error) {}
+```
+
+This `Create` action accepts a `name` that's a string and an `age` that's an integer and returns a `*User` and an `error`.
+
+We'll cover how requests are validated and responses are built in more detail in later sections, but first let's learn how request data gets passed into an action.
+
+## Nested Actions
+
+```go
+package comments
+
+// Controller for comments
+type Controller struct {
+  DB *pgx.Pool
+}
+
+// Comment data
+type Comment struct {
+  ID     int
+  PostID int
+  Title  string
+}
+
+// Index lists users
+func (c *Controller) Index(postID int) ([]*Comment, error) {}
+
+// New user form
+func (c *Controller) New(postID int) {}
+
+// Create a user
+func (c *Controller) Create(postID int, title string) (*Comment, error) {}
+
+// Show a user
+func (c *Controller) Show(postID, id int) (*Comment, error) {}
+
+// Edit user form
+func (c *Controller) Edit(postID, id int) {}
+
+// Update a user
+func (c *Controller) Update(postID, id int, title *string) error {}
+
+// Delete a user
+func (c *Controller) Delete(postID, id int) error {}
+```
+
+## Context Support
+
+Each signature also supports providing a context as the first parameter. This context will be canceled if the user navigates away before the request finishes. It's up to you to handle this.
+
+```go
+package users
+
+// Index lists users
+func (c *Controller) Index(ctx context.Context) {}
+
+// Create a user
+func (c *Controller) Create(ctx context.Context, name string, age int) {}
+
+// Show a user
+func (c *Controller) Show(id int) {}
+
+// Edit user form
+func (c *Controller) Edit(id int) {}
+
+// Update a user
+func (c *Controller) Update(id int, name *string, age *int) error {}
+
+// Delete a user
+func (c *Controller) Delete(id int) error {}
+```

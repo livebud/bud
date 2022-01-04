@@ -707,3 +707,250 @@ func TestJSONUpdate200(t *testing.T) {
 		{"id":1,"title":"a"}
 	`)
 }
+
+func TestRootResource(t *testing.T) {
+	is := is.New(t)
+	generator := test.Generator(t)
+	generator.Files["action/users/users.go"] = `
+		package users
+		type DB struct {}
+		type Controller struct {
+			DB *DB
+		}
+		type User struct {
+			ID   int ` + "`" + `json:"id"` + "`" + `
+			Name string ` + "`" + `json:"name"` + "`" + `
+			Age  int ` + "`" + `json:"age"` + "`" + `
+		}
+		func (c *Controller) Index() ([]*User, error) {
+			return []*User{{1, "a", 2}, {2, "b", 3}}, nil
+		}
+		func (c *Controller) New() {}
+		func (c *Controller) Create(name string, age int) (*User, error) {
+			return &User{3, name, age}, nil
+		}
+		func (c *Controller) Show(id int) (*User, error) {
+			return &User{id, "d", 5}, nil
+		}
+		func (c *Controller) Edit(id int) {}
+		func (c *Controller) Update(id int, name *string, age *int) error {
+			return nil
+		}
+		func (c *Controller) Delete(id int) error {
+			return nil
+		}
+	`
+	app, err := generator.Generate()
+	is.NoErr(err)
+	is.True(app.Exists("bud/action/action.go"))
+	is.True(app.Exists("bud/main.go"))
+	server, err := app.Start()
+	is.NoErr(err)
+	defer server.Close()
+	res, err := server.GetJSON("/users")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		[{"id":1,"name":"a","age":2},{"id":2,"name":"b","age":3}]
+	`)
+	res, err = server.GetJSON("/users/new")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 204 No Content
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`)
+	res, err = server.PostJSON("/users?name=matt&age=10", nil)
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		{"id":3,"name":"matt","age":10}
+	`)
+	res, err = server.GetJSON("/users/10")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		{"id":10,"name":"d","age":5}
+	`)
+	res, err = server.GetJSON("/users/10/edit")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 204 No Content
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`)
+	res, err = server.PatchJSON("/users/10", bytes.NewBufferString(`{"name": "matt", "age": 10}`))
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`)
+	res, err = server.DeleteJSON("/users/10", nil)
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`)
+}
+
+func TestNestedResource(t *testing.T) {
+	is := is.New(t)
+	generator := test.Generator(t)
+	generator.Files["action/posts/comments/comments.go"] = `
+		package comments
+		type DB struct {}
+		type Controller struct {
+			DB *DB
+		}
+		type Comment struct {
+			ID     int ` + "`" + `json:"id,omitempty"` + "`" + `
+			PostID int ` + "`" + `json:"post_id,omitempty"` + "`" + `
+			Title  string ` + "`" + `json:"title,omitempty"` + "`" + `
+		}
+		func (c *Controller) Index(postID int) ([]*Comment, error) {
+			return []*Comment{{2, postID, "a"}, {3, postID, "b"}}, nil
+		}
+		func (c *Controller) New(postID int) {}
+		func (c *Controller) Create(postID int, title string) (*Comment, error) {
+			return &Comment{1, postID, title}, nil
+		}
+		func (c *Controller) Show(postID, id int) (*Comment, error) {
+			return &Comment{id, postID, "a"}, nil
+		}
+		func (c *Controller) Edit(postID, id int) {}
+		func (c *Controller) Update(postID, id int, title *string) (*Comment, error) {
+			if title == nil {
+				return &Comment{postID, id, ""}, nil
+			}
+			return &Comment{postID, id, *title}, nil
+		}
+		func (c *Controller) Delete(postID, id int) (*Comment, error) {
+			return &Comment{postID, id, ""}, nil
+		}
+	`
+	app, err := generator.Generate()
+	is.NoErr(err)
+	is.True(app.Exists("bud/action/action.go"))
+	is.True(app.Exists("bud/main.go"))
+	server, err := app.Start()
+	is.NoErr(err)
+	defer server.Close()
+	res, err := server.GetJSON("/posts/1/comments")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		[{"id":2,"post_id":1,"title":"a"},{"id":3,"post_id":1,"title":"b"}]
+	`)
+	res, err = server.GetJSON("/posts/1/comments/new")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 204 No Content
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`)
+	res, err = server.PostJSON("/posts/1/comments", bytes.NewBufferString(`{"title":"1st"}`))
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		{"id":1,"post_id":1,"title":"1st"}
+	`)
+	res, err = server.GetJSON("/posts/1/comments/2")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		{"id":2,"post_id":1,"title":"a"}
+	`)
+	res, err = server.GetJSON("/posts/1/comments/2/edit")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 204 No Content
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`)
+	res, err = server.PatchJSON("/posts/1/comments/2", bytes.NewBufferString(`{"title":"1st"}`))
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		{"id":1,"post_id":2,"title":"1st"}
+	`)
+	res, err = server.PatchJSON("/posts/1/comments/2", nil)
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		{"id":1,"post_id":2}
+	`)
+	res, err = server.DeleteJSON("/posts/1/comments/2", nil)
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		{"id":1,"post_id":2}
+	`)
+}
+
+func TestResourceContext(t *testing.T) {
+	t.SkipNow()
+	is := is.New(t)
+	generator := test.Generator(t)
+	generator.Files["action/users/users.go"] = `
+		package users
+		type User struct {
+			ID int
+			Name string
+		}
+		func (c *Controller) Index(ctx context.Context) []*User {
+			return []*User{{1, "a"}, {2, "b"}}
+		}
+		func (c *Controller) Create(ctx context.Context, name string, age int) *User {
+			return &User{1, "a"}
+		}
+		func (c *Controller) Show(id int) {}
+		func (c *Controller) Edit(id int) {}
+		func (c *Controller) Update(id int, name *string, age *int) error {
+			return nil
+		}
+		func (c *Controller) Delete(id int) error {
+			return nil
+		}
+	`
+	app, err := generator.Generate()
+	is.NoErr(err)
+	is.True(app.Exists("bud/action/action.go"))
+	is.True(app.Exists("bud/main.go"))
+	server, err := app.Start()
+	is.NoErr(err)
+	defer server.Close()
+	res, err := server.GetJSON("/users")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		[]
+	`)
+}

@@ -371,3 +371,15 @@ func TestRequired(t *testing.T) {
 	is.True(err != nil)
 	is.True(strings.Contains(err.Error(), "Field validation for 'A' failed on the 'required' tag"))
 }
+
+func TestUnderscore(t *testing.T) {
+	is := is.New(t)
+	type S struct {
+		PostID int `form:"post_id" json:"post_id"`
+	}
+	s := S{}
+	r := httptest.NewRequest("GET", "/?post_id=1", nil)
+	err := controller.Unmarshal(r, &s)
+	is.NoErr(err)
+	is.Equal(1, s.PostID)
+}

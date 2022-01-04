@@ -23,6 +23,17 @@ type Controller struct {
 	Controllers []*Controller
 }
 
+func (c *Controller) Last() Name {
+	names := strings.Split(c.Name, " ")
+	return Name(names[len(names)-1])
+}
+
+type Name string
+
+func (n Name) Pascal() string {
+	return gotext.Pascal(string(n))
+}
+
 // Action is the target action state
 type Action struct {
 	Name         string
@@ -51,7 +62,7 @@ type ActionInput struct {
 	Snake    string
 	Type     string
 	Variable string
-	JSON     string
+	Tag      string
 }
 
 // ActionOutputs fn

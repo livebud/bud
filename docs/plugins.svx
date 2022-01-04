@@ -1,0 +1,83 @@
+# Plugins (Upcoming)
+
+Plugins extend the capabilities of Bud and your application. They can be used to:
+
+- Generate Tailwind classes
+- Serve Static files
+- Render Markdown files
+- Introduce Custom Commands
+
+... and much more.
+
+You can find a list of community plugins with [this GitHub search](https://github.com/search?q=topic%3Abud+topic%3Aplugin&type=Repositories).
+
+## Installing a Plugin
+
+Plugins are distributed just like any other Go dependency. You can install a plugin with `bud get`:
+
+```sh
+bud get github.com/matthewmueller/bud-tailwind
+```
+
+This command will do the following:
+
+1. Call `go get` to install the module.
+2. Enable the plugin in `plugin/plugin.go`.
+
+Plugins must begin with the `bud-` prefix to run the 2nd step. If you try running `bud get` on a regular module, it is equivalent to `go get`.
+
+## How Plugins Work
+
+Conceptually, you can think of a plugin as virtual files within your application. For example, if your application has the following directory structure
+
+```
+app/
+  public/
+    favicon.ico
+```
+
+And you install a plugin with the following directory structure:
+
+```
+bud-normalize
+  public/
+    normalize.css
+```
+
+To bud, your application directory now looks like this:
+
+```
+app/
+  public/
+    favicon.ico
+    normalize.css
+```
+
+## Creating your own Plugin
+
+Bud provides multiple extension points to customize behavior.
+
+- Plugins share the same directory structure as an application.
+- Look for "Creating a Plugin" in other sections of the Guide
+
+### Starting Locally
+
+We recommend that you start by building a plugin within your existing application. Then once you're happy with it, share it with the community.
+
+You can create a local plugin by creating a directory within your application's `plugin/` directory.
+
+For example,
+
+```
+plugin/
+  bud-tailwind/
+    transform/
+      tailwind/
+        tailwind.go
+```
+
+### Sharing Publicly
+
+Most plugins live outside of your application. This allows you to re-use plugins across multiple projects and collaborate on plugin development with others.
+
+To help others discover your plugin,

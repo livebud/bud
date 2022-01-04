@@ -1,0 +1,113 @@
+# Commands
+
+## Custom Commands
+
+You can create a custom command in the `command/` directory of your application. Let's create a custom `bud admin user` command:
+
+```fs
+app/
+  go.mod
+  command/
+    admin/
+      user/
+        user.go
+```
+
+Within `command/admin/user/user.go`, you can define one or more subcommands under the `Command` struct:
+
+```go
+package user
+
+// Command for user
+type Command struct {
+  DB *pgx.Pool // Injected dependencies
+}
+
+type Filter struct {
+  Since int `short:"s" help:"users created after this time in unix seconds" default:"0"`
+  Name  *string `help:"users with this name"`
+}
+
+// List the users
+func (c *Command) List(ctx context.Context, in *Filter) error {
+
+}
+
+type User struct {
+  ID int `arg:"id" help:"id of the user"`
+}
+
+// Show a user
+func (c *Command) Show(user *User) error {
+
+}
+```
+
+Now if you run `bud admin user -h`, you'll get the following:
+
+```sh
+Usage:
+  user [command]
+
+Commands:
+  list List the users
+  show Show a user
+```
+
+Here's `bud admin list -h`:
+
+```sh
+Usage:
+  list [command]
+
+Flags:
+  -s, --since  users created after this time in unix seconds (default: 0)
+  --name       users with this name (optional)
+```
+
+Here's `bud admin show -h`:
+
+```sh
+Usage:
+  show <id>
+
+Args:
+  id  id of the user
+```
+
+### Single Command
+
+Sometimes you want to to create a single invokable command. You can do this by defining a method with the same name.
+
+For example, in `command/deploy/deploy.go`:
+
+```go
+package deploy
+
+type Command struct {
+
+}
+
+// Deploy to production
+func (c *Command) Deploy(ctx context.Context) error {
+
+}
+```
+
+Now if you run `bud -h`:
+
+```
+Usage:
+  bud [flags] [command]
+
+Flags:
+  -C, --chdir  Change the working directory
+
+Commands:
+  build  Build the production server
+  deploy Deploy to production
+  run    Run the development server
+  tool   Extra tools
+```
+
+You'll now see a single `deploy` command that you can run with `bud deploy`.

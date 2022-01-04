@@ -333,6 +333,7 @@ func (a *Server) PostJSON(path string, body io.Reader) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	return a.Request(req)
 }
@@ -350,6 +351,7 @@ func (a *Server) PatchJSON(path string, body io.Reader) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	return a.Request(req)
 }
@@ -367,6 +369,7 @@ func (a *Server) DeleteJSON(path string, body io.Reader) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	return a.Request(req)
 }
@@ -379,6 +382,7 @@ type Response struct {
 var now = time.Date(2021, 12, 31, 0, 0, 0, 0, time.UTC)
 
 func (r *Response) Expect(expect string) {
+	r.t.Helper()
 	// Make the date constant
 	if v := r.Response.Header.Get("Date"); v != "" {
 		r.Response.Header.Set("Date", now.Format(http.TimeFormat))

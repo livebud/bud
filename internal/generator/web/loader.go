@@ -3,6 +3,7 @@ package web
 import (
 	"io/fs"
 	"path"
+	"strings"
 
 	"gitlab.com/mnm/bud/internal/scan"
 
@@ -100,7 +101,7 @@ func (l *loader) loadActions(dir string) (actions []*Action) {
 		action := new(Action)
 		actionName := method.Name()
 		action.Method = l.loadActionMethod(actionName)
-		action.Route = l.loadActionRoute(basePath, actionName)
+		action.Route = l.loadActionRoute(l.loadControllerRoute(basePath), actionName)
 		action.CallName = l.loadActionCallName(basePath, actionName)
 		actions = append(actions, action)
 	}
@@ -126,6 +127,20 @@ func (l *loader) loadActionMethod(name string) string {
 	default:
 		return "Get"
 	}
+}
+
+func (l *loader) loadControllerRoute(controllerPath string) string {
+	segments := strings.Split(text.Path(controllerPath), "/")
+	path := new(strings.Builder)
+	for i := 0; i < len(segments); i++ {
+		if i%2 != 0 {
+			path.WriteString("/")
+			path.WriteString(":" + text.Slug(text.Singular(segments[i-1])) + "_id")
+			path.WriteString("/")
+		}
+		path.WriteString(text.Slug(segments[i]))
+	}
+	return "/" + path.String()
 }
 
 // Route to the action

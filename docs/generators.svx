@@ -1,0 +1,80 @@
+# Generators (Upcoming)
+
+Bud is powered by code generators. Generators run during `bud run` and `bud build` before you application starts.
+
+- Generated Shell -> Application -> Generated Runtime
+
+## Framework Generators
+
+Bud has a growing number of generators that are baked into the framework for generating the web server, compiling views, providing custom commands and more.
+
+You can find these plugins and learn more about how they work in our [API Reference](TODO).
+
+## Creating your Own Generator
+
+You can create your own generator by creating files in the `generator/` directory of your application directory.
+
+```
+app/
+  generator/
+  go.mod
+```
+
+Custom generators are run alongside the core generators during `bud run` and `bud build`.
+
+Bud supports injecting the following dependencies into your generator:
+
+- `*module.Module`: Used to read application files and go.mod dependencies.
+- `*plugin.Plugin`: Used to add plugin support to your generator
+- `*di.Injector`: Run dependency injection within your generator
+- `*parser.Parser`: Parse and traverse Go files
+- `*ldflag.Env`: Build-time environment settings (e.g. embed, minify, hot)
+
+**TODO:** Consider aliasing these in `bud/runtime/generator`.
+
+Your code generators will typically be either a **Base Generator** or a **Runtime Generator**.
+
+### Base Generator
+
+Base generators sit below your application code. They depend on your application code, your application code does not depend on them. Base generators turn action controllers into HTTP endpoints and Svelte files into renderable HTML.
+
+To define a base generator, place your generator within the `generator/~bud/` directory. The tilde (`~`) denotes that this is a base generator that's invisible to the application directory.
+
+For example, let's say we wanted to define a GraphQL generator that took our actions and turned them into a GraphQL endpoint. We could define the following within our application:
+
+In `generator/~bud/graphql/graphql.go`:
+
+**TODO:** I'm not sure this is even necessary. We can serve a GraphQL endpoint from an action. This makes me wonder if there is any use case for allowing base generators. Maybe They're all just file generators.
+
+```go
+package graphql
+
+import (
+  "livebud.com/bud/runtime/generator"
+)
+
+type Generator struct {
+  Module *module.Module
+}
+
+func (g *Generator) Generate(dir *generator.Dir) error {
+  des, err := fs.ReadDir(g.Module, "action")
+  if err != nil {
+    return err
+  }
+
+  dir.Entry("graphql.go")
+}
+```
+
+Learn more about how to write your own generators by reading the code of the [core generators](TODO).
+
+### Runtime Generators
+
+You can also create code generators that your application code can depend on. These are known as **Runtime Generators**.
+
+In `generator/bud/env/env.go`:
+
+```
+
+```

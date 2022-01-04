@@ -17,7 +17,7 @@ type {{ $.Pascal }}Controller struct {
 	{{$action.Pascal}} *{{$action.Pascal}}Action
 	{{- end }}
 	{{- range $controller := $.Controllers }}
-	{{$controller.Pascal}} *{{$controller.Pascal}}Controller
+	{{$controller.Last.Pascal}} *{{$controller.Pascal}}Controller
 	{{- end }}
 }
 
@@ -40,7 +40,7 @@ type {{$action.Pascal}}Action struct {
 // Key is a unique identifier of this action
 func ({{$action.Short}} *{{$action.Pascal}}Action) Key() string {
 	{{- if $.Path }}
-	return "/{{$.Path}}/{{$action.Key}}"
+	return "{{$.Path}}/{{$action.Key}}"
 	{{- else }}
 	return "/{{$action.Key}}"
 	{{- end }}
@@ -48,7 +48,7 @@ func ({{$action.Short}} *{{$action.Pascal}}Action) Key() string {
 
 // Path is the default RESTful path to this action
 func ({{$action.Short}} *{{$action.Pascal}}Action) Path() string {
-	return "/{{$action.Path}}"
+	return "{{$action.Path}}"
 }
 
 // Method is the default RESTful method of this action
@@ -67,7 +67,7 @@ func ({{$action.Short}} *{{$action.Pascal}}Action) handler(httpRequest *http.Req
 	// Define the input struct
 	var in struct {
 		{{- range $input := $action.Inputs }}
-		{{$input.Pascal}} {{$input.Type}} {{$input.JSON}}
+		{{$input.Pascal}} {{$input.Type}} {{$input.Tag}}
 		{{- end }}
 	}
 	// Unmarshal the request body
@@ -125,7 +125,7 @@ func ({{$action.Short}} *{{$action.Pascal}}Action) handler(httpRequest *http.Req
 		{{- if $action.Outputs.Result }}
 		JSON: response.JSON({{ $action.Outputs.Result }}),
 		{{- else }}
-		JSON: response.Status(200).Header("Content-Type", "application/json"),
+		JSON: response.Status(200).Set("Content-Type", "application/json"),
 		{{- end }}
 		{{- else }}
 		JSON: response.Status(204),

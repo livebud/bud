@@ -1,6 +1,7 @@
 package action
 
 import (
+	"fmt"
 	"io/fs"
 	"path"
 	"sort"
@@ -63,9 +64,11 @@ func (l *loader) loadController(actionPath string) *Controller {
 		l.Bail(err)
 	}
 	controller := new(Controller)
-	controller.Name = l.loadControllerName(actionPath)
+	controllerPath := strings.TrimPrefix(actionPath, "action")
+	controller.Name = l.loadControllerName(controllerPath)
 	controller.Pascal = gotext.Pascal(controller.Name)
-	controller.Path = text.Path(controller.Name)
+	// TODO: rename to route
+	controller.Path = l.loadControllerPath(controllerPath)
 	shouldParse := false
 	for _, de := range des {
 		if !de.IsDir() && valid.ActionFile(de.Name()) {
@@ -96,8 +99,22 @@ func (l *loader) loadController(actionPath string) *Controller {
 	return controller
 }
 
-func (l *loader) loadControllerName(actionPath string) string {
-	return text.Space(strings.TrimPrefix(actionPath, "action"))
+func (l *loader) loadControllerName(controllerPath string) string {
+	return text.Space(controllerPath)
+}
+
+func (l *loader) loadControllerPath(controllerPath string) string {
+	segments := strings.Split(text.Path(controllerPath), "/")
+	path := new(strings.Builder)
+	for i := 0; i < len(segments); i++ {
+		if i%2 != 0 {
+			path.WriteString("/")
+			path.WriteString(":" + text.Slug(text.Singular(segments[i-1])) + "_id")
+			path.WriteString("/")
+		}
+		path.WriteString(text.Slug(segments[i]))
+	}
+	return "/" + path.String()
 }
 
 func (l *loader) loadActions(controller *Controller, stct *parser.Struct) (actions []*Action) {
@@ -205,10 +222,10 @@ func (l *loader) loadActionInput(order int, param *parser.Param) *ActionInput {
 	input := new(ActionInput)
 	input.Name = l.loadActionInputName(order, param)
 	input.Pascal = gotext.Pascal(input.Name)
-	input.Snake = gotext.Snake(input.Name)
+	input.Snake = gotext.Lower(gotext.Snake(input.Name))
 	input.Type = l.loadActionInputType(param)
 	input.Variable = "in." + input.Pascal
-	input.Snake = l.loadActionInputJSON(input.Snake)
+	input.Tag = fmt.Sprintf("`json:\"%[1]s\" form:\"%[1]s\"`", tagValue(input.Snake))
 	return input
 }
 
@@ -243,18 +260,6 @@ func (l *loader) loadActionInputType(param *parser.Param) string {
 	name := l.imports.Add(importPath)
 	dt = parser.Qualify(dt, name)
 	return dt.String()
-}
-
-func (l *loader) loadActionInputJSON(snake string) string {
-	out := "`json:\""
-	if snake == "" {
-		out += "-"
-	} else {
-		out += snake
-		out += ",omitempty"
-	}
-	out += "\"`"
-	return out
 }
 
 func (l *loader) loadActionOutputs(method *parser.Function) (outputs []*ActionOutput) {
@@ -410,4 +415,14 @@ func (c *contextSet) List() (contexts []*Context) {
 		return contexts[i].Function < contexts[j].Function
 	})
 	return contexts
+}
+
+func tagValue(snake string) (out string) {
+	if snake == "" {
+		out += "-"
+	} else {
+		out += snake
+		out += ",omitempty"
+	}
+	return out
 }
