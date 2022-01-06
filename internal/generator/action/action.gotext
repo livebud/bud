@@ -29,9 +29,9 @@ type {{$action.Pascal}}Action struct {
 	View view.Map
 	{{- end }}
 	{{- if $action.Context }}
-	{{- range $input := $action.Context.Inputs }}
-	{{- if $input.Hoisted }}
-	{{$input.Name}} {{$input.Type}}
+	{{- range $field := $action.Context.Fields }}
+	{{- if $field.Hoisted }}
+	{{$field.Name}} {{$field.Type}}
 	{{- end }}
 	{{- end }}
 	{{- end }}
@@ -42,7 +42,7 @@ func ({{$action.Short}} *{{$action.Pascal}}Action) Key() string {
 	{{- if $.Path }}
 	return "{{$.Path}}/{{$action.Key}}"
 	{{- else }}
-	return "/{{$action.Key}}"
+	return "{{$action.Key}}"
 	{{- end }}
 }
 
@@ -63,13 +63,9 @@ func ({{$action.Short}} *{{$action.Pascal}}Action) ServeHTTP(w http.ResponseWrit
 
 // Handler function
 func ({{$action.Short}} *{{$action.Pascal}}Action) handler(httpRequest *http.Request) http.Handler {
-	{{- if $action.Inputs }}
+	{{- if $action.Params }}
 	// Define the input struct
-	var in struct {
-		{{- range $input := $action.Inputs }}
-		{{$input.Pascal}} {{$input.Type}} {{$input.Tag}}
-		{{- end }}
-	}
+	var in {{ $action.Input}}
 	// Unmarshal the request body
 	if err := request.Unmarshal(httpRequest, &in); err != nil {
 		return &response.Format{
@@ -78,36 +74,36 @@ func ({{$action.Short}} *{{$action.Pascal}}Action) handler(httpRequest *http.Req
 	}
 	{{- end }}
 	{{- if $action.Context }}
-	{{ $action.Context.Outputs.List }} := {{ $action.Context.Function }}(
-		{{- range $input := $action.Context.Inputs }}
-		{{- if $input.Hoisted }}
-		{{ $action.Short }}.{{ $input.Name }},
+	{{ $action.Context.Results.List }} := {{ $action.Context.Function }}(
+		{{- range $field := $action.Context.Fields }}
+		{{- if $field.Hoisted }}
+		{{ $action.Short }}.{{ $field.Name }},
 		{{- else }}
-		{{ $input.Variable }},
+		{{ $field.Variable }},
 		{{- end }}
 		{{- end }}
 	)
-	{{- if $action.Context.Outputs.Error }}
-	if {{ $action.Context.Outputs.Error }} != nil {
+	{{- if $action.Context.Results.Error }}
+	if {{ $action.Context.Results.Error }} != nil {
 		return &response.Format{
-			JSON: response.Status(500).Set("Content-Type", "application/json").JSON(map[string]string{"error": {{ $action.Context.Outputs.Error }}.Error()}),
+			JSON: response.Status(500).Set("Content-Type", "application/json").JSON(map[string]string{"error": {{ $action.Context.Results.Error }}.Error()}),
 		}
 	}
 	{{- end }}
-	fn := {{$action.Context.Outputs.Result}}.{{$action.Name}}
+	fn := {{$action.Context.Results.Result}}.{{$action.Name}}
 	{{- else }}
 	fn := {{$.Name}}.{{$action.Name}}
 	{{- end }}
 	// Call the controller
-	{{ $action.Outputs.Set }}fn(
-		{{- range $input := $action.Inputs }}
-		in.{{$input.Pascal}},
+	{{ $action.Results.Set }}fn(
+		{{- range $param := $action.Params }}
+		{{ $param.Variable }},
 		{{- end }}
 	)
-	{{- if $action.Outputs.Error }}
-	if {{ $action.Outputs.Error }} != nil {
+	{{- if $action.Results.Error }}
+	if {{ $action.Results.Error }} != nil {
 		return &response.Format{
-			JSON: response.Status(500).Set("Content-Type", "application/json").JSON(map[string]string{"error": {{ $action.Outputs.Error }}.Error()}),
+			JSON: response.Status(500).Set("Content-Type", "application/json").JSON(map[string]string{"error": {{ $action.Results.Error }}.Error()}),
 		}
 	}
 	{{- end }}
@@ -116,14 +112,14 @@ func ({{$action.Short}} *{{$action.Pascal}}Action) handler(httpRequest *http.Req
 	return &response.Format{
 		{{- if eq $action.Method "GET" }}
 		{{- if $action.View }}
-		HTML: response.Render({{ $action.Short }}.View["{{$action.View.Path}}"], {{ $action.Outputs.Result }}),
+		HTML: response.Render({{ $action.Short }}.View["{{$action.View.Path}}"], {{ $action.Results.Result }}),
 		{{- end }}
 		{{- else }}
-		HTML: response.Status(302).Redirect("/{{ $.Path }}"),
+		HTML: response.Status(302).Redirect("{{$action.Redirect}}"),
 		{{- end }}
 		{{- if $action.ResponseJSON }}
-		{{- if $action.Outputs.Result }}
-		JSON: response.JSON({{ $action.Outputs.Result }}),
+		{{- if $action.Results.Result }}
+		JSON: response.JSON({{ $action.Results.Result }}),
 		{{- else }}
 		JSON: response.Status(200).Set("Content-Type", "application/json"),
 		{{- end }}

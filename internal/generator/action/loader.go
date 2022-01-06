@@ -3,16 +3,17 @@ package action
 import (
 	"fmt"
 	"io/fs"
+	"net/http"
 	"path"
 	"sort"
 	"strconv"
 	"strings"
 
 	"gitlab.com/mnm/bud/internal/valid"
+	"gitlab.com/mnm/bud/router"
 
 	"github.com/matthewmueller/gotext"
 	"github.com/matthewmueller/text"
-	"gitlab.com/mnm/bud/go/is"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/di"
@@ -114,7 +115,10 @@ func (l *loader) loadControllerPath(controllerPath string) string {
 		}
 		path.WriteString(text.Slug(segments[i]))
 	}
-	return "/" + path.String()
+	if path.Len() == 0 {
+		return ""
+	}
+	return path.String()
 }
 
 func (l *loader) loadActions(controller *Controller, stct *parser.Struct) (actions []*Action) {
@@ -141,56 +145,35 @@ func (l *loader) loadAction(controller *Controller, method *parser.Function) *Ac
 	action.Camel = gotext.Camel(action.Name)
 	action.Short = text.Lower(gotext.Short(action.Name))
 	// action.View = l.loadView(action.Name)
-	action.Key = text.Lower(text.Path(action.Name))
+	action.Key = l.loadActionKey(action.Name)
 	action.Path = l.loadActionPath(controller.Path, action.Name)
 	action.Method = l.loadActionMethod(action.Name)
-	action.Inputs = l.loadActionInputs(method)
-	action.Outputs = l.loadActionOutputs(method)
-	action.ResponseJSON = len(action.Outputs) > 0
+	action.Params = l.loadActionParams(method.Params())
+	action.Input = l.loadActionInput(action.Params)
+	action.Results = l.loadActionResults(method)
+	action.ResponseJSON = len(action.Results) > 0
 	action.Context = l.loadContext(method)
+	action.Redirect = l.loadActionRedirect(action)
 	return action
 }
 
-// View returns the view
-// func (l *loader) loadView(actionName string) *View {
-// 	if l.view == nil {
-// 		return nil
-// 	}
-// 	actionPath := filepath.Join(l.controllerPath, gotext.Slug(actionName))
-// 	viewDir := filepath.Join(l.module.Directory(), "view")
-// 	viewPath := filepath.Join(viewDir, actionPath)
-// 	// Lookup the generated views individual views
-// 	for _, prereq := range l.view.Prerequisites() {
-// 		if !strings.HasPrefix(prereq.Path(), viewPath) {
-// 			continue
-// 		}
-// 		l.imports.Add(path.Join(l.module.Import(), "generated", "view"))
-// 		rel, err := filepath.Rel(viewDir, prereq.Path())
-// 		if err != nil {
-// 			l.Bail(fmt.Errorf("plugin/controller: unable to make the view path relative: %w", err))
-// 			return nil
-// 		}
-// 		return &View{
-// 			Path: rel,
-// 		}
-// 	}
-// 	l.Bail(fmt.Errorf("plugin/controller: view is not a prerequisite to %s: %q", actionName, l.view.Path()))
-// 	return nil
-// }
+func (l *loader) loadActionKey(actionName string) string {
+	return "/" + text.Lower(text.Path(actionName))
+}
 
 // Path is the route to the action
 func (l *loader) loadActionPath(controllerPath, actionName string) string {
 	switch actionName {
 	case "Show", "Update", "Delete":
-		return path.Join(controllerPath, ":id")
+		return "/" + path.Join(controllerPath, ":id")
 	case "New":
-		return path.Join(controllerPath, "new")
+		return "/" + path.Join(controllerPath, "new")
 	case "Edit":
-		return path.Join(controllerPath, ":id", "edit")
+		return "/" + path.Join(controllerPath, ":id", "edit")
 	case "Index", "Create":
-		return controllerPath
+		return "/" + controllerPath
 	default:
-		return path.Join(controllerPath, text.Path(actionName))
+		return "/" + path.Join(controllerPath, text.Path(actionName))
 	}
 }
 
@@ -198,19 +181,20 @@ func (l *loader) loadActionPath(controllerPath, actionName string) string {
 func (l *loader) loadActionMethod(actionName string) string {
 	switch actionName {
 	case "Create":
-		return "POST"
+		return http.MethodPost
 	case "Update":
-		return "PATCH"
+		return http.MethodPatch
 	case "Delete":
-		return "DELETE"
+		return http.MethodDelete
 	default:
-		return "GET"
+		return http.MethodGet
 	}
 }
 
-func (l *loader) loadActionInputs(method *parser.Function) (inputs []*ActionInput) {
-	for order, param := range method.Params() {
-		inputs = append(inputs, l.loadActionInput(order, param))
+func (l *loader) loadActionParams(params []*parser.Param) (inputs []*ActionParam) {
+	numParams := len(params)
+	for nth, param := range params {
+		inputs = append(inputs, l.loadActionParam(param, nth, numParams))
 	}
 	if len(inputs) > 0 {
 		l.imports.Add("gitlab.com/mnm/duo/request")
@@ -218,38 +202,40 @@ func (l *loader) loadActionInputs(method *parser.Function) (inputs []*ActionInpu
 	return inputs
 }
 
-func (l *loader) loadActionInput(order int, param *parser.Param) *ActionInput {
-	input := new(ActionInput)
-	input.Name = l.loadActionInputName(order, param)
-	input.Pascal = gotext.Pascal(input.Name)
-	input.Snake = gotext.Lower(gotext.Snake(input.Name))
-	input.Type = l.loadActionInputType(param)
-	input.Variable = "in." + input.Pascal
-	input.Tag = fmt.Sprintf("`json:\"%[1]s\" form:\"%[1]s\"`", tagValue(input.Snake))
-	return input
+func (l *loader) loadActionParam(param *parser.Param, nth, numParams int) *ActionParam {
+	dec, err := param.Definition()
+	if err != nil {
+		l.Bail(fmt.Errorf("action: unable to find param definition: %w", err))
+	}
+	ap := new(ActionParam)
+	ap.Name = l.loadActionParamName(param, nth)
+	ap.Pascal = gotext.Pascal(ap.Name)
+	ap.Snake = gotext.Lower(gotext.Snake(ap.Name))
+	ap.Type = l.loadType(param.Type(), dec)
+	ap.Tag = fmt.Sprintf("`json:\"%[1]s\" form:\"%[1]s\"`", tagValue(ap.Snake))
+	ap.Kind = string(dec.Kind())
+	// Single struct input
+	if numParams == 1 && dec.Kind() == parser.KindStruct {
+		ap.Variable = "in"
+	} else {
+		ap.Variable = "in." + ap.Pascal
+	}
+	return ap
 }
 
-func (l *loader) loadActionInputName(order int, param *parser.Param) string {
+func (l *loader) loadActionParamName(param *parser.Param, nth int) string {
 	name := param.Name()
 	if name != "" {
 		return name
 	}
 	// Handle inputs with no variable
-	return "in" + strconv.Itoa(order)
+	return "in" + strconv.Itoa(nth)
 }
 
-func (l *loader) loadActionInputType(param *parser.Param) string {
-	dt := param.Type()
-	dtString := dt.String()
-	// Do nothing with built-in types
-	// TODO: It can't be any built-in type (e.g. chan)
-	if is.Builtin(dtString) {
-		return dtString
-	}
-	// Find the definition of the data type
-	dec, err := parser.Definition(dt)
-	if err != nil {
-		l.Bail(err)
+func (l *loader) loadType(dt parser.Type, dec parser.Declaration) string {
+	// TODO: Error out for certain built-ins (e.g. chan)
+	if dec.Kind() == parser.KindBuiltin {
+		return dt.String()
 	}
 	// Find the import path
 	importPath, err := dec.Package().Import()
@@ -262,29 +248,51 @@ func (l *loader) loadActionInputType(param *parser.Param) string {
 	return dt.String()
 }
 
-func (l *loader) loadActionOutputs(method *parser.Function) (outputs []*ActionOutput) {
+func (l *loader) loadActionInput(params []*ActionParam) string {
+	if len(params) == 1 && params[0].Kind == parser.KindStruct {
+		return params[0].Type
+	}
+	return l.loadActionInputStruct(params)
+}
+
+func (l *loader) loadActionInputStruct(params []*ActionParam) string {
+	b := new(strings.Builder)
+	b.WriteString("struct {")
+	for _, param := range params {
+		b.WriteString("\n")
+		b.WriteString("\t\t" + param.Pascal)
+		b.WriteString(" ")
+		b.WriteString(param.Type)
+		b.WriteString(" ")
+		b.WriteString(param.Tag)
+	}
+	b.WriteString("\n\t}")
+	return b.String()
+}
+
+func (l *loader) loadActionResults(method *parser.Function) (outputs []*ActionResult) {
 	for order, result := range method.Results() {
-		outputs = append(outputs, l.loadActionOutput(order, result))
+		outputs = append(outputs, l.loadActionResult(order, result))
 	}
 	return outputs
 }
 
-func (l *loader) loadActionOutput(order int, result *parser.Result) *ActionOutput {
-	output := new(ActionOutput)
-	output.Name = l.loadActionOutputName(order, result)
+func (l *loader) loadActionResult(order int, result *parser.Result) *ActionResult {
+	output := new(ActionResult)
+	output.Name = l.loadActionResultName(order, result)
 	output.Pascal = gotext.Pascal(output.Name)
 	output.Named = result.Named()
 	output.Snake = gotext.Snake(output.Name)
 	output.Type = result.Type().String()
 	output.Variable = gotext.Camel(output.Name)
-	output.Methods = l.loadActionOutputMethods()
-	output.Fields = l.loadActionOutputFields()
+	output.Methods = l.loadActionResultMethods()
+	output.Fields = l.loadActionResultFields()
 	// TODO: check for other types that implement error
 	output.IsError = output.Type == "error"
 	return output
 }
 
-func (l *loader) loadActionOutputName(order int, result *parser.Result) string {
+func (l *loader) loadActionResultName(order int, result *parser.Result) string {
 	name := result.Name()
 	if name != "" {
 		return name
@@ -294,13 +302,61 @@ func (l *loader) loadActionOutputName(order int, result *parser.Result) string {
 }
 
 // TODO: Finish up
-func (l *loader) loadActionOutputMethods() (methods []*ActionOutputMethod) {
-	return methods
+func (l *loader) loadActionResultFields() (fields []*ActionResultField) {
+	return fields
 }
 
 // TODO: Finish up
-func (l *loader) loadActionOutputFields() (fields []*ActionOutputField) {
-	return fields
+func (l *loader) loadActionResultMethods() (methods []*ActionResultMethod) {
+	return methods
+}
+
+// TODO: wrap this up
+func (l *loader) loadActionRedirect(action *Action) string {
+	switch action.Method {
+	case http.MethodPatch, http.MethodDelete:
+		return ""
+		// return l.replacePath(action.Path, l.inputsToStrings(action.Inputs...)...)
+	case http.MethodPost:
+		return ""
+		// return l.replacePath(action.Path, l.outputsToStrings(action.Outputs...)...)
+	default: // Don't need to redirect on GET requests
+		return ""
+	}
+}
+
+func (l *loader) replacePath(route string, variables ...string) string {
+	tokens := router.Parse(route)
+	for _, token := range tokens {
+		fmt.Println(token.String())
+	}
+	return route
+}
+
+func (l *loader) inputsToStrings(ins ...*ActionParam) (inputs []string) {
+	for _, in := range ins {
+		inputs = append(inputs, l.variableToString(in.Type, in.Variable))
+	}
+	return inputs
+}
+
+func (l *loader) outputsToStrings(results ...*ActionResult) (outputs []string) {
+	for _, result := range results {
+		outputs = append(outputs, l.variableToString(result.Type, result.Variable))
+	}
+	return outputs
+}
+
+func (l *loader) variableToString(dataType, variable string) string {
+	switch dataType {
+	case "int":
+		l.imports.AddStd("strconv")
+		return fmt.Sprintf(`strconv.Itoa(%s)`, variable)
+	case "string":
+		return variable
+	}
+	l.Bail(fmt.Errorf("action: unhandled type %q", dataType))
+	return ""
 }
 
 func (l *loader) loadContext(method *parser.Function) *Context {
@@ -349,27 +405,27 @@ func (l *loader) loadContext(method *parser.Function) *Context {
 	context := new(Context)
 	context.Function = fnName
 	context.Code = provider.Function()
-	context.Inputs = l.loadContextInputs(provider)
-	context.Outputs = l.loadContextOutputs(provider)
+	context.Fields = l.loadContextInputs(provider)
+	context.Results = l.loadContextResults(provider)
 	// Add the context to the context set
 	l.contexts.Add(context)
 	return context
 }
 
-func (l *loader) loadContextInputs(provider *di.Provider) (inputs []*ContextInput) {
+func (l *loader) loadContextInputs(provider *di.Provider) (fields []*ContextField) {
 	for _, param := range provider.Externals {
-		inputs = append(inputs, l.loadContextInput(param))
+		fields = append(fields, l.loadContextField(param))
 	}
-	return inputs
+	return fields
 }
 
-func (l *loader) loadContextInput(param *di.External) *ContextInput {
-	input := new(ContextInput)
-	input.Name = param.Key
-	input.Variable = param.Name
-	input.Hoisted = param.Hoisted
-	input.Type = param.Type
-	return input
+func (l *loader) loadContextField(param *di.External) *ContextField {
+	field := new(ContextField)
+	field.Name = param.Key
+	field.Variable = param.Name
+	field.Hoisted = param.Hoisted
+	field.Type = param.Type
+	return field
 }
 
 // func (l *loader) loadContextInputName(dataType string) (typeName string) {
@@ -382,15 +438,15 @@ func (l *loader) loadContextInput(param *di.External) *ContextInput {
 // 	return strings.TrimLeft(typeName, "[]*")
 // }
 
-func (l *loader) loadContextOutputs(provider *di.Provider) (outputs []*ContextOutput) {
+func (l *loader) loadContextResults(provider *di.Provider) (outputs []*ContextResult) {
 	for _, result := range provider.Results {
-		outputs = append(outputs, l.loadContextOutput(result))
+		outputs = append(outputs, l.loadContextResult(result))
 	}
 	return outputs
 }
 
-func (l *loader) loadContextOutput(result *di.Variable) *ContextOutput {
-	output := new(ContextOutput)
+func (l *loader) loadContextResult(result *di.Variable) *ContextResult {
+	output := new(ContextResult)
 	output.Variable = gotext.Camel(result.Name)
 	return output
 }

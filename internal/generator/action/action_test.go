@@ -418,7 +418,6 @@ func TestDependencyRequest(t *testing.T) {
 }
 
 func TestShareStruct(t *testing.T) {
-	t.SkipNow()
 	is := is.New(t)
 	generator := test.Generator(t)
 	generator.Files["article/article.go"] = `
@@ -868,6 +867,13 @@ func TestNestedResource(t *testing.T) {
 
 		{"id":1,"post_id":1,"title":"1st"}
 	`)
+	// res, err = server.Post("/posts/1/comments", nil)
+	// is.NoErr(err)
+	// res.Expect(`
+	// 	HTTP/1.1 302 Found
+	// 	Date: Fri, 31 Dec 2021 00:00:00 GMT
+	// 	Location: /posts/1/comments/2
+	// `)
 	res, err = server.GetJSON("/posts/1/comments/2")
 	is.NoErr(err)
 	res.Expect(`
@@ -901,6 +907,13 @@ func TestNestedResource(t *testing.T) {
 
 		{"id":1,"post_id":2}
 	`)
+	// res, err = server.Patch("/posts/1/comments/2", nil)
+	// is.NoErr(err)
+	// res.Expect(`
+	// 	HTTP/1.1 302 Found
+	// 	Date: Fri, 31 Dec 2021 00:00:00 GMT
+	// 	Location: /posts/1/comments/2
+	// `)
 	res, err = server.DeleteJSON("/posts/1/comments/2", nil)
 	is.NoErr(err)
 	res.Expect(`
@@ -910,6 +923,13 @@ func TestNestedResource(t *testing.T) {
 
 		{"id":1,"post_id":2}
 	`)
+	// res, err = server.Delete("/posts/1/comments/2", nil)
+	// is.NoErr(err)
+	// res.Expect(`
+	// 	HTTP/1.1 302 Found
+	// 	Date: Fri, 31 Dec 2021 00:00:00 GMT
+	// 	Location: /posts/1/comments
+	// `)
 }
 
 func TestResourceContext(t *testing.T) {

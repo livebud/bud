@@ -80,13 +80,13 @@ func files(pkg *Package) (files []*File) {
 }
 
 // Kind of declaration
-type Kind uint8
+type Kind string
 
 const (
-	KindBuiltin Kind = iota + 1
-	KindStruct
-	KindInterface
-	KindAlias
+	KindBuiltin   Kind = "builtin"
+	KindStruct         = "struct"
+	KindInterface      = "interface"
+	KindAlias          = "alias"
 )
 
 // Declaration interface
