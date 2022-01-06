@@ -152,7 +152,7 @@ func (l *loader) loadAction(controller *Controller, method *parser.Function) *Ac
 	action.Input = l.loadActionInput(action.Params)
 	action.Results = l.loadActionResults(method)
 	action.ResponseJSON = len(action.Results) > 0
-	action.Context = l.loadContext(method)
+	action.Context = l.loadContext(controller, method)
 	action.Redirect = l.loadActionRedirect(action)
 	return action
 }
@@ -212,7 +212,7 @@ func (l *loader) loadActionParam(param *parser.Param, nth, numParams int) *Actio
 	ap.Pascal = gotext.Pascal(ap.Name)
 	ap.Snake = gotext.Lower(gotext.Snake(ap.Name))
 	ap.Type = l.loadType(param.Type(), dec)
-	ap.Tag = fmt.Sprintf("`json:\"%[1]s\" form:\"%[1]s\"`", tagValue(ap.Snake))
+	ap.Tag = fmt.Sprintf("`json:\"%[1]s\"`", tagValue(ap.Snake))
 	ap.Kind = string(dec.Kind())
 	// Single struct input
 	if numParams == 1 && dec.Kind() == parser.KindStruct {
@@ -359,7 +359,7 @@ func (l *loader) variableToString(dataType, variable string) string {
 	return ""
 }
 
-func (l *loader) loadContext(method *parser.Function) *Context {
+func (l *loader) loadContext(controller *Controller, method *parser.Function) *Context {
 	recv := method.Receiver()
 	if recv == nil {
 		return nil
@@ -372,8 +372,9 @@ func (l *loader) loadContext(method *parser.Function) *Context {
 	if err != nil {
 		l.Bail(err)
 	}
+	fnName := gotext.Camel("load " + controller.Name + " " + def.Name())
 	provider, err := l.injector.Wire(&di.Function{
-		Name:   "load" + def.Name(),
+		Name:   fnName,
 		Target: l.module.Import("bud", "action"),
 		Hoist:  true,
 		Results: []di.Dependency{
@@ -401,7 +402,6 @@ func (l *loader) loadContext(method *parser.Function) *Context {
 		l.imports.AddNamed(imp.Name, imp.Path)
 	}
 	// Create the context
-	fnName := "load" + def.Name()
 	context := new(Context)
 	context.Function = fnName
 	context.Code = provider.Function()

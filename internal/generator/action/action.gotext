@@ -14,7 +14,7 @@ import (
 // Controller struct
 type {{ $.Pascal }}Controller struct {
 	{{- range $action := $.Actions }}
-	{{$action.Pascal}} *{{$action.Pascal}}Action
+	{{$action.Pascal}} *{{ $.Pascal }}{{$action.Pascal}}Action
 	{{- end }}
 	{{- range $controller := $.Controllers }}
 	{{$controller.Last.Pascal}} *{{$controller.Pascal}}Controller
@@ -23,8 +23,8 @@ type {{ $.Pascal }}Controller struct {
 
 {{- range $action := $.Actions }}
 
-// {{$action.Pascal}}Action struct
-type {{$action.Pascal}}Action struct {
+// {{ $.Pascal }}{{$action.Pascal}}Action struct
+type {{ $.Pascal }}{{$action.Pascal}}Action struct {
 	{{- if $action.View }}
 	View view.Map
 	{{- end }}
@@ -38,31 +38,31 @@ type {{$action.Pascal}}Action struct {
 }
 
 // Key is a unique identifier of this action
-func ({{$action.Short}} *{{$action.Pascal}}Action) Key() string {
+func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) Key() string {
 	{{- if $.Path }}
-	return "{{$.Path}}/{{$action.Key}}"
+	return "{{$.Path}}{{$action.Key}}"
 	{{- else }}
 	return "{{$action.Key}}"
 	{{- end }}
 }
 
 // Path is the default RESTful path to this action
-func ({{$action.Short}} *{{$action.Pascal}}Action) Path() string {
+func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) Path() string {
 	return "{{$action.Path}}"
 }
 
 // Method is the default RESTful method of this action
-func ({{$action.Short}} *{{$action.Pascal}}Action) Method() string {
+func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) Method() string {
 	return "{{$action.Method}}"
 }
 
 // ServeHTTP fn
-func ({{$action.Short}} *{{$action.Pascal}}Action) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	{{$action.Short}}.handler(r).ServeHTTP(w, r)
 }
 
 // Handler function
-func ({{$action.Short}} *{{$action.Pascal}}Action) handler(httpRequest *http.Request) http.Handler {
+func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpRequest *http.Request) http.Handler {
 	{{- if $action.Params }}
 	// Define the input struct
 	var in {{ $action.Input}}

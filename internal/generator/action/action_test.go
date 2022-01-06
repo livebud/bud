@@ -455,7 +455,6 @@ func TestShareStruct(t *testing.T) {
 }
 
 func TestJSONCreateNested(t *testing.T) {
-	t.SkipNow()
 	is := is.New(t)
 	generator := test.Generator(t)
 	generator.Files["postgres/pool.go"] = `
@@ -489,6 +488,7 @@ func TestJSONCreateNested(t *testing.T) {
 		package admin
 		type Controller struct {}
 		type Post struct {
+			UserID int ` + "`" + `json:"user_id"` + "`" + `
 			ID int ` + "`" + `json:"id"` + "`" + `
 			Title string ` + "`" + `json:"title"` + "`" + `
 		}
@@ -497,7 +497,7 @@ func TestJSONCreateNested(t *testing.T) {
 		}
 	`
 	generator.Files["action/articles/articles.go"] = `
-		package users
+		package articles
 		type Controller struct {}
 		type Post struct {
 			ID int ` + "`" + `json:"id"` + "`" + `
@@ -514,33 +514,41 @@ func TestJSONCreateNested(t *testing.T) {
 	server, err := app.Start()
 	is.NoErr(err)
 	defer server.Close()
-	res, err := server.PostJSON("/", bytes.NewBufferString(`{"id": "1", title: "a"}`))
+	res, err := server.PostJSON("/", bytes.NewBufferString(`{"id": 1, "title": "a"}`))
 	is.NoErr(err)
 	res.Expect(`
-		HTTP/1.1 302 Found
+		HTTP/1.1 200 OK
+		Content-Type: application/json
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
-		Location: /
+
+		{"id":1,"title":"a"}
 	`)
-	res, err = server.PostJSON("/users", bytes.NewBufferString(`{"id": "2", title: "b"}`))
+	res, err = server.PostJSON("/users", bytes.NewBufferString(`{"id": 2, "title": "b"}`))
 	is.NoErr(err)
 	res.Expect(`
-		HTTP/1.1 302 Found
+		HTTP/1.1 200 OK
+		Content-Type: application/json
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
-		Location: /
+
+		{"id":2,"title":"b"}
 	`)
-	res, err = server.PostJSON("/users/admin", bytes.NewBufferString(`{"id": "3", title: "c"}`))
+	res, err = server.PostJSON("/users/1/admin", bytes.NewBufferString(`{"id": 3, "title": "c"}`))
 	is.NoErr(err)
 	res.Expect(`
-		HTTP/1.1 302 Found
+		HTTP/1.1 200 OK
+		Content-Type: application/json
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
-		Location: /
+
+		{"user_id":1,"id":3,"title":"c"}
 	`)
-	res, err = server.PostJSON("/articles", bytes.NewBufferString(`{"id": "4", title: "d"}`))
+	res, err = server.PostJSON("/articles", bytes.NewBufferString(`{"id": 4, "title": "d"}`))
 	is.NoErr(err)
 	res.Expect(`
-		HTTP/1.1 302 Found
+		HTTP/1.1 200 OK
+		Content-Type: application/json
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
-		Location: /
+
+		{"id":4,"title":"d"}
 	`)
 }
 

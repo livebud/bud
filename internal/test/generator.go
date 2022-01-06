@@ -73,7 +73,7 @@ module app.com
 
 require (
 	gitlab.com/mnm/bud v0.0.0
-	gitlab.com/mnm/duo v0.0.0-20210911191412-34ebda55e203
+	gitlab.com/mnm/duo v0.0.0-20220106055032-73b43e9b3a14
 	gitlab.com/mnm/bud-tailwind v0.0.0-20211228175933-3ca601f1a518
 )
 `
