@@ -49,6 +49,9 @@ func listen(path string) (net.Listener, error) {
 		if err != nil {
 			return nil, err
 		}
+		// Heads up: If you see the `bind: invalid argument` error, there's a chance
+		// the path is too long. 103 characters appears to be the limit on OSX,
+		// probably this issues: https://github.com/golang/go/issues/6895.
 		return net.ListenUnix("unix", addr)
 	}
 	// Otherwise, we listen on a TCP port

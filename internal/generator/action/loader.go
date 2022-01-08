@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"gitlab.com/mnm/bud/internal/valid"
-	"gitlab.com/mnm/bud/router"
 
 	"github.com/matthewmueller/gotext"
 	"github.com/matthewmueller/text"
@@ -278,15 +277,19 @@ func (l *loader) loadActionResults(method *parser.Function) (outputs []*ActionRe
 }
 
 func (l *loader) loadActionResult(order int, result *parser.Result) *ActionResult {
+	def, err := result.Definition()
+	if err != nil {
+		l.Bail(fmt.Errorf("action: unable to load result definition for %s", result.Type()))
+	}
 	output := new(ActionResult)
 	output.Name = l.loadActionResultName(order, result)
 	output.Pascal = gotext.Pascal(output.Name)
 	output.Named = result.Named()
 	output.Snake = gotext.Snake(output.Name)
 	output.Type = result.Type().String()
+	output.Kind = def.Kind()
 	output.Variable = gotext.Camel(output.Name)
-	output.Methods = l.loadActionResultMethods()
-	output.Fields = l.loadActionResultFields()
+	output.Fields = l.loadActionResultFields(result, def)
 	// TODO: check for other types that implement error
 	output.IsError = output.Type == "error"
 	return output
@@ -301,62 +304,86 @@ func (l *loader) loadActionResultName(order int, result *parser.Result) string {
 	return "in" + strconv.Itoa(order)
 }
 
-// TODO: Finish up
-func (l *loader) loadActionResultFields() (fields []*ActionResultField) {
+// Load the inner fields of the result type, if it's a struct
+func (l *loader) loadActionResultFields(result *parser.Result, def parser.Declaration) (fields []*ActionResultField) {
+	// Fields should be empty if the definition isn't a struct
+	if def.Kind() != parser.KindStruct {
+		return fields
+	}
+	// Find the struct in the package
+	stct := def.Package().Struct(def.Name())
+	if stct == nil {
+		l.Bail(fmt.Errorf("action: unable to find struct for %s", result.Type()))
+	}
+	for _, field := range stct.PublicFields() {
+		def, err := field.Definition()
+		if err != nil {
+			l.Bail(fmt.Errorf("action: unable to load definition for field %s in %s", field.Name(), result.Name()))
+		}
+		fields = append(fields, &ActionResultField{
+			Name: field.Name(),
+			Type: l.loadType(field.Type(), def),
+		})
+	}
 	return fields
 }
 
-// TODO: Finish up
-func (l *loader) loadActionResultMethods() (methods []*ActionResultMethod) {
-	return methods
-}
-
-// TODO: wrap this up
+// TODO: Clean this up, the logic is quite complicated and could be simplified
+// with better methods
 func (l *loader) loadActionRedirect(action *Action) string {
-	switch action.Method {
-	case http.MethodPatch, http.MethodDelete:
-		return ""
-		// return l.replacePath(action.Path, l.inputsToStrings(action.Inputs...)...)
-	case http.MethodPost:
-		return ""
-		// return l.replacePath(action.Path, l.outputsToStrings(action.Outputs...)...)
-	default: // Don't need to redirect on GET requests
-		return ""
+	// Redirect for non-create methods is an empty string
+	if action.Method != http.MethodPost {
+		return `""`
 	}
-}
-
-func (l *loader) replacePath(route string, variables ...string) string {
-	tokens := router.Parse(route)
-	for _, token := range tokens {
-		fmt.Println(token.String())
+	results := action.Results
+	if isSingleStruct(results) {
+		for _, field := range results[0].Fields {
+			if field.Name != "ID" {
+				continue
+			}
+			return l.variableToString(field.Type, results[0].Variable+"."+field.Name)
+		}
 	}
-	return route
-}
-
-func (l *loader) inputsToStrings(ins ...*ActionParam) (inputs []string) {
-	for _, in := range ins {
-		inputs = append(inputs, l.variableToString(in.Type, in.Variable))
-	}
-	return inputs
-}
-
-func (l *loader) outputsToStrings(results ...*ActionResult) (outputs []string) {
 	for _, result := range results {
-		outputs = append(outputs, l.variableToString(result.Type, result.Variable))
+		if result.Name != "id" {
+			continue
+		}
+		return l.variableToString(result.Type, result.Variable)
 	}
-	return outputs
+	return `""`
 }
 
-func (l *loader) variableToString(dataType, variable string) string {
+func (l *loader) variableToString(dataType string, variable string) string {
 	switch dataType {
-	case "int":
-		l.imports.AddStd("strconv")
-		return fmt.Sprintf(`strconv.Itoa(%s)`, variable)
 	case "string":
 		return variable
+	case "int":
+		l.imports.AddStd("strconv")
+		return `strconv.Itoa(` + variable + `)`
+	default:
+		l.Bail(fmt.Errorf("action: unable to generate string from %s", dataType))
+		return ""
 	}
-	l.Bail(fmt.Errorf("action: unhandled type %q", dataType))
-	return ""
+}
+
+func isSingleStruct(results ActionResults) bool {
+	switch len(results) {
+	case 0:
+		return false
+	case 1:
+		result := results[0]
+		if result.IsError {
+			return false
+		}
+		return result.Kind == parser.KindStruct
+	case 2:
+		if !results[1].IsError {
+			return false
+		}
+		return results[0].Kind == parser.KindStruct
+	default:
+		return false
+	}
 }
 
 func (l *loader) loadContext(controller *Controller, method *parser.Function) *Context {

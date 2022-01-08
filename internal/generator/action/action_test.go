@@ -715,7 +715,50 @@ func TestJSONUpdate200(t *testing.T) {
 	`)
 }
 
-func TestRootResource(t *testing.T) {
+func TestReturnKeyedStruct(t *testing.T) {
+	is := is.New(t)
+	generator := test.Generator(t)
+	generator.Files["action/users/users.go"] = `
+		package users
+		type DB struct {}
+		type Controller struct {
+			DB *DB
+		}
+		type User struct {
+			ID   int ` + "`" + `json:"id"` + "`" + `
+			Name string ` + "`" + `json:"name"` + "`" + `
+			Age  int ` + "`" + `json:"age"` + "`" + `
+		}
+		func (c *Controller) Index() (users []*User, err error) {
+			users = append(users, &User{1, "a", 2})
+			users = append(users, &User{2, "b", 3})
+			return users, nil
+		}
+		func (c *Controller) New() {}
+		func (c *Controller) Create(name string, age int) (user *User, err error) {
+			return &User{3, name, age}, nil
+		}
+		func (c *Controller) Show(id int) (user *User, err error) {
+			return &User{id, "d", 5}, nil
+		}
+		func (c *Controller) Edit(id int) {}
+		func (c *Controller) Update(id int, name *string, age *int) error {
+			return nil
+		}
+		func (c *Controller) Delete(id int) error {
+			return nil
+		}
+	`
+	app, err := generator.Generate()
+	is.NoErr(err)
+	is.True(app.Exists("bud/action/action.go"))
+	is.True(app.Exists("bud/main.go"))
+	server, err := app.Start()
+	is.NoErr(err)
+	defer server.Close()
+}
+
+func TestNestedResource(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
 	generator.Files["action/users/users.go"] = `
@@ -809,7 +852,7 @@ func TestRootResource(t *testing.T) {
 	`)
 }
 
-func TestNestedResource(t *testing.T) {
+func TestDeepNestedResource(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
 	generator.Files["action/posts/comments/comments.go"] = `
@@ -875,13 +918,6 @@ func TestNestedResource(t *testing.T) {
 
 		{"id":1,"post_id":1,"title":"1st"}
 	`)
-	// res, err = server.Post("/posts/1/comments", nil)
-	// is.NoErr(err)
-	// res.Expect(`
-	// 	HTTP/1.1 302 Found
-	// 	Date: Fri, 31 Dec 2021 00:00:00 GMT
-	// 	Location: /posts/1/comments/2
-	// `)
 	res, err = server.GetJSON("/posts/1/comments/2")
 	is.NoErr(err)
 	res.Expect(`
@@ -915,13 +951,6 @@ func TestNestedResource(t *testing.T) {
 
 		{"id":1,"post_id":2}
 	`)
-	// res, err = server.Patch("/posts/1/comments/2", nil)
-	// is.NoErr(err)
-	// res.Expect(`
-	// 	HTTP/1.1 302 Found
-	// 	Date: Fri, 31 Dec 2021 00:00:00 GMT
-	// 	Location: /posts/1/comments/2
-	// `)
 	res, err = server.DeleteJSON("/posts/1/comments/2", nil)
 	is.NoErr(err)
 	res.Expect(`
@@ -931,13 +960,179 @@ func TestNestedResource(t *testing.T) {
 
 		{"id":1,"post_id":2}
 	`)
-	// res, err = server.Delete("/posts/1/comments/2", nil)
-	// is.NoErr(err)
-	// res.Expect(`
-	// 	HTTP/1.1 302 Found
-	// 	Date: Fri, 31 Dec 2021 00:00:00 GMT
-	// 	Location: /posts/1/comments
-	// `)
+}
+
+func TestRedirectRootResource(t *testing.T) {
+	is := is.New(t)
+	generator := test.Generator(t)
+	generator.Files["action/action.go"] = `
+		package action
+		type Controller struct {
+		}
+		type Post struct {
+			ID     int ` + "`" + `json:"id,omitempty"` + "`" + `
+			Title  string ` + "`" + `json:"title,omitempty"` + "`" + `
+		}
+		func (c *Controller) Create(title string) (*Post, error) {
+			return &Post{2, title}, nil
+		}
+		func (c *Controller) Update(id int, title *string) (*Post, error) {
+			if title == nil {
+				return &Post{id, ""}, nil
+			}
+			return &Post{id, *title}, nil
+		}
+		func (c *Controller) Delete(id int) (*Post, error) {
+			return &Post{id, ""}, nil
+		}
+	`
+	app, err := generator.Generate()
+	is.NoErr(err)
+	is.True(app.Exists("bud/action/action.go"))
+	is.True(app.Exists("bud/main.go"))
+	server, err := app.Start()
+	is.NoErr(err)
+	defer server.Close()
+	res, err := server.Post("/", nil)
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 302 Found
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+		Location: /2
+	`)
+	res, err = server.Patch("/1", nil)
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 302 Found
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+		Location: /1
+	`)
+	res, err = server.Delete("/1", nil)
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 302 Found
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+		Location: /
+	`)
+}
+
+func TestRedirectNestedResource(t *testing.T) {
+	is := is.New(t)
+	generator := test.Generator(t)
+	generator.Files["action/posts/posts.go"] = `
+		package posts
+		type Controller struct {
+		}
+		type Post struct {
+			ID     int ` + "`" + `json:"id,omitempty"` + "`" + `
+			Title  string ` + "`" + `json:"title,omitempty"` + "`" + `
+		}
+		func (c *Controller) Create(title string) (*Post, error) {
+			return &Post{2, title}, nil
+		}
+		func (c *Controller) Update(id int, title *string) (*Post, error) {
+			if title == nil {
+				return &Post{id, ""}, nil
+			}
+			return &Post{id, *title}, nil
+		}
+		func (c *Controller) Delete(id int) (*Post, error) {
+			return &Post{id, ""}, nil
+		}
+	`
+	app, err := generator.Generate()
+	is.NoErr(err)
+	is.True(app.Exists("bud/action/action.go"))
+	is.True(app.Exists("bud/main.go"))
+	server, err := app.Start()
+	is.NoErr(err)
+	defer server.Close()
+	res, err := server.Post("/posts", nil)
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 302 Found
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+		Location: /posts/2
+	`)
+	res, err = server.Patch("/posts/1", nil)
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 302 Found
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+		Location: /posts/1
+	`)
+	res, err = server.Delete("/posts/1", nil)
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 302 Found
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+		Location: /posts
+	`)
+}
+
+func TestRedirectDeepNestedResource(t *testing.T) {
+	is := is.New(t)
+	generator := test.Generator(t)
+	generator.Files["action/posts/comments/comments.go"] = `
+		package comments
+		type DB struct {}
+		type Controller struct {
+			DB *DB
+		}
+		type Comment struct {
+			ID     int ` + "`" + `json:"id,omitempty"` + "`" + `
+			PostID int ` + "`" + `json:"post_id,omitempty"` + "`" + `
+			Title  string ` + "`" + `json:"title,omitempty"` + "`" + `
+		}
+		func (c *Controller) Index(postID int) ([]*Comment, error) {
+			return []*Comment{{2, postID, "a"}, {3, postID, "b"}}, nil
+		}
+		func (c *Controller) New(postID int) {}
+		func (c *Controller) Create(postID int, title string) (*Comment, error) {
+			return &Comment{2, postID, title}, nil
+		}
+		func (c *Controller) Show(postID, id int) (*Comment, error) {
+			return &Comment{id, postID, "a"}, nil
+		}
+		func (c *Controller) Edit(postID, id int) {}
+		func (c *Controller) Update(postID, id int, title *string) (*Comment, error) {
+			if title == nil {
+				return &Comment{postID, id, ""}, nil
+			}
+			return &Comment{postID, id, *title}, nil
+		}
+		func (c *Controller) Delete(postID, id int) (*Comment, error) {
+			return &Comment{postID, id, ""}, nil
+		}
+	`
+	app, err := generator.Generate()
+	is.NoErr(err)
+	is.True(app.Exists("bud/action/action.go"))
+	is.True(app.Exists("bud/main.go"))
+	server, err := app.Start()
+	is.NoErr(err)
+	defer server.Close()
+	res, err := server.Post("/posts/1/comments", nil)
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 302 Found
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+		Location: /posts/1/comments/2
+	`)
+	res, err = server.Patch("/posts/1/comments/2", nil)
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 302 Found
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+		Location: /posts/1/comments/2
+	`)
+	res, err = server.Delete("/posts/1/comments/2", nil)
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 302 Found
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+		Location: /posts/1/comments
+	`)
 }
 
 func TestResourceContext(t *testing.T) {
@@ -956,12 +1151,12 @@ func TestResourceContext(t *testing.T) {
 		func (c *Controller) Create(ctx context.Context, name string, age int) *User {
 			return &User{1, "a"}
 		}
-		func (c *Controller) Show(id int) {}
-		func (c *Controller) Edit(id int) {}
-		func (c *Controller) Update(id int, name *string, age *int) error {
+		func (c *Controller) Show(ctx context.Context, id int) {}
+		func (c *Controller) Edit(ctx context.Context, id int) {}
+		func (c *Controller) Update(ctx context.Context, id int, name *string, age *int) error {
 			return nil
 		}
-		func (c *Controller) Delete(id int) error {
+		func (c *Controller) Delete(ctx context.Context, id int) error {
 			return nil
 		}
 	`
@@ -973,6 +1168,82 @@ func TestResourceContext(t *testing.T) {
 	is.NoErr(err)
 	defer server.Close()
 	res, err := server.GetJSON("/users")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		[]
+	`)
+}
+
+func TestViewNestedResourceUnkeyed(t *testing.T) {
+	t.SkipNow()
+	is := is.New(t)
+	generator := test.Generator(t)
+	generator.Files["view/users/index.svelte"] = `
+		<script>
+			export let users = []
+		</script>
+		{#each users as user}
+		<h1>index: {user.id} {user.name}</h1>
+		{/each}
+	`
+	generator.Files["view/users/new.svelte"] = `
+		<script>
+			export let user = {}
+		</script>
+		<h1>new: {user.id} {user.name}</h1>
+	`
+	generator.Files["view/users/show.svelte"] = `
+		<script>
+			export let user = {}
+		</script>
+		<h2>show: {user.id} {user.name}</h2>
+	`
+	generator.Files["view/users/edit.svelte"] = `
+		<script>
+			export let user = {}
+		</script>
+		<h2>edit: {user.id} {user.name}</h2>
+	`
+	generator.Files["action/users/users.go"] = `
+		package users
+		type User struct {
+			ID int
+			Name string
+		}
+		func (c *Controller) Index() []*User {
+			return []*User{{1, "a"}, {2, "b"}}
+		}
+		func (c *Controller) New() *User {
+			return &User{3, "c"}
+		}
+		func (c *Controller) Show(id int) *User {
+			return &User{1, "a"}
+		}
+		func (c *Controller) Edit(id int) *User {
+			return &User{1, "a"}
+		}
+	`
+	app, err := generator.Generate()
+	is.NoErr(err)
+	is.True(app.Exists("bud/action/action.go"))
+	is.True(app.Exists("bud/main.go"))
+	server, err := app.Start()
+	is.NoErr(err)
+	defer server.Close()
+	res, err := server.GetJSON("/users")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		[]
+	`)
+	res, err = server.Get("/users")
 	is.NoErr(err)
 	res.Expect(`
 		HTTP/1.1 200 OK

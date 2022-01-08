@@ -115,7 +115,7 @@ func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpReq
 		HTML: response.Render({{ $action.Short }}.View["{{$action.View.Path}}"], {{ $action.Results.Result }}),
 		{{- end }}
 		{{- else }}
-		HTML: response.Status(302).Redirect("{{$action.Redirect}}"),
+		HTML: response.Status(302).Redirect(response.RedirectPath(httpRequest, {{$action.Redirect}})),
 		{{- end }}
 		{{- if $action.ResponseJSON }}
 		{{- if $action.Results.Result }}

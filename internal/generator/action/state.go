@@ -6,6 +6,7 @@ import (
 
 	"github.com/matthewmueller/gotext"
 	"gitlab.com/mnm/bud/internal/imports"
+	"gitlab.com/mnm/bud/internal/parser"
 )
 
 type State struct {
@@ -66,7 +67,6 @@ type ActionParam struct {
 	Kind     string
 	Variable string
 	Tag      string
-	// Inputs   []*ActionInput
 }
 
 // ActionResults fn
@@ -160,6 +160,7 @@ type ActionResult struct {
 	Named    bool
 	Snake    string
 	Type     string
+	Kind     parser.Kind
 	Variable string
 	IsError  bool
 	Fields   []*ActionResultField
@@ -168,6 +169,9 @@ type ActionResult struct {
 
 // ActionResultField struct
 type ActionResultField struct {
+	Name string
+	Type string
+	Tag  string
 }
 
 // ActionResultMethod struct
