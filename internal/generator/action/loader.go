@@ -1,6 +1,7 @@
 package action
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -143,9 +144,9 @@ func (l *loader) loadAction(controller *Controller, method *parser.Function) *Ac
 	action.Pascal = gotext.Pascal(action.Name)
 	action.Camel = gotext.Camel(action.Name)
 	action.Short = text.Lower(gotext.Short(action.Name))
-	// action.View = l.loadView(action.Name)
-	action.Key = l.loadActionKey(action.Name)
 	action.Path = l.loadActionPath(controller.Path, action.Name)
+	action.Key = l.loadActionKey(action.Name)
+	action.View = l.loadView(controller.Path, action.Key, action.Path)
 	action.Method = l.loadActionMethod(action.Name)
 	action.Params = l.loadActionParams(method.Params())
 	action.Input = l.loadActionInput(action.Params)
@@ -188,6 +189,34 @@ func (l *loader) loadActionMethod(actionName string) string {
 	default:
 		return http.MethodGet
 	}
+}
+
+func (l *loader) loadView(controllerPath, actionKey, actionPath string) *View {
+	viewDir := path.Join("view", controllerPath)
+	des, err := fs.ReadDir(l.module, viewDir)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+		l.Bail(fmt.Errorf("action: unable read view directory %q > %w", viewDir, err))
+	}
+	for _, de := range des {
+		name := de.Name()
+		ext := path.Ext(name)
+		if ext != ".svelte" {
+			continue
+		}
+		base := strings.TrimSuffix(path.Base(name), ext)
+		key := strings.TrimPrefix(actionKey, "/")
+		if base != key {
+			continue
+		}
+		l.imports.Add(l.module.Import("bud/view"))
+		return &View{
+			Path: actionPath,
+		}
+	}
+	return nil
 }
 
 func (l *loader) loadActionParams(params []*parser.Param) (inputs []*ActionParam) {

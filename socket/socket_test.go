@@ -22,7 +22,7 @@ func TestUnixPassthrough(t *testing.T) {
 		is := is.New(t)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		cmd := exec.CommandContext(ctx, os.Args[0], append(os.Args[1:], "-test.v=true", "-test.run=TestUnixPassthrough")...)
+		cmd := exec.CommandContext(ctx, os.Args[0], append(os.Args[1:], "-test.v=true", "-test.run=^TestUnixPassthrough$")...)
 		listener, err := socket.Listen(socketPath)
 		is.NoErr(err)
 		is.Equal(listener.Addr().Network(), "unix")
@@ -30,9 +30,9 @@ func TestUnixPassthrough(t *testing.T) {
 		extras, env, err := socket.Files(listener)
 		is.NoErr(err)
 		is.Equal(len(extras), 1)
-		is.Equal(string(env), "LISTEN_FDS=3")
+		is.Equal(string(env), "LISTEN_FDS=1")
 		is.Equal(env.Key(), "LISTEN_FDS")
-		is.Equal(env.Value(), "3")
+		is.Equal(env.Value(), "1")
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		cmd.ExtraFiles = append(cmd.ExtraFiles, extras...)
@@ -49,7 +49,7 @@ func TestUnixPassthrough(t *testing.T) {
 		body, err := ioutil.ReadAll(res.Body)
 		is.NoErr(err)
 		is.Equal(string(body), "/hello")
-		res, err = client.Get("http://host/hello")
+		_, err = client.Get("http://host/hello")
 		is.NoErr(err)
 		is.NoErr(cmd.Wait())
 	}
@@ -67,6 +67,8 @@ func TestUnixPassthrough(t *testing.T) {
 			switch count {
 			case 0:
 				count++
+				os.Stderr.Write([]byte("stderr"))
+				os.Stdout.Write([]byte("stdout"))
 				w.Write([]byte(r.URL.Path))
 			case 1:
 				go server.Shutdown(context.Background())
@@ -100,9 +102,9 @@ func TestTCPPassthrough(t *testing.T) {
 		extras, env, err := socket.Files(listener)
 		is.NoErr(err)
 		is.Equal(len(extras), 1)
-		is.Equal(string(env), "LISTEN_FDS=3")
+		is.Equal(string(env), "LISTEN_FDS=1")
 		is.Equal(env.Key(), "LISTEN_FDS")
-		is.Equal(env.Value(), "3")
+		is.Equal(env.Value(), "1")
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		cmd.ExtraFiles = append(cmd.ExtraFiles, extras...)

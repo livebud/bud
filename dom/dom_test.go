@@ -132,7 +132,7 @@ func TestNodeModules(t *testing.T) {
 }
 
 func TestBuilder(t *testing.T) {
-	chunkPath := "chunk-FM5TQRH2.js"
+	chunkPath := "chunk-AAELTWF6.js"
 	is := is.New(t)
 	cwd, err := os.Getwd()
 	is.NoErr(err)
@@ -202,6 +202,6 @@ func TestBuilder(t *testing.T) {
 
 	code, err = fs.ReadFile(bf, fmt.Sprintf("bud/view/%s", chunkPath))
 	is.NoErr(err)
-	is.True(strings.Contains(string(code), `"allowpaymentrequest"`))
-	is.True(strings.Contains(string(code), `"readonly"`))
+	is.True(strings.Contains(string(code), `"SvelteDOMInsert"`))
+	is.True(strings.Contains(string(code), `"bud_props"`))
 }

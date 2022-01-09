@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"unicode/utf8"
 
 	"gitlab.com/mnm/bud/internal/valid"
 
@@ -116,14 +115,9 @@ func validEntry(ext string) bool {
 	}
 }
 
-func firstRune(s string) rune {
-	r, _ := utf8.DecodeRuneInString(s)
-	return r
-}
-
 // Path is the route to the action
 func route(dir, name string) string {
-	dir = strings.TrimPrefix(dir, "view")
+	dir = strings.TrimPrefix(strings.TrimPrefix(dir, "view"), "/")
 	if dir == "." {
 		dir = ""
 	}

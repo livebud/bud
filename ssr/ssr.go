@@ -26,7 +26,7 @@ func Generator(osfs fs.FS, dir string, transformer *transform.Transformer) gen.G
 		sveltePlugin(osfs, dir),
 		svelteRuntimePlugin(osfs, dir),
 	}, transformer.Node.Plugins()...)
-	return gen.GenerateFile(func(f gen.F, file *gen.File) error {
+	return gen.GenerateFile(func(_ gen.F, file *gen.File) error {
 		result := esbuild.Build(esbuild.BuildOptions{
 			EntryPointsAdvanced: []esbuild.EntryPoint{
 				{

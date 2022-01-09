@@ -3,6 +3,7 @@ package test
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -23,6 +24,7 @@ import (
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/generator"
 	"gitlab.com/mnm/bud/internal/modcache"
+	"gitlab.com/mnm/bud/internal/npm"
 	"gitlab.com/mnm/bud/socket"
 	"gitlab.com/mnm/bud/vfs"
 )
@@ -74,7 +76,6 @@ module app.com
 require (
 	gitlab.com/mnm/bud v0.0.0
 	gitlab.com/mnm/duo v0.0.0-20220108212322-310ab0354067
-	gitlab.com/mnm/bud-tailwind v0.0.0-20211228175933-3ca601f1a518
 )
 `
 
@@ -85,13 +86,15 @@ func Generator(t testing.TB) *Gen {
 		Files: map[string]string{
 			"go.mod": goMod,
 		},
+		NodeModules: map[string]string{},
 	}
 }
 
 type Gen struct {
-	t       testing.TB
-	Modules map[string]modcache.Files
-	Files   map[string]string
+	t           testing.TB
+	Modules     map[string]modcache.Files
+	Files       map[string]string
+	NodeModules map[string]string // package: version
 }
 
 func (g *Gen) Generate() (*App, error) {
@@ -113,15 +116,40 @@ func (g *Gen) Generate() (*App, error) {
 		}
 		g.Files["go.mod"] = code
 	}
+	// Setup the application dir
 	appDir := filepath.Join("_tmp", g.t.Name())
 	if err := os.RemoveAll(appDir); err != nil {
 		return nil, err
 	}
 	g.t.Cleanup(cleanup(g.t, "_tmp", appDir))
+	// Add node_modules
+	var nodeModules []string
+	if len(g.NodeModules) > 0 {
+		packageJSON := &npm.Package{
+			Name:         filepath.Base(appDir),
+			Version:      "0.0.0",
+			Dependencies: map[string]string{},
+		}
+		for name, version := range g.NodeModules {
+			nodeModules = append(nodeModules, name+"@"+version)
+			packageJSON.Dependencies[name] = version
+		}
+		pkgJSON, err := json.MarshalIndent(packageJSON, "", "  ")
+		if err != nil {
+			return nil, err
+		}
+		g.Files["package.json"] = string(pkgJSON) + "\n"
+	}
 	// Write the files to the application directory
 	err := vfs.Write(appDir, vfs.Map(g.Files))
 	if err != nil {
 		return nil, err
+	}
+	// Install node_modules
+	if len(nodeModules) > 0 {
+		if err := npm.Install(appDir, nodeModules...); err != nil {
+			return nil, err
+		}
 	}
 	appFS := vfs.OS(appDir)
 	gen, err := generator.Load(appFS, generator.WithCache(modCache))
@@ -225,6 +253,12 @@ func (a *App) Start(args ...string) (*Server, error) {
 	}
 	// Start the unix domain socket
 	socketPath := filepath.Join(a.t.TempDir(), "tmp.sock")
+	// Heads up: If you see the `bind: invalid argument` error, there's a chance
+	// the path is too long. 103 characters appears to be the limit on OSX,
+	// https://github.com/golang/go/issues/6895.
+	if len(socketPath) > 103 {
+		return nil, fmt.Errorf("socket name is too long")
+	}
 	ln, err := socket.Listen(socketPath)
 	if err != nil {
 		return nil, err

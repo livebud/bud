@@ -1210,9 +1210,10 @@ func TestViewNestedResourceUnkeyed(t *testing.T) {
 	`
 	generator.Files["action/users/users.go"] = `
 		package users
+		type Controller struct {}
 		type User struct {
-			ID int
-			Name string
+			ID int ` + "`" + `json:"id"` + "`" + `
+			Name string ` + "`" + `json:"name"` + "`" + `
 		}
 		func (c *Controller) Index() []*User {
 			return []*User{{1, "a"}, {2, "b"}}
@@ -1227,6 +1228,7 @@ func TestViewNestedResourceUnkeyed(t *testing.T) {
 			return &User{1, "a"}
 		}
 	`
+	// Generate the app
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -1241,13 +1243,12 @@ func TestViewNestedResourceUnkeyed(t *testing.T) {
 		Content-Type: application/json
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
 
-		[]
+		[{"id":1,"name":"a"},{"id":2,"name":"b"}]
 	`)
 	res, err = server.Get("/users")
 	is.NoErr(err)
 	res.Expect(`
 		HTTP/1.1 200 OK
-		Content-Type: application/json
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
 
 		[]

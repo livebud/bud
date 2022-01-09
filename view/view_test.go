@@ -8,8 +8,6 @@ import (
 
 	"github.com/matryer/is"
 	"github.com/matthewmueller/gotext"
-	"gitlab.com/mnm/bud/fsync"
-	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/vfs"
 	"gitlab.com/mnm/bud/view"
 )
@@ -139,17 +137,6 @@ var renderTests = []*RenderTest{
 			is.Equal(200, r.Status)
 		},
 	},
-}
-
-func testRender(is *is.I, dir string, bf gen.FS, test *RenderTest) {
-	// Prepare main.go and files
-	mem := vfs.Memory{}
-	for path, data := range test.Files {
-		mem[path] = &fstest.MapFile{Data: []byte(data)}
-	}
-	is.NoErr(vfs.WriteAll(".", dir, mem))
-	// Sync the filesystem
-	is.NoErr(fsync.Dir(bf, "bud", vfs.OS(dir), "bud"))
 }
 
 func TestRunRender(t *testing.T) {

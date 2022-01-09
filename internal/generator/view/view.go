@@ -25,7 +25,7 @@ type State struct {
 }
 
 func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
-	exist := vfs.SomeExist(g.Module, "action")
+	exist := vfs.SomeExist(g.Module, "view")
 	if len(exist) == 0 {
 		return fs.ErrNotExist
 	}

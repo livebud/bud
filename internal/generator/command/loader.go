@@ -56,7 +56,8 @@ func (l *loader) loadRoot(base string) *Command {
 	command.Slug = imports.AssumedName(l.module.Import())
 	// If a generated web server is present, then the root command is runnable.
 	if _, err := fs.Stat(l.module, "bud/web/web.go"); nil == err {
-		l.imports.AddStd("context")
+		l.imports.AddStd("os", "context")
+		// l.imports.AddStd("fmt")
 		l.imports.AddNamed("console", "gitlab.com/mnm/bud/log/console")
 		l.imports.AddNamed("web", l.module.Import("bud", "web"))
 		l.imports.AddNamed("socket", "gitlab.com/mnm/bud/socket")

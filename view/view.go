@@ -38,7 +38,7 @@ type Renderer interface {
 }
 
 func New(bf gen.FS, vm js.VM) *Server {
-	return &Server{bf, http.FS(bf), vm}
+	return &Server{fs: bf, hfs: http.FS(bf), vm: vm}
 }
 
 func Test(t testing.TB) *Server {
@@ -48,18 +48,18 @@ func Test(t testing.TB) *Server {
 // Live server serves view files on the fly. Used during development.
 func Live(module *mod.Module, genfs gen.FS, vm js.VM, transformer *transform.Transformer) *Server {
 	dir := module.Directory()
-	dirfs := os.DirFS(module.Directory())
+	osfs := os.DirFS(dir)
 	genfs.Add(map[string]gen.Generator{
 		"bud/view":         dom.Runner(dir, transformer),
 		"bud/node_modules": dom.NodeModules(dir),
-		"bud/view/_ssr.js": ssr.Generator(dirfs, dir, transformer),
+		"bud/view/_ssr.js": ssr.Generator(osfs, dir, transformer),
 	})
-	return &Server{genfs, http.FS(genfs), vm}
+	return &Server{fs: genfs, hfs: http.FS(genfs), vm: vm}
 }
 
 // Static server serves the same files every time. Used during production.
 func Static(genfs gen.FS, vm js.VM) *Server {
-	return &Server{genfs, http.FS(genfs), vm}
+	return &Server{fs: genfs, hfs: http.FS(genfs), vm: vm}
 }
 
 type Server struct {
@@ -128,9 +128,9 @@ func (s *Server) Middleware(next http.Handler) http.Handler {
 }
 
 // Handler returns a handler for a specific server-side route
-func (s *Server) Handler(route string) http.Handler {
+func (s *Server) Handler(route string, props interface{}) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.Respond(w, route, map[string]interface{}{})
+		s.Respond(w, route, props)
 	})
 }
 

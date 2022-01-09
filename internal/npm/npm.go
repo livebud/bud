@@ -27,7 +27,7 @@ func Install(root string, packages ...string) error {
 	return eg.Wait()
 }
 
-func resolvePackage(pkgname string) (resolved *npmPackage, err error) {
+func resolvePackage(pkgname string) (resolved *Package, err error) {
 	parts := strings.Split(pkgname, "@")
 	name := parts[0]
 	version := "latest"
@@ -37,22 +37,28 @@ func resolvePackage(pkgname string) (resolved *npmPackage, err error) {
 	if version == "latest" {
 		return nil, fmt.Errorf("npm %s: latest is not supported yet", pkgname)
 	}
-	return &npmPackage{
-		Name:    name,
-		Version: version,
-	}, nil
+	return newPackage(name, version), nil
 }
 
-type npmPackage struct {
-	Name    string
-	Version string
+func newPackage(name, version string) *Package {
+	return &Package{
+		Name:         name,
+		Version:      version,
+		Dependencies: map[string]string{},
+	}
 }
 
-func (p *npmPackage) URL() string {
+type Package struct {
+	Name         string            `json:"name,omitempty"`
+	Version      string            `json:"version,omitempty"`
+	Dependencies map[string]string `json:"dependencies,omitempty"`
+}
+
+func (p *Package) URL() string {
 	return fmt.Sprintf(`https://registry.npmjs.org/%[1]s/-/%[1]s-%[2]s.tgz`, p.Name, p.Version)
 }
 
-func (p *npmPackage) Dir(root string) string {
+func (p *Package) Dir(root string) string {
 	return filepath.Join(root, "node_modules", p.Name)
 }
 

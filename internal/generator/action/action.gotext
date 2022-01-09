@@ -26,7 +26,7 @@ type {{ $.Pascal }}Controller struct {
 // {{ $.Pascal }}{{$action.Pascal}}Action struct
 type {{ $.Pascal }}{{$action.Pascal}}Action struct {
 	{{- if $action.View }}
-	View view.Map
+	View *view.Server
 	{{- end }}
 	{{- if $action.Context }}
 	{{- range $field := $action.Context.Fields }}
@@ -112,7 +112,7 @@ func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpReq
 	return &response.Format{
 		{{- if eq $action.Method "GET" }}
 		{{- if $action.View }}
-		HTML: response.Render({{ $action.Short }}.View["{{$action.View.Path}}"], {{ $action.Results.Result }}),
+		HTML: {{ $action.Short }}.View.Handler("{{$action.View.Path}}", {{ $action.Results.Result }}),
 		{{- end }}
 		{{- else }}
 		HTML: response.Status(302).Redirect(response.RedirectPath(httpRequest, {{$action.Redirect}})),

@@ -6,7 +6,7 @@ require (
 	github.com/ajg/form v1.5.2-0.20200323032839-9aeb3cf462e1
 	github.com/armon/go-radix v1.0.0
 	github.com/cespare/xxhash v1.1.0
-	github.com/evanw/esbuild v0.12.24
+	github.com/evanw/esbuild v0.14.11
 	github.com/fatih/structtag v1.2.0
 	github.com/gitchander/permutation v0.0.0-20201214100618-1f3e7285f953
 	github.com/go-playground/validator/v10 v10.9.0
