@@ -45,9 +45,9 @@ func TestSvelteHello(t *testing.T) {
 	transformer := transform.MustLoad(
 		svelte.NewTransformable(svelteCompiler),
 	)
-	bf := gen.New(dirfs)
+	bf := gen.New(vfs.GitIgnore(dirfs))
 	bf.Add(map[string]gen.Generator{
-		"bud/view/_ssr.js": ssr.Generator(dirfs, dir, transformer),
+		"bud/view/_ssr.js": ssr.Generator(bf, dir, transformer),
 	})
 	// Install svelte
 	err = npm.Install(dir, "svelte@3.42.3")
@@ -112,9 +112,9 @@ func TestSvelteAwait(t *testing.T) {
 	transformer := transform.MustLoad(
 		svelte.NewTransformable(svelteCompiler),
 	)
-	bf := gen.New(dirfs)
+	bf := gen.New(vfs.GitIgnore(dirfs))
 	bf.Add(map[string]gen.Generator{
-		"bud/view/_ssr.js": ssr.Generator(dirfs, dir, transformer),
+		"bud/view/_ssr.js": ssr.Generator(bf, dir, transformer),
 	})
 	// Install svelte
 	err = npm.Install(dir, "svelte@3.42.3")
@@ -220,9 +220,9 @@ func TestSvelteProps(t *testing.T) {
 	transformer := transform.MustLoad(
 		svelte.NewTransformable(svelteCompiler),
 	)
-	bf := gen.New(dirfs)
+	bf := gen.New(vfs.GitIgnore(dirfs))
 	bf.Add(map[string]gen.Generator{
-		"bud/view/_ssr.js": ssr.Generator(dirfs, dir, transformer),
+		"bud/view/_ssr.js": ssr.Generator(bf, dir, transformer),
 	})
 	// Install svelte
 	err = npm.Install(dir, "svelte@3.42.3")

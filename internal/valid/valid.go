@@ -18,7 +18,6 @@ func invalidDir(name string) bool {
 		name[0] == '_' || // Starts with _
 		name[0] == '.' || // Starts with .
 		name == "bud" || // Named bud (reserved)
-		name == "node_modules" ||
 		strings.ToLower(name) != name // Has uppercase letters
 }
 

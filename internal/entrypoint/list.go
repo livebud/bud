@@ -146,6 +146,10 @@ func listViews(fsys fs.FS, tree *tree, dir string) (views []*View, err error) {
 			continue
 		}
 		ext := path.Ext(name)
+		// TODO: remove this constraint after we have sufficient testing
+		if ext != ".svelte" {
+			continue
+		}
 		views = append(views, &View{
 			Page:   Path(fullpath),
 			Client: client(fullpath),
@@ -153,7 +157,7 @@ func listViews(fsys fs.FS, tree *tree, dir string) (views []*View, err error) {
 			Frames: tree.Frames(dir, ext),
 			Layout: tree.Layout(dir, ext),
 			Error:  tree.Error(dir, ext),
-			Type:   ext[1:],
+			Type:   strings.TrimPrefix(ext, "."),
 			Hot:    true, // TODO: remove
 		})
 	}
@@ -163,15 +167,15 @@ func listViews(fsys fs.FS, tree *tree, dir string) (views []*View, err error) {
 // Generate the IDs for a nested route
 // TODO: consolidate with the function in internal/generator/action/loader.go.
 func routeDir(dir string) string {
-	segments := strings.Split(text.Path(dir), "/")
+	segments := strings.Split(dir, "/")
 	path := new(strings.Builder)
 	for i := 0; i < len(segments); i++ {
 		if i%2 != 0 {
 			path.WriteString("/")
-			path.WriteString(":" + text.Slug(text.Singular(segments[i-1])) + "_id")
+			path.WriteString(":" + text.Snake(text.Singular(segments[i-1])) + "_id")
 			path.WriteString("/")
 		}
-		path.WriteString(text.Slug(segments[i]))
+		path.WriteString(text.Snake(segments[i]))
 	}
 	if path.Len() == 0 {
 		return ""

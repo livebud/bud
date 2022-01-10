@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
-	"os"
 	"strings"
 	"testing"
 
@@ -48,11 +47,10 @@ func Test(t testing.TB) *Server {
 // Live server serves view files on the fly. Used during development.
 func Live(module *mod.Module, genfs gen.FS, vm js.VM, transformer *transform.Transformer) *Server {
 	dir := module.Directory()
-	osfs := os.DirFS(dir)
 	genfs.Add(map[string]gen.Generator{
-		"bud/view":         dom.Runner(dir, transformer),
+		"bud/view":         dom.Runner(genfs, dir, transformer),
 		"bud/node_modules": dom.NodeModules(dir),
-		"bud/view/_ssr.js": ssr.Generator(osfs, dir, transformer),
+		"bud/view/_ssr.js": ssr.Generator(genfs, dir, transformer),
 	})
 	return &Server{fs: genfs, hfs: http.FS(genfs), vm: vm}
 }

@@ -45,9 +45,9 @@ func TestRunner(t *testing.T) {
 	transformer := transform.MustLoad(
 		svelte.NewTransformable(svelteCompiler),
 	)
-	bf := gen.New(dirfs)
+	bf := gen.New(vfs.GitIgnore(dirfs))
 	bf.Add(map[string]gen.Generator{
-		"bud/view": dom.Runner(dir, transformer),
+		"bud/view": dom.Runner(bf, dir, transformer),
 	})
 	// Read the wrapped version of index.svelte with node_modules rewritten
 	code, err := fs.ReadFile(bf, "bud/view/_index.svelte")
@@ -120,7 +120,7 @@ func TestNodeModules(t *testing.T) {
 	dirfs := os.DirFS(dir)
 	err = npm.Install(dir, "svelte@3.42.3")
 	is.NoErr(err)
-	bf := gen.New(dirfs)
+	bf := gen.New(vfs.GitIgnore(dirfs))
 	bf.Add(map[string]gen.Generator{
 		"bud/node_modules": dom.NodeModules(dir),
 	})
@@ -161,9 +161,9 @@ func TestBuilder(t *testing.T) {
 	transformer := transform.MustLoad(
 		svelte.NewTransformable(svelteCompiler),
 	)
-	bf := gen.New(dirfs)
+	bf := gen.New(vfs.GitIgnore(dirfs))
 	bf.Add(map[string]gen.Generator{
-		"bud/view": dom.Builder(dir, transformer),
+		"bud/view": dom.Builder(bf, dir, transformer),
 	})
 	des, err := fs.ReadDir(bf, "bud/view")
 	is.NoErr(err)

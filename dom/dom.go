@@ -5,7 +5,6 @@ import (
 	_ "embed"
 	"fmt"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -23,8 +22,7 @@ var template string
 // generator
 var generator = gotemplate.MustParse("dom.gotext", template)
 
-func Runner(rootDir string, transformer *transform.Transformer) gen.Generator {
-	dirfs := os.DirFS(rootDir)
+func Runner(dirfs fs.FS, rootDir string, transformer *transform.Transformer) gen.Generator {
 	plugins := append([]esbuild.Plugin{
 		domPlugin(dirfs, rootDir),
 		domExternalizePlugin(),
@@ -108,8 +106,7 @@ func NodeModules(rootDir string) gen.Generator {
 	})
 }
 
-func Builder(rootDir string, transformer *transform.Transformer) gen.Generator {
-	dirfs := os.DirFS(rootDir)
+func Builder(dirfs fs.FS, rootDir string, transformer *transform.Transformer) gen.Generator {
 	plugins := append([]esbuild.Plugin{
 		domPlugin(dirfs, rootDir),
 	}, transformer.Browser.Plugins()...)

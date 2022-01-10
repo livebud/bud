@@ -92,7 +92,6 @@ func ssrPlugin(osfs fs.FS, dir string) esbuild.Plugin {
 				code, err := ssrGenerator.Generate(map[string]interface{}{
 					"Views": views,
 				})
-				fmt.Println(string(code))
 				if err != nil {
 					return result, err
 				}

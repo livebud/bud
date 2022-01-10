@@ -105,15 +105,15 @@ func (l *loader) loadControllerName(controllerPath string) string {
 }
 
 func (l *loader) loadControllerPath(controllerPath string) string {
-	segments := strings.Split(text.Path(controllerPath), "/")
+	segments := strings.Split(controllerPath, "/")
 	path := new(strings.Builder)
 	for i := 0; i < len(segments); i++ {
 		if i%2 != 0 {
 			path.WriteString("/")
-			path.WriteString(":" + text.Slug(text.Singular(segments[i-1])) + "_id")
+			path.WriteString(":" + text.Snake(text.Singular(segments[i-1])) + "_id")
 			path.WriteString("/")
 		}
-		path.WriteString(text.Slug(segments[i]))
+		path.WriteString(text.Snake(segments[i]))
 	}
 	if path.Len() == 0 {
 		return ""
