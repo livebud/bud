@@ -14,11 +14,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/matryer/is"
 	"github.com/matthewmueller/diff"
 	"gitlab.com/mnm/bud/go/mod"
@@ -442,4 +444,31 @@ func (r *Response) Expect(expect string) {
 		dump = strings.ReplaceAll(dump, "\r\n"+expect, "")
 	}
 	diff.TestHTTP(r.t, expect, dump)
+}
+
+var contentLength = regexp.MustCompile(`\r\nContent-Length: \d+`)
+
+func (r *Response) ExpectHeaders(expect string) {
+	r.t.Helper()
+	// Make the date constant
+	if v := r.Response.Header.Get("Date"); v != "" {
+		r.Response.Header.Set("Date", now.Format(http.TimeFormat))
+	}
+	dumpBytes, err := httputil.DumpResponse(r.Response, false)
+	if err != nil {
+		diff.TestString(r.t, expect, err.Error())
+		return
+	}
+	dump := string(dumpBytes)
+	dump = contentLength.ReplaceAllString(dump, "")
+	diff.TestHTTP(r.t, expect, dump)
+}
+
+func (r *Response) Query(selector string) *goquery.Selection {
+	r.t.Helper()
+	doc, err := goquery.NewDocumentFromReader(r.Body)
+	if err != nil {
+		r.t.Fatal(err)
+	}
+	return doc.Find(selector)
 }

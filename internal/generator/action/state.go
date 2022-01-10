@@ -19,7 +19,8 @@ type State struct {
 type Controller struct {
 	Name        string
 	Pascal      string
-	Path        string
+	Path        string // Path to controller without action dir
+	Route       string
 	Actions     []*Action
 	Controllers []*Controller
 }
@@ -42,8 +43,8 @@ type Action struct {
 	Camel        string
 	Short        string
 	View         *View
-	Key          string
-	Path         string
+	Key          string // Key is an extension-less path
+	Route        string // Route to this action
 	Redirect     string
 	Method       string
 	Context      *Context
@@ -55,7 +56,7 @@ type Action struct {
 
 // View struct
 type View struct {
-	Path string
+	Route string
 }
 
 // ActionParam struct

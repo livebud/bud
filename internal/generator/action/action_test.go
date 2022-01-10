@@ -1178,35 +1178,181 @@ func TestResourceContext(t *testing.T) {
 	`)
 }
 
+func TestViewRootResourceUnkeyed(t *testing.T) {
+	is := is.New(t)
+	generator := test.Generator(t)
+	generator.Files["view/index.svelte"] = `
+		<script>
+			export let props = []
+		</script>
+		{#each props as user}
+		<h1>index: {user.id} {user.name}</h1>
+		{/each}
+	`
+	generator.Files["view/new.svelte"] = `
+		<script>
+			export let props = {}
+		</script>
+		<h1>new: {props.id} {props.name}</h1>
+	`
+	generator.Files["view/show.svelte"] = `
+		<script>
+			export let props = {}
+		</script>
+		<h1>show: {props.id} {props.name}</h1>
+	`
+	generator.Files["view/edit.svelte"] = `
+		<script>
+			export let props = {}
+		</script>
+		<h1>edit: {props.id} {props.name}</h1>
+	`
+	generator.Files["action/action.go"] = `
+		package action
+		type Controller struct {}
+		type User struct {
+			ID int ` + "`" + `json:"id"` + "`" + `
+			Name string ` + "`" + `json:"name"` + "`" + `
+		}
+		func (c *Controller) Index() []*User {
+			return []*User{{1, "a"}, {2, "b"}}
+		}
+		func (c *Controller) New() *User {
+			return &User{3, "c"}
+		}
+		func (c *Controller) Show(id int) *User {
+			return &User{id, "s"}
+		}
+		func (c *Controller) Edit(id int) *User {
+			return &User{id, "e"}
+		}
+	`
+	// Generate the app
+	app, err := generator.Generate()
+	is.NoErr(err)
+	is.True(app.Exists("bud/action/action.go"))
+	is.True(app.Exists("bud/main.go"))
+	server, err := app.Start()
+	is.NoErr(err)
+	defer server.Close()
+
+	//
+	res, err := server.GetJSON("")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		[{"id":1,"name":"a"},{"id":2,"name":"b"}]
+	`)
+	res, err = server.Get("")
+	is.NoErr(err)
+	res.ExpectHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`)
+	el := res.Query("#bud_target")
+	html, err := el.Html()
+	is.NoErr(err)
+	is.Equal(`<h1>index: 1 a</h1><h1>index: 2 b</h1>`, html)
+
+	// /new
+	res, err = server.GetJSON("/new")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		{"id":3,"name":"c"}
+	`)
+	res, err = server.Get("/new")
+	is.NoErr(err)
+	res.ExpectHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`)
+	el = res.Query("#bud_target")
+	html, err = el.Html()
+	is.NoErr(err)
+	is.Equal(`<h1>new: 3 c</h1>`, html)
+
+	// /:id
+	res, err = server.GetJSON("/10")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		{"id":10,"name":"s"}
+	`)
+	res, err = server.Get("/10")
+	is.NoErr(err)
+	res.ExpectHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`)
+	el = res.Query("#bud_target")
+	html, err = el.Html()
+	is.NoErr(err)
+	is.Equal(`<h1>show: 10 s</h1>`, html)
+
+	// /:id/edit
+	res, err = server.GetJSON("/10/edit")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		{"id":10,"name":"e"}
+	`)
+	res, err = server.Get("/10/edit")
+	is.NoErr(err)
+	res.ExpectHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`)
+	el = res.Query("#bud_target")
+	html, err = el.Html()
+	is.NoErr(err)
+	is.Equal(`<h1>edit: 10 e</h1>`, html)
+}
+
 func TestViewNestedResourceUnkeyed(t *testing.T) {
-	t.SkipNow()
 	is := is.New(t)
 	generator := test.Generator(t)
 	generator.Files["view/users/index.svelte"] = `
 		<script>
-			export let users = []
+			export let props = []
 		</script>
-		{#each users as user}
+		{#each props as user}
 		<h1>index: {user.id} {user.name}</h1>
 		{/each}
 	`
 	generator.Files["view/users/new.svelte"] = `
 		<script>
-			export let user = {}
+			export let props = {}
 		</script>
-		<h1>new: {user.id} {user.name}</h1>
+		<h1>new: {props.id} {props.name}</h1>
 	`
 	generator.Files["view/users/show.svelte"] = `
 		<script>
-			export let user = {}
+			export let props = {}
 		</script>
-		<h2>show: {user.id} {user.name}</h2>
+		<h1>show: {props.id} {props.name}</h1>
 	`
 	generator.Files["view/users/edit.svelte"] = `
 		<script>
-			export let user = {}
+			export let props = {}
 		</script>
-		<h2>edit: {user.id} {user.name}</h2>
+		<h1>edit: {props.id} {props.name}</h1>
 	`
 	generator.Files["action/users/users.go"] = `
 		package users
@@ -1222,10 +1368,10 @@ func TestViewNestedResourceUnkeyed(t *testing.T) {
 			return &User{3, "c"}
 		}
 		func (c *Controller) Show(id int) *User {
-			return &User{1, "a"}
+			return &User{id, "s"}
 		}
 		func (c *Controller) Edit(id int) *User {
-			return &User{1, "a"}
+			return &User{id, "e"}
 		}
 	`
 	// Generate the app
@@ -1236,6 +1382,8 @@ func TestViewNestedResourceUnkeyed(t *testing.T) {
 	server, err := app.Start()
 	is.NoErr(err)
 	defer server.Close()
+
+	// /users
 	res, err := server.GetJSON("/users")
 	is.NoErr(err)
 	res.Expect(`
@@ -1247,10 +1395,226 @@ func TestViewNestedResourceUnkeyed(t *testing.T) {
 	`)
 	res, err = server.Get("/users")
 	is.NoErr(err)
+	res.ExpectHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`)
+	el := res.Query("#bud_target")
+	html, err := el.Html()
+	is.NoErr(err)
+	is.Equal(`<h1>index: 1 a</h1><h1>index: 2 b</h1>`, html)
+
+	// /users/new
+	res, err = server.GetJSON("/users/new")
+	is.NoErr(err)
 	res.Expect(`
 		HTTP/1.1 200 OK
+		Content-Type: application/json
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
 
-		[]
+		{"id":3,"name":"c"}
 	`)
+	res, err = server.Get("/users/new")
+	is.NoErr(err)
+	res.ExpectHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`)
+	el = res.Query("#bud_target")
+	html, err = el.Html()
+	is.NoErr(err)
+	is.Equal(`<h1>new: 3 c</h1>`, html)
+
+	// /users/:id
+	res, err = server.GetJSON("/users/10")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		{"id":10,"name":"s"}
+	`)
+	res, err = server.Get("/users/10")
+	is.NoErr(err)
+	res.ExpectHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`)
+	el = res.Query("#bud_target")
+	html, err = el.Html()
+	is.NoErr(err)
+	is.Equal(`<h1>show: 10 s</h1>`, html)
+
+	// /users/:id/edit
+	res, err = server.GetJSON("/users/10/edit")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		{"id":10,"name":"e"}
+	`)
+	res, err = server.Get("/users/10/edit")
+	is.NoErr(err)
+	res.ExpectHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`)
+	el = res.Query("#bud_target")
+	html, err = el.Html()
+	is.NoErr(err)
+	is.Equal(`<h1>edit: 10 e</h1>`, html)
+}
+
+func TestViewDeepResourceUnkeyed(t *testing.T) {
+	is := is.New(t)
+	generator := test.Generator(t)
+	generator.Files["view/teams/users/index.svelte"] = `
+		<script>
+			export let props = []
+		</script>
+		{#each props as user}
+		<h1>index: {user.id} {user.name}</h1>
+		{/each}
+	`
+	generator.Files["view/teams/users/new.svelte"] = `
+		<script>
+			export let props = {}
+		</script>
+		<h1>new: {props.id} {props.name}</h1>
+	`
+	generator.Files["view/teams/users/show.svelte"] = `
+		<script>
+			export let props = {}
+		</script>
+		<h1>show: {props.id} {props.name}</h1>
+	`
+	generator.Files["view/teams/users/edit.svelte"] = `
+		<script>
+			export let props = {}
+		</script>
+		<h1>edit: {props.id} {props.name}</h1>
+	`
+	generator.Files["action/teams/users/users.go"] = `
+		package users
+		type Controller struct {}
+		type User struct {
+			ID int ` + "`" + `json:"id"` + "`" + `
+			Name string ` + "`" + `json:"name"` + "`" + `
+		}
+		func (c *Controller) Index() []*User {
+			return []*User{{1, "a"}, {2, "b"}}
+		}
+		func (c *Controller) New() *User {
+			return &User{3, "c"}
+		}
+		func (c *Controller) Show(id int) *User {
+			return &User{id, "s"}
+		}
+		func (c *Controller) Edit(id int) *User {
+			return &User{id, "e"}
+		}
+	`
+	// Generate the app
+	app, err := generator.Generate()
+	is.NoErr(err)
+	is.True(app.Exists("bud/action/action.go"))
+	is.True(app.Exists("bud/main.go"))
+	server, err := app.Start()
+	is.NoErr(err)
+	defer server.Close()
+
+	// /teams/:team_id/users
+	res, err := server.GetJSON("/teams/5/users")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		[{"id":1,"name":"a"},{"id":2,"name":"b"}]
+	`)
+	res, err = server.Get("/teams/5/users")
+	is.NoErr(err)
+	res.ExpectHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`)
+	el := res.Query("#bud_target")
+	html, err := el.Html()
+	is.NoErr(err)
+	is.Equal(`<h1>index: 1 a</h1><h1>index: 2 b</h1>`, html)
+
+	// /teams/:team_id/users/new
+	res, err = server.GetJSON("/teams/5/users/new")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		{"id":3,"name":"c"}
+	`)
+	res, err = server.Get("/teams/5/users/new")
+	is.NoErr(err)
+	res.ExpectHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`)
+	el = res.Query("#bud_target")
+	html, err = el.Html()
+	is.NoErr(err)
+	is.Equal(`<h1>new: 3 c</h1>`, html)
+
+	// /teams/:team_id/users/:id
+	res, err = server.GetJSON("/teams/5/users/10")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		{"id":10,"name":"s"}
+	`)
+	res, err = server.Get("/teams/5/users/10")
+	is.NoErr(err)
+	res.ExpectHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`)
+	el = res.Query("#bud_target")
+	html, err = el.Html()
+	is.NoErr(err)
+	is.Equal(`<h1>show: 10 s</h1>`, html)
+
+	// /teams/:team_id/users/:id/edit
+	res, err = server.GetJSON("/teams/5/users/10/edit")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		{"id":10,"name":"e"}
+	`)
+	res, err = server.Get("/teams/5/users/10/edit")
+	is.NoErr(err)
+	res.ExpectHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`)
+	el = res.Query("#bud_target")
+	html, err = el.Html()
+	is.NoErr(err)
+	is.Equal(`<h1>edit: 10 e</h1>`, html)
 }

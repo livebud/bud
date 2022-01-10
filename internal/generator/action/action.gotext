@@ -39,16 +39,12 @@ type {{ $.Pascal }}{{$action.Pascal}}Action struct {
 
 // Key is a unique identifier of this action
 func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) Key() string {
-	{{- if $.Path }}
-	return "{{$.Path}}{{$action.Key}}"
-	{{- else }}
 	return "{{$action.Key}}"
-	{{- end }}
 }
 
 // Path is the default RESTful path to this action
 func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) Path() string {
-	return "{{$action.Path}}"
+	return "{{$action.Route}}"
 }
 
 // Method is the default RESTful method of this action
@@ -112,7 +108,7 @@ func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpReq
 	return &response.Format{
 		{{- if eq $action.Method "GET" }}
 		{{- if $action.View }}
-		HTML: {{ $action.Short }}.View.Handler("{{$action.View.Path}}", {{ $action.Results.Result }}),
+		HTML: {{ $action.Short }}.View.Handler("{{$action.View.Route}}", {{ $action.Results.Result }}),
 		{{- end }}
 		{{- else }}
 		HTML: response.Status(302).Redirect(response.RedirectPath(httpRequest, {{$action.Redirect}})),

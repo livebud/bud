@@ -79,7 +79,7 @@ type tree struct {
 }
 
 func (t *tree) Error(dir, ext string) Path {
-	root, rest := unroot(dir)
+	root, rest := splitRoot(dir)
 	if subtree, ok := t.subtree[root]; ok {
 		if error := subtree.Error(rest, ext); error != "" {
 			return error
@@ -92,7 +92,7 @@ func (t *tree) Error(dir, ext string) Path {
 }
 
 func (t *tree) Layout(dir, ext string) Path {
-	root, rest := unroot(dir)
+	root, rest := splitRoot(dir)
 	if subtree, ok := t.subtree[root]; ok {
 		if layout := subtree.Layout(rest, ext); layout != "" {
 			return layout
@@ -108,19 +108,19 @@ func (t *tree) Frames(dir, ext string) (frames []Path) {
 	if frame, ok := t.frame[ext]; ok {
 		frames = append(frames, frame)
 	}
-	root, rest := unroot(dir)
+	root, rest := splitRoot(dir)
 	if subtree, ok := t.subtree[root]; ok {
 		frames = append(frames, subtree.Frames(rest, ext)...)
 	}
 	return frames
 }
 
-func unroot(dir string) (root, rest string) {
-	parts := strings.Split(dir, "/")
+func splitRoot(dir string) (root, rest string) {
+	parts := strings.SplitN(dir, "/", 2)
 	if len(parts) == 1 {
 		return parts[0], ""
 	}
-	return parts[0], strings.Join(parts[1:], "/")
+	return parts[0], parts[1]
 }
 
 func listViews(fsys fs.FS, tree *tree, dir string) (views []*View, err error) {

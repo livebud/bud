@@ -65,11 +65,11 @@ func (l *loader) loadController(actionPath string) *Controller {
 		l.Bail(err)
 	}
 	controller := new(Controller)
-	controllerPath := strings.TrimPrefix(actionPath, "action")
-	controller.Name = l.loadControllerName(controllerPath)
+	controller.Path = l.loadControllerPath(actionPath)
+	controller.Name = l.loadControllerName(controller.Path)
 	controller.Pascal = gotext.Pascal(controller.Name)
 	// TODO: rename to route
-	controller.Path = l.loadControllerPath(controllerPath)
+	controller.Route = l.loadControllerRoute(controller.Path)
 	shouldParse := false
 	for _, de := range des {
 		if !de.IsDir() && valid.ActionFile(de.Name()) {
@@ -100,12 +100,20 @@ func (l *loader) loadController(actionPath string) *Controller {
 	return controller
 }
 
+func (l *loader) loadControllerPath(actionPath string) string {
+	parts := strings.SplitN(actionPath, "/", 2)
+	if len(parts) == 1 {
+		return "/"
+	}
+	return "/" + parts[1]
+}
+
 func (l *loader) loadControllerName(controllerPath string) string {
 	return text.Space(controllerPath)
 }
 
-func (l *loader) loadControllerPath(controllerPath string) string {
-	segments := strings.Split(controllerPath, "/")
+func (l *loader) loadControllerRoute(controllerPath string) string {
+	segments := strings.Split(strings.TrimPrefix(controllerPath, "/"), "/")
 	path := new(strings.Builder)
 	for i := 0; i < len(segments); i++ {
 		if i%2 != 0 {
@@ -116,9 +124,9 @@ func (l *loader) loadControllerPath(controllerPath string) string {
 		path.WriteString(text.Snake(segments[i]))
 	}
 	if path.Len() == 0 {
-		return ""
+		return "/"
 	}
-	return path.String()
+	return "/" + path.String()
 }
 
 func (l *loader) loadActions(controller *Controller, stct *parser.Struct) (actions []*Action) {
@@ -144,9 +152,9 @@ func (l *loader) loadAction(controller *Controller, method *parser.Function) *Ac
 	action.Pascal = gotext.Pascal(action.Name)
 	action.Camel = gotext.Camel(action.Name)
 	action.Short = text.Lower(gotext.Short(action.Name))
-	action.Path = l.loadActionPath(controller.Path, action.Name)
-	action.Key = l.loadActionKey(action.Name)
-	action.View = l.loadView(controller.Path, action.Key, action.Path)
+	action.Route = l.loadActionRoute(controller.Route, action.Name)
+	action.Key = l.loadActionKey(controller.Path, action.Name)
+	action.View = l.loadView(controller.Path, action.Key, action.Route)
 	action.Method = l.loadActionMethod(action.Name)
 	action.Params = l.loadActionParams(method.Params())
 	action.Input = l.loadActionInput(action.Params)
@@ -157,23 +165,23 @@ func (l *loader) loadAction(controller *Controller, method *parser.Function) *Ac
 	return action
 }
 
-func (l *loader) loadActionKey(actionName string) string {
-	return "/" + text.Lower(text.Path(actionName))
+func (l *loader) loadActionKey(controllerPath, actionName string) string {
+	return path.Join(controllerPath, text.Lower(text.Path(actionName)))
 }
 
-// Path is the route to the action
-func (l *loader) loadActionPath(controllerPath, actionName string) string {
+// Route to the action
+func (l *loader) loadActionRoute(controllerRoute, actionName string) string {
 	switch actionName {
 	case "Show", "Update", "Delete":
-		return "/" + path.Join(controllerPath, ":id")
+		return path.Join(controllerRoute, ":id")
 	case "New":
-		return "/" + path.Join(controllerPath, "new")
+		return path.Join(controllerRoute, "new")
 	case "Edit":
-		return "/" + path.Join(controllerPath, ":id", "edit")
+		return path.Join(controllerRoute, ":id", "edit")
 	case "Index", "Create":
-		return "/" + controllerPath
+		return controllerRoute
 	default:
-		return "/" + path.Join(controllerPath, text.Path(actionName))
+		return path.Join(controllerRoute, text.Path(actionName))
 	}
 }
 
@@ -191,8 +199,8 @@ func (l *loader) loadActionMethod(actionName string) string {
 	}
 }
 
-func (l *loader) loadView(controllerPath, actionKey, actionPath string) *View {
-	viewDir := path.Join("view", controllerPath)
+func (l *loader) loadView(controllerKey, actionKey, actionRoute string) *View {
+	viewDir := path.Join("view", controllerKey)
 	des, err := fs.ReadDir(l.module, viewDir)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -207,13 +215,13 @@ func (l *loader) loadView(controllerPath, actionKey, actionPath string) *View {
 			continue
 		}
 		base := strings.TrimSuffix(path.Base(name), ext)
-		key := strings.TrimPrefix(actionKey, "/")
+		key := path.Base(actionKey)
 		if base != key {
 			continue
 		}
 		l.imports.Add(l.module.Import("bud/view"))
 		return &View{
-			Path: actionPath,
+			Route: actionRoute,
 		}
 	}
 	return nil
