@@ -15,11 +15,13 @@ import (
 
 // List the views
 func List(fsys fs.FS) ([]*View, error) {
-	views, err := list(fsys, ".", &reserved{
-		Error:  map[string]Path{},
-		Layout: map[string]Path{},
-		Frames: map[string][]Path{},
-	})
+	// Build a tree of reserved views (layout, frames, error)
+	tree, err := buildTree(fsys, ".")
+	if err != nil {
+		return nil, err
+	}
+	// Turn the tree of views into a list of views
+	views, err := listViews(fsys, tree, ".")
 	if err != nil {
 		return nil, err
 	}
@@ -30,75 +32,127 @@ func List(fsys fs.FS) ([]*View, error) {
 	return views, nil
 }
 
-// reserved views
-type reserved struct {
-	Error  map[string]Path
-	Layout map[string]Path
-	Frames map[string][]Path
-}
-
-func list(fsys fs.FS, dir string, reserved *reserved) (views []*View, err error) {
+func buildTree(fsys fs.FS, dir string) (*tree, error) {
 	fis, err := fs.ReadDir(fsys, dir)
 	if err != nil {
 		return nil, err
 	}
-	var remaining []fs.DirEntry
-	// var errorPaths []string
+	tree := &tree{
+		error:   map[string]Path{},
+		layout:  map[string]Path{},
+		frame:   map[string]Path{},
+		subtree: map[string]*tree{},
+	}
 	for _, fi := range fis {
 		name := fi.Name()
-		ext := filepath.Ext(name)
+		fullpath := path.Join(dir, name)
 		if fi.IsDir() {
-			remaining = append(remaining, fi)
-			continue
-		} else if !validEntry(ext) {
-			continue
-		}
-		path := filepath.Join(dir, name)
-		switch extless(name) {
-		case "error":
-			// errorPaths = append(errorPaths, name)
-			reserved.Error[ext] = Path(path)
-			continue
-		case "layout":
-			reserved.Layout[ext] = Path(path)
-			continue
-		case "frame":
-			reserved.Frames[ext] = append(reserved.Frames[ext], Path(path))
-			continue
-		}
-		// Add to the remaining for additional inspection
-		remaining = append(remaining, fi)
-	}
-	// Second, loop over the directory adding views as we go and traversing
-	// directories
-	for _, fi := range remaining {
-		name := fi.Name()
-		base := filepath.Base(name)
-		// Handle directories
-		if fi.IsDir() {
-			if len(base) == 0 || base[0] == '_' {
+			if !valid.Dir(name) {
 				continue
 			}
-			subdir := filepath.Join(dir, name)
-			subviews, err := list(fsys, subdir, reserved)
+			subtree, err := buildTree(fsys, fullpath)
+			if err != nil {
+				return nil, err
+			}
+			tree.subtree[name] = subtree
+			continue
+		}
+		ext := path.Ext(name)
+		switch extless(name) {
+		case "Error":
+			tree.error[ext] = Path(fullpath)
+		case "Layout":
+			tree.layout[ext] = Path(fullpath)
+		case "Frame":
+			tree.frame[ext] = Path(fullpath)
+		}
+	}
+	return tree, nil
+}
+
+// reservedTree of reserved views
+type tree struct {
+	error   map[string]Path
+	layout  map[string]Path
+	frame   map[string]Path
+	subtree map[string]*tree
+}
+
+func (t *tree) Error(dir, ext string) Path {
+	root, rest := unroot(dir)
+	if subtree, ok := t.subtree[root]; ok {
+		if error := subtree.Error(rest, ext); error != "" {
+			return error
+		}
+	}
+	if error, ok := t.error[ext]; ok {
+		return error
+	}
+	return ""
+}
+
+func (t *tree) Layout(dir, ext string) Path {
+	root, rest := unroot(dir)
+	if subtree, ok := t.subtree[root]; ok {
+		if layout := subtree.Layout(rest, ext); layout != "" {
+			return layout
+		}
+	}
+	if layout, ok := t.layout[ext]; ok {
+		return layout
+	}
+	return ""
+}
+
+func (t *tree) Frames(dir, ext string) (frames []Path) {
+	if frame, ok := t.frame[ext]; ok {
+		frames = append(frames, frame)
+	}
+	root, rest := unroot(dir)
+	if subtree, ok := t.subtree[root]; ok {
+		frames = append(frames, subtree.Frames(rest, ext)...)
+	}
+	return frames
+}
+
+func unroot(dir string) (root, rest string) {
+	parts := strings.Split(dir, "/")
+	if len(parts) == 1 {
+		return parts[0], ""
+	}
+	return parts[0], strings.Join(parts[1:], "/")
+}
+
+func listViews(fsys fs.FS, tree *tree, dir string) (views []*View, err error) {
+	fis, err := fs.ReadDir(fsys, dir)
+	if err != nil {
+		return nil, err
+	}
+	for _, fi := range fis {
+		name := fi.Name()
+		fullpath := path.Join(dir, name)
+		if fi.IsDir() {
+			if !valid.Dir(name) {
+				continue
+			}
+			subviews, err := listViews(fsys, tree, fullpath)
 			if err != nil {
 				return nil, err
 			}
 			views = append(views, subviews...)
 			continue
 		}
-		// Handle files
-		if !valid.ViewEntry(base) {
+		if !valid.ViewEntry(name) {
 			continue
 		}
-		path := filepath.Join(dir, name)
-		ext := filepath.Ext(name)
+		ext := path.Ext(name)
 		views = append(views, &View{
-			Page:   Path(path),
-			Client: client(path),
+			Page:   Path(fullpath),
+			Client: client(fullpath),
 			Route:  route(dir, name),
-			Frames: reserved.Frames[ext],
-			Layout: Path(reserved.Layout[ext]),
+			Frames: tree.Frames(dir, ext),
+			Layout: tree.Layout(dir, ext),
+			Error:  tree.Error(dir, ext),
 			Type:   ext[1:],
 			Hot:    true, // TODO: remove
 		})
@@ -106,13 +160,23 @@ func list(fsys fs.FS, dir string, reserved *reserved) (views []*View, err error)
 	return views, nil
 }
 
-func validEntry(ext string) bool {
-	switch ext {
-	case ".svelte", ".jsx", ".tsx", ".gohtml":
-		return true
-	default:
-		return false
+// Generate the IDs for a nested route
+// TODO: consolidate with the function in internal/generator/action/loader.go.
+func routeDir(dir string) string {
+	segments := strings.Split(text.Path(dir), "/")
+	path := new(strings.Builder)
+	for i := 0; i < len(segments); i++ {
+		if i%2 != 0 {
+			path.WriteString("/")
+			path.WriteString(":" + text.Slug(text.Singular(segments[i-1])) + "_id")
+			path.WriteString("/")
+		}
+		path.WriteString(text.Slug(segments[i]))
 	}
+	if path.Len() == 0 {
+		return ""
+	}
+	return path.String()
 }
 
 // Path is the route to the action
@@ -121,6 +185,7 @@ func route(dir, name string) string {
 	if dir == "." {
 		dir = ""
 	}
+	dir = routeDir(dir)
 	base := extless(name)
 	switch base {
 	case "show":
