@@ -70,6 +70,10 @@ type ActionParam struct {
 	Tag      string
 }
 
+func (ap *ActionParam) IsContext() bool {
+	return ap.Type == "context.Context"
+}
+
 // ActionResults fn
 type ActionResults []*ActionResult
 

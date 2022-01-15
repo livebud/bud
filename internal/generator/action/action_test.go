@@ -1135,49 +1135,6 @@ func TestRedirectDeepNestedResource(t *testing.T) {
 	`)
 }
 
-func TestResourceContext(t *testing.T) {
-	t.SkipNow()
-	is := is.New(t)
-	generator := test.Generator(t)
-	generator.Files["action/users/users.go"] = `
-		package users
-		type User struct {
-			ID int
-			Name string
-		}
-		func (c *Controller) Index(ctx context.Context) []*User {
-			return []*User{{1, "a"}, {2, "b"}}
-		}
-		func (c *Controller) Create(ctx context.Context, name string, age int) *User {
-			return &User{1, "a"}
-		}
-		func (c *Controller) Show(ctx context.Context, id int) {}
-		func (c *Controller) Edit(ctx context.Context, id int) {}
-		func (c *Controller) Update(ctx context.Context, id int, name *string, age *int) error {
-			return nil
-		}
-		func (c *Controller) Delete(ctx context.Context, id int) error {
-			return nil
-		}
-	`
-	app, err := generator.Generate()
-	is.NoErr(err)
-	is.True(app.Exists("bud/action/action.go"))
-	is.True(app.Exists("bud/main.go"))
-	server, err := app.Start()
-	is.NoErr(err)
-	defer server.Close()
-	res, err := server.GetJSON("/users")
-	is.NoErr(err)
-	res.Expect(`
-		HTTP/1.1 200 OK
-		Content-Type: application/json
-		Date: Fri, 31 Dec 2021 00:00:00 GMT
-
-		[]
-	`)
-}
-
 func TestViewRootResourceUnkeyed(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
@@ -1617,4 +1574,98 @@ func TestViewDeepResourceUnkeyed(t *testing.T) {
 	html, err = el.Html()
 	is.NoErr(err)
 	is.Equal(`<h1>edit: 10 e</h1>`, html)
+}
+
+func TestResourceContext(t *testing.T) {
+	is := is.New(t)
+	generator := test.Generator(t)
+	generator.Files["action/users/users.go"] = `
+		package users
+		import contexts "context"
+		type User struct {
+			ID int ` + "`" + `json:"id"` + "`" + `
+			Name string ` + "`" + `json:"name"` + "`" + `
+		}
+		type Controller struct {
+		}
+		func (c *Controller) Index(ctx contexts.Context) []*User {
+			return []*User{{1, "a"}, {2, "b"}}
+		}
+		func (c *Controller) Create(ctx contexts.Context, name string) *User {
+			return &User{1, name}
+		}
+		func (c *Controller) Show(ctx contexts.Context, id int) *User {
+			return &User{id, "a"}
+		}
+		func (c *Controller) Edit(ctx contexts.Context, id int) *User {
+			return &User{id, "a"}
+		}
+		func (c *Controller) Update(ctx contexts.Context, id int, name string) (*User, error) {
+			return &User{id, name}, nil
+		}
+		func (c *Controller) Delete(ctx contexts.Context, id int) (*User, error) {
+			return &User{id, "a"}, nil
+		}
+	`
+	app, err := generator.Generate()
+	is.NoErr(err)
+	is.True(app.Exists("bud/action/action.go"))
+	is.True(app.Exists("bud/main.go"))
+	server, err := app.Start()
+	is.NoErr(err)
+	defer server.Close()
+	res, err := server.GetJSON("/users")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		[{"id":1,"name":"a"},{"id":2,"name":"b"}]
+	`)
+	res, err = server.PostJSON("/users", bytes.NewBufferString(`{"name":"b"}`))
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		{"id":1,"name":"b"}
+	`)
+	res, err = server.GetJSON("/users/2")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		{"id":2,"name":"a"}
+	`)
+	res, err = server.GetJSON("/users/2/edit")
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		{"id":2,"name":"a"}
+	`)
+	res, err = server.PatchJSON("/users/2", bytes.NewBufferString(`{"name":"b"}`))
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		{"id":2,"name":"b"}
+	`)
+	res, err = server.DeleteJSON("/users/2", nil)
+	is.NoErr(err)
+	res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		{"id":2,"name":"a"}
+	`)
 }

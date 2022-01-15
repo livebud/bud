@@ -250,10 +250,14 @@ func (l *loader) loadActionParam(param *parser.Param, nth, numParams int) *Actio
 	ap.Type = l.loadType(param.Type(), dec)
 	ap.Tag = fmt.Sprintf("`json:\"%[1]s\"`", tagValue(ap.Snake))
 	ap.Kind = string(dec.Kind())
+	switch {
 	// Single struct input
-	if numParams == 1 && dec.Kind() == parser.KindStruct {
+	case numParams == 1 && dec.Kind() == parser.KindStruct:
 		ap.Variable = "in"
-	} else {
+	// Handle context.Context
+	case ap.IsContext():
+		ap.Variable = `httpRequest.Context()`
+	default:
 		ap.Variable = "in." + ap.Pascal
 	}
 	return ap
@@ -278,6 +282,13 @@ func (l *loader) loadType(dt parser.Type, dec parser.Declaration) string {
 	if err != nil {
 		l.Bail(err)
 	}
+	// Handle context.Context differently
+	// It doesn't need to be imported because it's within http.Request
+	if importPath == "std/context" {
+		// Add the type's import
+		dt = parser.Requalify(dt, "context")
+		return dt.String()
+	}
 	// Add the type's import
 	name := l.imports.Add(importPath)
 	dt = parser.Qualify(dt, name)
@@ -295,6 +306,9 @@ func (l *loader) loadActionInputStruct(params []*ActionParam) string {
 	b := new(strings.Builder)
 	b.WriteString("struct {")
 	for _, param := range params {
+		if param.IsContext() {
+			continue
+		}
 		b.WriteString("\n")
 		b.WriteString("\t\t" + param.Pascal)
 		b.WriteString(" ")
