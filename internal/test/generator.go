@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/lithammer/dedent"
 	"github.com/matryer/is"
 	"github.com/matthewmueller/diff"
 	"gitlab.com/mnm/bud/go/mod"
@@ -67,6 +68,33 @@ func addModules(code string, modules map[string]modcache.Files) (string, error) 
 		}
 	}
 	return string(module.File().Format()), nil
+}
+
+func moduleGoMod(pathVersion string, module modcache.Files) (string, error) {
+	moduleParts := strings.SplitN(pathVersion, "@", 2)
+	if len(moduleParts) != 2 {
+		return "", fmt.Errorf("modcache: invalid module key")
+	}
+	modulePath := moduleParts[0]
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		return "", errors.New("unable to load current file path")
+	}
+	budModule, err := mod.New().Find(filepath.Dir(file))
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf(dedent.Dedent(`
+		module %s
+
+		require (
+			gitlab.com/mnm/bud v0.0.0
+		)
+
+		replace (
+			gitlab.com/mnm/bud => %s
+		)
+	`), modulePath, budModule.Directory()), nil
 }
 
 // Cleanup individual files and root if no files left
@@ -124,12 +152,21 @@ func (g *Gen) Generate() (*App, error) {
 	if len(g.Modules) > 0 {
 		// Unable to cleanup after modcache because they're readonly and
 		// the t.TempDir() fails with permission denied.
-		// cacheDir := g.t.TempDir()
 		cacheDir, err := ioutil.TempDir("", "modcache-*")
 		if err != nil {
 			return nil, err
 		}
 		modCache = modcache.New(cacheDir)
+		// Generate a custom go.mod for the module
+		for pathVersion, module := range g.Modules {
+			if _, ok := module["go.mod"]; !ok {
+				gomod, err := moduleGoMod(pathVersion, module)
+				if err != nil {
+					return nil, err
+				}
+				module["go.mod"] = gomod
+			}
+		}
 		if err := modCache.Write(g.Modules); err != nil {
 			return nil, err
 		}

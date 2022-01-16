@@ -2,25 +2,32 @@ package transform
 
 // GENERATED. DO NOT EDIT.
 
-import (
-	// "gitlab.com/mnm/bud-tailwind/transform/tailwind"
-	"gitlab.com/mnm/bud/svelte"
-	"gitlab.com/mnm/bud/transform"
-)
+{{- if $.Imports }}
 
-func PrivateLoad(
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+func Load(
 	svelte *svelte.Transformable,
-	// tailwind *tailwind.Transform,
+	{{- range $transform := $.Transforms }}
+	{{ $transform.Variable }} {{ $transform.Type }}
+	{{- end }}
 ) (*Transformer, error) {
 	return transform.Load(
 		svelte,
-	//	&transform.Transformable{
-	//		From: ".svelte",
-	//		To:   ".svelte",
-	//		Map: transform.Map{
-	//			transform.PlatformNeutral: tailwind.SvelteToSvelte,
-	//		},
-	//	},
+		{{- range $transform := $.Transforms }}
+		&transform.Transformable{
+			From: `{{ $transform.From }}`,
+			To: `{{ $transform.To }}`,
+			Map: transform.Map{
+				transform.Platform{{ $transform.Platform}}: {{ $transform.Variable}}.{{ $transform.Function }},
+			}
+		}
+		{{- end }}
 	)
 }
 
