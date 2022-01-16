@@ -2,6 +2,7 @@ package ssr_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
@@ -289,4 +290,88 @@ func TestSvelteProps(t *testing.T) {
 	is.Equal(len(res.Headers), 1)
 	is.Equal(res.Headers["Content-Type"], "text/html")
 	is.True(strings.Contains(res.Body, `<h6><!-- HTML_TAG_START -->{"name":"Alice","title":"first"}<!-- HTML_TAG_END --></h6>`))
+}
+
+func TestSvelteLocalImports(t *testing.T) {
+	is := is.New(t)
+	cwd, err := os.Getwd()
+	is.NoErr(err)
+	dir := filepath.Join(cwd, "_tmp")
+	is.NoErr(os.RemoveAll(dir))
+	defer func() {
+		if !t.Failed() {
+			is.NoErr(os.RemoveAll(dir))
+		}
+	}()
+	memfs := vfs.Memory{
+		"view/Comment.svelte": &vfs.File{
+			Data: []byte(`
+				<script>
+					export let comment = {}
+				</script>
+				<h2>{comment.message}</h2>
+			`),
+		},
+		"view/Story.svelte": &vfs.File{
+			Data: []byte(`
+				<script>
+					export let story = {}
+				</script>
+				<h1>{story.title}</h1>
+			`),
+		},
+		"view/show.svelte": &vfs.File{
+			Data: []byte(`
+				<script>
+					import Story from "./Story.svelte"
+					import Comment from "./Comment.svelte"
+					export let props = {
+							comments: []
+					}
+				</script>
+				<Story story={props} />
+				{#each props.comments as comment}
+					<Comment {comment} />
+				{/each}
+			`),
+		},
+	}
+	is.NoErr(vfs.WriteAll(".", dir, memfs))
+	dirfs := os.DirFS(dir)
+	vm := v8.New()
+	svelteCompiler := svelte.New(vm)
+	transformer := transform.MustLoad(
+		svelte.NewTransformable(svelteCompiler),
+	)
+	bf := gen.New(vfs.GitIgnore(dirfs))
+	bf.Add(map[string]gen.Generator{
+		"bud/view/_ssr.js": ssr.Generator(bf, dir, transformer),
+	})
+	// Install svelte
+	err = npm.Install(dir, "svelte@3.42.3")
+	is.NoErr(err)
+	// Read the wrapped version of index.svelte with node_modules rewritten
+	code, err := fs.ReadFile(bf, "bud/view/_ssr.js")
+	is.NoErr(err)
+	type Comment struct {
+		Message string `json:"message"`
+	}
+	type Story struct {
+		Title    string     `json:"title"`
+		Comments []*Comment `json:"comments"`
+	}
+	res, err := render(vm, string(code), "/:id", &Story{
+		Title: "first story",
+		Comments: []*Comment{
+			{Message: "first comment"},
+			{Message: "second comment"},
+		},
+	})
+	is.NoErr(err)
+	is.Equal(res.Status, 200)
+	is.Equal(len(res.Headers), 1)
+	is.Equal(res.Headers["Content-Type"], "text/html")
+	fmt.Println(res.Body)
+	is.True(strings.Contains(res.Body, `<h1>first story</h1>`))
+	is.True(strings.Contains(res.Body, `<h2>first comment</h2><h2>second comment</h2>`))
 }

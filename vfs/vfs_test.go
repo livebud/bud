@@ -10,9 +10,9 @@ import (
 func TestSomeExistOne(t *testing.T) {
 	is := is.New(t)
 	fsys := vfs.Map{
-		"a.go": "",
-		"b.go": "",
-		"c.go": "",
+		"a.go": []byte(""),
+		"b.go": []byte(""),
+		"c.go": []byte(""),
 	}
 	exist := vfs.SomeExist(fsys, "a.go", "d.go")
 	is.Equal(len(exist), 1)
@@ -23,9 +23,9 @@ func TestSomeExistOne(t *testing.T) {
 func TestSomeExistTwo(t *testing.T) {
 	is := is.New(t)
 	fsys := vfs.Map{
-		"a.go": "",
-		"b.go": "",
-		"c.go": "",
+		"a.go": []byte(""),
+		"b.go": []byte(""),
+		"c.go": []byte(""),
 	}
 	exist := vfs.SomeExist(fsys, "a.go", "b.go", "d.go")
 	is.Equal(len(exist), 2)
@@ -37,9 +37,9 @@ func TestSomeExistTwo(t *testing.T) {
 func TestSomeExistZero(t *testing.T) {
 	is := is.New(t)
 	fsys := vfs.Map{
-		"a.go": "",
-		"b.go": "",
-		"c.go": "",
+		"a.go": []byte(""),
+		"b.go": []byte(""),
+		"c.go": []byte(""),
 	}
 	exist := vfs.SomeExist(fsys, "d.go", "e.go")
 	is.Equal(len(exist), 0)

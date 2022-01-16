@@ -1,7 +1,9 @@
 <script>
   import Header from "./Header.svelte"
   import Story from "./Story.svelte"
-  export let stories = []
+  export let props = {
+    stories: [],
+  }
 </script>
 
 <svelte:head>
@@ -12,7 +14,7 @@
   <Header />
 
   <div>
-    {#each stories as story, i}
+    {#each props.stories as story, i}
       <Story i={i + 1} {story} />
     {/each}
   </div>

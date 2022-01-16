@@ -16,7 +16,7 @@ import (
 
 type Module struct {
 	Modules  map[string]map[string]string
-	Files    map[string]string
+	Files    map[string][]byte
 	CacheDir string
 	AppDir   string
 	FS       fs.FS
@@ -48,10 +48,10 @@ func Make(t testing.TB, m Module) *mod.Module {
 	if m.Files != nil {
 		for path, file := range m.Files {
 			if path == "go.mod" {
-				m.Files[path] = replaceBud(t, file)
+				m.Files[path] = []byte(replaceBud(t, string(file)))
 				continue
 			}
-			m.Files[path] = redent(file)
+			m.Files[path] = []byte(redent(string(file)))
 		}
 		err := vfs.Write(m.AppDir, vfs.Map(m.Files))
 		is.NoErr(err)

@@ -2,10 +2,8 @@ package public
 
 import (
 	_ "embed"
-	"io/fs"
 
 	"gitlab.com/mnm/bud/go/mod"
-	"gitlab.com/mnm/bud/vfs"
 
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/gotemplate"
@@ -22,21 +20,12 @@ type Generator struct {
 	Minify bool
 }
 
-type State struct {
-	Embed bool
-	Files []*File
-}
-
-type File struct {
-	Path string
-}
-
 func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
-	exist := vfs.SomeExist(g.Module, "public")
-	if len(exist) == 0 {
-		return fs.ErrNotExist
+	state, err := Load(g.Module, g.Embed, g.Minify)
+	if err != nil {
+		return err
 	}
-	code, err := generator.Generate(State{})
+	code, err := generator.Generate(state)
 	if err != nil {
 		return err
 	}

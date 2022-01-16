@@ -24,6 +24,11 @@ func (m *Module) Directory(subpaths ...string) string {
 	return filepath.Join(append([]string{m.dir}, subpaths...)...)
 }
 
+// CacheDirectory returns the module cache directory
+func (m *Module) CacheDirectory() string {
+	return m.cache.Directory()
+}
+
 // Import returns the module's import path (e.g. gitlab.com/mnm/bud)
 func (m *Module) Import(subpaths ...string) string {
 	return m.file.Import(subpaths...)

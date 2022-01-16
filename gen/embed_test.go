@@ -131,7 +131,7 @@ func TestAdd(t *testing.T) {
 func TestGoModGoMod(t *testing.T) {
 	is := is.New(t)
 	fsys := vfs.Map{
-		"app.go": "package app\nimport \"mod.test/module\"\nvar a = module.Answer",
+		"app.go": []byte("package app\nimport \"mod.test/module\"\nvar a = module.Answer"),
 	}
 	genfs := gen.New(fsys)
 	genfs.Add(map[string]gen.Generator{
@@ -154,7 +154,7 @@ func TestGoModGoModEmbed(t *testing.T) {
 	t.SkipNow()
 	is := is.New(t)
 	fsys := vfs.Map{
-		"app.go": "package app\nimport \"mod.test/module\"\nvar a = module.Answer",
+		"app.go": []byte("package app\nimport \"mod.test/module\"\nvar a = module.Answer"),
 	}
 	genfs := gen.New(fsys)
 	genfs.Add(map[string]gen.Generator{

@@ -65,14 +65,14 @@ func TestWriteModule(t *testing.T) {
 	// Now verify that the go commands don't try downloading mod.test/one
 	appDir := t.TempDir()
 	err = vfs.Write(appDir, vfs.Map{
-		"go.mod": `
+		"go.mod": []byte(`
 			module app.com
 
 			require (
 				mod.test/one v0.0.2
 			)
-		`,
-		"main.go": `
+		`),
+		"main.go": []byte(`
 			package main
 
 			import (
@@ -83,7 +83,7 @@ func TestWriteModule(t *testing.T) {
 			func main() {
 				fmt.Print(one.Answer)
 			}
-		`,
+		`),
 	})
 	is.NoErr(err)
 	stdout, stderr, err := goRun(cacheDir, appDir)

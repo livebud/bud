@@ -1057,7 +1057,7 @@ func TestDotReadDirFiles(t *testing.T) {
 func TestReadDirDuplicates(t *testing.T) {
 	is := is.New(t)
 	fsys := vfs.Map{
-		"go.mod": `module app.com`,
+		"go.mod": []byte(`module app.com`),
 	}
 	genfs := gen.New(fsys)
 	genfs.Add(map[string]gen.Generator{

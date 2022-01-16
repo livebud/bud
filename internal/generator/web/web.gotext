@@ -14,7 +14,9 @@ import (
 // New web server
 func New(
 	router *router.Router,
+	{{- if $.Actions }}
 	controller *action.Controller,
+	{{- end }}
 	hot *hot.Server,
 	{{- if $.HasPublic }}
 	public public.Middleware,
@@ -33,7 +35,7 @@ func New(
 		public,
 		{{- end }}
 		hot,
-		{{- if $.HasPublic }}
+		{{- if $.HasView }}
 		view,
 		{{- end }}
 		router,

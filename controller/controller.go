@@ -69,7 +69,6 @@ func (res *Response) RenderError(err error) {
 }
 
 func (res *Response) Render(path string, props interface{}) {
-	fmt.Println("rendering", path, props)
 	response, err := res.view.Render(path, props)
 	if err != nil {
 		res.RenderError(err)

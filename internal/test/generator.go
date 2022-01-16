@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -51,6 +52,23 @@ func replaceBud(code string) (string, error) {
 	return string(module.File().Format()), nil
 }
 
+func addModules(code string, modules map[string]modcache.Files) (string, error) {
+	module, err := mod.New().Parse("go.mod", []byte(code))
+	if err != nil {
+		return "", err
+	}
+	for modulePathVersion := range modules {
+		moduleParts := strings.SplitN(modulePathVersion, "@", 2)
+		if len(moduleParts) != 2 {
+			return "", fmt.Errorf("modcache: invalid module key")
+		}
+		if err := module.File().AddRequire(moduleParts[0], moduleParts[1]); err != nil {
+			return "", err
+		}
+	}
+	return string(module.File().Format()), nil
+}
+
 // Cleanup individual files and root if no files left
 func cleanup(t testing.TB, root, dir string) func() {
 	t.Helper()
@@ -72,20 +90,20 @@ func cleanup(t testing.TB, root, dir string) func() {
 }
 
 // TODO: remove gitlab.com/mnm/duo
-const goMod = `
+var goMod = []byte(`
 module app.com
 
 require (
 	gitlab.com/mnm/bud v0.0.0
 	gitlab.com/mnm/duo v0.0.0-20220108212322-310ab0354067
 )
-`
+`)
 
 func Generator(t testing.TB) *Gen {
 	return &Gen{
 		t:       t,
 		Modules: map[string]modcache.Files{},
-		Files: map[string]string{
+		Files: map[string][]byte{
 			"go.mod": goMod,
 		},
 		NodeModules: map[string]string{},
@@ -94,9 +112,9 @@ func Generator(t testing.TB) *Gen {
 
 type Gen struct {
 	t           testing.TB
-	Modules     map[string]modcache.Files
-	Files       map[string]string
-	NodeModules map[string]string // package: version
+	Modules     map[string]modcache.Files // [module@version][filepath] = code
+	Files       map[string][]byte
+	NodeModules map[string]string // [package] = version
 }
 
 func (g *Gen) Generate() (*App, error) {
@@ -104,7 +122,13 @@ func (g *Gen) Generate() (*App, error) {
 	modCache := modcache.Default()
 	// Add modules
 	if len(g.Modules) > 0 {
-		cacheDir := g.t.TempDir()
+		// Unable to cleanup after modcache because they're readonly and
+		// the t.TempDir() fails with permission denied.
+		// cacheDir := g.t.TempDir()
+		cacheDir, err := ioutil.TempDir("", "modcache-*")
+		if err != nil {
+			return nil, err
+		}
 		modCache = modcache.New(cacheDir)
 		if err := modCache.Write(g.Modules); err != nil {
 			return nil, err
@@ -112,11 +136,17 @@ func (g *Gen) Generate() (*App, error) {
 	}
 	// Replace bud in Go mod if present
 	if code, ok := g.Files["go.mod"]; ok {
-		code, err := replaceBud(code)
+		code, err := replaceBud(string(code))
 		if err != nil {
 			return nil, err
 		}
-		g.Files["go.mod"] = code
+		if len(g.Modules) > 0 {
+			code, err = addModules(code, g.Modules)
+			if err != nil {
+				return nil, err
+			}
+		}
+		g.Files["go.mod"] = []byte(code)
 	}
 	// Setup the application dir
 	appDir := filepath.Join("_tmp", g.t.Name())
@@ -140,7 +170,7 @@ func (g *Gen) Generate() (*App, error) {
 		if err != nil {
 			return nil, err
 		}
-		g.Files["package.json"] = string(pkgJSON) + "\n"
+		g.Files["package.json"] = append(pkgJSON, '\n')
 	}
 	// Write the files to the application directory
 	err := vfs.Write(appDir, vfs.Map(g.Files))
@@ -171,7 +201,9 @@ func (g *Gen) Generate() (*App, error) {
 			"GOPATH":     os.Getenv("GOPATH"),
 			"GOCACHE":    os.Getenv("GOCACHE"),
 			"GOMODCACHE": modCache.Directory(),
-			"NO_COLOR":   "1",
+			// TODO: remove once we can write a sum file to the modcache
+			"GOPRIVATE": "*",
+			"NO_COLOR":  "1",
 		},
 	}, nil
 }
@@ -285,7 +317,7 @@ func (a *App) Start(args ...string) (*Server, error) {
 		cmd: cmd,
 		ln:  ln,
 		client: &http.Client{
-			Timeout:   time.Second,
+			// Timeout:   time.Second,
 			Transport: transport,
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				return http.ErrUseLastResponse

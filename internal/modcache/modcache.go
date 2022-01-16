@@ -44,11 +44,6 @@ func (c *Cache) Directory(subpaths ...string) string {
 type Files = map[string]string
 type Modules = map[string]Files
 
-// Write modules directly into the cache directory. This function is
-// func (c *Cache) WriteFrom(dir string) error {
-
-// }
-
 // Write modules directly into the cache directory in an acceptable format so
 // that Go thinks these files are cached and doesn't try reading them from the
 // network.

@@ -13,27 +13,27 @@ func TestList(t *testing.T) {
 	// TODO: add view/ to everything. It won't make a difference but it will be
 	// more realistic
 	fsys := vfs.Map{
-		"view/about.jsx":                      "",
-		"view/first-post.md":                  "",
-		"view/Frame.jsx":                      "",
-		"view/Frame.svelte":                   "",
-		"view/Error.svelte":                   "",
-		"view/index.svelte":                   "",
-		"view/Layout.jsx":                     "",
-		"view/Layout.svelte":                  "",
-		"view/.dot.svelte":                    "",
-		"view/_underscore.svelte":             "",
-		"view/Component.svelte":               "",
-		"view/user/Frame.svelte":              "",
-		"view/user/edit.svelte":               "",
-		"view/user/index.svelte":              "",
-		"view/user/Error.svelte":              "",
-		"view/visitor/comments/Frame.svelte":  "",
-		"view/visitor/comments/edit.svelte":   "",
-		"view/visitor/comments/index.svelte":  "",
-		"view/visitor/comments/show.svelte":   "",
-		"view/visitor/comments/Error.svelte":  "",
-		"view/visitor/comments/Layout.svelte": "",
+		"view/about.jsx":                      []byte(""),
+		"view/first-post.md":                  []byte(""),
+		"view/Frame.jsx":                      []byte(""),
+		"view/Frame.svelte":                   []byte(""),
+		"view/Error.svelte":                   []byte(""),
+		"view/index.svelte":                   []byte(""),
+		"view/Layout.jsx":                     []byte(""),
+		"view/Layout.svelte":                  []byte(""),
+		"view/.dot.svelte":                    []byte(""),
+		"view/_underscore.svelte":             []byte(""),
+		"view/Component.svelte":               []byte(""),
+		"view/user/Frame.svelte":              []byte(""),
+		"view/user/edit.svelte":               []byte(""),
+		"view/user/index.svelte":              []byte(""),
+		"view/user/Error.svelte":              []byte(""),
+		"view/visitor/comments/Frame.svelte":  []byte(""),
+		"view/visitor/comments/edit.svelte":   []byte(""),
+		"view/visitor/comments/index.svelte":  []byte(""),
+		"view/visitor/comments/show.svelte":   []byte(""),
+		"view/visitor/comments/Error.svelte":  []byte(""),
+		"view/visitor/comments/Layout.svelte": []byte(""),
 	}
 	views, err := entrypoint.List(fsys)
 	is.NoErr(err)
@@ -84,7 +84,7 @@ func TestListUnderscore(t *testing.T) {
 	// TODO: add view/ to everything. It won't make a difference but it will be
 	// more realistic
 	fsys := vfs.Map{
-		"admin_users/comments/show.svelte": "",
+		"admin_users/comments/show.svelte": []byte(""),
 	}
 	views, err := entrypoint.List(fsys)
 	is.NoErr(err)

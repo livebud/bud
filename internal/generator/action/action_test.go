@@ -11,7 +11,7 @@ import (
 func TestIndexString(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/action.go"] = `
+	generator.Files["action/action.go"] = []byte(`
 		package action
 
 		type Controller struct {
@@ -20,7 +20,7 @@ func TestIndexString(t *testing.T) {
 		func (c *Controller) Index() string {
 			return "Hello Users!"
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -43,11 +43,11 @@ func TestIndexString(t *testing.T) {
 func TestAboutIndexString(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/about/action.go"] = `
+	generator.Files["action/about/action.go"] = []byte(`
 		package action
 		type Controller struct {}
 		func (c *Controller) Index() string { return "About" }
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -69,12 +69,12 @@ func TestAboutIndexString(t *testing.T) {
 func TestCreate302(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/action.go"] = `
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		type Controller struct {}
 		func (c *Controller) Create() {
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -94,12 +94,12 @@ func TestCreate302(t *testing.T) {
 func TestIndex204(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/action.go"] = `
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		type Controller struct {}
 		func (c *Controller) Index() {
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -118,7 +118,7 @@ func TestIndex204(t *testing.T) {
 func TestIndex500(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/action.go"] = `
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		import "errors"
 		type Controller struct {}
@@ -126,7 +126,7 @@ func TestIndex500(t *testing.T) {
 		func (c *Controller) Index() ([]*Post, error) {
 			return nil, errors.New("unable to list posts")
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -149,7 +149,7 @@ func TestIndexList500(t *testing.T) {
 	t.SkipNow()
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/action.go"] = `
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		import "errors"
 		type Controller struct {}
@@ -157,7 +157,7 @@ func TestIndexList500(t *testing.T) {
 		func (c *Controller) Index() (int, string, error) {
 			return 0, "", errors.New("unable to list posts")
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -178,14 +178,14 @@ func TestIndexList200(t *testing.T) {
 	t.SkipNow()
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/action.go"] = `
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		type Controller struct {}
 		type Post struct {}
 		func (c *Controller) Index() (int, string, error) {
 			return 0, "a", nil
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -206,7 +206,7 @@ func TestIndexListObject500(t *testing.T) {
 	t.SkipNow()
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/action.go"] = `
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		import "errors"
 		type Controller struct {}
@@ -214,7 +214,7 @@ func TestIndexListObject500(t *testing.T) {
 		func (c *Controller) Index() (a int, b string, err error) {
 			return 0, "a", errors.New("unable to list posts")
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -235,14 +235,14 @@ func TestIndexListObject200(t *testing.T) {
 	t.SkipNow()
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/action.go"] = `
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		type Controller struct {}
 		type Post struct {}
 		func (c *Controller) Index() (a int, b string, err error) {
 			return 0, "a", nil
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -262,7 +262,7 @@ func TestIndexListObject200(t *testing.T) {
 func TestIndexStructs200(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/action.go"] = `
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		type Controller struct {}
 		type Post struct {
@@ -272,7 +272,7 @@ func TestIndexStructs200(t *testing.T) {
 		func (c *Controller) Index() (list []*Post, err error) {
 			return []*Post{{0, "a"}, {1, "b"}}, nil
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -294,11 +294,11 @@ func TestIndexStructs200(t *testing.T) {
 func TestJSONCreate204(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/action.go"] = `
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		type Controller struct {}
 		func (c *Controller) Create() {}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -318,14 +318,14 @@ func TestJSONCreate204(t *testing.T) {
 func TestJSONCreate500(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/action.go"] = `
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		import "errors"
 		type Controller struct {}
 		func (c *Controller) Create() (string, error) {
 			return "", errors.New("Not implemented yet")
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -347,12 +347,12 @@ func TestJSONCreate500(t *testing.T) {
 func TestDependencyHoist(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["postgres/pool.go"] = `
+	generator.Files["postgres/pool.go"] = []byte(`
 		package postgres
 		func New() *Pool { return &Pool{1} }
 		type Pool struct { ID int }
-	`
-	generator.Files["action/action.go"] = `
+	`)
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		import "app.com/postgres"
 		type Controller struct {
@@ -361,7 +361,7 @@ func TestDependencyHoist(t *testing.T) {
 		func (c *Controller) Index() int {
 			return c.Pool.ID
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -383,13 +383,13 @@ func TestDependencyHoist(t *testing.T) {
 func TestDependencyRequest(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["postgres/pool.go"] = `
+	generator.Files["postgres/pool.go"] = []byte(`
 		package postgres
 		import "net/http"
 		func New(r *http.Request) *Pool { return &Pool{r.URL.Path} }
 		type Pool struct { Path string }
-	`
-	generator.Files["action/action.go"] = `
+	`)
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		import "app.com/postgres"
 		type Controller struct {
@@ -398,7 +398,7 @@ func TestDependencyRequest(t *testing.T) {
 		func (c *Controller) Index() string {
 			return c.Pool.Path
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -420,14 +420,14 @@ func TestDependencyRequest(t *testing.T) {
 func TestShareStruct(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["article/article.go"] = `
+	generator.Files["article/article.go"] = []byte(`
 		package article
 		type Article struct {
 			ID int ` + "`" + `json:"id"` + "`" + `
 			Title string ` + "`" + `json:"title"` + "`" + `
 		}
-	`
-	generator.Files["action/action.go"] = `
+	`)
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		import "app.com/article"
 		type Controller struct {
@@ -435,7 +435,7 @@ func TestShareStruct(t *testing.T) {
 		func (c *Controller) Update(a *article.Article) (*article.Article, error) {
 			return a, nil
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -457,12 +457,12 @@ func TestShareStruct(t *testing.T) {
 func TestJSONCreateNested(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["postgres/pool.go"] = `
+	generator.Files["postgres/pool.go"] = []byte(`
 		package postgres
 		func New(r *http.Request) *Pool { return &Pool{r.URL.Path} }
 		type Pool struct { Path string }
-	`
-	generator.Files["action/action.go"] = `
+	`)
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		type Controller struct {}
 		type Post struct {
@@ -472,8 +472,8 @@ func TestJSONCreateNested(t *testing.T) {
 		func (c *Controller) Create(p *Post) *Post {
 			return p
 		}
-	`
-	generator.Files["action/users/users.go"] = `
+	`)
+	generator.Files["action/users/users.go"] = []byte(`
 		package users
 		type Controller struct {}
 		type Post struct {
@@ -483,8 +483,8 @@ func TestJSONCreateNested(t *testing.T) {
 		func (c *Controller) Create(p *Post) *Post {
 			return p
 		}
-	`
-	generator.Files["action/users/admin/admin.go"] = `
+	`)
+	generator.Files["action/users/admin/admin.go"] = []byte(`
 		package admin
 		type Controller struct {}
 		type Post struct {
@@ -495,8 +495,8 @@ func TestJSONCreateNested(t *testing.T) {
 		func (c *Controller) Create(p *Post) *Post {
 			return p
 		}
-	`
-	generator.Files["action/articles/articles.go"] = `
+	`)
+	generator.Files["action/articles/articles.go"] = []byte(`
 		package articles
 		type Controller struct {}
 		type Post struct {
@@ -506,7 +506,7 @@ func TestJSONCreateNested(t *testing.T) {
 		func (c *Controller) Create(p *Post) *Post {
 			return p
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -555,14 +555,14 @@ func TestJSONCreateNested(t *testing.T) {
 func TestJSONDelete500(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/action.go"] = `
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		import "errors"
 		type Controller struct {}
 		func (c *Controller) Delete() (string, error) {
 			return "", errors.New("Not implemented yet")
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -584,7 +584,7 @@ func TestJSONDelete500(t *testing.T) {
 func TestJSONDelete200(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/action.go"] = `
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		type Controller struct {}
 		type Post struct {
@@ -594,7 +594,7 @@ func TestJSONDelete200(t *testing.T) {
 		func (c *Controller) Delete(id int) (*Post, error) {
 			return &Post{id, "a"}, nil
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -616,7 +616,7 @@ func TestJSONDelete200(t *testing.T) {
 func TestJSONMultipleActions(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/action.go"] = `
+	generator.Files["action/action.go"] = []byte(`
 		package controller
 		type Controller struct {}
 		func (c *Controller) Index() string {
@@ -626,7 +626,7 @@ func TestJSONMultipleActions(t *testing.T) {
 		func (c *Controller) Show(id int) int {
 			return id
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -657,14 +657,14 @@ func TestJSONMultipleActions(t *testing.T) {
 func TestJSONUpdate500(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/action.go"] = `
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		import "errors"
 		type Controller struct {}
 		func (c *Controller) Update() (string, error) {
 			return "", errors.New("Not implemented yet")
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -686,7 +686,7 @@ func TestJSONUpdate500(t *testing.T) {
 func TestJSONUpdate200(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/action.go"] = `
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		type Controller struct {}
 		type Post struct {
@@ -696,7 +696,7 @@ func TestJSONUpdate200(t *testing.T) {
 		func (c *Controller) Update(id int) (*Post, error) {
 			return &Post{id, "a"}, nil
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -718,7 +718,7 @@ func TestJSONUpdate200(t *testing.T) {
 func TestReturnKeyedStruct(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/users/users.go"] = `
+	generator.Files["action/users/users.go"] = []byte(`
 		package users
 		type DB struct {}
 		type Controller struct {
@@ -748,7 +748,7 @@ func TestReturnKeyedStruct(t *testing.T) {
 		func (c *Controller) Delete(id int) error {
 			return nil
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -761,7 +761,7 @@ func TestReturnKeyedStruct(t *testing.T) {
 func TestNestedResource(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/users/users.go"] = `
+	generator.Files["action/users/users.go"] = []byte(`
 		package users
 		type DB struct {}
 		type Controller struct {
@@ -789,7 +789,7 @@ func TestNestedResource(t *testing.T) {
 		func (c *Controller) Delete(id int) error {
 			return nil
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -855,7 +855,7 @@ func TestNestedResource(t *testing.T) {
 func TestDeepNestedResource(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/posts/comments/comments.go"] = `
+	generator.Files["action/posts/comments/comments.go"] = []byte(`
 		package comments
 		type DB struct {}
 		type Controller struct {
@@ -886,7 +886,7 @@ func TestDeepNestedResource(t *testing.T) {
 		func (c *Controller) Delete(postID, id int) (*Comment, error) {
 			return &Comment{postID, id, ""}, nil
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -965,7 +965,7 @@ func TestDeepNestedResource(t *testing.T) {
 func TestRedirectRootResource(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/action.go"] = `
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		type Controller struct {
 		}
@@ -985,7 +985,7 @@ func TestRedirectRootResource(t *testing.T) {
 		func (c *Controller) Delete(id int) (*Post, error) {
 			return &Post{id, ""}, nil
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -1019,7 +1019,7 @@ func TestRedirectRootResource(t *testing.T) {
 func TestRedirectNestedResource(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/posts/posts.go"] = `
+	generator.Files["action/posts/posts.go"] = []byte(`
 		package posts
 		type Controller struct {
 		}
@@ -1039,7 +1039,7 @@ func TestRedirectNestedResource(t *testing.T) {
 		func (c *Controller) Delete(id int) (*Post, error) {
 			return &Post{id, ""}, nil
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -1073,7 +1073,7 @@ func TestRedirectNestedResource(t *testing.T) {
 func TestRedirectDeepNestedResource(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/posts/comments/comments.go"] = `
+	generator.Files["action/posts/comments/comments.go"] = []byte(`
 		package comments
 		type DB struct {}
 		type Controller struct {
@@ -1104,7 +1104,7 @@ func TestRedirectDeepNestedResource(t *testing.T) {
 		func (c *Controller) Delete(postID, id int) (*Comment, error) {
 			return &Comment{postID, id, ""}, nil
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
@@ -1138,33 +1138,33 @@ func TestRedirectDeepNestedResource(t *testing.T) {
 func TestViewRootResourceUnkeyed(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["view/index.svelte"] = `
+	generator.Files["view/index.svelte"] = []byte(`
 		<script>
 			export let props = []
 		</script>
 		{#each props as user}
 		<h1>index: {user.id} {user.name}</h1>
 		{/each}
-	`
-	generator.Files["view/new.svelte"] = `
+	`)
+	generator.Files["view/new.svelte"] = []byte(`
 		<script>
 			export let props = {}
 		</script>
 		<h1>new: {props.id} {props.name}</h1>
-	`
-	generator.Files["view/show.svelte"] = `
+	`)
+	generator.Files["view/show.svelte"] = []byte(`
 		<script>
 			export let props = {}
 		</script>
 		<h1>show: {props.id} {props.name}</h1>
-	`
-	generator.Files["view/edit.svelte"] = `
+	`)
+	generator.Files["view/edit.svelte"] = []byte(`
 		<script>
 			export let props = {}
 		</script>
 		<h1>edit: {props.id} {props.name}</h1>
-	`
-	generator.Files["action/action.go"] = `
+	`)
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		type Controller struct {}
 		type User struct {
@@ -1183,7 +1183,7 @@ func TestViewRootResourceUnkeyed(t *testing.T) {
 		func (c *Controller) Edit(id int) *User {
 			return &User{id, "e"}
 		}
-	`
+	`)
 	// Generate the app
 	app, err := generator.Generate()
 	is.NoErr(err)
@@ -1285,33 +1285,33 @@ func TestViewRootResourceUnkeyed(t *testing.T) {
 func TestViewNestedResourceUnkeyed(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["view/users/index.svelte"] = `
+	generator.Files["view/users/index.svelte"] = []byte(`
 		<script>
 			export let props = []
 		</script>
 		{#each props as user}
 		<h1>index: {user.id} {user.name}</h1>
 		{/each}
-	`
-	generator.Files["view/users/new.svelte"] = `
+	`)
+	generator.Files["view/users/new.svelte"] = []byte(`
 		<script>
 			export let props = {}
 		</script>
 		<h1>new: {props.id} {props.name}</h1>
-	`
-	generator.Files["view/users/show.svelte"] = `
+	`)
+	generator.Files["view/users/show.svelte"] = []byte(`
 		<script>
 			export let props = {}
 		</script>
 		<h1>show: {props.id} {props.name}</h1>
-	`
-	generator.Files["view/users/edit.svelte"] = `
+	`)
+	generator.Files["view/users/edit.svelte"] = []byte(`
 		<script>
 			export let props = {}
 		</script>
 		<h1>edit: {props.id} {props.name}</h1>
-	`
-	generator.Files["action/users/users.go"] = `
+	`)
+	generator.Files["action/users/users.go"] = []byte(`
 		package users
 		type Controller struct {}
 		type User struct {
@@ -1330,7 +1330,7 @@ func TestViewNestedResourceUnkeyed(t *testing.T) {
 		func (c *Controller) Edit(id int) *User {
 			return &User{id, "e"}
 		}
-	`
+	`)
 	// Generate the app
 	app, err := generator.Generate()
 	is.NoErr(err)
@@ -1432,33 +1432,33 @@ func TestViewNestedResourceUnkeyed(t *testing.T) {
 func TestViewDeepResourceUnkeyed(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["view/teams/users/index.svelte"] = `
+	generator.Files["view/teams/users/index.svelte"] = []byte(`
 		<script>
 			export let props = []
 		</script>
 		{#each props as user}
 		<h1>index: {user.id} {user.name}</h1>
 		{/each}
-	`
-	generator.Files["view/teams/users/new.svelte"] = `
+	`)
+	generator.Files["view/teams/users/new.svelte"] = []byte(`
 		<script>
 			export let props = {}
 		</script>
 		<h1>new: {props.id} {props.name}</h1>
-	`
-	generator.Files["view/teams/users/show.svelte"] = `
+	`)
+	generator.Files["view/teams/users/show.svelte"] = []byte(`
 		<script>
 			export let props = {}
 		</script>
 		<h1>show: {props.id} {props.name}</h1>
-	`
-	generator.Files["view/teams/users/edit.svelte"] = `
+	`)
+	generator.Files["view/teams/users/edit.svelte"] = []byte(`
 		<script>
 			export let props = {}
 		</script>
 		<h1>edit: {props.id} {props.name}</h1>
-	`
-	generator.Files["action/teams/users/users.go"] = `
+	`)
+	generator.Files["action/teams/users/users.go"] = []byte(`
 		package users
 		type Controller struct {}
 		type User struct {
@@ -1477,7 +1477,7 @@ func TestViewDeepResourceUnkeyed(t *testing.T) {
 		func (c *Controller) Edit(id int) *User {
 			return &User{id, "e"}
 		}
-	`
+	`)
 	// Generate the app
 	app, err := generator.Generate()
 	is.NoErr(err)
@@ -1579,7 +1579,7 @@ func TestViewDeepResourceUnkeyed(t *testing.T) {
 func TestResourceContext(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/users/users.go"] = `
+	generator.Files["action/users/users.go"] = []byte(`
 		package users
 		import contexts "context"
 		type User struct {
@@ -1606,7 +1606,7 @@ func TestResourceContext(t *testing.T) {
 		func (c *Controller) Delete(ctx contexts.Context, id int) (*User, error) {
 			return &User{id, "a"}, nil
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))

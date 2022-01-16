@@ -21,6 +21,14 @@ func invalidDir(name string) bool {
 		strings.ToLower(name) != name // Has uppercase letters
 }
 
+// PluginDir validates that the name is a valid plugin directory
+func PluginDir(name string) bool {
+	return len(name) == 0 || // Empty string
+		name[0] == '_' || // Starts with _
+		name[0] == '.' || // Starts with .
+		strings.ToLower(name) != name // Has uppercase letters
+}
+
 // ViewEntry validates that name matches a valid view entrypoint
 func ViewEntry(name string) bool {
 	return !invalidViewEntry(name)

@@ -94,10 +94,10 @@ func TestResolveImport(t *testing.T) {
 func TestVirtualResolveImport(t *testing.T) {
 	is := is.New(t)
 	fsys := vfs.Map{
-		"app/go.mod":         `module app.com/app`,
-		"app/main.go":        "package app\nfunc main() {}",
-		"app/dep/dep.go":     "package dep\nfunc dep() {}",
-		"outside/outside.go": "package outside\nfunc outside() {}",
+		"app/go.mod":         []byte(`module app.com/app`),
+		"app/main.go":        []byte("package app\nfunc main() {}"),
+		"app/dep/dep.go":     []byte("package dep\nfunc dep() {}"),
+		"outside/outside.go": []byte("package outside\nfunc outside() {}"),
 	}
 	modFinder := mod.New(mod.WithFS(fsys))
 	module, err := modFinder.Find("app")
@@ -241,8 +241,8 @@ func TestFindNested(t *testing.T) {
 	is.NoErr(err)
 	appDir := t.TempDir()
 	err = vfs.Write(appDir, vfs.Map{
-		"go.mod": "module app.com\nrequire mod.test/module v1.2.4",
-		"app.go": "package app\nimport \"mod.test/module\"\nvar a = module.Answer",
+		"go.mod": []byte("module app.com\nrequire mod.test/module v1.2.4"),
+		"app.go": []byte("package app\nimport \"mod.test/module\"\nvar a = module.Answer"),
 	})
 	is.NoErr(err)
 	modFinder := mod.New(mod.WithCache(modCache))
@@ -284,8 +284,8 @@ func TestFindNestedFS(t *testing.T) {
 	is.NoErr(err)
 	appDir := t.TempDir()
 	err = vfs.Write(appDir, vfs.Map{
-		"go.mod": "module app.com\nrequire mod.test/module v1.2.4",
-		"app.go": "package app\nimport \"mod.test/module\"\nvar a = module.Answer",
+		"go.mod": []byte("module app.com\nrequire mod.test/module v1.2.4"),
+		"app.go": []byte("package app\nimport \"mod.test/module\"\nvar a = module.Answer"),
 	})
 	is.NoErr(err)
 	modFinder := mod.New(mod.WithCache(modCache))
@@ -335,7 +335,7 @@ func TestFindFSNesting(t *testing.T) {
 	})
 	is.NoErr(err)
 	fsys := vfs.Map{
-		"app.go": "package app\nimport \"mod.test/module\"\nvar a = module.Answer",
+		"app.go": []byte("package app\nimport \"mod.test/module\"\nvar a = module.Answer"),
 	}
 	genfs := gen.New(fsys)
 	genfs.Add(map[string]gen.Generator{
@@ -370,7 +370,7 @@ func TestFindFSNesting(t *testing.T) {
 func TestOpen(t *testing.T) {
 	is := is.New(t)
 	fsys := vfs.Map{
-		"app.go": "package app\nvar a = 10",
+		"app.go": []byte("package app\nvar a = 10"),
 	}
 	genfs := gen.New(fsys)
 	genfs.Add(map[string]gen.Generator{

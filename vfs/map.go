@@ -4,7 +4,7 @@ import (
 	"io/fs"
 )
 
-type Map map[string]string
+type Map map[string][]byte
 
 // TODO: support the vfs.ReadWritable interface
 var _ fs.FS = (Map)(nil)

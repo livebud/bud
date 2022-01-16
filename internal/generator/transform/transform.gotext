@@ -14,13 +14,13 @@ func PrivateLoad(
 ) (*Transformer, error) {
 	return transform.Load(
 		svelte,
-		// &transform.Transformable{
-		// 	From: ".svelte",
-		// 	To:   ".svelte",
-		// 	Map: transform.Map{
-		// 		transform.PlatformNeutral: tailwind.SvelteToSvelte,
-		// 	},
-		// },
+	//	&transform.Transformable{
+	//		From: ".svelte",
+	//		To:   ".svelte",
+	//		Map: transform.Map{
+	//			transform.PlatformNeutral: tailwind.SvelteToSvelte,
+	//		},
+	//	},
 	)
 }
 

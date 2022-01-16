@@ -27,12 +27,13 @@ func New(genfs gen.FS) Middleware {
 func reference(genfs gen.FS) Middleware {
 	genfs.Add(map[string]gen.Generator{
 		{{- range $file := $.Files }}
+		`{{ $file.Path }}`: gen.GenerateFile(serveFrom(`{{ $file.Root }}`)),
 		{{- end }}
-		// TODO: dynamic from public
-		"bud/public/y18.gif":     gen.GenerateFile(serveFrom(".")),
-		"bud/public/favicon.ico": gen.GenerateFile(serveFrom(".")),
-		// From plugin/bud-tailwind
-		"bud/public/tailwind/preflight.css": gen.GenerateFile(servePlugin("bud/plugin/bud-tailwind/public")),
+		// // TODO: dynamic from public
+		// "bud/public/y18.gif":     gen.GenerateFile(serveFrom("public")),
+		// "bud/public/favicon.ico": gen.GenerateFile(serveFrom("public")),
+		// // From plugin/bud-tailwind
+		// "bud/public/tailwind/preflight.css": gen.GenerateFile(serveFrom("bud/plugin/bud-tailwind/public")),
 	})
 	return serve(http.FS(genfs), serveContent)
 }
@@ -40,6 +41,7 @@ func reference(genfs gen.FS) Middleware {
 func embed(genfs gen.FS) Middleware {
 	genfs.Add(map[string]gen.Generator{
 		{{- range $file := $.Files }}
+		// {{ $file.Path }}: ... gzipped bytes...
 		{{- end }}
 	})
 	return serve(http.FS(genfs), serveGzipContent)
@@ -48,18 +50,6 @@ func embed(genfs gen.FS) Middleware {
 type Middleware = middleware.Middleware
 
 func serveFrom(dir string) func(f gen.F, file *gen.File) error {
-	return func(f gen.F, file *gen.File) error {
-		path := strings.TrimPrefix(file.Path(), "bud/")
-		code, err := fs.ReadFile(f, filepath.Join(dir, path))
-		if err != nil {
-			return err
-		}
-		file.Write(code)
-		return nil
-	}
-}
-
-func servePlugin(dir string) func(f gen.F, file *gen.File) error {
 	return func(f gen.F, file *gen.File) error {
 		path := strings.TrimPrefix(file.Path(), "bud/public/")
 		code, err := fs.ReadFile(f, filepath.Join(dir, path))

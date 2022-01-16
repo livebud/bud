@@ -30,7 +30,7 @@ func TestEmpty(t *testing.T) {
 func TestCommand(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["internal/hn/hn.go"] = `
+	generator.Files["internal/hn/hn.go"] = []byte(`
 		package hn
 
 		func New() *Client {
@@ -44,8 +44,8 @@ func TestCommand(t *testing.T) {
 		func (c *Client) String() string {
 			return c.base
 		}
-	`
-	generator.Files["command/deploy/deploy.go"] = `
+	`)
+	generator.Files["command/deploy/deploy.go"] = []byte(`
 		package deploy
 
 		import (
@@ -65,7 +65,7 @@ func TestCommand(t *testing.T) {
 			fmt.Println(c.HN, c.AccessKey, c.SecretKey)
 			return nil
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/main.go"))
@@ -81,7 +81,7 @@ func TestCommand(t *testing.T) {
 func TestNested(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["command/deploy/deploy.go"] = `
+	generator.Files["command/deploy/deploy.go"] = []byte(`
 		package deploy
 
 		import (
@@ -101,8 +101,8 @@ func TestNested(t *testing.T) {
 			fmt.Println(c.Router, c.AccessKey, c.SecretKey)
 			return nil
 		}
-	`
-	generator.Files["command/new/new.go"] = `
+	`)
+	generator.Files["command/new/new.go"] = []byte(`
 		package new
 
 		import (
@@ -121,8 +121,8 @@ func TestNested(t *testing.T) {
 			fmt.Println("creating new", c.DryRun)
 			return nil
 		}
-	`
-	generator.Files["command/new/view/view.go"] = `
+	`)
+	generator.Files["command/new/view/view.go"] = []byte(`
 		package view
 
 		import (
@@ -139,7 +139,7 @@ func TestNested(t *testing.T) {
 			fmt.Println("creating new view", c.Name, c.WithTest)
 			return nil
 		}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.True(app.Exists("bud/main.go"))

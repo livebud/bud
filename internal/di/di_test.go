@@ -69,7 +69,7 @@ func runTest(t testing.TB, test Test) {
 	if test.Files != nil {
 		vmap := vfs.Map{}
 		for path, code := range test.Files {
-			vmap[path] = redent(code)
+			vmap[path] = []byte(redent(code))
 		}
 		err := vfs.Write(appDir, vmap)
 		is.NoErr(err)

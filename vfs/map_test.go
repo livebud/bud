@@ -4,14 +4,14 @@ import (
 	"io/fs"
 	"testing"
 
-	"gitlab.com/mnm/bud/vfs"
 	"github.com/matryer/is"
+	"gitlab.com/mnm/bud/vfs"
 )
 
 func TestMap(t *testing.T) {
 	is := is.New(t)
 	fsys := vfs.Map{
-		"duo/view/index.svelte": `<h1>index</h1>`,
+		"duo/view/index.svelte": []byte(`<h1>index</h1>`),
 	}
 
 	// Read duo/view/index.svelte

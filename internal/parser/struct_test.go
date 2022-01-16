@@ -11,16 +11,16 @@ import (
 func TestStructMethod(t *testing.T) {
 	is := is.New(t)
 	module := modtest.Make(t, modtest.Module{
-		Files: map[string]string{
-			"go.mod": `module app.com/app`,
-			"app.go": `
+		Files: map[string][]byte{
+			"go.mod": []byte(`module app.com/app`),
+			"app.go": []byte(`
 				package app
 
 				type A struct {
 				}
 
 				func (a *A) Method() {}
-			`,
+			`),
 		},
 	})
 	p := parser.New(module)
@@ -40,16 +40,16 @@ func TestStructMethod(t *testing.T) {
 func TestStructTag(t *testing.T) {
 	is := is.New(t)
 	module := modtest.Make(t, modtest.Module{
-		Files: map[string]string{
-			"go.mod": `module app.com/app`,
-			"app.go": `
+		Files: map[string][]byte{
+			"go.mod": []byte(`module app.com/app`),
+			"app.go": []byte(`
 				package app
 
 				type User struct {
 					Some string ` + "`" + `json:"some,omitempty" is:"email"` + "`" + `
 					None bool
 				}
-			`,
+			`),
 		},
 	})
 	p := parser.New(module)

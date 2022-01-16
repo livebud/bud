@@ -22,7 +22,15 @@ func TestUnixPassthrough(t *testing.T) {
 		is := is.New(t)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		cmd := exec.CommandContext(ctx, os.Args[0], append(os.Args[1:], "-test.v=true", "-test.run=^TestUnixPassthrough$")...)
+		// Ignore -test.count otherwise this will continue recursively
+		var args []string
+		for _, arg := range os.Args[1:] {
+			if strings.HasPrefix(arg, "-test.count=") {
+				continue
+			}
+			args = append(args, arg)
+		}
+		cmd := exec.CommandContext(ctx, os.Args[0], append(args, "-test.v=true", "-test.run=^TestUnixPassthrough$")...)
 		listener, err := socket.Listen(socketPath)
 		is.NoErr(err)
 		is.Equal(listener.Addr().Network(), "unix")
@@ -94,7 +102,15 @@ func TestTCPPassthrough(t *testing.T) {
 		is := is.New(t)
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
-		cmd := exec.CommandContext(ctx, os.Args[0], append(os.Args[1:], "-test.v=true", "-test.run=TestUnixPassthrough")...)
+		// Ignore -test.count otherwise this will continue recursively
+		var args []string
+		for _, arg := range os.Args[1:] {
+			if strings.HasPrefix(arg, "-test.count=") {
+				continue
+			}
+			args = append(args, arg)
+		}
+		cmd := exec.CommandContext(ctx, os.Args[0], append(args, "-test.v=true", "-test.run=TestUnixPassthrough")...)
 		listener, err := socket.Listen(":0")
 		is.NoErr(err)
 		is.Equal(listener.Addr().Network(), "tcp")

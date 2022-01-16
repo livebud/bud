@@ -19,7 +19,7 @@ func TestNoRoutes(t *testing.T) {
 func TestRootAction(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	generator.Files["action/action.go"] = `
+	generator.Files["action/action.go"] = []byte(`
 		package action
 		type Controller struct {}
 		func (c *Controller) Index() {}
@@ -29,7 +29,7 @@ func TestRootAction(t *testing.T) {
 		func (c *Controller) Create() {}
 		func (c *Controller) Update() {}
 		func (c *Controller) Delete() {}
-	`
+	`)
 	app, err := generator.Generate()
 	is.NoErr(err)
 	is.Equal(true, app.Exists("bud/web/web.go"))

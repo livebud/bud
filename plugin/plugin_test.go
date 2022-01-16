@@ -28,7 +28,7 @@ func TestPlugin(t *testing.T) {
 		}
 	}()
 	err = vfs.Write(dir, vfs.Map{
-		"go.mod": `module test.mod`,
+		"go.mod": []byte(`module test.mod`),
 	})
 	is.NoErr(err)
 	ctx := context.Background()

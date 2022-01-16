@@ -144,9 +144,9 @@ func TestAliasLookup(t *testing.T) {
 
 func TestNetHTTP(t *testing.T) {
 	module := modtest.Make(t, modtest.Module{
-		Files: map[string]string{
-			"go.mod": `module app.com/app`,
-			"app.go": `
+		Files: map[string][]byte{
+			"go.mod": []byte(`module app.com/app`),
+			"app.go": []byte(`
 				package app
 
 				import "net/http"
@@ -154,7 +154,7 @@ func TestNetHTTP(t *testing.T) {
 				type A struct {
 					*http.Request
 				}
-			`,
+			`),
 		},
 	})
 	is := is.New(t)
@@ -203,7 +203,7 @@ func TestVirtual(t *testing.T) {
 	})
 	is.NoErr(err)
 	fsys := vfs.Map{
-		"app.go": "package app\nimport \"mod.test/module\"\nvar a = module.Answer",
+		"app.go": []byte("package app\nimport \"mod.test/module\"\nvar a = module.Answer"),
 	}
 	genfs := gen.New(fsys)
 	genfs.Add(map[string]gen.Generator{

@@ -24,14 +24,14 @@ func isNotBuiltin(f *parser.Field) bool {
 func TestRequalify(t *testing.T) {
 	is := is.New(t)
 	module := modtest.Make(t, modtest.Module{
-		Files: map[string]string{
-			"go.mod": `module app.com/app`,
-			"js/v8/v8.go": `
+		Files: map[string][]byte{
+			"go.mod": []byte(`module app.com/app`),
+			"js/v8/v8.go": []byte(`
 				package v8
 
 				type VM struct {}
-			`,
-			"app.go": `
+			`),
+			"app.go": []byte(`
 				package app
 
 				import v8 "app.com/app/js/v8"
@@ -41,7 +41,7 @@ func TestRequalify(t *testing.T) {
 					none []*[]string
 					same []*[]v8.VM
 				}
-			`,
+			`),
 		},
 	})
 	p := parser.New(module)
@@ -69,9 +69,9 @@ func TestRequalify(t *testing.T) {
 func TestBuiltins(t *testing.T) {
 	is := is.New(t)
 	module := modtest.Make(t, modtest.Module{
-		Files: map[string]string{
-			"go.mod": `module app.com/app`,
-			"app.go": `
+		Files: map[string][]byte{
+			"go.mod": []byte(`module app.com/app`),
+			"app.go": []byte(`
 				package app
 
 				type Builtin struct {
@@ -109,7 +109,7 @@ func TestBuiltins(t *testing.T) {
 
 					Struct struct{}
 				}
-			`,
+			`),
 		},
 	})
 	p := parser.New(module)
