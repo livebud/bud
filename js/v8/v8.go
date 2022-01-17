@@ -50,23 +50,14 @@ func NewSize(maxSize int32) *Pool {
 }
 
 func loadV8() (*V8Context, error) {
-	iso, err := v8go.NewIsolate()
-	if err != nil {
-		return nil, err
-	}
-	global, err := v8go.NewObjectTemplate(iso)
-	if err != nil {
-		return nil, err
-	}
+	iso := v8go.NewIsolate()
+	global := v8go.NewObjectTemplate(iso)
 	if err := fetch.InjectTo(iso, global); err != nil {
-		return nil, err
-	}
-	context, err := v8go.NewContext(iso, global)
-	if err != nil {
 		iso.TerminateExecution()
 		iso.Dispose()
 		return nil, err
 	}
+	context := v8go.NewContext(iso, global)
 	if err := url.InjectTo(context); err != nil {
 		return nil, err
 	}
@@ -82,11 +73,8 @@ func loadV8() (*V8Context, error) {
 
 func addConsole(v8 *V8Context) error {
 	global := v8.Context.Global()
-	console, err := v8go.NewObjectTemplate(v8.Isolate)
-	if err != nil {
-		return err
-	}
-	logfn, err := v8go.NewFunctionTemplate(v8.Isolate, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	console := v8go.NewObjectTemplate(v8.Isolate)
+	logfn := v8go.NewFunctionTemplate(v8.Isolate, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
 		for i, arg := range info.Args() {
 			if i > 0 {
 				fmt.Print(" ")
@@ -97,9 +85,6 @@ func addConsole(v8 *V8Context) error {
 		fmt.Print("\n")
 		return nil
 	})
-	if err != nil {
-		return err
-	}
 	if err := console.Set("log", logfn); err != nil {
 		return err
 	}

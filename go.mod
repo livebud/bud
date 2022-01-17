@@ -3,6 +3,7 @@ module gitlab.com/mnm/bud
 go 1.17
 
 require (
+	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/ajg/form v1.5.2-0.20200323032839-9aeb3cf462e1
 	github.com/armon/go-radix v1.0.0
 	github.com/cespare/xxhash v1.1.0
@@ -19,15 +20,14 @@ require (
 	github.com/matthewmueller/text v0.0.0-20210424201111-ec1e4af8dfe8
 	github.com/mattn/go-isatty v0.0.14
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00
-	go.kuoruan.net/v8go-polyfills v0.4.0
+	go.kuoruan.net/v8go-polyfills v0.5.0
 	golang.org/x/mod v0.5.1
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/tools v0.1.8-0.20211102182255-bb4add04ddef
-	rogchap.com/v8go v0.6.0
+	rogchap.com/v8go v0.7.0
 )
 
 require (
-	github.com/PuerkitoBio/goquery v1.8.0 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/gedex/inflector v0.0.0-20170307190818-16278e9db813 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect

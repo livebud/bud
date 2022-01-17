@@ -1,5 +1,8 @@
 test: precommit
 
+install:
+	@ go install
+
 precommit:
 	@ go generate ./...
 	@ go test ./...
