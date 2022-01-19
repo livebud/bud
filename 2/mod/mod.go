@@ -1,0 +1,138 @@
+package mod
+
+import (
+	"errors"
+	"fmt"
+	"go/build"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"gitlab.com/mnm/bud/internal/modcache"
+	"golang.org/x/mod/modfile"
+)
+
+// ErrCantInfer occurs when you can't infer the module path from the $GOPATH.
+var ErrCantInfer = errors.New("mod: unable to infer the module path")
+
+// ErrFileNotFound occurs when no go.mod can be found
+var ErrFileNotFound = fmt.Errorf("unable to find go.mod: %w", fs.ErrNotExist)
+
+type Option = func(o *option)
+
+type option struct {
+	cache *modcache.Cache
+}
+
+func Find(dir string, options ...Option) (*Module, error) {
+	opt := &option{
+		cache: modcache.Default(),
+	}
+	for _, option := range options {
+		option(opt)
+	}
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		return nil, err
+	}
+	return find(opt.cache, abs)
+}
+
+func find(cache *modcache.Cache, dir string) (*Module, error) {
+	moduleDir, err := Absolute(dir)
+	if err != nil {
+		return nil, fmt.Errorf("%w in %q", ErrFileNotFound, dir)
+	}
+	modulePath := filepath.Join(moduleDir, "go.mod")
+	moduleData, err := os.ReadFile(modulePath)
+	if err != nil {
+		return nil, err
+	}
+	return parse(cache, modulePath, moduleData)
+}
+
+// Infer the module path from the $GOPATH. This only works if you work inside
+// $GOPATH.
+func Infer(dir string, options ...Option) (*Module, error) {
+	opt := &option{
+		cache: modcache.Default(),
+	}
+	for _, option := range options {
+		option(opt)
+	}
+	modulePath := modulePathFromGoPath(dir)
+	if modulePath == "" {
+		return nil, fmt.Errorf("%w for %q, run `go mod init` to fix", ErrCantInfer, dir)
+	}
+	virtualPath := filepath.Join(dir, "go.mod")
+	return parse(opt.cache, virtualPath, []byte("module "+modulePath))
+}
+
+// Parse a modfile from it's data
+func Parse(path string, data []byte, options ...Option) (*Module, error) {
+	opt := &option{
+		cache: modcache.Default(),
+	}
+	for _, option := range options {
+		option(opt)
+	}
+	return parse(opt.cache, path, data)
+}
+
+// gopathToModulePath tries inferring the module path of directory. This only
+// works if you're in working within the $GOPATH
+func modulePathFromGoPath(path string) string {
+	src := filepath.Join(build.Default.GOPATH, "src") + "/"
+	if !strings.HasPrefix(path, src) {
+		return ""
+	}
+	modulePath := strings.TrimPrefix(path, src)
+	return modulePath
+}
+
+func parse(cache *modcache.Cache, path string, data []byte) (*Module, error) {
+	modfile, err := modfile.Parse(path, data, nil)
+	if err != nil {
+		return nil, err
+	}
+	dir := filepath.Dir(path)
+	return &Module{
+		file:  &File{modfile},
+		cache: cache,
+		dir:   dir,
+	}, nil
+}
+
+// WithCache uses a custom mod cache instead of the default
+func WithCache(cache *modcache.Cache) func(o *option) {
+	return func(opt *option) {
+		opt.cache = cache
+	}
+}
+
+// Absolute traverses up the filesystem until it finds a directory
+// containing go.mod or returns an error trying.
+func Absolute(dir string) (abs string, err error) {
+	dir, err = absolute(dir)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Abs(dir)
+}
+
+func absolute(dir string) (abs string, err error) {
+	path := filepath.Join(dir, "go.mod")
+	// Check if this path exists, otherwise recursively traverse towards root
+	if _, err = os.Stat(path); err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return "", err
+		}
+		nextDir := filepath.Dir(dir)
+		if nextDir == dir {
+			return "", ErrFileNotFound
+		}
+		return absolute(filepath.Dir(dir))
+	}
+	return dir, nil
+}
