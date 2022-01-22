@@ -8,14 +8,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"gitlab.com/mnm/bud/2/virtual"
 	"gitlab.com/mnm/bud/go/is"
-	"gitlab.com/mnm/bud/internal/modcache"
 )
 
 type Module struct {
-	cache *modcache.Cache
-	file  *File
-	dir   string
+	opt  *option
+	file *File
+	dir  string
 }
 
 // Directory returns the module directory (e.g. /Users/$USER/...)
@@ -23,9 +23,9 @@ func (m *Module) Directory(subpaths ...string) string {
 	return filepath.Join(append([]string{m.dir}, subpaths...)...)
 }
 
-// CacheDirectory returns the module cache directory
-func (m *Module) CacheDirectory() string {
-	return m.cache.Directory()
+// ModCache returns the module cache directory
+func (m *Module) ModCache() string {
+	return m.opt.modCache.Directory()
 }
 
 // Import returns the module's import path (e.g. gitlab.com/mnm/bud)
@@ -49,17 +49,33 @@ func (m *Module) Find(importPath string) (*Module, error) {
 	if !filepath.IsAbs(dir) {
 		return m, nil
 	}
-	return find(m.cache, dir)
+	return find(m.opt, dir)
 }
 
 // Open a file within the module
 func (m *Module) Open(name string) (fs.File, error) {
-	return os.Open(filepath.Join(m.dir, name))
+	if m.opt.fileCache == nil {
+		return os.Open(filepath.Join(m.dir, name))
+	}
+	return m.cachedOpen(name)
 }
 
-// ReadDir implements the fs.ReadDirFS to pass the capability down
-func (m *Module) ReadDir(name string) ([]fs.DirEntry, error) {
-	return os.ReadDir(filepath.Join(m.dir, name))
+func (m *Module) cachedOpen(name string) (fs.File, error) {
+	fcache := m.opt.fileCache
+	if fcache.Has(name) {
+		return fcache.Open(name)
+	}
+	file, err := os.Open(filepath.Join(m.dir, name))
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	vfile, err := virtual.From(file)
+	if err != nil {
+		return nil, err
+	}
+	fcache.Set(name, vfile)
+	return fcache.Open(name)
 }
 
 // ResolveDirectory resolves an import to an absolute path
@@ -122,7 +138,7 @@ func (m *Module) resolveDirectory(importPath string) (directory string, err erro
 	for _, req := range m.file.Requires() {
 		if contains(req.Mod.Path, importPath) {
 			relPath := strings.TrimPrefix(importPath, req.Mod.Path)
-			dir, err := m.cache.ResolveDirectory(req.Mod.Path, req.Mod.Version)
+			dir, err := m.opt.modCache.ResolveDirectory(req.Mod.Path, req.Mod.Version)
 			if err != nil {
 				return "", err
 			}

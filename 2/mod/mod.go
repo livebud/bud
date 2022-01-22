@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"gitlab.com/mnm/bud/2/virtual"
 	"gitlab.com/mnm/bud/internal/modcache"
 	"golang.org/x/mod/modfile"
 )
@@ -22,12 +23,28 @@ var ErrFileNotFound = fmt.Errorf("unable to find go.mod: %w", fs.ErrNotExist)
 type Option = func(o *option)
 
 type option struct {
-	cache *modcache.Cache
+	modCache  *modcache.Cache
+	fileCache *virtual.Map // can be nil
+}
+
+// WithModCache uses a custom mod cache instead of the default
+func WithModCache(cache *modcache.Cache) func(o *option) {
+	return func(opt *option) {
+		opt.modCache = cache
+	}
+}
+
+// WithFileCache uses a file cache
+func WithFileCache(cache *virtual.Map) func(o *option) {
+	return func(opt *option) {
+		opt.fileCache = cache
+	}
 }
 
 func Find(dir string, options ...Option) (*Module, error) {
 	opt := &option{
-		cache: modcache.Default(),
+		modCache:  modcache.Default(),
+		fileCache: nil,
 	}
 	for _, option := range options {
 		option(opt)
@@ -36,10 +53,10 @@ func Find(dir string, options ...Option) (*Module, error) {
 	if err != nil {
 		return nil, err
 	}
-	return find(opt.cache, abs)
+	return find(opt, abs)
 }
 
-func find(cache *modcache.Cache, dir string) (*Module, error) {
+func find(opt *option, dir string) (*Module, error) {
 	moduleDir, err := Absolute(dir)
 	if err != nil {
 		return nil, fmt.Errorf("%w in %q", ErrFileNotFound, dir)
@@ -49,14 +66,14 @@ func find(cache *modcache.Cache, dir string) (*Module, error) {
 	if err != nil {
 		return nil, err
 	}
-	return parse(cache, modulePath, moduleData)
+	return parse(opt, modulePath, moduleData)
 }
 
 // Infer the module path from the $GOPATH. This only works if you work inside
 // $GOPATH.
 func Infer(dir string, options ...Option) (*Module, error) {
 	opt := &option{
-		cache: modcache.Default(),
+		modCache: modcache.Default(),
 	}
 	for _, option := range options {
 		option(opt)
@@ -66,18 +83,18 @@ func Infer(dir string, options ...Option) (*Module, error) {
 		return nil, fmt.Errorf("%w for %q, run `go mod init` to fix", ErrCantInfer, dir)
 	}
 	virtualPath := filepath.Join(dir, "go.mod")
-	return parse(opt.cache, virtualPath, []byte("module "+modulePath))
+	return parse(opt, virtualPath, []byte("module "+modulePath))
 }
 
 // Parse a modfile from it's data
 func Parse(path string, data []byte, options ...Option) (*Module, error) {
 	opt := &option{
-		cache: modcache.Default(),
+		modCache: modcache.Default(),
 	}
 	for _, option := range options {
 		option(opt)
 	}
-	return parse(opt.cache, path, data)
+	return parse(opt, path, data)
 }
 
 // gopathToModulePath tries inferring the module path of directory. This only
@@ -91,24 +108,17 @@ func modulePathFromGoPath(path string) string {
 	return modulePath
 }
 
-func parse(cache *modcache.Cache, path string, data []byte) (*Module, error) {
+func parse(opt *option, path string, data []byte) (*Module, error) {
 	modfile, err := modfile.Parse(path, data, nil)
 	if err != nil {
 		return nil, err
 	}
 	dir := filepath.Dir(path)
 	return &Module{
-		file:  &File{modfile},
-		cache: cache,
-		dir:   dir,
+		opt:  opt,
+		file: &File{modfile},
+		dir:  dir,
 	}, nil
-}
-
-// WithCache uses a custom mod cache instead of the default
-func WithCache(cache *modcache.Cache) func(o *option) {
-	return func(opt *option) {
-		opt.cache = cache
-	}
 }
 
 // Absolute traverses up the filesystem until it finds a directory

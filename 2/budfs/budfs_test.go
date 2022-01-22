@@ -1,6 +1,7 @@
 package budfs_test
 
 import (
+	"fmt"
 	"io/fs"
 	"testing"
 
@@ -10,6 +11,7 @@ import (
 	"gitlab.com/mnm/bud/2/genfs"
 	"gitlab.com/mnm/bud/2/mod"
 	"gitlab.com/mnm/bud/2/parser"
+	"gitlab.com/mnm/bud/2/virtual"
 
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/vfs"
@@ -24,7 +26,8 @@ func TestBud(t *testing.T) {
 		"view/index.svelte": []byte("<h1>hello world</h1>"),
 	})
 	is.NoErr(err)
-	bfs, err := Generator(appDir, modcache.Default())
+	fmap := virtual.FileMap()
+	bfs, err := Generator(appDir, fmap, modcache.Default())
 	is.NoErr(err)
 	code, err := fs.ReadFile(bfs, "action/action.go")
 	is.NoErr(err)
@@ -35,6 +38,15 @@ func TestBud(t *testing.T) {
 	code, err = fs.ReadFile(bfs, "bud/action/action.go")
 	is.NoErr(err)
 	is.Equal(string(code), `package action_action`)
+	code, err = fs.ReadFile(bfs, "bud/action/action.go")
+	is.NoErr(err)
+	is.Equal(string(code), `package action_action`)
+	fi, err := fs.Stat(bfs, "bud/action/action.go")
+	is.NoErr(err)
+	is.Equal(fi.Name(), "action.go")
+	// code, err = fs.ReadFile(bfs, "bud/action/action.go")
+	// is.NoErr(err)
+	// is.Equal(string(code), `package action_action`)
 
 	// bfs.Entry("")
 	// fmt.Println(bfs)
@@ -47,6 +59,7 @@ type action struct {
 
 // TODO: pass in the cache3 and remove fs
 func (a *action) GenerateFile(_ genfs.F, file *genfs.File) error {
+	fmt.Println("parsing...")
 	pkg, err := a.Parser.Parse("action")
 	if err != nil {
 		return err
@@ -65,12 +78,12 @@ func (w *web) GenerateFile(_ genfs.F, file *genfs.File) error {
 	return nil
 }
 
-func Generator(dir string, cache *modcache.Cache) (*budfs.FS, error) {
-	module, err := mod.Find(dir, mod.WithCache(cache))
+func Generator(dir string, fmap *virtual.Map, modCache *modcache.Cache) (*budfs.FS, error) {
+	module, err := mod.Find(dir, mod.WithFileCache(fmap), mod.WithModCache(modCache))
 	if err != nil {
 		return nil, err
 	}
-	bfs, err := budfs.Load(module)
+	bfs, err := budfs.Load(fmap, module)
 	if err != nil {
 		return nil, err
 	}

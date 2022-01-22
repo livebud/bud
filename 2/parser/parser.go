@@ -104,7 +104,6 @@ func buildContext(fsys fs.FS) *build.Context {
 		IsDir: func(path string) bool {
 			fi, err := fs.Stat(fsys, path)
 			if err != nil {
-				fmt.Println("stating...", err)
 				// Error handling follows what build.Default does
 				return false
 			}

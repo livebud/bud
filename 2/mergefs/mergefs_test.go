@@ -35,7 +35,7 @@ func TestPlugins(t *testing.T) {
 		},
 	})
 	is.NoErr(err)
-	module, err := mod.Find(appDir, mod.WithCache(modCache))
+	module, err := mod.Find(appDir, mod.WithModCache(modCache))
 	is.NoErr(err)
 	tailwind, err := module.Find("tailwind.com")
 	is.NoErr(err)

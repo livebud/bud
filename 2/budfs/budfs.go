@@ -3,20 +3,12 @@ package budfs
 import (
 	"io/fs"
 
-	"gitlab.com/mnm/bud/2/cachefs"
 	"gitlab.com/mnm/bud/2/genfs"
 	"gitlab.com/mnm/bud/2/mod"
 	"gitlab.com/mnm/bud/2/pluginfs"
-	"gitlab.com/mnm/bud/2/singleflight"
+	"gitlab.com/mnm/bud/2/virtual"
 	"gitlab.com/mnm/bud/internal/modcache"
 )
-
-type FS struct {
-	cache    *modcache.Cache
-	replaces []*Replace
-	gen      *genfs.FileSystem
-	fsys     fs.FS
-}
 
 type Replace struct {
 	Old string
@@ -37,27 +29,29 @@ func WithCache(mc *modcache.Cache) func(*FS) {
 	}
 }
 
-func Load(module *mod.Module, options ...Option) (*FS, error) {
-	store := cachefs.Cache()
-	// loader := singleflight.New()
-	cache1 := cachefs.New(module, singleflight.New(), store)
-	plugin, err := pluginfs.Load(cache1, module)
+func Load(fmap *virtual.Map, module *mod.Module, options ...Option) (*FS, error) {
+	plugin, err := pluginfs.Load(module, pluginfs.WithFileCache(fmap))
 	if err != nil {
 		return nil, err
 	}
-	cache2 := cachefs.New(plugin, singleflight.New(), store)
-	genfs := genfs.New(cache2)
-	cache3 := cachefs.New(genfs, singleflight.New(), store)
+	// cache2 := cachefs.New(plugin, singleflight.New(), store)
+	genfs := genfs.New(plugin, genfs.WithFileCache(fmap))
+	// cache3 := cachefs.New(genfs, singleflight.New(), store)
 	// Cache is what we should read from, but we also need access to the generator
 	// filesystem to be able to add generators.
 	return &FS{
-		fsys: cache3,
-		gen:  genfs,
+		gen: genfs,
 	}, nil
 }
 
+type FS struct {
+	cache    *modcache.Cache
+	replaces []*Replace
+	gen      *genfs.FileSystem
+}
+
 func (f *FS) Open(name string) (fs.File, error) {
-	return f.fsys.Open(name)
+	return f.gen.Open(name)
 }
 
 func (f *FS) Entry(name string, generator genfs.Generator) {
@@ -65,3 +59,26 @@ func (f *FS) Entry(name string, generator genfs.Generator) {
 		name: generator,
 	})
 }
+
+// // Merge the filesystems into one
+// func merge(filesystems ...fs.FS) fs.FS {
+// 	switch len(filesystems) {
+// 	case 0:
+// 		return emptyFS{}
+// 	case 1:
+// 		return filesystems[0]
+// 	default:
+// 		var next fs.FS = filesystems[0]
+// 		for _, plugin := range filesystems[1:] {
+// 			next = mergefs.NewMergedFS(next, plugin)
+// 		}
+// 		return next
+// 	}
+// }
+
+// type emptyFS struct {
+// }
+
+// func (emptyFS) Open(name string) (fs.File, error) {
+// 	return nil, fs.ErrNotExist
+// }
