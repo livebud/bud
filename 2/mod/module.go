@@ -40,14 +40,15 @@ func (m *Module) File() *File {
 
 // Find a dependency from an import path
 func (m *Module) Find(importPath string) (*Module, error) {
-	dir, err := m.resolveDirectory(importPath)
+	return m.FindIn(os.DirFS(m.dir), importPath)
+}
+
+// Find a dependency from an import path within fsys
+// Note: go.mod itself needs to really be in the filesystem
+func (m *Module) FindIn(fsys fs.FS, importPath string) (*Module, error) {
+	dir, err := m.ResolveDirectoryIn(fsys, importPath)
 	if err != nil {
 		return nil, err
-	}
-	// If it's a local path, that means it's inside the module, just return
-	// the existing module
-	if !filepath.IsAbs(dir) {
-		return m, nil
 	}
 	return find(m.opt, dir)
 }
@@ -78,11 +79,6 @@ func (m *Module) cachedOpen(name string) (fs.File, error) {
 	return fcache.Open(name)
 }
 
-// ResolveDirectory resolves an import to an absolute path
-func (m *Module) ResolveDirectory(importPath string) (directory string, err error) {
-	return m.resolveDirectory(importPath)
-}
-
 // ResolveImport returns an import path from a local directory.
 func (m *Module) ResolveImport(directory string) (importPath string, err error) {
 	relPath, err := filepath.Rel(m.dir, filepath.Clean(directory))
@@ -98,12 +94,19 @@ func (m *Module) ResolveImport(directory string) (importPath string, err error) 
 var stdDir = filepath.Join(build.Default.GOROOT, "src")
 
 // ResolveDirectory resolves an import to an absolute path
-func (m *Module) resolveDirectory(importPath string) (directory string, err error) {
+func (m *Module) ResolveDirectory(importPath string) (directory string, err error) {
+	return m.ResolveDirectoryIn(os.DirFS(m.dir), importPath)
+}
+
+// ResolveDirectory resolves an import to an absolute path.
+// LocalFS maybe used if we're resolving an import path from within the current
+// modules filesystem.
+func (m *Module) ResolveDirectoryIn(localFS fs.FS, importPath string) (directory string, err error) {
 	// Handle standard library
 	if is.StdLib(importPath) {
 		return filepath.Join(stdDir, importPath), nil
 	}
-	// Handle local packages within fsys
+	// Handle local packages
 	modulePath := m.Import()
 	if contains(modulePath, importPath) {
 		// Ensure the resolved relative dir exists
@@ -112,10 +115,10 @@ func (m *Module) resolveDirectory(importPath string) (directory string, err erro
 			return "", err
 		}
 		// Check if the package path exists
-		absdir := filepath.Join(m.dir, rel)
-		if _, err := os.Stat(absdir); err != nil {
+		if _, err := fs.Stat(localFS, rel); err != nil {
 			return "", fmt.Errorf("mod: unable to resolve directory for package path %q: %w", importPath, err)
 		}
+		absdir := filepath.Join(m.dir, rel)
 		return absdir, nil
 	}
 	// Handle replace

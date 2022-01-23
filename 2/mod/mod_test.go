@@ -17,6 +17,24 @@ import (
 	"github.com/matryer/is"
 )
 
+func containsName(des []fs.DirEntry, name string) bool {
+	for _, de := range des {
+		if de.Name() == name {
+			return true
+		}
+	}
+	return false
+}
+
+func contains(des []fs.DirEntry, names ...string) bool {
+	for _, name := range names {
+		if !containsName(des, name) {
+			return false
+		}
+	}
+	return true
+}
+
 func TestFind(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
@@ -116,7 +134,7 @@ func TestResolveImport(t *testing.T) {
 	is.Equal(module.Import("2", base), im)
 }
 
-func TestFindStdlib(t *testing.T) {
+func TestModuleFindStdlib(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
@@ -332,20 +350,36 @@ func TestFileCacheDir(t *testing.T) {
 	is.Equal("main.go", des[1].Name())
 }
 
-func containsName(des []fs.DirEntry, name string) bool {
-	for _, de := range des {
-		if de.Name() == name {
-			return true
-		}
-	}
-	return false
+func TestModuleFindLocal(t *testing.T) {
+	is := is.New(t)
+	wd, err := os.Getwd()
+	is.NoErr(err)
+	module1, err := mod.Find(wd)
+	is.NoErr(err)
+	// Find local web directory within module1
+	module2, err := module1.Find(module1.Import("web"))
+	is.NoErr(err)
+	is.Equal(module1.Directory(), module2.Directory())
 }
 
-func contains(des []fs.DirEntry, names ...string) bool {
-	for _, name := range names {
-		if !containsName(des, name) {
-			return false
-		}
+func TestModuleFindFromFS(t *testing.T) {
+	is := is.New(t)
+	wd, err := os.Getwd()
+	is.NoErr(err)
+	module1, err := mod.Find(wd)
+	is.NoErr(err)
+	// First ensure the package doesn't exist
+	module2, err := module1.Find(module1.Import("imagine"))
+	is.Equal(nil, module2)
+	is.True(errors.Is(err, fs.ErrNotExist))
+	// Now find the package using a virtual FS
+	vfs := vfs.Map{
+		"imagine/imagine.go": []byte(`package imagine`),
 	}
-	return true
+	module2, err = module1.FindIn(vfs, module1.Import("imagine"))
+	is.NoErr(err)
+	is.Equal(module1.Directory(), module2.Directory())
+	absDir, err := module2.ResolveDirectoryIn(vfs, module1.Import("imagine"))
+	is.NoErr(err)
+	is.Equal(module1.Directory("imagine"), absDir)
 }

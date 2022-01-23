@@ -4,11 +4,15 @@ import (
 	"context"
 	"errors"
 
+	"gitlab.com/mnm/bud/2/budfs"
+	"gitlab.com/mnm/bud/2/fscache"
+
 	"gitlab.com/mnm/bud/fsync"
 
-	"gitlab.com/mnm/bud/gen"
-	"gitlab.com/mnm/bud/go/mod"
-	"gitlab.com/mnm/bud/internal/di"
+	"gitlab.com/mnm/bud/2/di"
+	"gitlab.com/mnm/bud/2/gen"
+	"gitlab.com/mnm/bud/2/mod"
+	"gitlab.com/mnm/bud/2/parser"
 	"gitlab.com/mnm/bud/internal/generator/action"
 	"gitlab.com/mnm/bud/internal/generator/command"
 	"gitlab.com/mnm/bud/internal/generator/generate"
@@ -20,8 +24,6 @@ import (
 	"gitlab.com/mnm/bud/internal/generator/view"
 	"gitlab.com/mnm/bud/internal/generator/web"
 	"gitlab.com/mnm/bud/internal/modcache"
-	"gitlab.com/mnm/bud/internal/parser"
-	"gitlab.com/mnm/bud/plugin"
 	"gitlab.com/mnm/bud/vfs"
 )
 
@@ -30,7 +32,8 @@ type option struct {
 	Hot      bool
 	Minify   bool
 	Replaces []*gomod.Replace
-	Cache    *modcache.Cache
+	ModCache *modcache.Cache
+	FSCache  *fscache.Cache
 }
 
 type Option func(*option)
@@ -59,9 +62,15 @@ func WithReplace(from, to string) func(*option) {
 	}
 }
 
-func WithCache(mc *modcache.Cache) func(*option) {
+func WithModCache(mc *modcache.Cache) func(*option) {
 	return func(option *option) {
-		option.Cache = mc
+		option.ModCache = mc
+	}
+}
+
+func WithFSCache(fc *fscache.Cache) func(*option) {
+	return func(option *option) {
+		option.FSCache = fc
 	}
 }
 
@@ -69,102 +78,112 @@ func toType(importPath, dataType string) *di.Type {
 	return &di.Type{Import: importPath, Type: dataType}
 }
 
-func virtualModule(mf *mod.Finder) (*mod.Module, error) {
-	return mf.Parse("go.mod", []byte(`module app.com`))
-}
-
-func Load(appFS vfs.ReadWritable, options ...Option) (*Generator, error) {
+func Load(dir string, options ...Option) (*Generator, error) {
+	appFS := vfs.OS(dir)
 	option := &option{
-		Embed:  false,
-		Hot:    true,
-		Minify: false,
-		Cache:  modcache.Default(),
+		Embed:    false,
+		Hot:      true,
+		Minify:   false,
+		ModCache: modcache.Default(),
+		FSCache:  nil,
 	}
 	for _, fn := range options {
 		fn(option)
 	}
-	genFS := gen.New(appFS)
-	modFinder := mod.New(mod.WithFS(vfs.SingleFlight(vfs.GitIgnore(genFS))), mod.WithCache(option.Cache))
-	module, err := modFinder.Find(".")
+	// Find go.mod
+	module, err := mod.Find(dir, mod.WithFSCache(option.FSCache))
 	if err != nil {
-		if !errors.Is(err, mod.ErrCantInfer) {
+		if !errors.Is(err, mod.ErrFileNotFound) {
 			return nil, err
 		}
-		module, err = virtualModule(modFinder)
+		module, err = mod.Parse(dir, []byte(`module app.com`), mod.WithFSCache(option.FSCache))
 		if err != nil {
 			return nil, err
 		}
 	}
-	parser := parser.New(module)
-	injector := di.New(module, parser, di.Map{
+	// Load the bud filesystem
+	bfs, err := budfs.Load(module, budfs.WithFSCache(option.FSCache))
+	if err != nil {
+		return nil, err
+	}
+	parser := parser.New(bfs, module)
+	injector := di.New(bfs, module, parser, di.Map{
 		toType("gitlab.com/mnm/bud/gen", "FS"):        toType("gitlab.com/mnm/bud/gen", "*FileSystem"),
 		toType("gitlab.com/mnm/bud/js", "VM"):         toType("gitlab.com/mnm/bud/js/v8client", "*Client"),
 		toType("gitlab.com/mnm/bud/view", "Renderer"): toType("gitlab.com/mnm/bud/view", "*Server"),
 	})
-	genFS.Add(map[string]gen.Generator{
-		"go.mod": gen.FileGenerator(&gomod.Generator{
-			FS: appFS,
-			Go: &gomod.Go{
-				Version: "1.17",
-			},
-			ModFinder: modFinder,
-			Requires: []*gomod.Require{
-				{
-					Path:    `gitlab.com/mnm/bud`,
-					Version: `v0.0.0-20211017185247-da18ff96a31f`,
-				},
-			},
-			Replaces: option.Replaces,
-		}),
-		"bud/plugin": gen.DirGenerator(&plugin.Generator{
-			Module: module,
-		}),
-		"bud/generate/main.go": gen.FileGenerator(&generate.Generator{
-			Module: module,
-			Embed:  option.Embed,
-			Hot:    option.Hot,
-			Minify: option.Minify,
-		}),
-		// TODO: separate the following from the generators to give the generators
-		// a chance to add files that are picked up by these compiler plugins.
-		"bud/command/command.go": gen.FileGenerator(&command.Generator{
-			Module: module,
-			Parser: parser,
-		}),
-		"bud/action/action.go": gen.FileGenerator(&action.Generator{
-			Injector: injector,
-			Module:   module,
-			Parser:   parser,
-		}),
-		"bud/transform/transform.go": gen.FileGenerator(&transform.Generator{
-			Module: module,
-		}),
-		"bud/view/view.go": gen.FileGenerator(&view.Generator{
-			Module: module,
-		}),
-		"bud/public/public.go": gen.FileGenerator(&public.Generator{
-			Module: module,
-			Embed:  option.Embed,
-			Minify: option.Minify,
-		}),
-		"bud/web/web.go": gen.FileGenerator(&web.Generator{
-			Module: module,
-			Parser: parser,
-		}),
-		"bud/program/program.go": gen.FileGenerator(&program.Generator{
-			Module:   module,
-			Injector: injector,
-		}),
-		"bud/main.go": gen.FileGenerator(&maingo.Generator{
-			Module: module,
-		}),
-	})
-	return &Generator{appFS, genFS, module}, nil
+
+	// go.mod generator
+	bfs.Entry("go.mod", gen.FileGenerator(&gomod.Generator{
+		Module: module,
+	}))
+
+	// generate generator
+	bfs.Entry("bud/generate/main.go", gen.FileGenerator(&generate.Generator{
+		BFS:    bfs,
+		Module: module,
+		Embed:  option.Embed,
+		Hot:    option.Hot,
+		Minify: option.Minify,
+	}))
+
+	// TODO: separate the following from the generators to give the generators
+	// a chance to add files that are picked up by these compiler plugins.
+	bfs.Entry("bud/command/command.go", gen.FileGenerator(&command.Generator{
+		BFS:    bfs,
+		Module: module,
+		Parser: parser,
+	}))
+
+	// action generator
+	bfs.Entry("bud/action/action.go", gen.FileGenerator(&action.Generator{
+		BFS:      bfs,
+		Injector: injector,
+		Module:   module,
+		Parser:   parser,
+	}))
+
+	// transform generator
+	bfs.Entry("bud/transform/transform.go", gen.FileGenerator(&transform.Generator{
+		BFS:    bfs,
+		Module: module,
+	}))
+
+	bfs.Entry("bud/view/view.go", gen.FileGenerator(&view.Generator{
+		BFS:    bfs,
+		Module: module,
+	}))
+
+	bfs.Entry("bud/public/public.go", gen.FileGenerator(&public.Generator{
+		BFS:    bfs,
+		Module: module,
+		Embed:  option.Embed,
+		Minify: option.Minify,
+	}))
+
+	bfs.Entry("bud/web/web.go", gen.FileGenerator(&web.Generator{
+		BFS:    bfs,
+		Module: module,
+		Parser: parser,
+	}))
+
+	bfs.Entry("bud/program/program.go", gen.FileGenerator(&program.Generator{
+		BFS:      bfs,
+		Module:   module,
+		Injector: injector,
+	}))
+
+	bfs.Entry("bud/main.go", gen.FileGenerator(&maingo.Generator{
+		BFS:    bfs,
+		Module: module,
+	}))
+
+	return &Generator{appFS, bfs, module}, nil
 }
 
 type Generator struct {
 	appFS  vfs.ReadWritable
-	genFS  *gen.FileSystem
+	bfs    budfs.FS
 	module *mod.Module
 }
 
@@ -172,12 +191,12 @@ func (g *Generator) Module() *mod.Module {
 	return g.module
 }
 
-func (g *Generator) Add(generators map[string]gen.Generator) {
-	g.genFS.Add(generators)
-}
+// func (g *Generator) Add(generators map[string]gen.Generator) {
+// 	g.genFS.Add(generators)
+// }
 
 func (g *Generator) Generate(ctx context.Context) error {
-	if err := fsync.Dir(g.module, ".", vfs.GitIgnoreRW(g.appFS), "."); err != nil {
+	if err := fsync.Dir(g.bfs, ".", vfs.GitIgnoreRW(g.appFS), "."); err != nil {
 		return err
 	}
 	return nil

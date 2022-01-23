@@ -1,4 +1,4 @@
-package genfs_test
+package gen_test
 
 import (
 	"errors"

@@ -25,7 +25,7 @@ import (
 	"github.com/lithammer/dedent"
 	"github.com/matryer/is"
 	"github.com/matthewmueller/diff"
-	"gitlab.com/mnm/bud/go/mod"
+	"gitlab.com/mnm/bud/2/mod"
 	"gitlab.com/mnm/bud/internal/generator"
 	"gitlab.com/mnm/bud/internal/modcache"
 	"gitlab.com/mnm/bud/internal/npm"
@@ -38,11 +38,11 @@ func replaceBud(code string) (string, error) {
 	if !ok {
 		return "", errors.New("unable to load current file path")
 	}
-	budModule, err := mod.New().Find(filepath.Dir(file))
+	budModule, err := mod.Find(filepath.Dir(file))
 	if err != nil {
 		return "", err
 	}
-	module, err := mod.New().Parse("go.mod", []byte(code))
+	module, err := mod.Parse("go.mod", []byte(code))
 	if err != nil {
 		return "", err
 	}
@@ -54,7 +54,7 @@ func replaceBud(code string) (string, error) {
 }
 
 func addModules(code string, modules map[string]modcache.Files) (string, error) {
-	module, err := mod.New().Parse("go.mod", []byte(code))
+	module, err := mod.Parse("go.mod", []byte(code))
 	if err != nil {
 		return "", err
 	}
@@ -80,7 +80,7 @@ func moduleGoMod(pathVersion string, module modcache.Files) (string, error) {
 	if !ok {
 		return "", errors.New("unable to load current file path")
 	}
-	budModule, err := mod.New().Find(filepath.Dir(file))
+	budModule, err := mod.Find(filepath.Dir(file))
 	if err != nil {
 		return "", err
 	}
@@ -220,8 +220,7 @@ func (g *Gen) Generate() (*App, error) {
 			return nil, err
 		}
 	}
-	appFS := vfs.OS(appDir)
-	gen, err := generator.Load(appFS, generator.WithCache(modCache))
+	gen, err := generator.Load(appDir, generator.WithModCache(modCache))
 	if err != nil {
 		return nil, err
 	}

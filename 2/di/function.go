@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"gitlab.com/mnm/bud/2/parser"
 	"gitlab.com/mnm/bud/go/is"
-	"gitlab.com/mnm/bud/internal/parser"
 )
 
 // Function is the top-level load function that we generate to provide all the

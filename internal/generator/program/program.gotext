@@ -37,13 +37,13 @@ func Load() (*Program, error) {
 	if err != nil {
 		return nil, err
 	}
-	module, err := mod.New().Find(dir)
+	module, err := mod.Find(dir)
 	if err != nil {
 		return nil, err
 	}
 	genFS := gen.New(os.DirFS(module.Directory()))
 	genFS.Add(map[string]gen.Generator{
-		"bud/plugin": gen.DirGenerator(&plugin.Generator{Module: module}),
+		// "bud/plugin": gen.DirGenerator(&plugin.Generator{Module: module}),
 	})
 	cli, err := loadCLI(genFS, module)
 	if err != nil {

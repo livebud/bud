@@ -4,32 +4,54 @@ import (
 	"io/fs"
 
 	"gitlab.com/mnm/bud/2/fscache"
-	"gitlab.com/mnm/bud/2/genfs"
+	"gitlab.com/mnm/bud/2/gen"
 	"gitlab.com/mnm/bud/2/mod"
 	"gitlab.com/mnm/bud/2/pluginfs"
 )
 
-func Load(fsCache *fscache.Cache, module *mod.Module) (*FS, error) {
-	plugin, err := pluginfs.Load(module, pluginfs.WithFSCache(fsCache))
+type option struct {
+	FSCache *fscache.Cache
+}
+
+type Option func(*option)
+
+func WithFSCache(fc *fscache.Cache) func(*option) {
+	return func(option *option) {
+		option.FSCache = fc
+	}
+}
+
+func Load(module *mod.Module, options ...Option) (*FileSystem, error) {
+	opt := &option{
+		FSCache: nil,
+	}
+	for _, option := range options {
+		option(opt)
+	}
+	plugin, err := pluginfs.Load(module, pluginfs.WithFSCache(opt.FSCache))
 	if err != nil {
 		return nil, err
 	}
-	genfs := genfs.New(plugin, genfs.WithFSCache(fsCache))
-	return &FS{
+	genfs := gen.New(plugin, gen.WithFSCache(opt.FSCache))
+	return &FileSystem{
 		gen: genfs,
 	}, nil
 }
 
-type FS struct {
-	gen *genfs.FileSystem
+type FS interface {
+	fs.FS
 }
 
-func (f *FS) Open(name string) (fs.File, error) {
+type FileSystem struct {
+	gen *gen.FileSystem
+}
+
+func (f *FileSystem) Open(name string) (fs.File, error) {
 	return f.gen.Open(name)
 }
 
-func (f *FS) Entry(name string, generator genfs.Generator) {
-	f.gen.Add(map[string]genfs.Generator{
+func (f *FileSystem) Entry(name string, generator gen.Generator) {
+	f.gen.Add(map[string]gen.Generator{
 		name: generator,
 	})
 }

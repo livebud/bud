@@ -3,8 +3,9 @@ package maingo
 import (
 	_ "embed"
 
-	"gitlab.com/mnm/bud/gen"
-	"gitlab.com/mnm/bud/go/mod"
+	"gitlab.com/mnm/bud/2/budfs"
+	"gitlab.com/mnm/bud/2/gen"
+	"gitlab.com/mnm/bud/2/mod"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
 )
@@ -15,6 +16,7 @@ var template string
 var generator = gotemplate.MustParse("maingo", template)
 
 type Generator struct {
+	BFS    budfs.FS
 	Module *mod.Module
 }
 
@@ -23,7 +25,7 @@ type State struct {
 }
 
 func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
-	if err := gen.SkipUnless(g.Module, "bud/program/program.go"); err != nil {
+	if err := gen.SkipUnless(g.BFS, "bud/program/program.go"); err != nil {
 		return err
 	}
 	imports := imports.New()

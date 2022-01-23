@@ -2,14 +2,13 @@
 package modtest
 
 import (
-	"io/fs"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/lithammer/dedent"
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/go/mod"
+	"gitlab.com/mnm/bud/2/mod"
 	"gitlab.com/mnm/bud/internal/modcache"
 	"gitlab.com/mnm/bud/vfs"
 )
@@ -19,16 +18,16 @@ type Module struct {
 	Files    map[string][]byte
 	CacheDir string
 	AppDir   string
-	FS       fs.FS
+	// FS       fs.FS
 }
 
 func redent(s string) string {
 	return strings.TrimSpace(dedent.Dedent(s)) + "\n"
 }
 
-func noWrap(fsys fs.FS) fs.FS {
-	return fsys
-}
+// func noWrap(fsys fs.FS) fs.FS {
+// 	return fsys
+// }
 
 func Make(t testing.TB, m Module) *mod.Module {
 	t.Helper()
@@ -56,11 +55,7 @@ func Make(t testing.TB, m Module) *mod.Module {
 		err := vfs.Write(m.AppDir, vfs.Map(m.Files))
 		is.NoErr(err)
 	}
-	if m.FS == nil {
-		m.FS = os.DirFS(m.AppDir)
-	}
-	modFinder := mod.New(mod.WithCache(modCache), mod.WithFS(m.FS))
-	module, err := modFinder.Find(".")
+	module, err := mod.Find(m.AppDir, mod.WithModCache(modCache))
 	is.NoErr(err)
 	return module
 }
@@ -69,9 +64,9 @@ func replaceBud(t testing.TB, code string) string {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	budModule, err := mod.New().Find(wd)
+	budModule, err := mod.Find(wd)
 	is.NoErr(err)
-	module, err := mod.New().Parse("go.mod", []byte(code))
+	module, err := mod.Parse("go.mod", []byte(code))
 	is.NoErr(err)
 	err = module.File().Replace("gitlab.com/mnm/bud", budModule.Directory())
 	is.NoErr(err)

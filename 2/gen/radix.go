@@ -1,4 +1,4 @@
-package genfs
+package gen
 
 import "github.com/armon/go-radix"
 

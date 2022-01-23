@@ -3,9 +3,10 @@ package generate
 import (
 	_ "embed"
 
-	"gitlab.com/mnm/bud/go/mod"
+	"gitlab.com/mnm/bud/2/budfs"
+	"gitlab.com/mnm/bud/2/mod"
 
-	"gitlab.com/mnm/bud/gen"
+	"gitlab.com/mnm/bud/2/gen"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
 )
@@ -16,6 +17,7 @@ var template string
 var generator = gotemplate.MustParse("generate", template)
 
 type Generator struct {
+	BFS    budfs.FS
 	Module *mod.Module
 	Embed  bool
 	Hot    bool
@@ -29,7 +31,7 @@ type State struct {
 
 func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 	// Don't create a generate file if custom user-generators don't exist
-	if err := gen.SkipUnless(g.Module, "bud/generator/generator.go"); err != nil {
+	if err := gen.SkipUnless(g.BFS, "bud/generator/generator.go"); err != nil {
 		return err
 	}
 	imports := imports.New()

@@ -6,8 +6,9 @@ import (
 
 	"gitlab.com/mnm/bud/internal/entrypoint"
 
-	"gitlab.com/mnm/bud/gen"
-	"gitlab.com/mnm/bud/go/mod"
+	"gitlab.com/mnm/bud/2/budfs"
+	"gitlab.com/mnm/bud/2/gen"
+	"gitlab.com/mnm/bud/2/mod"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
 )
@@ -18,6 +19,7 @@ var template string
 var generator = gotemplate.MustParse("transform.gotext", template)
 
 type Generator struct {
+	BFS    budfs.FS
 	Module *mod.Module
 }
 
@@ -36,7 +38,7 @@ type Transform struct {
 }
 
 func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
-	views, err := entrypoint.List(g.Module)
+	views, err := entrypoint.List(g.BFS)
 	if err != nil {
 		return err
 	} else if len(views) == 0 {

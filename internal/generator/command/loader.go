@@ -8,16 +8,18 @@ import (
 
 	"github.com/matthewmueller/text"
 
-	"gitlab.com/mnm/bud/go/mod"
+	"gitlab.com/mnm/bud/2/budfs"
+	"gitlab.com/mnm/bud/2/mod"
+	"gitlab.com/mnm/bud/2/parser"
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/internal/parser"
 	"gitlab.com/mnm/bud/internal/valid"
 )
 
 // Load state
-func Load(module *mod.Module, parser *parser.Parser) (*State, error) {
+func Load(bfs budfs.FS, module *mod.Module, parser *parser.Parser) (*State, error) {
 	loader := &loader{
+		bfs:     bfs,
 		imports: imports.New(),
 		parser:  parser,
 		module:  module,
@@ -27,6 +29,7 @@ func Load(module *mod.Module, parser *parser.Parser) (*State, error) {
 
 type loader struct {
 	bail.Struct
+	bfs     budfs.FS
 	imports *imports.Set
 	module  *mod.Module
 	parser  *parser.Parser
@@ -39,7 +42,7 @@ func (l *loader) Load() (state *State, err error) {
 	// Add initial imports
 	l.imports.AddNamed("commander", "gitlab.com/mnm/bud/commander")
 	l.imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
-	l.imports.AddNamed("mod", "gitlab.com/mnm/bud/go/mod")
+	l.imports.AddNamed("mod", "gitlab.com/mnm/bud/2/mod")
 	// Load the commands
 	state.Command = l.loadRoot("command")
 	if !state.Command.Runnable && len(state.Command.Subs) == 0 {
@@ -55,7 +58,7 @@ func (l *loader) loadRoot(base string) *Command {
 	command := new(Command)
 	command.Slug = imports.AssumedName(l.module.Import())
 	// If a generated web server is present, then the root command is runnable.
-	if _, err := fs.Stat(l.module, "bud/web/web.go"); nil == err {
+	if _, err := fs.Stat(l.bfs, "bud/web/web.go"); nil == err {
 		l.imports.AddStd("os", "context")
 		// l.imports.AddStd("fmt")
 		l.imports.AddNamed("console", "gitlab.com/mnm/bud/log/console")
@@ -63,7 +66,7 @@ func (l *loader) loadRoot(base string) *Command {
 		l.imports.AddNamed("socket", "gitlab.com/mnm/bud/socket")
 		command.Runnable = true
 	}
-	des, err := fs.ReadDir(l.module, base)
+	des, err := fs.ReadDir(l.bfs, base)
 	if err != nil {
 		// Return the build/run command without any subcommands
 		if errors.Is(err, fs.ErrNotExist) {
@@ -137,7 +140,7 @@ func (l *loader) loadSub(base, dir string) *Command {
 	}
 
 	// Read the subdirectories
-	des, err := fs.ReadDir(l.module, commandDir)
+	des, err := fs.ReadDir(l.bfs, commandDir)
 	if err != nil {
 		l.Bail(err)
 	}
@@ -240,8 +243,5 @@ func isRunnable(stct *parser.Struct) bool {
 	}
 	// Ensure the first param is context.Context
 	typeName := parser.TypeName(params[0].Type())
-	if typeName != "Context" {
-		return false
-	}
-	return true
+	return typeName == "Context"
 }

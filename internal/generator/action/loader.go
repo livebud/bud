@@ -14,20 +14,22 @@ import (
 
 	"github.com/matthewmueller/gotext"
 	"github.com/matthewmueller/text"
-	"gitlab.com/mnm/bud/go/mod"
+	"gitlab.com/mnm/bud/2/budfs"
+	"gitlab.com/mnm/bud/2/di"
+	"gitlab.com/mnm/bud/2/mod"
+	"gitlab.com/mnm/bud/2/parser"
 	"gitlab.com/mnm/bud/internal/bail"
-	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/internal/parser"
 	"gitlab.com/mnm/bud/vfs"
 )
 
-func Load(injector *di.Injector, module *mod.Module, parser *parser.Parser) (*State, error) {
-	exist := vfs.SomeExist(module, "action")
+func Load(bfs budfs.FS, injector *di.Injector, module *mod.Module, parser *parser.Parser) (*State, error) {
+	exist := vfs.SomeExist(bfs, "action")
 	if len(exist) == 0 {
 		return nil, fs.ErrNotExist
 	}
 	loader := &loader{
+		bfs:      bfs,
 		contexts: newContextSet(),
 		imports:  imports.New(),
 		injector: injector,
@@ -41,6 +43,7 @@ func Load(injector *di.Injector, module *mod.Module, parser *parser.Parser) (*St
 // loader struct
 type loader struct {
 	bail.Struct
+	bfs      budfs.FS
 	injector *di.Injector
 	imports  *imports.Set
 	contexts *contextSet
@@ -60,7 +63,7 @@ func (l *loader) Load() (state *State, err error) {
 }
 
 func (l *loader) loadController(actionPath string) *Controller {
-	des, err := fs.ReadDir(l.module, actionPath)
+	des, err := fs.ReadDir(l.bfs, actionPath)
 	if err != nil {
 		l.Bail(err)
 	}
@@ -201,7 +204,7 @@ func (l *loader) loadActionMethod(actionName string) string {
 
 func (l *loader) loadView(controllerKey, actionKey, actionRoute string) *View {
 	viewDir := path.Join("view", controllerKey)
-	des, err := fs.ReadDir(l.module, viewDir)
+	des, err := fs.ReadDir(l.bfs, viewDir)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil
@@ -296,7 +299,7 @@ func (l *loader) loadType(dt parser.Type, dec parser.Declaration) string {
 }
 
 func (l *loader) loadActionInput(params []*ActionParam) string {
-	if len(params) == 1 && params[0].Kind == parser.KindStruct {
+	if len(params) == 1 && params[0].Kind == string(parser.KindStruct) {
 		return params[0].Type
 	}
 	return l.loadActionInputStruct(params)

@@ -8,6 +8,39 @@ import (
 	"gitlab.com/mnm/bud/internal/parser"
 )
 
+// Function is the top-level load function that we generate to provide all the
+// dependencies
+type Function struct {
+	// Name of the function to generate
+	Name string
+	// Params are the external parameters that are passed in
+	Params []Dependency
+	// Results are the dependencies that need to be loaded
+	Results []Dependency
+	// Hoist dependencies that don't depend on externals, turning them into
+	// externals. This is to avoid initializing these inner deps every time.
+	// Useful for per-request dependency injection.
+	Hoist bool
+	// Target import path where this function will be generated to
+	Target string
+}
+
+var _ Declaration = (*Function)(nil)
+
+func (fn *Function) ID() string {
+	return getID(fn.Target, fn.Name)
+}
+
+func (fn *Function) Dependencies() []Dependency {
+	return fn.Results
+}
+
+// Generate the function declaration that can be called to initialize the
+// required dependencies
+func (fn *Function) Generate(g Generator, ins []*Variable) (outs []*Variable) {
+	return ins
+}
+
 // Check to see if the function initializes the dependency.
 //
 // Given the following dependency: *Web, tryFunction will match on the
@@ -18,7 +51,7 @@ import (
 //   func ...(...) (*Web, error)
 //   func ...(...) (Web, error)
 //
-func tryFunction(fn *parser.Function, dep *Dependency) (*Function, error) {
+func tryFunction(fn *parser.Function, importPath, dataType string) (*function, error) {
 	if fn.Private() {
 		return nil, ErrNoMatch
 	}
@@ -29,7 +62,7 @@ func tryFunction(fn *parser.Function, dep *Dependency) (*Function, error) {
 	resultType := results[0].Type()
 	innerType := parser.Unqualify(resultType).String()
 	innerName := strings.TrimPrefix(innerType, "*")
-	depName := strings.TrimPrefix(dep.Type, "*")
+	depName := strings.TrimPrefix(dataType, "*")
 	if innerName != depName {
 		return nil, ErrNoMatch
 	}
@@ -37,15 +70,15 @@ func tryFunction(fn *parser.Function, dep *Dependency) (*Function, error) {
 	if err != nil {
 		return nil, err
 	}
-	if typeImport != dep.Import {
+	if typeImport != importPath {
 		return nil, ErrNoMatch
 	}
-	importPath, err := fn.File().Import()
+	fileImportPath, err := fn.File().Import()
 	if err != nil {
 		return nil, err
 	}
-	function := &Function{
-		Import: importPath,
+	function := &function{
+		Import: fileImportPath,
 		Name:   fn.Name(),
 	}
 	for _, param := range fn.Params() {
@@ -58,68 +91,68 @@ func tryFunction(fn *parser.Function, dep *Dependency) (*Function, error) {
 		if err != nil {
 			return nil, err
 		}
-		t := parser.Unqualify(pt)
 		def, err := param.Definition()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("di: unable to find definition for %q.%s > %w", importPath, parser.Unqualify(pt).String(), err)
 		}
-		modFile, err := def.Package().Modfile()
-		if err != nil {
-			return nil, err
-		}
-		function.Params = append(function.Params, &Dependency{
-			Import:  importPath,
-			Type:    t.String(),
-			ModFile: modFile,
+		module := def.Package().Module()
+		function.Params = append(function.Params, &Type{
+			Import: importPath,
+			Type:   parser.Unqualify(pt).String(),
+			kind:   def.Kind(),
+			module: module,
 		})
 	}
 	for _, result := range results {
-		resultType := result.Type()
+		rt := result.Type()
 		name := result.Name()
 		if name == "" {
-			name = parser.TypeName(resultType)
+			name = parser.TypeName(rt)
 		}
-		importPath, err := parser.ImportPath(resultType)
+		importPath, err := parser.ImportPath(rt)
 		if err != nil {
 			return nil, err
 		}
-		unqualified := parser.Unqualify(resultType)
-		function.Results = append(function.Results, &ResultField{
+		def, err := result.Definition()
+		if err != nil {
+			return nil, fmt.Errorf("di: unable to find definition for %q.%s > %w", importPath, parser.Unqualify(rt).String(), err)
+		}
+		unqualified := parser.Unqualify(rt)
+		function.Results = append(function.Results, &Type{
 			Import: importPath,
-			Name:   name,
 			Type:   unqualified.String(),
+			kind:   def.Kind(),
+			name:   name,
 		})
 		continue
 	}
 	return function, nil
 }
 
-type Function struct {
+// Function is a declaration that can provide a dependency
+type function struct {
 	Import  string
 	Name    string
-	Params  []*Dependency
-	Results []*ResultField
+	Params  []*Type
+	Results []*Type
 }
 
-type ResultField struct {
-	Import string // Import path
-	Type   string // Result type
-	Name   string // Result name
-}
+var _ Declaration = (*function)(nil)
 
-var _ Declaration = (*Function)(nil)
-
-func (fn *Function) ID() string {
+func (fn *function) ID() string {
 	return `"` + fn.Import + `".` + fn.Name
 }
 
-// Dependencies are the values that the function depends on to run
-func (fn *Function) Dependencies() []*Dependency {
-	return fn.Params
+// Dependencies are the values that the funcDecl depends on to run
+func (fn *function) Dependencies() (deps []Dependency) {
+	for _, param := range fn.Params {
+		deps = append(deps, param)
+	}
+	return deps
 }
 
 // Returns true if the 2nd result is an error
-func (fn *Function) hasError() bool {
+func (fn *function) hasError() bool {
 	l := len(fn.Results)
 	if l == 0 {
 		return false
@@ -128,26 +161,8 @@ func (fn *Function) hasError() bool {
 	return last.Type == "error"
 }
 
-// maybePrefix allows us to reference and derefence values during generate so
-// the result type doesn't need to be exact.
-func maybePrefixParam(param *Dependency, input *Variable) string {
-	if param.Type == input.Type {
-		return input.Name
-	}
-	// Want *T, got T. Need to reference.
-	if strings.HasPrefix(param.Type, "*") && !strings.HasPrefix(input.Type, "*") {
-		return "&" + input.Name
-	}
-	// Want T, got*T. Need to dereference.
-	if !strings.HasPrefix(param.Type, "*") && strings.HasPrefix(input.Type, "*") {
-		return "*" + input.Name
-	}
-	// We really shouldn't reach here.
-	return input.Name
-}
-
-// Generate a statement that calls this function and returns the results.
-func (fn *Function) Generate(gen *Generator, inputs []*Variable) (outputs []*Variable) {
+// Generate a caller that can initialize a dependency
+func (fn *function) Generate(gen Generator, inputs []*Variable) (outputs []*Variable) {
 	var params []string
 	for i, input := range inputs {
 		params = append(params, maybePrefixParam(fn.Params[i], input))
@@ -160,14 +175,43 @@ func (fn *Function) Generate(gen *Generator, inputs []*Variable) (outputs []*Var
 		outputs = append(outputs, &Variable{
 			Import: result.Import,
 			Type:   result.Type,
+			Kind:   result.kind,
 			Name:   name,
 		})
 	}
-	fmt.Fprintf(gen.Code, "%s := %s(%s)\n", strings.Join(results, ", "), identifier, strings.Join(params, ", "))
+	gen.WriteString(fmt.Sprintf("%s := %s(%s)\n", strings.Join(results, ", "), identifier, strings.Join(params, ", ")))
 	if fn.hasError() {
-		gen.HasError = true
+		// Mark the code as having an error
+		gen.MarkError(true)
 		errvar := outputs[len(outputs)-1]
-		fmt.Fprintf(gen.Code, "if %[1]s != nil {\n\treturn nil, %[1]s\n}\n", errvar.Name)
+		gen.WriteString(fmt.Sprintf("if %[1]s != nil {\n\treturn nil, %[1]s\n}\n", errvar.Name))
 	}
 	return outputs
+}
+
+// maybePrefix allows us to reference and derefence values during generate so
+// the result type doesn't need to be exact.
+func maybePrefixParam(param *Type, input *Variable) string {
+	if param.Type == input.Type {
+		if isInterface(param.kind) && !isInterface(input.Kind) {
+			// Create a pointer to the input when the param is an interface type, but
+			// the input is not an interface.
+			return "&" + input.Name
+		}
+		return input.Name
+	}
+	// Want *T, got T. Need to reference.
+	if strings.HasPrefix(param.Type, "*") && !strings.HasPrefix(input.Type, "*") {
+		return "&" + input.Name
+	}
+	// Want T, got *T. Need to dereference.
+	if !strings.HasPrefix(param.Type, "*") && strings.HasPrefix(input.Type, "*") {
+		if isInterface(param.kind) {
+			// Don't dereference the type when the param is an interface type
+			return input.Name
+		}
+		return "*" + input.Name
+	}
+	// We really shouldn't reach here.
+	return input.Name
 }

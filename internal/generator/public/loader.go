@@ -7,13 +7,15 @@ import (
 
 	"gitlab.com/mnm/bud/internal/valid"
 
-	"gitlab.com/mnm/bud/go/mod"
+	"gitlab.com/mnm/bud/2/budfs"
+	"gitlab.com/mnm/bud/2/mod"
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/imports"
 )
 
-func Load(module *mod.Module, embed, minify bool) (*State, error) {
+func Load(bfs budfs.FS, module *mod.Module, embed, minify bool) (*State, error) {
 	loader := &loader{
+		bfs:     bfs,
 		imports: imports.New(),
 		module:  module,
 		embed:   embed,
@@ -24,6 +26,7 @@ func Load(module *mod.Module, embed, minify bool) (*State, error) {
 
 type loader struct {
 	bail.Struct
+	bfs     budfs.FS
 	imports *imports.Set
 	module  *mod.Module
 	embed   bool
@@ -50,7 +53,7 @@ func (l *loader) loadFiles() (files []*File) {
 
 func (l *loader) loadFilesFrom(root, dir string) (files []*File) {
 	fullPath := path.Join(root, dir)
-	des, err := fs.ReadDir(l.module, fullPath)
+	des, err := fs.ReadDir(l.bfs, fullPath)
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			l.Bail(err)
@@ -75,7 +78,7 @@ func (l *loader) loadFilesFrom(root, dir string) (files []*File) {
 }
 
 func (l *loader) loadFilesFromPlugins(pluginBaseDir string) (files []*File) {
-	des, err := fs.ReadDir(l.module, pluginBaseDir)
+	des, err := fs.ReadDir(l.bfs, pluginBaseDir)
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			l.Bail(err)
@@ -88,7 +91,7 @@ func (l *loader) loadFilesFromPlugins(pluginBaseDir string) (files []*File) {
 			continue
 		}
 		fullDir := path.Join(pluginBaseDir, name)
-		des, err := fs.ReadDir(l.module, fullDir)
+		des, err := fs.ReadDir(l.bfs, fullDir)
 		if err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
 				l.Bail(err)
@@ -108,7 +111,7 @@ func (l *loader) loadFilesFromPlugins(pluginBaseDir string) (files []*File) {
 
 func (l *loader) loadFilesFromPlugin(pluginPublicDir, dir string) (files []*File) {
 	fullPath := path.Join(pluginPublicDir, dir)
-	des, err := fs.ReadDir(l.module, fullPath)
+	des, err := fs.ReadDir(l.bfs, fullPath)
 	if err != nil {
 		l.Bail(err)
 		return files

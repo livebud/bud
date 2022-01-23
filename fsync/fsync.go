@@ -10,7 +10,6 @@ import (
 	"gitlab.com/mnm/bud/vfs"
 )
 
-// TODO: read files during diff so we ensure we're successful before writing.
 // TODO: update should compare stamps at the time of writing, not before.
 
 // Dir syncs the source directory from the source filesystem to the target directory
@@ -20,6 +19,7 @@ func Dir(sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string) error {
 	if err != nil {
 		return err
 	}
+	// fmt.Println(ops)
 	err = apply(sfs, tfs, ops)
 	return err
 }
@@ -48,6 +48,7 @@ const (
 type Op struct {
 	Type OpType
 	Path string
+	Data []byte
 }
 
 func (o Op) String() string {
@@ -87,7 +88,15 @@ func createOps(sfs fs.FS, dir string, des []fs.DirEntry) (ops []Op, err error) {
 	for _, de := range des {
 		path := filepath.Join(dir, de.Name())
 		if !de.IsDir() {
-			ops = append(ops, Op{CreateType, path})
+			data, err := fs.ReadFile(sfs, path)
+			if err != nil {
+				// Don't error out on files that don't exist
+				if errors.Is(err, fs.ErrNotExist) {
+					continue
+				}
+				return nil, err
+			}
+			ops = append(ops, Op{CreateType, path, data})
 			continue
 		}
 		des, err := fs.ReadDir(sfs, path)
@@ -106,7 +115,7 @@ func createOps(sfs fs.FS, dir string, des []fs.DirEntry) (ops []Op, err error) {
 func deleteOps(dir string, des []fs.DirEntry) (ops []Op) {
 	for _, de := range des {
 		path := filepath.Join(dir, de.Name())
-		ops = append(ops, Op{DeleteType, path})
+		ops = append(ops, Op{DeleteType, path, nil})
 		continue
 	}
 	return ops
@@ -135,7 +144,15 @@ func updateOps(sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string, des []
 			return nil, err
 		}
 		if sourceStamp != targetStamp {
-			ops = append(ops, Op{UpdateType, sourcePath})
+			data, err := fs.ReadFile(sfs, sourcePath)
+			if err != nil {
+				// Don't error out on files that don't exist
+				if errors.Is(err, fs.ErrNotExist) {
+					continue
+				}
+				return nil, err
+			}
+			ops = append(ops, Op{UpdateType, sourcePath, data})
 		}
 	}
 	return ops, nil
@@ -146,30 +163,14 @@ func apply(sfs fs.FS, tfs vfs.ReadWritable, ops []Op) error {
 		switch op.Type {
 		case CreateType:
 			dir := filepath.Dir(op.Path)
-			data, err := fs.ReadFile(sfs, op.Path)
-			if err != nil {
-				// Don't error out on skipped files
-				if errors.Is(err, fs.ErrNotExist) {
-					continue
-				}
-				return err
-			}
 			if err := tfs.MkdirAll(dir, 0755); err != nil {
 				return err
 			}
-			if err := tfs.WriteFile(op.Path, data, 0644); err != nil {
+			if err := tfs.WriteFile(op.Path, op.Data, 0644); err != nil {
 				return err
 			}
 		case UpdateType:
-			data, err := fs.ReadFile(sfs, op.Path)
-			if err != nil {
-				// Don't error out on skipped files
-				if errors.Is(err, fs.ErrNotExist) {
-					continue
-				}
-				return err
-			}
-			if err := tfs.WriteFile(op.Path, data, 0644); err != nil {
+			if err := tfs.WriteFile(op.Path, op.Data, 0644); err != nil {
 				return err
 			}
 		case DeleteType:

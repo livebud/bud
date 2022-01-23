@@ -13,10 +13,10 @@ import (
 	"github.com/lithammer/dedent"
 	"github.com/matryer/is"
 	"github.com/matthewmueller/diff"
-	"gitlab.com/mnm/bud/go/mod"
-	"gitlab.com/mnm/bud/internal/di"
+	"gitlab.com/mnm/bud/2/di"
+	"gitlab.com/mnm/bud/2/mod"
+	"gitlab.com/mnm/bud/2/parser"
 	"gitlab.com/mnm/bud/internal/modcache"
-	"gitlab.com/mnm/bud/internal/parser"
 	"gitlab.com/mnm/bud/vfs"
 )
 
@@ -52,6 +52,7 @@ func runTest(t testing.TB, test Test) {
 	t.Helper()
 	is := is.New(t)
 	appDir := t.TempDir()
+	appFS := os.DirFS(appDir)
 	modCache := modcache.Default()
 	// Write modules
 	if test.Modules != nil {
@@ -74,16 +75,14 @@ func runTest(t testing.TB, test Test) {
 		err := vfs.Write(appDir, vmap)
 		is.NoErr(err)
 	}
-	// genfs := gen.New(os.DirFS(appDir))
-	modFinder := mod.New(mod.WithCache(modCache))
-	module, err := modFinder.Find(appDir)
+	module, err := mod.Find(appDir, mod.WithModCache(modCache))
 	is.NoErr(err)
-	parser := parser.New(module)
+	parser := parser.New(appFS, module)
 	typeMap := di.Map{}
 	for from, to := range test.Map {
 		typeMap[from] = to
 	}
-	injector := di.New(module, parser, typeMap)
+	injector := di.New(appFS, module, parser, typeMap)
 	node, err := injector.Load(test.Function)
 	if err != nil {
 		is.Equal(test.Expect, err.Error())

@@ -7,14 +7,9 @@ package di
 //
 // Start with hoisting true, but if we encounter any external along the way, the
 // hoisting of all children becomes false
-func Hoist(root *Node) *Node {
-	// Hoisting only applies to ancestor dependencies
-	for _, result := range root.Dependencies {
-		for _, dep := range result.Dependencies {
-			hoist(dep)
-		}
-	}
-	return root
+func Hoist(node *Node) *Node {
+	hoist(node)
+	return node
 }
 
 func hoist(node *Node) (shouldHoist bool) {

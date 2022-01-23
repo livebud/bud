@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"gitlab.com/mnm/bud/2/mod"
 	"gitlab.com/mnm/bud/dom"
 	"gitlab.com/mnm/bud/gen"
-	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/js"
 	"gitlab.com/mnm/bud/ssr"
 	"gitlab.com/mnm/bud/transform"

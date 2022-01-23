@@ -8,16 +8,17 @@ import (
 	"gitlab.com/mnm/bud/internal/scan"
 
 	"github.com/matthewmueller/text"
-	"gitlab.com/mnm/bud/go/mod"
+	"gitlab.com/mnm/bud/2/budfs"
+	"gitlab.com/mnm/bud/2/mod"
+	"gitlab.com/mnm/bud/2/parser"
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/internal/parser"
 	"gitlab.com/mnm/bud/ldflag"
 	"gitlab.com/mnm/bud/vfs"
 )
 
-func Load(module *mod.Module, parser *parser.Parser) (*State, error) {
-	exist := vfs.SomeExist(module,
+func Load(bfs budfs.FS, module *mod.Module, parser *parser.Parser) (*State, error) {
+	exist := vfs.SomeExist(bfs,
 		"bud/action/action.go",
 		"bud/public/public.go",
 		"bud/view/view.go",
@@ -27,6 +28,7 @@ func Load(module *mod.Module, parser *parser.Parser) (*State, error) {
 	}
 	loader := &loader{
 		imports: imports.New(),
+		bfs:     bfs,
 		module:  module,
 		parser:  parser,
 		exist:   exist,
@@ -37,6 +39,7 @@ func Load(module *mod.Module, parser *parser.Parser) (*State, error) {
 type loader struct {
 	bail.Struct
 	imports *imports.Set
+	bfs     budfs.FS
 	module  *mod.Module
 	parser  *parser.Parser
 	exist   map[string]bool
@@ -73,7 +76,7 @@ func (l *loader) Load() (state *State, err error) {
 }
 
 func (l *loader) loadControllerActions() (actions []*Action) {
-	subfs, err := fs.Sub(l.module, "action")
+	subfs, err := fs.Sub(l.bfs, "action")
 	if err != nil {
 		l.Bail(err)
 	}

@@ -10,9 +10,9 @@ import (
 	"testing/fstest"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
-	"gitlab.com/mnm/bud/vfs"
-	"gitlab.com/mnm/bud/transform"
 	"github.com/matryer/is"
+	"gitlab.com/mnm/bud/transform"
+	"gitlab.com/mnm/bud/vfs"
 )
 
 func TestTransform(t *testing.T) {

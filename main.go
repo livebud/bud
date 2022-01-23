@@ -14,16 +14,16 @@ import (
 	"path/filepath"
 	"strings"
 
+	"gitlab.com/mnm/bud/2/budfs"
+
 	"github.com/mattn/go-isatty"
-	"gitlab.com/mnm/bud/internal/di"
+	"gitlab.com/mnm/bud/2/di"
+	"gitlab.com/mnm/bud/2/parser"
 	"gitlab.com/mnm/bud/internal/generator"
 	"gitlab.com/mnm/bud/internal/gobin"
-	"gitlab.com/mnm/bud/internal/parser"
 	v8 "gitlab.com/mnm/bud/js/v8"
 
-	"gitlab.com/mnm/bud/vfs"
-
-	"gitlab.com/mnm/bud/go/mod"
+	"gitlab.com/mnm/bud/2/mod"
 
 	"gitlab.com/mnm/bud/commander"
 
@@ -106,8 +106,7 @@ type bud struct {
 }
 
 func (c *bud) Build(ctx context.Context, dir string) (string, error) {
-	dirfs := vfs.OS(dir)
-	generator, err := generator.Load(dirfs)
+	generator, err := generator.Load(dir)
 	if err != nil {
 		return "", err
 	}
@@ -135,7 +134,7 @@ func (c *bud) Build(ctx context.Context, dir string) (string, error) {
 // Run a custom command
 func (c *bud) Run(ctx context.Context) error {
 	// Find the project directory
-	dir, err := mod.FindDirectory(c.Chdir)
+	dir, err := mod.Absolute(c.Chdir)
 	if err != nil {
 		return err
 	}
@@ -166,7 +165,7 @@ type runCommand struct {
 
 func (c *runCommand) Run(ctx context.Context) error {
 	// Find the project directory
-	dir, err := mod.FindDirectory(c.bud.Chdir)
+	dir, err := mod.Absolute(c.bud.Chdir)
 	if err != nil {
 		return err
 	}
@@ -200,7 +199,7 @@ type buildCommand struct {
 
 func (c *buildCommand) Run(ctx context.Context) error {
 	// Find the project directory
-	dir, err := mod.FindDirectory(c.bud.Chdir)
+	dir, err := mod.Absolute(c.bud.Chdir)
 	if err != nil {
 		return err
 	}
@@ -222,12 +221,16 @@ type diCommand struct {
 }
 
 func (c *diCommand) Run(ctx context.Context) error {
-	modFinder := mod.New()
-	module, err := modFinder.Find(c.bud.Chdir)
+	module, err := mod.Find(c.bud.Chdir)
 	if err != nil {
 		return err
 	}
-	parser := parser.New(module)
+	// TODO: should budfs be empty or fully-loaded with generators?
+	bfs, err := budfs.Load(module)
+	if err != nil {
+		return err
+	}
+	parser := parser.New(bfs, module)
 	fn := &di.Function{
 		Hoist: c.Hoist,
 	}
@@ -264,7 +267,7 @@ func (c *diCommand) Run(ctx context.Context) error {
 		}
 		fn.Params = append(fn.Params, ext)
 	}
-	injector := di.New(module, parser, typeMap)
+	injector := di.New(bfs, module, parser, typeMap)
 	node, err := injector.Load(fn)
 	if err != nil {
 		return err

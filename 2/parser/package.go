@@ -2,6 +2,7 @@ package parser
 
 import (
 	"go/ast"
+	"io/fs"
 	"path/filepath"
 	"sort"
 
@@ -14,7 +15,7 @@ func newPackage(dir string, parser *Parser, module *mod.Module, node *ast.Packag
 	pkg := &Package{
 		dir:    dir,
 		node:   node,
-		module: module,
+		parser: parser,
 	}
 	pkg.files = files(pkg)
 	return pkg
@@ -26,7 +27,6 @@ type Package struct {
 	files  []*File
 	parser *Parser
 	node   *ast.Package
-	module *mod.Module
 }
 
 func (pkg *Package) Parser() *Parser {
@@ -50,22 +50,27 @@ func (pkg *Package) Files() []*File {
 
 // Module returns the module or fails
 func (pkg *Package) Module() *mod.Module {
-	return pkg.module
+	return pkg.parser.module
+}
+
+// Module returns the module or fails
+func (pkg *Package) FS() fs.FS {
+	return pkg.parser.fsys
 }
 
 // Import returns the import path to this package
 func (pkg *Package) Import() (string, error) {
-	return pkg.module.ResolveImport(pkg.Directory())
+	return pkg.parser.module.ResolveImport(pkg.Directory())
 }
 
 // ResolveDirectory resolves a directory from an import path
-func (pkg *Package) ResolveDirectory(importPath string) (string, error) {
-	return pkg.module.ResolveDirectory(importPath)
-}
+// func (pkg *Package) ResolveDirectory(importPath string) (string, error) {
+// 	return pkg.module.ResolveDirectory(importPath)
+// }
 
 // ResolveImport resolves a directory from an import path
 func (pkg *Package) ResolveImport(directory string) (string, error) {
-	return pkg.module.ResolveImport(directory)
+	return pkg.parser.module.ResolveImport(directory)
 }
 
 // Files returns the Go files within the package
@@ -89,9 +94,9 @@ type Kind string
 
 const (
 	KindBuiltin   Kind = "builtin"
-	KindStruct         = "struct"
-	KindInterface      = "interface"
-	KindAlias          = "alias"
+	KindStruct    Kind = "struct"
+	KindInterface Kind = "interface"
+	KindAlias     Kind = "alias"
 )
 
 // Declaration interface

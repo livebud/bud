@@ -322,12 +322,16 @@ func (t *SelectorType) Definition() (Declaration, error) {
 		return nil, err
 	}
 	current := pkg.Module()
-	module, err := current.Find(imp)
+	module, err := current.FindIn(pkg.FS(), imp)
 	if err != nil {
 		return nil, err
 	}
-
-	dir, err := module.ResolveDirectory(imp)
+	fsys := pkg.FS()
+	if current.Directory() != module.Directory() {
+		// Module is the FS, since we're outside the application dir now
+		fsys = module
+	}
+	dir, err := module.ResolveDirectoryIn(fsys, imp)
 	if err != nil {
 		return nil, err
 	}
@@ -335,12 +339,7 @@ func (t *SelectorType) Definition() (Declaration, error) {
 	if err != nil {
 		return nil, err
 	}
-	parser := pkg.Parser()
-	if current.Directory() != module.Directory() {
-		// Module is the FS, since we're outside the application dir now
-		parser = New(module, module)
-	}
-	newPkg, err := parser.Parse(rel)
+	newPkg, err := New(fsys, module).Parse(rel)
 	if err != nil {
 		return nil, err
 	}
