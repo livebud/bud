@@ -6,27 +6,27 @@ import (
 	"strings"
 
 	mergefs "github.com/yalue/merged_fs"
+	"gitlab.com/mnm/bud/2/fscache"
 	"gitlab.com/mnm/bud/2/mod"
-	"gitlab.com/mnm/bud/2/virtual"
 	"golang.org/x/sync/errgroup"
 )
 
 type Option = func(o *option)
 
 type option struct {
-	fileCache *virtual.Map // can be nil
+	fsCache *fscache.Cache // can be nil
 }
 
-// WithFileCache uses a custom mod cache instead of the default
-func WithFileCache(cache *virtual.Map) func(o *option) {
+// WithFSCache uses a custom mod cache instead of the default
+func WithFSCache(cache *fscache.Cache) func(o *option) {
 	return func(opt *option) {
-		opt.fileCache = cache
+		opt.fsCache = cache
 	}
 }
 
 func Load(module *mod.Module, options ...Option) (fs.FS, error) {
 	opt := &option{
-		fileCache: nil,
+		fsCache: nil,
 	}
 	plugins, err := loadPlugins(module)
 	if err != nil {
@@ -77,13 +77,13 @@ type FS struct {
 }
 
 func (f *FS) Open(name string) (fs.File, error) {
-	if f.opt.fileCache == nil {
+	if f.opt.fsCache == nil {
 		return f.merged.Open(name)
 	}
-	return f.cachedOpen(f.opt.fileCache, name)
+	return f.cachedOpen(f.opt.fsCache, name)
 }
 
-func (f *FS) cachedOpen(fmap *virtual.Map, name string) (fs.File, error) {
+func (f *FS) cachedOpen(fmap *fscache.Cache, name string) (fs.File, error) {
 	if fmap.Has(name) {
 		return fmap.Open(name)
 	}
@@ -92,7 +92,7 @@ func (f *FS) cachedOpen(fmap *virtual.Map, name string) (fs.File, error) {
 		return nil, err
 	}
 	defer file.Close()
-	vfile, err := virtual.From(file)
+	vfile, err := fscache.From(file)
 	if err != nil {
 		return nil, err
 	}

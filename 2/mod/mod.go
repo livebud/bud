@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.com/mnm/bud/2/virtual"
+	"gitlab.com/mnm/bud/2/fscache"
 	"gitlab.com/mnm/bud/internal/modcache"
 	"golang.org/x/mod/modfile"
 )
@@ -23,8 +23,8 @@ var ErrFileNotFound = fmt.Errorf("unable to find go.mod: %w", fs.ErrNotExist)
 type Option = func(o *option)
 
 type option struct {
-	modCache  *modcache.Cache
-	fileCache *virtual.Map // can be nil
+	modCache *modcache.Cache
+	fsCache  *fscache.Cache // can be nil
 }
 
 // WithModCache uses a custom mod cache instead of the default
@@ -35,16 +35,16 @@ func WithModCache(cache *modcache.Cache) func(o *option) {
 }
 
 // WithFileCache uses a file cache
-func WithFileCache(cache *virtual.Map) func(o *option) {
+func WithFSCache(cache *fscache.Cache) func(o *option) {
 	return func(opt *option) {
-		opt.fileCache = cache
+		opt.fsCache = cache
 	}
 }
 
 func Find(dir string, options ...Option) (*Module, error) {
 	opt := &option{
-		modCache:  modcache.Default(),
-		fileCache: nil,
+		modCache: modcache.Default(),
+		fsCache:  nil,
 	}
 	for _, option := range options {
 		option(opt)

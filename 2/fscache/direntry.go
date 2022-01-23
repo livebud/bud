@@ -1,4 +1,4 @@
-package virtual
+package fscache
 
 import (
 	"io/fs"

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"gitlab.com/mnm/bud/2/fscache"
 	"gitlab.com/mnm/bud/2/mod"
-	"gitlab.com/mnm/bud/2/virtual"
 	"gitlab.com/mnm/bud/internal/modcache"
 	"gitlab.com/mnm/bud/vfs"
 
@@ -293,8 +293,8 @@ func TestFileCacheDir(t *testing.T) {
 		"main.go": []byte(`package main`),
 	})
 	is.NoErr(err)
-	fmap := virtual.FileMap()
-	module, err := mod.Find(appDir, mod.WithFileCache(fmap))
+	fmap := fscache.New()
+	module, err := mod.Find(appDir, mod.WithFSCache(fmap))
 	is.NoErr(err)
 	// Check initial
 	des, err := fs.ReadDir(module, ".")

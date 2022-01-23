@@ -8,10 +8,10 @@ import (
 	"gitlab.com/mnm/bud/internal/modcache"
 
 	"gitlab.com/mnm/bud/2/budfs"
+	"gitlab.com/mnm/bud/2/fscache"
 	"gitlab.com/mnm/bud/2/genfs"
 	"gitlab.com/mnm/bud/2/mod"
 	"gitlab.com/mnm/bud/2/parser"
-	"gitlab.com/mnm/bud/2/virtual"
 
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/vfs"
@@ -26,7 +26,7 @@ func TestBud(t *testing.T) {
 		"view/index.svelte": []byte("<h1>hello world</h1>"),
 	})
 	is.NoErr(err)
-	fmap := virtual.FileMap()
+	fmap := fscache.New()
 	bfs, err := Generator(appDir, fmap, modcache.Default())
 	is.NoErr(err)
 	code, err := fs.ReadFile(bfs, "action/action.go")
@@ -78,8 +78,8 @@ func (w *web) GenerateFile(_ genfs.F, file *genfs.File) error {
 	return nil
 }
 
-func Generator(dir string, fmap *virtual.Map, modCache *modcache.Cache) (*budfs.FS, error) {
-	module, err := mod.Find(dir, mod.WithFileCache(fmap), mod.WithModCache(modCache))
+func Generator(dir string, fmap *fscache.Cache, modCache *modcache.Cache) (*budfs.FS, error) {
+	module, err := mod.Find(dir, mod.WithFSCache(fmap), mod.WithModCache(modCache))
 	if err != nil {
 		return nil, err
 	}

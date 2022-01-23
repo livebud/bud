@@ -3,10 +3,10 @@ package budfs
 import (
 	"io/fs"
 
+	"gitlab.com/mnm/bud/2/fscache"
 	"gitlab.com/mnm/bud/2/genfs"
 	"gitlab.com/mnm/bud/2/mod"
 	"gitlab.com/mnm/bud/2/pluginfs"
-	"gitlab.com/mnm/bud/2/virtual"
 	"gitlab.com/mnm/bud/internal/modcache"
 )
 
@@ -29,13 +29,13 @@ func WithCache(mc *modcache.Cache) func(*FS) {
 	}
 }
 
-func Load(fmap *virtual.Map, module *mod.Module, options ...Option) (*FS, error) {
-	plugin, err := pluginfs.Load(module, pluginfs.WithFileCache(fmap))
+func Load(fmap *fscache.Cache, module *mod.Module, options ...Option) (*FS, error) {
+	plugin, err := pluginfs.Load(module, pluginfs.WithFSCache(fmap))
 	if err != nil {
 		return nil, err
 	}
 	// cache2 := cachefs.New(plugin, singleflight.New(), store)
-	genfs := genfs.New(plugin, genfs.WithFileCache(fmap))
+	genfs := genfs.New(plugin, genfs.WithFSCache(fmap))
 	// cache3 := cachefs.New(genfs, singleflight.New(), store)
 	// Cache is what we should read from, but we also need access to the generator
 	// filesystem to be able to add generators.

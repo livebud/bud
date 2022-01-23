@@ -1,25 +1,25 @@
-package virtual_test
+package fscache_test
 
 import (
 	"io/fs"
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/2/virtual"
+	"gitlab.com/mnm/bud/2/fscache"
 )
 
 func TestDir(t *testing.T) {
 	is := is.New(t)
-	fmap := virtual.FileMap()
+	fmap := fscache.New()
 	// Set the cache
-	fmap.Set("view/users", &virtual.Dir{
+	fmap.Set("view/users", &fscache.Dir{
 		Name: "users",
 		Entries: []fs.DirEntry{
-			&virtual.DirEntry{
+			&fscache.DirEntry{
 				Base: "show.svelte",
 				Mode: 0644,
 			},
-			&virtual.DirEntry{
+			&fscache.DirEntry{
 				Base: "index.svelte",
 				Mode: 0644,
 			},
@@ -42,10 +42,10 @@ func TestDir(t *testing.T) {
 	is.Equal(nil, info)
 	is.Equal(err, fs.ErrNotExist)
 	// Override the directory
-	fmap.Set("view/users", &virtual.Dir{
+	fmap.Set("view/users", &fscache.Dir{
 		Name: "users",
 		Entries: []fs.DirEntry{
-			&virtual.DirEntry{
+			&fscache.DirEntry{
 				Base: "index.svelte",
 				Mode: 0644,
 			},
@@ -59,8 +59,8 @@ func TestDir(t *testing.T) {
 
 func TestFakeFile(t *testing.T) {
 	is := is.New(t)
-	fmap := virtual.FileMap()
-	fmap.Set("view", &virtual.Dir{
+	fmap := fscache.New()
+	fmap.Set("view", &fscache.Dir{
 		Name: "view",
 		Mode: 0755 &^ fs.ModeDir,
 	})

@@ -1,17 +1,17 @@
-package virtual_test
+package fscache_test
 
 import (
 	"io/fs"
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/2/virtual"
+	"gitlab.com/mnm/bud/2/fscache"
 )
 
 func TestFakeDir(t *testing.T) {
 	is := is.New(t)
-	fmap := virtual.FileMap()
-	fmap.Set("index.svelte", &virtual.File{
+	fmap := fscache.New()
+	fmap.Set("index.svelte", &fscache.File{
 		Name: "index.svelte",
 		Data: []byte(`<h1>hello</h1>`),
 		Mode: 0644 | fs.ModeDir,
@@ -23,8 +23,8 @@ func TestFakeDir(t *testing.T) {
 
 func TestFile(t *testing.T) {
 	is := is.New(t)
-	fmap := virtual.FileMap()
-	fmap.Set("index.svelte", &virtual.File{
+	fmap := fscache.New()
+	fmap.Set("index.svelte", &fscache.File{
 		Name: "index.svelte",
 		Data: []byte(`<h1>hello</h1>`),
 		Mode: 0644,

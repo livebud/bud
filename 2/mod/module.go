@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.com/mnm/bud/2/virtual"
+	"gitlab.com/mnm/bud/2/fscache"
 	"gitlab.com/mnm/bud/go/is"
 )
 
@@ -54,14 +54,14 @@ func (m *Module) Find(importPath string) (*Module, error) {
 
 // Open a file within the module
 func (m *Module) Open(name string) (fs.File, error) {
-	if m.opt.fileCache == nil {
+	if m.opt.fsCache == nil {
 		return os.Open(filepath.Join(m.dir, name))
 	}
 	return m.cachedOpen(name)
 }
 
 func (m *Module) cachedOpen(name string) (fs.File, error) {
-	fcache := m.opt.fileCache
+	fcache := m.opt.fsCache
 	if fcache.Has(name) {
 		return fcache.Open(name)
 	}
@@ -70,7 +70,7 @@ func (m *Module) cachedOpen(name string) (fs.File, error) {
 		return nil, err
 	}
 	defer file.Close()
-	vfile, err := virtual.From(file)
+	vfile, err := fscache.From(file)
 	if err != nil {
 		return nil, err
 	}
