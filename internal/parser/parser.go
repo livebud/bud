@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"unicode"
 
-	"gitlab.com/mnm/bud/2/mod"
+	"gitlab.com/mnm/bud/mod"
 )
 
 // New Go parser.

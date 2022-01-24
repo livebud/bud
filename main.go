@@ -14,16 +14,16 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.com/mnm/bud/2/budfs"
+	"gitlab.com/mnm/bud/budfs"
 
 	"github.com/mattn/go-isatty"
-	"gitlab.com/mnm/bud/2/di"
-	"gitlab.com/mnm/bud/2/parser"
+	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/generator"
 	"gitlab.com/mnm/bud/internal/gobin"
+	"gitlab.com/mnm/bud/internal/parser"
 	v8 "gitlab.com/mnm/bud/js/v8"
 
-	"gitlab.com/mnm/bud/2/mod"
+	"gitlab.com/mnm/bud/mod"
 
 	"gitlab.com/mnm/bud/commander"
 

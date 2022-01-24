@@ -5,13 +5,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/mnm/bud/2/parser"
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/modcache"
+	"gitlab.com/mnm/bud/internal/parser"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/2/mod"
 	"gitlab.com/mnm/bud/internal/txtar"
+	"gitlab.com/mnm/bud/mod"
 	"gitlab.com/mnm/bud/vfs"
 )
 

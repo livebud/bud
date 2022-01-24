@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.com/mnm/bud/2/fscache"
+	"gitlab.com/mnm/bud/internal/fscache"
 	"gitlab.com/mnm/bud/internal/modcache"
 	"golang.org/x/mod/modfile"
 )

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/2/fscache"
+	"gitlab.com/mnm/bud/internal/fscache"
 )
 
 func TestDir(t *testing.T) {

@@ -8,12 +8,12 @@ import (
 	"gitlab.com/mnm/bud/internal/scan"
 
 	"github.com/matthewmueller/text"
-	"gitlab.com/mnm/bud/2/budfs"
-	"gitlab.com/mnm/bud/2/mod"
-	"gitlab.com/mnm/bud/2/parser"
+	"gitlab.com/mnm/bud/budfs"
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/imports"
+	"gitlab.com/mnm/bud/internal/parser"
 	"gitlab.com/mnm/bud/ldflag"
+	"gitlab.com/mnm/bud/mod"
 	"gitlab.com/mnm/bud/vfs"
 )
 

@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strings"
 
-	"gitlab.com/mnm/bud/2/fscache"
 	"gitlab.com/mnm/bud/internal/pubsub"
 	"golang.org/x/sync/errgroup"
 )
@@ -32,30 +31,11 @@ type F interface {
 	link(from, to string, event Event)
 }
 
-type Option = func(o *option)
-
-type option struct {
-	fsCache *fscache.Cache // can be nil
-}
-
-// WithFSCache uses a custom mod cache instead of the default
-func WithFSCache(fsCache *fscache.Cache) func(o *option) {
-	return func(opt *option) {
-		opt.fsCache = fsCache
-	}
-}
-
-func New(dirfs fs.FS, options ...Option) *FileSystem {
-	opt := &option{
-		fsCache: nil,
-	}
-	for _, option := range options {
-		option(opt)
-	}
+func New(dirfs fs.FS) *FileSystem {
 	roots := map[string]bool{}
 	dir := newDir(".")
 	ps := pubsub.New()
-	return &FileSystem{opt, &innerFS{dir, dirfs, roots, ps, newGraph()}}
+	return &FileSystem{&innerFS{dir, dirfs, roots, ps, newGraph()}}
 }
 
 func root(path string) string {
@@ -67,34 +47,13 @@ func root(path string) string {
 }
 
 type FileSystem struct {
-	opt *option
 	ifs *innerFS
 }
 
 var _ FS = (*FileSystem)(nil)
 
 func (d *FileSystem) Open(name string) (fs.File, error) {
-	if d.opt.fsCache == nil {
-		return d.ifs.Open(name)
-	}
-	return d.cachedOpen(d.opt.fsCache, name)
-}
-
-func (d *FileSystem) cachedOpen(fsCache *fscache.Cache, name string) (fs.File, error) {
-	if fsCache.Has(name) {
-		return fsCache.Open(name)
-	}
-	file, err := d.ifs.Open(name)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	vfile, err := fscache.From(file)
-	if err != nil {
-		return nil, err
-	}
-	fsCache.Set(name, vfile)
-	return fsCache.Open(name)
+	return d.ifs.Open(name)
 }
 
 // Add additional generators to GFS. This is not concurrency safe.

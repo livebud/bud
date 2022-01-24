@@ -13,7 +13,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/gen"
+	"gitlab.com/mnm/bud/internal/gen"
 	"gitlab.com/mnm/bud/vfs"
 )
 

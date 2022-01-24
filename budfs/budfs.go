@@ -3,17 +3,17 @@ package budfs
 import (
 	"io/fs"
 
-	"gitlab.com/mnm/bud/2/fscache"
-	"gitlab.com/mnm/bud/2/gen"
-	"gitlab.com/mnm/bud/2/mod"
-	"gitlab.com/mnm/bud/2/pluginfs"
+	"gitlab.com/mnm/bud/gen"
+	"gitlab.com/mnm/bud/internal/fscache"
+	"gitlab.com/mnm/bud/internal/pluginfs"
+	"gitlab.com/mnm/bud/mod"
 )
 
 type option struct {
 	FSCache *fscache.Cache
 }
 
-type Option func(*option)
+type Option = func(*option)
 
 func WithFSCache(fc *fscache.Cache) func(*option) {
 	return func(option *option) {

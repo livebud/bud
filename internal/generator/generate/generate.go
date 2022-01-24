@@ -3,10 +3,10 @@ package generate
 import (
 	_ "embed"
 
-	"gitlab.com/mnm/bud/2/budfs"
-	"gitlab.com/mnm/bud/2/mod"
+	"gitlab.com/mnm/bud/budfs"
+	"gitlab.com/mnm/bud/mod"
 
-	"gitlab.com/mnm/bud/2/gen"
+	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
 )

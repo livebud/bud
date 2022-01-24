@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/mnm/bud/2/fscache"
-	"gitlab.com/mnm/bud/2/mod"
+	"gitlab.com/mnm/bud/internal/fscache"
 	"gitlab.com/mnm/bud/internal/modcache"
+	"gitlab.com/mnm/bud/mod"
 	"gitlab.com/mnm/bud/vfs"
 
 	"github.com/matryer/is"
@@ -42,7 +42,7 @@ func TestFind(t *testing.T) {
 	module, err := mod.Find(wd)
 	is.NoErr(err)
 	dir := module.Directory()
-	root := filepath.Join(wd, "..", "..")
+	root := filepath.Join(wd, "..")
 	is.Equal(root, dir)
 }
 
@@ -53,7 +53,7 @@ func TestFindDefault(t *testing.T) {
 	module, err := mod.Find(wd)
 	is.NoErr(err)
 	dir := module.Directory()
-	root := filepath.Join(wd, "..", "..")
+	root := filepath.Join(wd, "..")
 	is.Equal(root, dir)
 }
 
@@ -131,7 +131,7 @@ func TestResolveImport(t *testing.T) {
 	im, err := module.ResolveImport(wd)
 	is.NoErr(err)
 	base := filepath.Base(wd)
-	is.Equal(module.Import("2", base), im)
+	is.Equal(module.Import(base), im)
 }
 
 func TestModuleFindStdlib(t *testing.T) {

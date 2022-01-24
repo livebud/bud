@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/matthewmueller/gotext"
-	"gitlab.com/mnm/bud/2/parser"
 	"gitlab.com/mnm/bud/internal/imports"
+	"gitlab.com/mnm/bud/internal/parser"
 )
 
 type State struct {

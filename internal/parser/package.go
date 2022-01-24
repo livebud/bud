@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"gitlab.com/mnm/bud/2/mod"
+	"gitlab.com/mnm/bud/mod"
 )
 
 // newPackage creates a new package
@@ -90,13 +90,28 @@ func files(pkg *Package) (files []*File) {
 }
 
 // Kind of declaration
-type Kind string
+type Kind uint8
+
+func (k Kind) String() string {
+	switch k {
+	case 1:
+		return "builtin"
+	case 2:
+		return "struct"
+	case 3:
+		return "interface"
+	case 4:
+		return "alias"
+	default:
+		return "unknown"
+	}
+}
 
 const (
-	KindBuiltin   Kind = "builtin"
-	KindStruct    Kind = "struct"
-	KindInterface Kind = "interface"
-	KindAlias     Kind = "alias"
+	KindBuiltin Kind = 1 + iota
+	KindStruct
+	KindInterface
+	KindAlias
 )
 
 // Declaration interface

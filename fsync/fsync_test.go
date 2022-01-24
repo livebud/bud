@@ -6,10 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/mnm/bud/gen"
-
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/fsync"
+	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/vfs"
 )
 

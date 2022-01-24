@@ -8,12 +8,12 @@ import (
 
 	"github.com/matthewmueller/text"
 
-	"gitlab.com/mnm/bud/2/budfs"
-	"gitlab.com/mnm/bud/2/mod"
-	"gitlab.com/mnm/bud/2/parser"
+	"gitlab.com/mnm/bud/budfs"
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/imports"
+	"gitlab.com/mnm/bud/internal/parser"
 	"gitlab.com/mnm/bud/internal/valid"
+	"gitlab.com/mnm/bud/mod"
 )
 
 // Load state
@@ -42,7 +42,7 @@ func (l *loader) Load() (state *State, err error) {
 	// Add initial imports
 	l.imports.AddNamed("commander", "gitlab.com/mnm/bud/commander")
 	l.imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
-	l.imports.AddNamed("mod", "gitlab.com/mnm/bud/2/mod")
+	l.imports.AddNamed("mod", "gitlab.com/mnm/bud/mod")
 	// Load the commands
 	state.Command = l.loadRoot("command")
 	if !state.Command.Runnable && len(state.Command.Subs) == 0 {

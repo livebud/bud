@@ -7,10 +7,10 @@ import (
 
 	"gitlab.com/mnm/bud/internal/valid"
 
-	"gitlab.com/mnm/bud/2/budfs"
-	"gitlab.com/mnm/bud/2/mod"
+	"gitlab.com/mnm/bud/budfs"
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/imports"
+	"gitlab.com/mnm/bud/mod"
 )
 
 func Load(bfs budfs.FS, module *mod.Module, embed, minify bool) (*State, error) {

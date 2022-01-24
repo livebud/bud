@@ -6,8 +6,8 @@ import (
 	"io/fs"
 	"path/filepath"
 
-	"gitlab.com/mnm/bud/2/mod"
-	"gitlab.com/mnm/bud/2/parser"
+	"gitlab.com/mnm/bud/internal/parser"
+	"gitlab.com/mnm/bud/mod"
 )
 
 var ErrNoMatch = errors.New("no match")

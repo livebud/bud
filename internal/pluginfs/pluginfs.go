@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	mergefs "github.com/yalue/merged_fs"
-	"gitlab.com/mnm/bud/2/fscache"
-	"gitlab.com/mnm/bud/2/mod"
+	"gitlab.com/mnm/bud/internal/fscache"
+	"gitlab.com/mnm/bud/mod"
 	"golang.org/x/sync/errgroup"
 )
 

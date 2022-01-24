@@ -13,10 +13,10 @@ import (
 	"github.com/lithammer/dedent"
 	"github.com/matryer/is"
 	"github.com/matthewmueller/diff"
-	"gitlab.com/mnm/bud/2/di"
-	"gitlab.com/mnm/bud/2/mod"
-	"gitlab.com/mnm/bud/2/parser"
+	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/modcache"
+	"gitlab.com/mnm/bud/internal/parser"
+	"gitlab.com/mnm/bud/mod"
 	"gitlab.com/mnm/bud/vfs"
 )
 

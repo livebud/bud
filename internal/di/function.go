@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"gitlab.com/mnm/bud/2/parser"
 	"gitlab.com/mnm/bud/go/is"
+	"gitlab.com/mnm/bud/internal/parser"
 )
 
 // Function is the top-level load function that we generate to provide all the
@@ -96,6 +96,7 @@ func tryFunction(fn *parser.Function, importPath, dataType string) (*function, e
 			return nil, fmt.Errorf("di: unable to find definition for %q.%s > %w", importPath, parser.Unqualify(pt).String(), err)
 		}
 		module := def.Package().Module()
+		fmt.Println(importPath, pt.String(), def.Name(), def.Kind())
 		function.Params = append(function.Params, &Type{
 			Import: importPath,
 			Type:   parser.Unqualify(pt).String(),

@@ -6,11 +6,11 @@ import (
 
 	"gitlab.com/mnm/bud/internal/entrypoint"
 
-	"gitlab.com/mnm/bud/2/budfs"
-	"gitlab.com/mnm/bud/2/gen"
-	"gitlab.com/mnm/bud/2/mod"
+	"gitlab.com/mnm/bud/budfs"
+	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
+	"gitlab.com/mnm/bud/mod"
 )
 
 //go:embed transform.gotext

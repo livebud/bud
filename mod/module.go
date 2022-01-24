@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.com/mnm/bud/2/fscache"
 	"gitlab.com/mnm/bud/go/is"
+	"gitlab.com/mnm/bud/internal/fscache"
 )
 
 type Module struct {

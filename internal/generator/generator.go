@@ -4,15 +4,13 @@ import (
 	"context"
 	"errors"
 
-	"gitlab.com/mnm/bud/2/budfs"
-	"gitlab.com/mnm/bud/2/fscache"
+	"gitlab.com/mnm/bud/budfs"
+	"gitlab.com/mnm/bud/gen"
+	"gitlab.com/mnm/bud/internal/fscache"
 
 	"gitlab.com/mnm/bud/fsync"
 
-	"gitlab.com/mnm/bud/2/di"
-	"gitlab.com/mnm/bud/2/gen"
-	"gitlab.com/mnm/bud/2/mod"
-	"gitlab.com/mnm/bud/2/parser"
+	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/generator/action"
 	"gitlab.com/mnm/bud/internal/generator/command"
 	"gitlab.com/mnm/bud/internal/generator/generate"
@@ -24,6 +22,8 @@ import (
 	"gitlab.com/mnm/bud/internal/generator/view"
 	"gitlab.com/mnm/bud/internal/generator/web"
 	"gitlab.com/mnm/bud/internal/modcache"
+	"gitlab.com/mnm/bud/internal/parser"
+	"gitlab.com/mnm/bud/mod"
 	"gitlab.com/mnm/bud/vfs"
 )
 

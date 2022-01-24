@@ -4,11 +4,11 @@ import (
 	_ "embed"
 	"io/fs"
 
-	"gitlab.com/mnm/bud/2/budfs"
-	"gitlab.com/mnm/bud/2/gen"
-	"gitlab.com/mnm/bud/2/mod"
+	"gitlab.com/mnm/bud/budfs"
+	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
+	"gitlab.com/mnm/bud/mod"
 	"gitlab.com/mnm/bud/vfs"
 )
 
@@ -34,7 +34,7 @@ func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 	imports := imports.New()
 	imports.AddNamed("transform", g.Module.Import("bud/transform"))
 	imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
-	imports.AddNamed("mod", "gitlab.com/mnm/bud/2/mod")
+	imports.AddNamed("mod", "gitlab.com/mnm/bud/mod")
 	imports.AddNamed("js", "gitlab.com/mnm/bud/js")
 	imports.AddNamed("view", "gitlab.com/mnm/bud/view")
 	code, err := generator.Generate(State{

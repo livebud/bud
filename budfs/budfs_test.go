@@ -7,11 +7,11 @@ import (
 
 	"gitlab.com/mnm/bud/internal/modcache"
 
-	"gitlab.com/mnm/bud/2/budfs"
-	"gitlab.com/mnm/bud/2/fscache"
-	"gitlab.com/mnm/bud/2/gen"
-	"gitlab.com/mnm/bud/2/mod"
-	"gitlab.com/mnm/bud/2/parser"
+	"gitlab.com/mnm/bud/budfs"
+	"gitlab.com/mnm/bud/gen"
+	"gitlab.com/mnm/bud/internal/fscache"
+	"gitlab.com/mnm/bud/internal/parser"
+	"gitlab.com/mnm/bud/mod"
 
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/vfs"

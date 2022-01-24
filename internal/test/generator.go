@@ -25,10 +25,10 @@ import (
 	"github.com/lithammer/dedent"
 	"github.com/matryer/is"
 	"github.com/matthewmueller/diff"
-	"gitlab.com/mnm/bud/2/mod"
 	"gitlab.com/mnm/bud/internal/generator"
 	"gitlab.com/mnm/bud/internal/modcache"
 	"gitlab.com/mnm/bud/internal/npm"
+	"gitlab.com/mnm/bud/mod"
 	"gitlab.com/mnm/bud/socket"
 	"gitlab.com/mnm/bud/vfs"
 )

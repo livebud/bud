@@ -8,8 +8,8 @@ import (
 
 	"github.com/lithammer/dedent"
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/2/mod"
 	"gitlab.com/mnm/bud/internal/modcache"
+	"gitlab.com/mnm/bud/mod"
 	"gitlab.com/mnm/bud/vfs"
 )
 

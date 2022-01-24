@@ -3,8 +3,8 @@ package gomod
 import (
 	_ "embed"
 
-	"gitlab.com/mnm/bud/2/gen"
-	"gitlab.com/mnm/bud/2/mod"
+	"gitlab.com/mnm/bud/gen"
+	"gitlab.com/mnm/bud/mod"
 )
 
 //// go:embed gomod.gotext
