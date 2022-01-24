@@ -196,7 +196,7 @@ func (g *Generator) Module() *mod.Module {
 // }
 
 func (g *Generator) Generate(ctx context.Context) error {
-	if err := fsync.Dir(g.bfs, ".", vfs.GitIgnoreRW(g.appFS), "."); err != nil {
+	if err := fsync.Dir(vfs.SingleFlight(vfs.GitIgnore(g.bfs)), ".", vfs.GitIgnoreRW(g.appFS), "."); err != nil {
 		return err
 	}
 	return nil
