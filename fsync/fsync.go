@@ -19,7 +19,6 @@ func Dir(sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string) error {
 	if err != nil {
 		return err
 	}
-	// fmt.Println(ops)
 	err = apply(sfs, tfs, ops)
 	return err
 }

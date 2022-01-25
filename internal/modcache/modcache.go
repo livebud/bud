@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	cp "github.com/otiai10/copy"
 	"golang.org/x/sync/errgroup"
 
 	"golang.org/x/mod/modfile"
@@ -202,22 +203,30 @@ func (c *Cache) ResolveDirectory(modulePath, version string) (string, error) {
 		return "", err
 	}
 	if fi, err := os.Stat(dir); os.IsNotExist(err) {
-		return dir, err
+		return "", err
 	} else if err != nil {
-		return dir, &downloadDirPartialError{dir, err}
+		return "", &downloadDirPartialError{dir, err}
 	} else if !fi.IsDir() {
-		return dir, &downloadDirPartialError{dir, errors.New("not a directory")}
+		return "", &downloadDirPartialError{dir, errors.New("not a directory")}
 	}
-	// partialPath, err := c.partialDownloadPath(modulePath, version, "partial")
-	// if err != nil {
-	// 	return dir, err
-	// }
-	// if _, err := os.Stat(partialPath); err == nil {
-	// 	return dir, &downloadDirPartialError{dir, errors.New("not completely extracted")}
-	// } else if !os.IsNotExist(err) {
-	// 	return dir, err
-	// }
 	return dir, nil
+}
+
+// Import from a directory
+func (c *Cache) Import(from string) error {
+	return cp.Copy(from, c.cacheDir, cp.Options{})
+}
+
+// Export to a directory
+func (c *Cache) Export(to string) error {
+	return cp.Copy(c.cacheDir, to, cp.Options{
+		Skip: func(src string) (bool, error) {
+			if src == filepath.Join(c.cacheDir, "cache", "vcs") {
+				return true, nil
+			}
+			return false, nil
+		},
+	})
 }
 
 // Cache for faster subsequent requests

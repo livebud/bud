@@ -91,12 +91,12 @@ func Load(dir string, options ...Option) (*Generator, error) {
 		fn(option)
 	}
 	// Find go.mod
-	module, err := mod.Find(dir, mod.WithFSCache(option.FSCache))
+	module, err := mod.Find(dir, mod.WithModCache(option.ModCache), mod.WithFSCache(option.FSCache))
 	if err != nil {
 		if !errors.Is(err, mod.ErrFileNotFound) {
 			return nil, err
 		}
-		module, err = mod.Parse(dir, []byte(`module app.com`), mod.WithFSCache(option.FSCache))
+		module, err = mod.Parse(dir, []byte(`module app.com`), mod.WithModCache(option.ModCache), mod.WithFSCache(option.FSCache))
 		if err != nil {
 			return nil, err
 		}
@@ -191,11 +191,12 @@ func (g *Generator) Module() *mod.Module {
 	return g.module
 }
 
-// func (g *Generator) Add(generators map[string]gen.Generator) {
-// 	g.genFS.Add(generators)
-// }
-
 func (g *Generator) Generate(ctx context.Context) error {
+	// tree, err := fstree.Walk(vfs.SingleFlight(vfs.GitIgnore(g.bfs)))
+	// if err != nil {
+	// 	return err
+	// }
+	// fmt.Println(tree.String())
 	if err := fsync.Dir(vfs.SingleFlight(vfs.GitIgnore(g.bfs)), ".", vfs.GitIgnoreRW(g.appFS), "."); err != nil {
 		return err
 	}

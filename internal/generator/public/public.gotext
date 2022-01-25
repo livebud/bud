@@ -29,11 +29,6 @@ func reference(genfs gen.FS) Middleware {
 		{{- range $file := $.Files }}
 		`{{ $file.Path }}`: gen.GenerateFile(serveFrom(`{{ $file.Root }}`)),
 		{{- end }}
-		// // TODO: dynamic from public
-		// "bud/public/y18.gif":     gen.GenerateFile(serveFrom("public")),
-		// "bud/public/favicon.ico": gen.GenerateFile(serveFrom("public")),
-		// // From plugin/bud-tailwind
-		// "bud/public/tailwind/preflight.css": gen.GenerateFile(serveFrom("bud/plugin/bud-tailwind/public")),
 	})
 	return serve(http.FS(genfs), serveContent)
 }

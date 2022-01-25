@@ -3,12 +3,12 @@ package test
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/cespare/xxhash"
 	"github.com/lithammer/dedent"
 	"github.com/matryer/is"
 	"github.com/matthewmueller/diff"
@@ -145,18 +146,43 @@ type Gen struct {
 	NodeModules map[string]string // [package] = version
 }
 
+func hash(input string) string {
+	hash := xxhash.New()
+	hash.Write([]byte(input))
+	return base64.RawURLEncoding.EncodeToString(hash.Sum(nil))
+}
+
+func getModSnapDir(name string) (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	id := hash(wd + "." + name)
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(cacheDir, "bud-mod-cache-snapshot", id), nil
+}
+
 func (g *Gen) Generate() (*App, error) {
 	ctx := context.Background()
 	modCache := modcache.Default()
+	// Try loading the snapshot dir
+	modSnapDir, err := getModSnapDir(g.t.Name())
+	if err != nil {
+		return nil, err
+	}
 	// Add modules
 	if len(g.Modules) > 0 {
-		// Unable to cleanup after modcache because they're readonly and
-		// the t.TempDir() fails with permission denied.
-		cacheDir, err := ioutil.TempDir("", "modcache-*")
-		if err != nil {
-			return nil, err
-		}
+		cacheDir := g.t.TempDir()
 		modCache = modcache.New(cacheDir)
+		// Importing from the snapshot
+		if _, err := os.Stat(modSnapDir); nil == err {
+			if err := modCache.Import(modSnapDir); err != nil {
+				return nil, err
+			}
+		}
 		// Generate a custom go.mod for the module
 		for pathVersion, module := range g.Modules {
 			if _, ok := module["go.mod"]; !ok {
@@ -210,7 +236,7 @@ func (g *Gen) Generate() (*App, error) {
 		g.Files["package.json"] = append(pkgJSON, '\n')
 	}
 	// Write the files to the application directory
-	err := vfs.Write(appDir, vfs.Map(g.Files))
+	err = vfs.Write(appDir, vfs.Map(g.Files))
 	if err != nil {
 		return nil, err
 	}
@@ -220,6 +246,9 @@ func (g *Gen) Generate() (*App, error) {
 			return nil, err
 		}
 	}
+	// TODO: add file caching to the test suite. Currently the public plugin test
+	// fails with 404.
+	// fsCache := fscache.New()
 	gen, err := generator.Load(appDir, generator.WithModCache(modCache))
 	if err != nil {
 		return nil, err
@@ -228,9 +257,11 @@ func (g *Gen) Generate() (*App, error) {
 		return nil, err
 	}
 	return &App{
-		t:      g.t,
-		dir:    appDir,
-		module: gen.Module(),
+		t:          g.t,
+		dir:        appDir,
+		modSnapDir: modSnapDir,
+		modCache:   modCache,
+		module:     gen.Module(),
 		env: env{
 			"HOME":       os.Getenv("HOME"),
 			"PATH":       os.Getenv("PATH"),
@@ -254,11 +285,13 @@ func (env env) List() (list []string) {
 }
 
 type App struct {
-	t      testing.TB
-	dir    string
-	module *mod.Module
-	env    env
-	extras []*os.File
+	t          testing.TB
+	dir        string
+	modSnapDir string
+	modCache   *modcache.Cache
+	module     *mod.Module
+	env        env
+	extras     []*os.File
 }
 
 func (a *App) ExtraFiles(files ...*os.File) *App {
@@ -274,13 +307,30 @@ func (a *App) Env(key, value string) *App {
 func (a *App) build() (string, error) {
 	binPath := filepath.Join(a.dir, "bud", "main")
 	mainPath := filepath.Join("bud", "main.go")
-	cmd := exec.Command("go", "build", "-o", binPath, "-mod", "mod", mainPath)
+	cmd := exec.Command("go", "build", "-o", binPath, "-mod", "mod", "-modcacherw", mainPath)
 	cmd.Env = a.env.List()
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	cmd.Dir = a.dir
-	return binPath, cmd.Run()
+	// fmt.Println("Running:", "go", "build", "-o", binPath, "-mod", "mod", "-modcacherw", mainPath)
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+	// If not running the standard modcache, snapshot the module cache
+	// for faster subsequent runs.
+	if a.modCache.Directory() != modcache.Default().Directory() {
+		// Remove the module snapshot directory to avoid any lingering files
+		// also because -modcacherw doesn't fix permissions on all files, some
+		// are still read-only and can't be overriden.
+		if err := os.RemoveAll(a.modSnapDir); err != nil {
+			return "", err
+		}
+		if err := a.modCache.Export(a.modSnapDir); err != nil {
+			return "", err
+		}
+	}
+	return binPath, nil
 }
 
 func (a *App) command(binPath string, args ...string) (*exec.Cmd, error) {
@@ -353,7 +403,7 @@ func (a *App) Start(args ...string) (*Server, error) {
 		cmd: cmd,
 		ln:  ln,
 		client: &http.Client{
-			// Timeout:   time.Second,
+			Timeout:   10 * time.Second,
 			Transport: transport,
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				return http.ErrUseLastResponse

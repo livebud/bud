@@ -71,10 +71,9 @@ func TestNested(t *testing.T) {
 }
 
 func TestPlugin(t *testing.T) {
-	t.SkipNow()
 	is := is.New(t)
 	generator := test.Generator(t)
-	preflight := `/*! tailwindcss */`
+	preflight := `/* tailwind */`
 	generator.Modules = map[string]modcache.Files{
 		"gitlab.com/mnm/bud-tailwind@v0.0.1": modcache.Files{
 			"public/tailwind/preflight.css": preflight,
