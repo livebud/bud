@@ -52,7 +52,7 @@ func listen(path string) (net.Listener, error) {
 		return net.ListenUnix("unix", addr)
 	}
 	// Otherwise, we listen on a TCP port
-	addr, err := net.ResolveTCPAddr("tcp", path)
+	addr, err := net.ResolveTCPAddr("tcp", url.Host)
 	if err != nil {
 		return nil, err
 	}

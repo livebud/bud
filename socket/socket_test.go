@@ -198,3 +198,27 @@ func TestLoadTCP(t *testing.T) {
 	is.Equal(string(body), "/hello")
 	server.Shutdown(context.Background())
 }
+
+func TestLoadNumberOnly(t *testing.T) {
+	is := is.New(t)
+	listener, err := socket.Load("0")
+	is.NoErr(err)
+	server := &http.Server{
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write([]byte(r.URL.Path))
+		}),
+	}
+	go server.Serve(listener)
+	transport, err := socket.Transport("0")
+	is.NoErr(err)
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   time.Second,
+	}
+	res, err := client.Get("http://" + listener.Addr().String() + "/hello")
+	is.NoErr(err)
+	body, err := ioutil.ReadAll(res.Body)
+	is.NoErr(err)
+	is.Equal(string(body), "/hello")
+	server.Shutdown(context.Background())
+}

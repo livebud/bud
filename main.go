@@ -14,11 +14,19 @@ import (
 	"path/filepath"
 	"strings"
 
+	"gitlab.com/mnm/bud/socket"
+
+	"gitlab.com/mnm/bud/fsync"
+	"gitlab.com/mnm/bud/vfs"
+
 	"gitlab.com/mnm/bud/budfs"
+	"gitlab.com/mnm/bud/gen"
 
 	"github.com/mattn/go-isatty"
+	"gitlab.com/mnm/bud/generator"
 	"gitlab.com/mnm/bud/internal/di"
-	"gitlab.com/mnm/bud/internal/generator"
+	"gitlab.com/mnm/bud/internal/generator/generate"
+	generatorGenerator "gitlab.com/mnm/bud/internal/generator/generator"
 	"gitlab.com/mnm/bud/internal/gobin"
 	"gitlab.com/mnm/bud/internal/parser"
 	v8 "gitlab.com/mnm/bud/js/v8"
@@ -49,11 +57,21 @@ func do() error {
 
 	{ // $ bud run
 		cmd := &runCommand{bud: bud}
-		cli := cli.Command("run", "run the development server")
+		cli := cli.Command("run2", "run the development server")
 		cli.Flag("embed", "embed the assets").Bool(&bud.Embed).Default(false)
 		cli.Flag("hot", "hot reload the frontend").Bool(&bud.Hot).Default(true)
 		cli.Flag("minify", "minify the assets").Bool(&bud.Minify).Default(false)
 		cli.Flag("port", "port").Int(&cmd.Port).Default(3000)
+		cli.Run(cmd.Run)
+	}
+
+	{ // $ bud run
+		cmd := &runCommand2{bud: bud}
+		cli := cli.Command("run", "run the development server")
+		cli.Flag("embed", "embed the assets").Bool(&bud.Embed).Default(false)
+		cli.Flag("hot", "hot reload the frontend").Bool(&bud.Hot).Default(true)
+		cli.Flag("minify", "minify the assets").Bool(&bud.Minify).Default(false)
+		cli.Flag("port", "port").String(&cmd.Port).Default("3000")
 		cli.Run(cmd.Run)
 	}
 
@@ -150,6 +168,82 @@ func (c *bud) Run(ctx context.Context) error {
 	cmd := exec.Command(binPath, c.Args...)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type runCommand2 struct {
+	bud  *bud
+	Port string
+	Args []string
+}
+
+func (c *runCommand2) Run(ctx context.Context) error {
+	listener, err := socket.Load(c.Port)
+	if err != nil {
+		return err
+	}
+	console.Info("Listening on http://%s", listener.Addr().String())
+	module, err := mod.Find(c.bud.Chdir)
+	if err != nil {
+		return err
+	}
+	bfs, err := budfs.Load(module)
+	if err != nil {
+		return err
+	}
+	bfs.Entry("bud/generator/generator.go", gen.FileGenerator(&generatorGenerator.Generator{
+		BFS:    bfs,
+		Module: module,
+		Embed:  c.bud.Embed,
+		Hot:    c.bud.Hot,
+		Minify: c.bud.Minify,
+	}))
+	parser := parser.New(bfs, module)
+	injector := di.New(bfs, module, parser, di.Map{
+		toType("gitlab.com/mnm/bud/gen", "FS"):        toType("gitlab.com/mnm/bud/gen", "*FileSystem"),
+		toType("gitlab.com/mnm/bud/js", "VM"):         toType("gitlab.com/mnm/bud/js/v8client", "*Client"),
+		toType("gitlab.com/mnm/bud/view", "Renderer"): toType("gitlab.com/mnm/bud/view", "*Server"),
+	})
+	bfs.Entry("bud/generate/main.go", gen.FileGenerator(&generate.Generator{
+		BFS:      bfs,
+		Injector: injector,
+		Module:   module,
+		Embed:    c.bud.Embed,
+		Hot:      c.bud.Hot,
+		Minify:   c.bud.Minify,
+	}))
+	appFS := vfs.OS(module.Directory())
+	if err := fsync.Dir(bfs, "bud", appFS, "bud"); err != nil {
+		return err
+	}
+	mainPath := filepath.Join(module.Directory(), "bud", "generate", "main.go")
+	// Check to see if we generated a main.go
+	if _, err := os.Stat(mainPath); err != nil {
+		return err
+	}
+	// Building over an existing binary is faster for some reason, so we'll use
+	// the cache directory for a consistent place to output builds
+	binPath := filepath.Join(module.Directory(), "bud", "generate", "main")
+	if err := gobin.Build(ctx, module.Directory(), mainPath, binPath); err != nil {
+		return err
+	}
+	// Pass the socket through
+	files, env, err := socket.Files(listener)
+	if err != nil {
+		return err
+	}
+	// Run the generator
+	cmd := exec.Command(binPath, c.Args...)
+	cmd.Env = append(os.Environ(), string(env))
+	cmd.ExtraFiles = files
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Dir = module.Directory()
 	err = cmd.Run()
 	if err != nil {
 		return err

@@ -15,6 +15,15 @@ var template string
 
 var generator = gotemplate.MustParse("public", template)
 
+func New(bfs budfs.FS, module *mod.Module) *Generator {
+	return &Generator{
+		BFS:    bfs,
+		Module: module,
+		// Embed  bool
+		// Minify bool
+	}
+}
+
 type Generator struct {
 	BFS    budfs.FS
 	Module *mod.Module

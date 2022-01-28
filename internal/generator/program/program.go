@@ -39,6 +39,7 @@ func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 	// imports.AddStd("fmt")
 	imports.AddNamed("console", "gitlab.com/mnm/bud/log/console")
 	imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
+	imports.AddNamed("budfs", "gitlab.com/mnm/bud/budfs")
 	// imports.AddNamed("plugin", "gitlab.com/mnm/bud/plugin")
 	imports.AddNamed("mod", "gitlab.com/mnm/bud/mod")
 	imports.Add(g.Module.Import("bud/command"))
@@ -47,7 +48,9 @@ func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 		Target: g.Module.Import("bud", "program"),
 		Params: []di.Dependency{
 			&di.Type{Import: "gitlab.com/mnm/bud/mod", Type: "*Module"},
+			// TODO: remove gen
 			&di.Type{Import: "gitlab.com/mnm/bud/gen", Type: "*FileSystem"},
+			&di.Type{Import: "gitlab.com/mnm/bud/budfs", Type: "FS"},
 		},
 		Results: []di.Dependency{
 			&di.Type{Import: g.Module.Import("bud", "command"), Type: "*CLI"},

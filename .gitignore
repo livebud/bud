@@ -3,3 +3,4 @@ _tmp/
 js-livebud/dist/
 main
 _build/
+example/*/bud

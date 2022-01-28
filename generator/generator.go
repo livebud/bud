@@ -10,14 +10,13 @@ import (
 
 	"gitlab.com/mnm/bud/fsync"
 
+	"gitlab.com/mnm/bud/generator/public"
 	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/generator/action"
 	"gitlab.com/mnm/bud/internal/generator/command"
-	"gitlab.com/mnm/bud/internal/generator/generate"
 	"gitlab.com/mnm/bud/internal/generator/gomod"
 	"gitlab.com/mnm/bud/internal/generator/maingo"
 	"gitlab.com/mnm/bud/internal/generator/program"
-	"gitlab.com/mnm/bud/internal/generator/public"
 	"gitlab.com/mnm/bud/internal/generator/transform"
 	"gitlab.com/mnm/bud/internal/generator/view"
 	"gitlab.com/mnm/bud/internal/generator/web"
@@ -108,6 +107,7 @@ func Load(dir string, options ...Option) (*Generator, error) {
 	}
 	parser := parser.New(bfs, module)
 	injector := di.New(bfs, module, parser, di.Map{
+		toType("gitlab.com/mnm/bud/bfs", "FS"):        toType("gitlab.com/mnm/bud/gen", "*FileSystem"),
 		toType("gitlab.com/mnm/bud/gen", "FS"):        toType("gitlab.com/mnm/bud/gen", "*FileSystem"),
 		toType("gitlab.com/mnm/bud/js", "VM"):         toType("gitlab.com/mnm/bud/js/v8client", "*Client"),
 		toType("gitlab.com/mnm/bud/view", "Renderer"): toType("gitlab.com/mnm/bud/view", "*Server"),
@@ -119,13 +119,13 @@ func Load(dir string, options ...Option) (*Generator, error) {
 	}))
 
 	// generate generator
-	bfs.Entry("bud/generate/main.go", gen.FileGenerator(&generate.Generator{
-		BFS:    bfs,
-		Module: module,
-		Embed:  option.Embed,
-		Hot:    option.Hot,
-		Minify: option.Minify,
-	}))
+	// bfs.Entry("bud/generate/main.go", gen.FileGenerator(&generate.Generator{
+	// 	BFS:    bfs,
+	// 	Module: module,
+	// 	Embed:  option.Embed,
+	// 	Hot:    option.Hot,
+	// 	Minify: option.Minify,
+	// }))
 
 	// TODO: separate the following from the generators to give the generators
 	// a chance to add files that are picked up by these compiler plugins.
@@ -197,7 +197,7 @@ func (g *Generator) Generate(ctx context.Context) error {
 	// 	return err
 	// }
 	// fmt.Println(tree.String())
-	if err := fsync.Dir(vfs.SingleFlight(vfs.GitIgnore(g.bfs)), ".", vfs.GitIgnoreRW(g.appFS), "."); err != nil {
+	if err := fsync.Dir(vfs.SingleFlight(vfs.GitIgnore(g.bfs)), "bud", vfs.GitIgnoreRW(g.appFS), "bud"); err != nil {
 		return err
 	}
 	return nil

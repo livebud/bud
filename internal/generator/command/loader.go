@@ -42,6 +42,7 @@ func (l *loader) Load() (state *State, err error) {
 	// Add initial imports
 	l.imports.AddNamed("commander", "gitlab.com/mnm/bud/commander")
 	l.imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
+	l.imports.AddNamed("budfs", "gitlab.com/mnm/bud/budfs")
 	l.imports.AddNamed("mod", "gitlab.com/mnm/bud/mod")
 	// Load the commands
 	state.Command = l.loadRoot("command")
@@ -61,7 +62,6 @@ func (l *loader) loadRoot(base string) *Command {
 	if _, err := fs.Stat(l.bfs, "bud/web/web.go"); nil == err {
 		l.imports.AddStd("os", "context")
 		// l.imports.AddStd("fmt")
-		l.imports.AddNamed("console", "gitlab.com/mnm/bud/log/console")
 		l.imports.AddNamed("web", l.module.Import("bud", "web"))
 		l.imports.AddNamed("socket", "gitlab.com/mnm/bud/socket")
 		command.Runnable = true

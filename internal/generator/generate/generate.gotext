@@ -9,29 +9,39 @@ import (
 )
 {{- end }}
 
-// Build Configuration
-var config = &generator.Config{
-	Embed: {{$.Embed}},
-	Hot: {{$.Hot}},
-	Minify: {{$.Minify}},
-}
-
 func main() {
-	if err := do(); err != nil {
-		println(err.Error())
+	if err := run(os.Args[1:]); err != nil {
+		console.Error(err.Error())
 		os.Exit(1)
 	}
 }
 
-func do() error {
-	wd, err := os.Getwd()
+func run(args []string) error {
+	dir, err := os.Getwd()
 	if err != nil {
 		return err
 	}
-	genfs := gen.New(os.DirFS(wd))
-	// user generators
-	// TODO: support user generators
-	genfs.Add(map[string]gen.Generator{})
-	fmt.Println(genfs)
-  return nil
+	module, err := mod.Find(dir)
+	if err != nil {
+		return err
+	}
+	bfs, err := budfs.Load(module)
+	if err != nil {
+		return err
+	}
+	generators, err := Load(bfs, module)
+	if err != nil {
+		return err
+	}
+	cmd := generate.Command{
+		Dir: dir,
+		Minify: {{$.Minify}},
+		Embed: {{$.Embed}},
+		Hot: {{$.Hot}},
+		Generators: generators,
+		Args: args,
+	}
+	return cmd.Parse()
 }
+
+{{ $.Provider.Function }}

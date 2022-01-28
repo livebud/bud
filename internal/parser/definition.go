@@ -20,6 +20,7 @@ func (pkg *Package) definition(name string) (decl Declaration, err error) {
 		ast.Inspect(pkg.node, func(node ast.Node) bool {
 			switch n := node.(type) {
 			case *ast.TypeSpec:
+				// TODO: handle type declarations (e.g. type A string)
 				if n.Assign == 0 {
 					ts = n
 					return true

@@ -26,7 +26,8 @@ import (
 	"github.com/lithammer/dedent"
 	"github.com/matryer/is"
 	"github.com/matthewmueller/diff"
-	"gitlab.com/mnm/bud/internal/generator"
+	"gitlab.com/mnm/bud/generator"
+	"gitlab.com/mnm/bud/internal/fscache"
 	"gitlab.com/mnm/bud/internal/modcache"
 	"gitlab.com/mnm/bud/internal/npm"
 	"gitlab.com/mnm/bud/mod"
@@ -246,10 +247,8 @@ func (g *Gen) Generate() (*App, error) {
 			return nil, err
 		}
 	}
-	// TODO: add file caching to the test suite. Currently the public plugin test
-	// fails with 404.
-	// fsCache := fscache.New()
-	gen, err := generator.Load(appDir, generator.WithModCache(modCache))
+	fsCache := fscache.New()
+	gen, err := generator.Load(appDir, generator.WithModCache(modCache), generator.WithFSCache(fsCache))
 	if err != nil {
 		return nil, err
 	}

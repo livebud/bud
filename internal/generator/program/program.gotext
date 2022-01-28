@@ -41,11 +41,16 @@ func Load() (*Program, error) {
 	if err != nil {
 		return nil, err
 	}
+	bfs, err := budfs.Load(module)
+	if err != nil {
+		return nil, err
+	}
 	genFS := gen.New(os.DirFS(module.Directory()))
 	genFS.Add(map[string]gen.Generator{
 		// "bud/plugin": gen.DirGenerator(&plugin.Generator{Module: module}),
 	})
-	cli, err := loadCLI(genFS, module)
+	{{/* TODO: remove genFS */}}
+	cli, err := loadCLI(bfs, genFS, module)
 	if err != nil {
 		return nil, err
 	}

@@ -35,9 +35,11 @@ func getType(f Fielder, x ast.Expr) Type {
 		return &MapType{f, t}
 	case *ast.ChanType:
 		return &ChanType{f, t}
+	case *ast.Ellipsis:
+		return &EllipsisType{f, t}
 	default:
 		// Shouldn't happen, but if it does, it's a bug to fix.
-		panic(fmt.Errorf("parse: unhandled expression type %T in %q", f.File().Path(), t))
+		panic(fmt.Errorf("parse: unhandled expression type %T in %q", t, f.File().Path()))
 	}
 }
 
@@ -519,7 +521,46 @@ func (t *ChanType) node() ast.Expr {
 	return t.n
 }
 
+// Ellipsis struct
+type EllipsisType struct {
+	f Fielder
+	n *ast.Ellipsis
+}
+
+var _ Type = (*EllipsisType)(nil)
+
+// String fn
+func (t *EllipsisType) String() string {
+	return printExpr(t.n)
+}
+
+// String fn
+func (t *EllipsisType) node() ast.Expr {
+	return t.n
+}
+
+// Inner type
+func (t *EllipsisType) Inner() Type {
+	return getType(t.f, t.n.Elt)
+}
+
+func (t *EllipsisType) Name() string {
+	x := t.Inner()
+	return TypeName(x)
+}
+
+// ImportPath returns the import path if there is one
+func (t *EllipsisType) ImportPath() (path string, err error) {
+	return ImportPath(t.Inner())
+}
+
+// Definition returns the declaration
+func (t *EllipsisType) Definition() (Declaration, error) {
+	return Definition(t.Inner())
+}
+
 // printExpr prints an expression
+// TODO: benchmark, we use type.String() a lot and this might be slow
 func printExpr(expr ast.Expr) string {
 	var buf bytes.Buffer
 	fset := token.NewFileSet()

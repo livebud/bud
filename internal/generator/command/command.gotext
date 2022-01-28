@@ -13,7 +13,7 @@ import (
 // TODO: remove unused arguments. We currently need them because di will
 // remove these parameters if they're unused, breaking the signature. This
 // should be fixed in di.
-func Load(m *Map, _ gen.FS, _ *mod.Module) *CLI {
+func Load(m *Map, _ budfs.FS, _ gen.FS, _ *mod.Module) *CLI {
 	return &CLI{m}
 }
 
@@ -77,7 +77,7 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	console.Info("Listening on %s", "http://"+addr)
+	{{/* console.Info("Listening on %s", "http://"+addr) */}}
 	return c.web.Serve(ctx, listener)
 }
 {{- end }}
