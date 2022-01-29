@@ -3,6 +3,6 @@ package users
 type Controller struct {
 }
 
-func (c *Controller) Index() error {
-	return nil
+func (c *Controller) Index() (string, error) {
+	return "hello users", nil
 }

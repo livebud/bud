@@ -3,6 +3,7 @@ package fsync_test
 import (
 	"errors"
 	"io/fs"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -217,4 +218,37 @@ func TestErrorGenerator(t *testing.T) {
 	is.True(err != nil)
 	is.Equal(err.Error(), "open bud/generate/main.go > uh oh")
 	is.Equal(len(targetFS), 0)
+}
+
+func TestWithSkip(t *testing.T) {
+	is := is.New(t)
+	// starting points
+	sourceFS := vfs.Memory{
+		"index.svelte": &vfs.File{Data: []byte("<h1>index</h1>")},
+	}
+	targetFS := vfs.Memory{
+		"node_modules/svelte/svelte.js": &vfs.File{Data: []byte("svelte")},
+	}
+	err := fsync.Dir(sourceFS, ".", targetFS, ".")
+	is.NoErr(err)
+	is.Equal(len(targetFS), 1) // this should have deleted node_modules
+	// starting points
+	sourceFS = vfs.Memory{
+		"index.svelte":  &vfs.File{Data: []byte("<h1>index</h1>")},
+		"bud/action.go": &vfs.File{Data: []byte("package action")},
+	}
+	targetFS = vfs.Memory{
+		"node_modules/svelte/svelte.js": &vfs.File{Data: []byte("svelte")},
+		"bud/generate.go":               &vfs.File{Data: []byte("package main")},
+	}
+	skip1 := func(name string, isDir bool) bool {
+		return isDir && filepath.Base(name) == "node_modules"
+	}
+	// NOTE: if you don't have bud/action.go
+	skip2 := func(name string, isDir bool) bool {
+		return !isDir && name == "bud/generate.go"
+	}
+	err = fsync.Dir(sourceFS, ".", targetFS, ".", fsync.WithSkip(skip1, skip2))
+	is.NoErr(err)
+	is.Equal(len(targetFS), 4) // this should have kept node_modules & generate
 }

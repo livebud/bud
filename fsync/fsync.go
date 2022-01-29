@@ -10,12 +10,46 @@ import (
 	"gitlab.com/mnm/bud/vfs"
 )
 
-// TODO: update should compare stamps at the time of writing, not before.
+type skipFunc = func(name string, isDir bool) bool
+
+type option struct {
+	Skip skipFunc
+}
+
+type Option func(o *option)
+
+// Provide a skip function
+// Note: try to skip as high up in the tree as possible.
+//
+// E.g. if the source filesystem doesn't have bud, it will
+// delete bud, even if you're skipping bud/generate.
+func WithSkip(skips ...skipFunc) Option {
+	return func(o *option) {
+		o.Skip = composeSkips(skips)
+	}
+}
+
+func composeSkips(skips []skipFunc) skipFunc {
+	return func(name string, isDir bool) bool {
+		for _, skip := range skips {
+			if skip(name, isDir) {
+				return true
+			}
+		}
+		return false
+	}
+}
 
 // Dir syncs the source directory from the source filesystem to the target directory
 // in the target filesystem
-func Dir(sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string) error {
-	ops, err := diff(sfs, sdir, tfs, tdir)
+func Dir(sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string, options ...Option) error {
+	opt := &option{
+		Skip: func(string, bool) bool { return false },
+	}
+	for _, option := range options {
+		option(opt)
+	}
+	ops, err := diff(opt, sfs, sdir, tfs, tdir)
 	if err != nil {
 		return err
 	}
@@ -54,7 +88,7 @@ func (o Op) String() string {
 	return o.Type.String() + ":" + o.Path
 }
 
-func diff(sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string) (ops []Op, err error) {
+func diff(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string) (ops []Op, err error) {
 	sourceEntries, err := fs.ReadDir(sfs, sdir)
 	if err != nil {
 		return nil, err
@@ -68,12 +102,12 @@ func diff(sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string) (ops []Op, 
 	creates := set.Difference(sourceSet, targetSet)
 	deletes := set.Difference(targetSet, sourceSet)
 	updates := set.Intersection(sourceSet, targetSet)
-	createOps, err := createOps(sfs, sdir, creates.List())
+	createOps, err := createOps(opt, sfs, sdir, creates.List())
 	if err != nil {
 		return nil, err
 	}
-	deleteOps := deleteOps(sdir, deletes.List())
-	childOps, err := updateOps(sfs, sdir, tfs, tdir, updates.List())
+	deleteOps := deleteOps(opt, sdir, deletes.List())
+	childOps, err := updateOps(opt, sfs, sdir, tfs, tdir, updates.List())
 	if err != nil {
 		return nil, err
 	}
@@ -83,9 +117,12 @@ func diff(sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string) (ops []Op, 
 	return ops, nil
 }
 
-func createOps(sfs fs.FS, dir string, des []fs.DirEntry) (ops []Op, err error) {
+func createOps(opt *option, sfs fs.FS, dir string, des []fs.DirEntry) (ops []Op, err error) {
 	for _, de := range des {
 		path := filepath.Join(dir, de.Name())
+		if opt.Skip(path, de.IsDir()) {
+			continue
+		}
 		if !de.IsDir() {
 			data, err := fs.ReadFile(sfs, path)
 			if err != nil {
@@ -102,7 +139,7 @@ func createOps(sfs fs.FS, dir string, des []fs.DirEntry) (ops []Op, err error) {
 		if err != nil {
 			return nil, err
 		}
-		createOps, err := createOps(sfs, path, des)
+		createOps, err := createOps(opt, sfs, path, des)
 		if err != nil {
 			return nil, err
 		}
@@ -111,22 +148,27 @@ func createOps(sfs fs.FS, dir string, des []fs.DirEntry) (ops []Op, err error) {
 	return ops, nil
 }
 
-func deleteOps(dir string, des []fs.DirEntry) (ops []Op) {
+func deleteOps(opt *option, dir string, des []fs.DirEntry) (ops []Op) {
 	for _, de := range des {
 		path := filepath.Join(dir, de.Name())
+		if opt.Skip(path, de.IsDir()) {
+			continue
+		}
 		ops = append(ops, Op{DeleteType, path, nil})
 		continue
 	}
 	return ops
 }
 
-func updateOps(sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string, des []fs.DirEntry) (ops []Op, err error) {
+func updateOps(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string, des []fs.DirEntry) (ops []Op, err error) {
 	for _, de := range des {
-		sourcePath := filepath.Join(sdir, de.Name())
-		targetPath := filepath.Join(tdir, de.Name())
+		path := filepath.Join(sdir, de.Name())
+		if opt.Skip(path, de.IsDir()) {
+			continue
+		}
 		// Recurse directories
 		if de.IsDir() {
-			childOps, err := diff(sfs, sourcePath, tfs, targetPath)
+			childOps, err := diff(opt, sfs, path, tfs, path)
 			if err != nil {
 				return nil, err
 			}
@@ -134,25 +176,27 @@ func updateOps(sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string, des []
 			continue
 		}
 		// Otherwise, check if the file has changed
-		sourceStamp, err := stamp(sfs, sourcePath)
+		sourceStamp, err := stamp(sfs, path)
 		if err != nil {
 			return nil, err
 		}
-		targetStamp, err := stamp(tfs, targetPath)
+		targetStamp, err := stamp(tfs, path)
 		if err != nil {
 			return nil, err
 		}
-		if sourceStamp != targetStamp {
-			data, err := fs.ReadFile(sfs, sourcePath)
-			if err != nil {
-				// Don't error out on files that don't exist
-				if errors.Is(err, fs.ErrNotExist) {
-					continue
-				}
-				return nil, err
+		// Skip if the source and target are the same
+		if sourceStamp == targetStamp {
+			continue
+		}
+		data, err := fs.ReadFile(sfs, path)
+		if err != nil {
+			// Don't error out on files that don't exist
+			if errors.Is(err, fs.ErrNotExist) {
+				continue
 			}
-			ops = append(ops, Op{UpdateType, sourcePath, data})
+			return nil, err
 		}
+		ops = append(ops, Op{UpdateType, path, data})
 	}
 	return ops, nil
 }

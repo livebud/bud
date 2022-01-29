@@ -27,6 +27,7 @@ import (
 	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/generator/generate"
 	generatorGenerator "gitlab.com/mnm/bud/internal/generator/generator"
+	"gitlab.com/mnm/bud/internal/gitignore"
 	"gitlab.com/mnm/bud/internal/gobin"
 	"gitlab.com/mnm/bud/internal/parser"
 	v8 "gitlab.com/mnm/bud/js/v8"
@@ -217,7 +218,14 @@ func (c *runCommand2) Run(ctx context.Context) error {
 		Minify:   c.bud.Minify,
 	}))
 	appFS := vfs.OS(module.Directory())
-	if err := fsync.Dir(bfs, "bud", appFS, "bud"); err != nil {
+	skipOption := fsync.WithSkip(
+		gitignore.New(appFS),
+		// Keep bud/main around to improve build caching
+		func(name string, isDir bool) bool {
+			return !isDir && name == "bud/main"
+		},
+	)
+	if err := fsync.Dir(vfs.SingleFlight(bfs), "bud", appFS, "bud", skipOption); err != nil {
 		return err
 	}
 	mainPath := filepath.Join(module.Directory(), "bud", "generate", "main.go")

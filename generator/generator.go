@@ -7,6 +7,7 @@ import (
 	"gitlab.com/mnm/bud/budfs"
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/fscache"
+	"gitlab.com/mnm/bud/internal/gitignore"
 
 	"gitlab.com/mnm/bud/fsync"
 
@@ -192,12 +193,15 @@ func (g *Generator) Module() *mod.Module {
 }
 
 func (g *Generator) Generate(ctx context.Context) error {
-	// tree, err := fstree.Walk(vfs.SingleFlight(vfs.GitIgnore(g.bfs)))
-	// if err != nil {
-	// 	return err
-	// }
-	// fmt.Println(tree.String())
-	if err := fsync.Dir(vfs.SingleFlight(vfs.GitIgnore(g.bfs)), "bud", vfs.GitIgnoreRW(g.appFS), "bud"); err != nil {
+	skipOption := fsync.WithSkip(
+		gitignore.New(g.appFS),
+		// Don't delete files that were pre-generated.
+		func(name string, isDir bool) bool {
+			return isDir && (name == "bud/generate" || name == "bud/generator")
+		},
+	)
+	// Sync bud
+	if err := fsync.Dir(vfs.SingleFlight(g.bfs), "bud", g.appFS, "bud", skipOption); err != nil {
 		return err
 	}
 	return nil
