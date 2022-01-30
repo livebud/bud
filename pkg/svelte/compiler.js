@@ -39,7 +39,7 @@ var __svelte__ = (() => {
     }
   };
 
-  // ../node_modules/svelte/compiler.mjs
+  // ../../node_modules/svelte/compiler.mjs
   var now = typeof process !== "undefined" && process.hrtime ? () => {
     const t = process.hrtime();
     return t[0] * 1e3 + t[1] / 1e6;
