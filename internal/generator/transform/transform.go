@@ -10,7 +10,7 @@ import (
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
 //go:embed transform.gotext
@@ -20,7 +20,7 @@ var generator = gotemplate.MustParse("transform.gotext", template)
 
 type Generator struct {
 	BFS    budfs.FS
-	Module *mod.Module
+	Module *gomod.Module
 }
 
 type State struct {

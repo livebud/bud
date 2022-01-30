@@ -19,11 +19,11 @@ import (
 	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/imports"
 	"gitlab.com/mnm/bud/internal/parser"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/vfs"
 )
 
-func Load(bfs budfs.FS, injector *di.Injector, module *mod.Module, parser *parser.Parser) (*State, error) {
+func Load(bfs budfs.FS, injector *di.Injector, module *gomod.Module, parser *parser.Parser) (*State, error) {
 	exist := vfs.SomeExist(bfs, "action")
 	if len(exist) == 0 {
 		return nil, fs.ErrNotExist
@@ -47,7 +47,7 @@ type loader struct {
 	injector *di.Injector
 	imports  *imports.Set
 	contexts *contextSet
-	module   *mod.Module
+	module   *gomod.Module
 	parser   *parser.Parser
 	exist    map[string]bool
 }

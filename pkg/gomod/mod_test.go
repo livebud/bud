@@ -1,4 +1,4 @@
-package mod_test
+package gomod_test
 
 import (
 	"errors"
@@ -11,7 +11,7 @@ import (
 
 	"gitlab.com/mnm/bud/internal/fscache"
 	"gitlab.com/mnm/bud/internal/modcache"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/vfs"
 
 	"github.com/matryer/is"
@@ -39,10 +39,10 @@ func TestFind(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	module, err := mod.Find(wd)
+	module, err := gomod.Find(wd)
 	is.NoErr(err)
 	dir := module.Directory()
-	root := filepath.Join(wd, "..")
+	root := filepath.Join(wd, "..", "..")
 	is.Equal(root, dir)
 }
 
@@ -50,10 +50,10 @@ func TestFindDefault(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	module, err := mod.Find(wd)
+	module, err := gomod.Find(wd)
 	is.NoErr(err)
 	dir := module.Directory()
-	root := filepath.Join(wd, "..")
+	root := filepath.Join(wd, "..", "..")
 	is.Equal(root, dir)
 }
 
@@ -62,7 +62,7 @@ func TestResolveDirectory(t *testing.T) {
 	wd, err := os.Getwd()
 	is.NoErr(err)
 	modCache := modcache.Default()
-	module, err := mod.Find(wd, mod.WithModCache(modCache))
+	module, err := gomod.Find(wd, gomod.WithModCache(modCache))
 	is.NoErr(err)
 	dir, err := module.ResolveDirectory("github.com/matryer/is")
 	is.NoErr(err)
@@ -75,7 +75,7 @@ func TestResolveDirectoryNested(t *testing.T) {
 	wd, err := os.Getwd()
 	is.NoErr(err)
 	modCache := modcache.Default()
-	module, err := mod.Find(wd, mod.WithModCache(modCache))
+	module, err := gomod.Find(wd, gomod.WithModCache(modCache))
 	is.NoErr(err)
 	dir, err := module.ResolveDirectory("golang.org/x/mod/modfile")
 	is.NoErr(err)
@@ -91,7 +91,7 @@ func TestResolveDirectoryNestedSame(t *testing.T) {
 	wd, err := os.Getwd()
 	is.NoErr(err)
 	modCache := modcache.Default()
-	module, err := mod.Find(wd, mod.WithModCache(modCache))
+	module, err := gomod.Find(wd, gomod.WithModCache(modCache))
 	is.NoErr(err)
 	dir, err := module.ResolveDirectory("gitlab.com/mnm/bud/internal/modcache")
 	is.NoErr(err)
@@ -103,7 +103,7 @@ func TestResolveDirectoryNotOk(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	module, err := mod.Find(wd)
+	module, err := gomod.Find(wd)
 	is.NoErr(err)
 	dir, err := module.ResolveDirectory("github.com/matryer/is/zargle")
 	is.True(errors.Is(err, os.ErrNotExist))
@@ -114,7 +114,7 @@ func TestResolveStdDirectory(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	module, err := mod.Find(wd)
+	module, err := gomod.Find(wd)
 	is.NoErr(err)
 	dir, err := module.ResolveDirectory("net/http")
 	is.NoErr(err)
@@ -126,19 +126,19 @@ func TestResolveImport(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	module, err := mod.Find(wd)
+	module, err := gomod.Find(wd)
 	is.NoErr(err)
 	im, err := module.ResolveImport(wd)
 	is.NoErr(err)
 	base := filepath.Base(wd)
-	is.Equal(module.Import(base), im)
+	is.Equal(module.Import("pkg", base), im)
 }
 
 func TestModuleFindStdlib(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	module, err := mod.Find(wd)
+	module, err := gomod.Find(wd)
 	is.NoErr(err)
 	module, err = module.Find("net/http")
 	is.NoErr(err)
@@ -150,7 +150,7 @@ func TestModuleFindStdlib(t *testing.T) {
 func TestAddRequire(t *testing.T) {
 	is := is.New(t)
 	modPath := filepath.Join(t.TempDir(), "go.mod")
-	module, err := mod.Parse(modPath, []byte(`module app.test`))
+	module, err := gomod.Parse(modPath, []byte(`module app.test`))
 	is.NoErr(err)
 	modFile := module.File()
 	modFile.AddRequire("mod.test/two", "v2")
@@ -167,7 +167,7 @@ require (
 func TestAddReplace(t *testing.T) {
 	is := is.New(t)
 	modPath := filepath.Join(t.TempDir(), "go.mod")
-	module, err := mod.Parse(modPath, []byte(`module app.test`))
+	module, err := gomod.Parse(modPath, []byte(`module app.test`))
 	is.NoErr(err)
 	modFile := module.File()
 	modFile.AddReplace("mod.test/two", "", "mod.test/twotwo", "")
@@ -198,7 +198,7 @@ func TestLocalResolveDirectory(t *testing.T) {
 	appDir := t.TempDir()
 	modPath := filepath.Join(appDir, "go.mod")
 	modData := []byte(`module app.test`)
-	module, err := mod.Parse(modPath, modData, mod.WithModCache(modCache))
+	module, err := gomod.Parse(modPath, modData, gomod.WithModCache(modCache))
 	is.NoErr(err)
 	modFile := module.File()
 	modFile.AddRequire("mod.test/module", "v1.2.4")
@@ -228,7 +228,7 @@ func TestFindNested(t *testing.T) {
 		"app.go": []byte("package app\nimport \"mod.test/module\"\nvar a = module.Answer"),
 	})
 	is.NoErr(err)
-	module1, err := mod.Find(appDir, mod.WithModCache(modCache))
+	module1, err := gomod.Find(appDir, gomod.WithModCache(modCache))
 	is.NoErr(err)
 
 	module2, err := module1.Find("mod.test/module")
@@ -270,7 +270,7 @@ func TestFindNestedFS(t *testing.T) {
 		"app.go": []byte("package app\nimport \"mod.test/module\"\nvar a = module.Answer"),
 	})
 	is.NoErr(err)
-	module1, err := mod.Find(appDir, mod.WithModCache(modCache))
+	module1, err := gomod.Find(appDir, gomod.WithModCache(modCache))
 	is.NoErr(err)
 
 	module2, err := module1.Find("mod.test/module")
@@ -296,7 +296,7 @@ func TestOpen(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	module, err := mod.Find(wd)
+	module, err := gomod.Find(wd)
 	is.NoErr(err)
 	des, err := fs.ReadDir(module, ".")
 	is.NoErr(err)
@@ -312,7 +312,7 @@ func TestFileCacheDir(t *testing.T) {
 	})
 	is.NoErr(err)
 	fmap := fscache.New()
-	module, err := mod.Find(appDir, mod.WithFSCache(fmap))
+	module, err := gomod.Find(appDir, gomod.WithFSCache(fmap))
 	is.NoErr(err)
 	// Check initial
 	des, err := fs.ReadDir(module, ".")
@@ -354,7 +354,7 @@ func TestModuleFindLocal(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	module1, err := mod.Find(wd)
+	module1, err := gomod.Find(wd)
 	is.NoErr(err)
 	// Find local web directory within module1
 	module2, err := module1.Find(module1.Import("web"))
@@ -366,7 +366,7 @@ func TestModuleFindFromFS(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	module1, err := mod.Find(wd)
+	module1, err := gomod.Find(wd)
 	is.NoErr(err)
 	// First ensure the package doesn't exist
 	module2, err := module1.Find(module1.Import("imagine"))

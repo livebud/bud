@@ -6,7 +6,7 @@ import (
 
 	"gitlab.com/mnm/bud/go/is"
 	"gitlab.com/mnm/bud/internal/parser"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
 // Struct is a dependency that can be defined in memory. Struct is also a
@@ -71,8 +71,8 @@ type StructField struct {
 	Import string
 	Type   string
 
-	module *mod.Module // Module containing this type
-	kind   parser.Kind // Kind of type
+	module *gomod.Module // Module containing this type
+	kind   parser.Kind   // Kind of type
 }
 
 var _ Dependency = (*StructField)(nil)

@@ -13,11 +13,11 @@ import (
 	"gitlab.com/mnm/bud/internal/imports"
 	"gitlab.com/mnm/bud/internal/parser"
 	"gitlab.com/mnm/bud/ldflag"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/vfs"
 )
 
-func Load(bfs budfs.FS, module *mod.Module, parser *parser.Parser) (*State, error) {
+func Load(bfs budfs.FS, module *gomod.Module, parser *parser.Parser) (*State, error) {
 	exist := vfs.SomeExist(bfs,
 		"bud/action/action.go",
 		"bud/public/public.go",
@@ -40,7 +40,7 @@ type loader struct {
 	bail.Struct
 	imports *imports.Set
 	bfs     budfs.FS
-	module  *mod.Module
+	module  *gomod.Module
 	parser  *parser.Parser
 	exist   map[string]bool
 }

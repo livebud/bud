@@ -11,7 +11,7 @@ import (
 
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/internal/txtar"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/vfs"
 )
 
@@ -24,7 +24,7 @@ func TestStructLookup(t *testing.T) {
 	is.NoErr(err)
 	modCache := modcache.New(filepath.Join(dir, "mod"))
 	appDir := filepath.Join(dir, "app")
-	module, err := mod.Find(appDir, mod.WithModCache(modCache))
+	module, err := gomod.Find(appDir, gomod.WithModCache(modCache))
 	is.NoErr(err)
 	is.Equal(module.Import(), "app.com")
 	p := parser.New(module, module)
@@ -66,7 +66,7 @@ func TestInterfaceLookup(t *testing.T) {
 	is.NoErr(err)
 	modCache := modcache.New(filepath.Join(dir, "mod"))
 	appDir := filepath.Join(dir, "app")
-	module, err := mod.Find(appDir, mod.WithModCache(modCache))
+	module, err := gomod.Find(appDir, gomod.WithModCache(modCache))
 	is.NoErr(err)
 	p := parser.New(module, module)
 	pkg, err := p.Parse("hello")
@@ -113,7 +113,7 @@ func TestAliasLookup(t *testing.T) {
 	is.NoErr(err)
 	modCache := modcache.New(filepath.Join(dir, "mod"))
 	appDir := filepath.Join(dir, "app")
-	module, err := mod.Find(appDir, mod.WithModCache(modCache))
+	module, err := gomod.Find(appDir, gomod.WithModCache(modCache))
 	is.NoErr(err)
 	p := parser.New(module, module)
 	pkg, err := p.Parse(".")
@@ -157,7 +157,7 @@ func TestNetHTTP(t *testing.T) {
 		`),
 	})
 	is.NoErr(err)
-	module, err := mod.Find(appDir)
+	module, err := gomod.Find(appDir)
 	is.NoErr(err)
 	p := parser.New(module, module)
 	pkg, err := p.Parse(".")
@@ -216,7 +216,7 @@ func TestGenerate(t *testing.T) {
 			return nil
 		}),
 	})
-	module, err := mod.Find(appDir, mod.WithModCache(modCache))
+	module, err := gomod.Find(appDir, gomod.WithModCache(modCache))
 	is.NoErr(err)
 	is.Equal(module.Directory(), appDir)
 	p := parser.New(genfs, module)

@@ -7,17 +7,17 @@ import (
 	"path/filepath"
 
 	"gitlab.com/mnm/bud/internal/parser"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
 var ErrNoMatch = errors.New("no match")
 
 // Finder finds a declaration that will instantiate the data type
 type Finder interface {
-	Find(module *mod.Module, dep Dependency) (Declaration, error)
+	Find(module *gomod.Module, dep Dependency) (Declaration, error)
 }
 
-func (i *Injector) Find(currModule *mod.Module, dep Dependency) (Declaration, error) {
+func (i *Injector) Find(currModule *gomod.Module, dep Dependency) (Declaration, error) {
 	// If modfile is nil, we default to the project modfile
 	if currModule == nil {
 		currModule = i.module

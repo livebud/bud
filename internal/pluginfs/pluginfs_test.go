@@ -7,7 +7,7 @@ import (
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/internal/modcache"
 	"gitlab.com/mnm/bud/internal/pluginfs"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/vfs"
 )
 
@@ -28,7 +28,7 @@ func TestMergeModules(t *testing.T) {
 		"go.mod":               []byte("module app.com\nrequire gitlab.com/mnm/bud-tailwind v0.0.1"),
 	})
 	is.NoErr(err)
-	module, err := mod.Find(appDir, mod.WithModCache(modCache))
+	module, err := gomod.Find(appDir, gomod.WithModCache(modCache))
 	is.NoErr(err)
 	pfs, err := pluginfs.Load(module)
 	is.NoErr(err)

@@ -10,7 +10,7 @@ import (
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
 //go:embed program.gotext
@@ -20,7 +20,7 @@ var generator = gotemplate.MustParse("program.gotext", template)
 
 type Generator struct {
 	BFS      budfs.FS
-	Module   *mod.Module
+	Module   *gomod.Module
 	Injector *di.Injector
 }
 
@@ -41,13 +41,13 @@ func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 	imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
 	imports.AddNamed("budfs", "gitlab.com/mnm/bud/budfs")
 	// imports.AddNamed("plugin", "gitlab.com/mnm/bud/plugin")
-	imports.AddNamed("mod", "gitlab.com/mnm/bud/mod")
+	imports.AddNamed("gomod", "gitlab.com/mnm/bud/pkg/gomod")
 	imports.Add(g.Module.Import("bud/command"))
 	provider, err := g.Injector.Wire(&di.Function{
 		Name:   "loadCLI",
 		Target: g.Module.Import("bud", "program"),
 		Params: []di.Dependency{
-			&di.Type{Import: "gitlab.com/mnm/bud/mod", Type: "*Module"},
+			&di.Type{Import: "gitlab.com/mnm/bud/pkg/gomod", Type: "*Module"},
 			// TODO: remove gen
 			&di.Type{Import: "gitlab.com/mnm/bud/gen", Type: "*FileSystem"},
 			&di.Type{Import: "gitlab.com/mnm/bud/budfs", Type: "FS"},

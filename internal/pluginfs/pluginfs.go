@@ -7,7 +7,7 @@ import (
 
 	mergefs "github.com/yalue/merged_fs"
 	"gitlab.com/mnm/bud/internal/fscache"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -24,7 +24,7 @@ func WithFSCache(cache *fscache.Cache) func(o *option) {
 	}
 }
 
-func Load(module *mod.Module, options ...Option) (fs.FS, error) {
+func Load(module *gomod.Module, options ...Option) (fs.FS, error) {
 	opt := &option{
 		fsCache: nil,
 	}
@@ -40,7 +40,7 @@ func Load(module *mod.Module, options ...Option) (fs.FS, error) {
 }
 
 // Load plugins
-func loadPlugins(module *mod.Module) (plugins []*mod.Module, err error) {
+func loadPlugins(module *gomod.Module) (plugins []*gomod.Module, err error) {
 	modfile := module.File()
 	var importPaths []string
 	for _, req := range modfile.Requires() {
@@ -51,7 +51,7 @@ func loadPlugins(module *mod.Module) (plugins []*mod.Module, err error) {
 		importPaths = append(importPaths, req.Mod.Path)
 	}
 	// Concurrently resolve directories
-	plugins = make([]*mod.Module, len(importPaths))
+	plugins = make([]*gomod.Module, len(importPaths))
 	eg := new(errgroup.Group)
 	for i, importPath := range importPaths {
 		i, importPath := i, importPath
@@ -101,7 +101,7 @@ func (f *FS) cachedOpen(fmap *fscache.Cache, name string) (fs.File, error) {
 }
 
 // Merge the filesystems into one
-func merge(app fs.FS, plugins []*mod.Module) fs.FS {
+func merge(app fs.FS, plugins []*gomod.Module) fs.FS {
 	if len(plugins) == 0 {
 		return app
 	}

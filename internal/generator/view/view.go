@@ -8,7 +8,7 @@ import (
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/vfs"
 )
 
@@ -19,7 +19,7 @@ var generator = gotemplate.MustParse("view.gotext", template)
 
 type Generator struct {
 	BFS    budfs.FS
-	Module *mod.Module
+	Module *gomod.Module
 }
 
 type State struct {
@@ -34,7 +34,7 @@ func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 	imports := imports.New()
 	imports.AddNamed("transform", g.Module.Import("bud/transform"))
 	imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
-	imports.AddNamed("mod", "gitlab.com/mnm/bud/mod")
+	imports.AddNamed("mod", "gitlab.com/mnm/bud/pkg/gomod")
 	imports.AddNamed("js", "gitlab.com/mnm/bud/js")
 	imports.AddNamed("view", "gitlab.com/mnm/bud/view")
 	code, err := generator.Generate(State{

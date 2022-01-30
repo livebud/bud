@@ -10,7 +10,7 @@ import (
 	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/parser"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
 //go:embed action.gotext
@@ -21,7 +21,7 @@ var generator = gotemplate.MustParse("action.gotext", template)
 type Generator struct {
 	BFS      budfs.FS
 	Injector *di.Injector
-	Module   *mod.Module
+	Module   *gomod.Module
 	Parser   *parser.Parser
 }
 

@@ -15,7 +15,6 @@ import (
 	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/generator/action"
 	"gitlab.com/mnm/bud/internal/generator/command"
-	"gitlab.com/mnm/bud/internal/generator/gomod"
 	"gitlab.com/mnm/bud/internal/generator/maingo"
 	"gitlab.com/mnm/bud/internal/generator/program"
 	"gitlab.com/mnm/bud/internal/generator/transform"
@@ -23,7 +22,7 @@ import (
 	"gitlab.com/mnm/bud/internal/generator/web"
 	"gitlab.com/mnm/bud/internal/modcache"
 	"gitlab.com/mnm/bud/internal/parser"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/vfs"
 )
 
@@ -58,7 +57,10 @@ func WithMinify(minify bool) func(*option) {
 
 func WithReplace(from, to string) func(*option) {
 	return func(option *option) {
-		option.Replaces = append(option.Replaces, &gomod.Replace{Old: from, New: to})
+		option.Replaces = append(option.Replaces, &gomod.Replace{
+			Old: gomod.Version{Path: from, Version: ""},
+			New: gomod.Version{Path: to, Version: ""},
+		})
 	}
 }
 
@@ -91,12 +93,12 @@ func Load(dir string, options ...Option) (*Generator, error) {
 		fn(option)
 	}
 	// Find go.mod
-	module, err := mod.Find(dir, mod.WithModCache(option.ModCache), mod.WithFSCache(option.FSCache))
+	module, err := gomod.Find(dir, gomod.WithModCache(option.ModCache), gomod.WithFSCache(option.FSCache))
 	if err != nil {
-		if !errors.Is(err, mod.ErrFileNotFound) {
+		if !errors.Is(err, gomod.ErrFileNotFound) {
 			return nil, err
 		}
-		module, err = mod.Parse(dir, []byte(`module app.com`), mod.WithModCache(option.ModCache), mod.WithFSCache(option.FSCache))
+		module, err = gomod.Parse(dir, []byte(`module app.com`), gomod.WithModCache(option.ModCache), gomod.WithFSCache(option.FSCache))
 		if err != nil {
 			return nil, err
 		}
@@ -115,9 +117,9 @@ func Load(dir string, options ...Option) (*Generator, error) {
 	})
 
 	// go.mod generator
-	bfs.Entry("go.mod", gen.FileGenerator(&gomod.Generator{
-		Module: module,
-	}))
+	// bfs.Entry("go.mod", gen.FileGenerator(&gomod.Generator{
+	// 	Module: module,
+	// }))
 
 	// generate generator
 	// bfs.Entry("bud/generate/main.go", gen.FileGenerator(&generate.Generator{
@@ -185,10 +187,10 @@ func Load(dir string, options ...Option) (*Generator, error) {
 type Generator struct {
 	appFS  vfs.ReadWritable
 	bfs    budfs.FS
-	module *mod.Module
+	module *gomod.Module
 }
 
-func (g *Generator) Module() *mod.Module {
+func (g *Generator) Module() *gomod.Module {
 	return g.module
 }
 

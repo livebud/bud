@@ -8,10 +8,10 @@ import (
 	"gitlab.com/mnm/bud/budfs"
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
-func Load(bfs budfs.FS, module *mod.Module, embed, minify bool) (*State, error) {
+func Load(bfs budfs.FS, module *gomod.Module, embed, minify bool) (*State, error) {
 	loader := &loader{
 		bfs:     bfs,
 		imports: imports.New(),
@@ -26,7 +26,7 @@ type loader struct {
 	bail.Struct
 	bfs     budfs.FS
 	imports *imports.Set
-	module  *mod.Module
+	module  *gomod.Module
 	embed   bool
 	minify  bool
 }

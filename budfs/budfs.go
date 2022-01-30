@@ -6,7 +6,7 @@ import (
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/fscache"
 	"gitlab.com/mnm/bud/internal/pluginfs"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
 type option struct {
@@ -21,7 +21,7 @@ func WithFSCache(fc *fscache.Cache) func(*option) {
 	}
 }
 
-func Load(module *mod.Module, options ...Option) (*FileSystem, error) {
+func Load(module *gomod.Module, options ...Option) (*FileSystem, error) {
 	opt := &option{
 		FSCache: nil,
 	}

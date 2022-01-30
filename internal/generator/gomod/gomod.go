@@ -4,7 +4,7 @@ import (
 	_ "embed"
 
 	"gitlab.com/mnm/bud/gen"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
 //// go:embed gomod.gotext
@@ -28,7 +28,7 @@ type Replace struct {
 }
 
 type Generator struct {
-	Module *mod.Module
+	Module *gomod.Module
 }
 
 func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {

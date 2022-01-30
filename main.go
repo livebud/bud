@@ -32,7 +32,7 @@ import (
 	"gitlab.com/mnm/bud/internal/parser"
 	v8 "gitlab.com/mnm/bud/js/v8"
 
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 
 	"gitlab.com/mnm/bud/commander"
 
@@ -153,7 +153,7 @@ func (c *bud) Build(ctx context.Context, dir string) (string, error) {
 // Run a custom command
 func (c *bud) Run(ctx context.Context) error {
 	// Find the project directory
-	dir, err := mod.Absolute(c.Chdir)
+	dir, err := gomod.Absolute(c.Chdir)
 	if err != nil {
 		return err
 	}
@@ -188,7 +188,7 @@ func (c *runCommand2) Run(ctx context.Context) error {
 		return err
 	}
 	console.Info("Listening on http://%s", listener.Addr().String())
-	module, err := mod.Find(c.bud.Chdir)
+	module, err := gomod.Find(c.bud.Chdir)
 	if err != nil {
 		return err
 	}
@@ -267,7 +267,7 @@ type runCommand struct {
 
 func (c *runCommand) Run(ctx context.Context) error {
 	// Find the project directory
-	dir, err := mod.Absolute(c.bud.Chdir)
+	dir, err := gomod.Absolute(c.bud.Chdir)
 	if err != nil {
 		return err
 	}
@@ -301,7 +301,7 @@ type buildCommand struct {
 
 func (c *buildCommand) Run(ctx context.Context) error {
 	// Find the project directory
-	dir, err := mod.Absolute(c.bud.Chdir)
+	dir, err := gomod.Absolute(c.bud.Chdir)
 	if err != nil {
 		return err
 	}
@@ -323,7 +323,7 @@ type diCommand struct {
 }
 
 func (c *diCommand) Run(ctx context.Context) error {
-	module, err := mod.Find(c.bud.Chdir)
+	module, err := gomod.Find(c.bud.Chdir)
 	if err != nil {
 		return err
 	}
@@ -384,7 +384,7 @@ func (c *diCommand) Run(ctx context.Context) error {
 
 // This should handle both stdlib (e.g. "net/http"), directories (e.g. "web"),
 // and dependencies
-func (c *diCommand) toImportPath(module *mod.Module, importPath string) (string, error) {
+func (c *diCommand) toImportPath(module *gomod.Module, importPath string) (string, error) {
 	importPath = strings.Trim(importPath, "\"")
 	maybeDir := module.Directory(importPath)
 	if _, err := os.Stat(maybeDir); err == nil {
@@ -396,7 +396,7 @@ func (c *diCommand) toImportPath(module *mod.Module, importPath string) (string,
 	return importPath, nil
 }
 
-func (c *diCommand) toDependency(module *mod.Module, dependency string) (di.Dependency, error) {
+func (c *diCommand) toDependency(module *gomod.Module, dependency string) (di.Dependency, error) {
 	i := strings.LastIndex(dependency, ".")
 	if i < 0 {
 		return nil, fmt.Errorf("di: external must have form '<import>.<type>'. got %q ", dependency)

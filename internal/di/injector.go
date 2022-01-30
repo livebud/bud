@@ -4,12 +4,12 @@ import (
 	"io/fs"
 
 	"gitlab.com/mnm/bud/internal/parser"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
 type Map = map[Dependency]Dependency
 
-func New(fsys fs.FS, module *mod.Module, parser *parser.Parser, typeMap Map) *Injector {
+func New(fsys fs.FS, module *gomod.Module, parser *parser.Parser, typeMap Map) *Injector {
 	tm := map[string]Dependency{}
 	for from, to := range typeMap {
 		tm[from.ID()] = to
@@ -26,7 +26,7 @@ type Injector struct {
 	// Filesystem to look for files
 	fsys fs.FS
 	// Module where project dependencies will be wired
-	module *mod.Module
+	module *gomod.Module
 	// Go parser
 	parser *parser.Parser
 	// Type aliasing

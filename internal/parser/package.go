@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"sort"
 
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
 // newPackage creates a new package
-func newPackage(dir string, parser *Parser, module *mod.Module, node *ast.Package) *Package {
+func newPackage(dir string, parser *Parser, module *gomod.Module, node *ast.Package) *Package {
 	dir = filepath.Join(module.Directory(), dir)
 	pkg := &Package{
 		dir:    dir,
@@ -49,7 +49,7 @@ func (pkg *Package) Files() []*File {
 }
 
 // Module returns the module or fails
-func (pkg *Package) Module() *mod.Module {
+func (pkg *Package) Module() *gomod.Module {
 	return pkg.parser.module
 }
 

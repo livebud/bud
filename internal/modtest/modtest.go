@@ -9,7 +9,7 @@ import (
 	"github.com/lithammer/dedent"
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/internal/modcache"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/vfs"
 )
 
@@ -29,7 +29,7 @@ func redent(s string) string {
 // 	return fsys
 // }
 
-func Make(t testing.TB, m Module) *mod.Module {
+func Make(t testing.TB, m Module) *gomod.Module {
 	t.Helper()
 	is := is.New(t)
 	modCache := modcache.Default()
@@ -55,7 +55,7 @@ func Make(t testing.TB, m Module) *mod.Module {
 		err := vfs.Write(m.AppDir, vfs.Map(m.Files))
 		is.NoErr(err)
 	}
-	module, err := mod.Find(m.AppDir, mod.WithModCache(modCache))
+	module, err := gomod.Find(m.AppDir, gomod.WithModCache(modCache))
 	is.NoErr(err)
 	return module
 }
@@ -64,9 +64,9 @@ func replaceBud(t testing.TB, code string) string {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
-	budModule, err := mod.Find(wd)
+	budModule, err := gomod.Find(wd)
 	is.NoErr(err)
-	module, err := mod.Parse("go.mod", []byte(code))
+	module, err := gomod.Parse("go.mod", []byte(code))
 	is.NoErr(err)
 	err = module.File().Replace("gitlab.com/mnm/bud", budModule.Directory())
 	is.NoErr(err)

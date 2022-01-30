@@ -2,16 +2,16 @@ package di
 
 import (
 	"gitlab.com/mnm/bud/internal/parser"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
 type Type struct {
 	Import string
 	Type   string
 
-	module *mod.Module // Optional, defaults to project module
-	name   string      // Optional, defaults to assumed name + type
-	kind   parser.Kind // Kind of type (e.g. struct, interface, etc.)
+	module *gomod.Module // Optional, defaults to project module
+	name   string        // Optional, defaults to assumed name + type
+	kind   parser.Kind   // Kind of type (e.g. struct, interface, etc.)
 }
 
 var _ Dependency = (*Type)(nil)

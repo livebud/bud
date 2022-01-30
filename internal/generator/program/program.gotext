@@ -37,7 +37,7 @@ func Load() (*Program, error) {
 	if err != nil {
 		return nil, err
 	}
-	module, err := mod.Find(dir)
+	module, err := gomod.Find(dir)
 	if err != nil {
 		return nil, err
 	}

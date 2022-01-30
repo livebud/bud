@@ -11,7 +11,7 @@ import (
 	"gitlab.com/mnm/bud/dom"
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/js"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/ssr"
 	"gitlab.com/mnm/bud/transform"
 )
@@ -45,7 +45,7 @@ func Test(t testing.TB) *Server {
 }
 
 // Live server serves view files on the fly. Used during development.
-func Live(module *mod.Module, genfs gen.FS, vm js.VM, transformer *transform.Transformer) *Server {
+func Live(module *gomod.Module, genfs gen.FS, vm js.VM, transformer *transform.Transformer) *Server {
 	dir := module.Directory()
 	genfs.Add(map[string]gen.Generator{
 		"bud/view":         dom.Runner(genfs, dir, transformer),

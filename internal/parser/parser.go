@@ -12,11 +12,11 @@ import (
 	"path/filepath"
 	"unicode"
 
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
 // New Go parser.
-func New(fsys fs.FS, module *mod.Module) *Parser {
+func New(fsys fs.FS, module *gomod.Module) *Parser {
 	return &Parser{
 		fsys:   fsys,
 		module: module,
@@ -26,7 +26,7 @@ func New(fsys fs.FS, module *mod.Module) *Parser {
 // Parser for parsing Go code.
 type Parser struct {
 	fsys   fs.FS
-	module *mod.Module
+	module *gomod.Module
 }
 
 // Parse a dir containing Go files.

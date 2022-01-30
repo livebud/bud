@@ -4,7 +4,7 @@ import (
 	_ "embed"
 
 	"gitlab.com/mnm/bud/budfs"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/gotemplate"
@@ -15,7 +15,7 @@ var template string
 
 var generator = gotemplate.MustParse("public", template)
 
-func New(bfs budfs.FS, module *mod.Module) *Generator {
+func New(bfs budfs.FS, module *gomod.Module) *Generator {
 	return &Generator{
 		BFS:    bfs,
 		Module: module,
@@ -26,7 +26,7 @@ func New(bfs budfs.FS, module *mod.Module) *Generator {
 
 type Generator struct {
 	BFS    budfs.FS
-	Module *mod.Module
+	Module *gomod.Module
 	Embed  bool
 	Minify bool
 }

@@ -1,11 +1,13 @@
-package mod
+package gomod
 
 import (
 	"path"
 
 	"golang.org/x/mod/modfile"
+	"golang.org/x/mod/module"
 )
 
+type Version = module.Version
 type Require = modfile.Require
 type Replace = modfile.Replace
 

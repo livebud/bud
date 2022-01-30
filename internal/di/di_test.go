@@ -16,7 +16,7 @@ import (
 	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/modcache"
 	"gitlab.com/mnm/bud/internal/parser"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/vfs"
 )
 
@@ -75,7 +75,7 @@ func runTest(t testing.TB, test Test) {
 		err := vfs.Write(appDir, vmap)
 		is.NoErr(err)
 	}
-	module, err := mod.Find(appDir, mod.WithModCache(modCache))
+	module, err := gomod.Find(appDir, gomod.WithModCache(modCache))
 	is.NoErr(err)
 	parser := parser.New(appFS, module)
 	typeMap := di.Map{}

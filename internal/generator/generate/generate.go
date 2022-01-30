@@ -4,7 +4,7 @@ import (
 	_ "embed"
 
 	"gitlab.com/mnm/bud/internal/di"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 
 	"gitlab.com/mnm/bud/budfs"
 	"gitlab.com/mnm/bud/gen"
@@ -20,7 +20,7 @@ var generator = gotemplate.MustParse("generate", template)
 type Generator struct {
 	BFS      budfs.FS
 	Injector *di.Injector
-	Module   *mod.Module
+	Module   *gomod.Module
 	Embed    bool
 	Hot      bool
 	Minify   bool
@@ -43,7 +43,7 @@ func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 	imports.AddStd("os")
 	// imports.AddStd("fmt")
 	imports.AddNamed("console", "gitlab.com/mnm/bud/log/console")
-	imports.AddNamed("mod", "gitlab.com/mnm/bud/mod")
+	imports.AddNamed("mod", "gitlab.com/mnm/bud/pkg/gomod")
 	imports.AddNamed("budfs", "gitlab.com/mnm/bud/budfs")
 	imports.AddNamed("generate", "gitlab.com/mnm/bud/generate")
 	provider, err := g.Injector.Wire(&di.Function{
@@ -55,7 +55,7 @@ func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 				Type:   "FS",
 			},
 			&di.Type{
-				Import: "gitlab.com/mnm/bud/mod",
+				Import: "gitlab.com/mnm/bud/pkg/gomod",
 				Type:   "*Module",
 			},
 		},

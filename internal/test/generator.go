@@ -30,7 +30,7 @@ import (
 	"gitlab.com/mnm/bud/internal/fscache"
 	"gitlab.com/mnm/bud/internal/modcache"
 	"gitlab.com/mnm/bud/internal/npm"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/socket"
 	"gitlab.com/mnm/bud/vfs"
 )
@@ -40,11 +40,11 @@ func replaceBud(code string) (string, error) {
 	if !ok {
 		return "", errors.New("unable to load current file path")
 	}
-	budModule, err := mod.Find(filepath.Dir(file))
+	budModule, err := gomod.Find(filepath.Dir(file))
 	if err != nil {
 		return "", err
 	}
-	module, err := mod.Parse("go.mod", []byte(code))
+	module, err := gomod.Parse("go.mod", []byte(code))
 	if err != nil {
 		return "", err
 	}
@@ -56,7 +56,7 @@ func replaceBud(code string) (string, error) {
 }
 
 func addModules(code string, modules map[string]modcache.Files) (string, error) {
-	module, err := mod.Parse("go.mod", []byte(code))
+	module, err := gomod.Parse("go.mod", []byte(code))
 	if err != nil {
 		return "", err
 	}
@@ -82,7 +82,7 @@ func moduleGoMod(pathVersion string, module modcache.Files) (string, error) {
 	if !ok {
 		return "", errors.New("unable to load current file path")
 	}
-	budModule, err := mod.Find(filepath.Dir(file))
+	budModule, err := gomod.Find(filepath.Dir(file))
 	if err != nil {
 		return "", err
 	}
@@ -288,7 +288,7 @@ type App struct {
 	dir        string
 	modSnapDir string
 	modCache   *modcache.Cache
-	module     *mod.Module
+	module     *gomod.Module
 	env        env
 	extras     []*os.File
 }

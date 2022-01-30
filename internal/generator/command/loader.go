@@ -13,11 +13,11 @@ import (
 	"gitlab.com/mnm/bud/internal/imports"
 	"gitlab.com/mnm/bud/internal/parser"
 	"gitlab.com/mnm/bud/internal/valid"
-	"gitlab.com/mnm/bud/mod"
+	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
 // Load state
-func Load(bfs budfs.FS, module *mod.Module, parser *parser.Parser) (*State, error) {
+func Load(bfs budfs.FS, module *gomod.Module, parser *parser.Parser) (*State, error) {
 	loader := &loader{
 		bfs:     bfs,
 		imports: imports.New(),
@@ -31,7 +31,7 @@ type loader struct {
 	bail.Struct
 	bfs     budfs.FS
 	imports *imports.Set
-	module  *mod.Module
+	module  *gomod.Module
 	parser  *parser.Parser
 }
 
@@ -43,7 +43,7 @@ func (l *loader) Load() (state *State, err error) {
 	l.imports.AddNamed("commander", "gitlab.com/mnm/bud/commander")
 	l.imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
 	l.imports.AddNamed("budfs", "gitlab.com/mnm/bud/budfs")
-	l.imports.AddNamed("mod", "gitlab.com/mnm/bud/mod")
+	l.imports.AddNamed("mod", "gitlab.com/mnm/bud/pkg/gomod")
 	// Load the commands
 	state.Command = l.loadRoot("command")
 	if !state.Command.Runnable && len(state.Command.Subs) == 0 {
