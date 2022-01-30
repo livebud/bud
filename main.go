@@ -34,7 +34,7 @@ import (
 
 	"gitlab.com/mnm/bud/pkg/gomod"
 
-	"gitlab.com/mnm/bud/commander"
+	"gitlab.com/mnm/bud/pkg/commander"
 
 	"gitlab.com/mnm/bud/log/console"
 )

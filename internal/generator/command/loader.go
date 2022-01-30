@@ -40,7 +40,7 @@ func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
 	state = new(State)
 	// Add initial imports
-	l.imports.AddNamed("commander", "gitlab.com/mnm/bud/commander")
+	l.imports.AddNamed("commander", "gitlab.com/mnm/bud/pkg/commander")
 	l.imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
 	l.imports.AddNamed("budfs", "gitlab.com/mnm/bud/budfs")
 	l.imports.AddNamed("mod", "gitlab.com/mnm/bud/pkg/gomod")

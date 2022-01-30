@@ -12,10 +12,10 @@ import (
 	"gitlab.com/mnm/bud/internal/fscache"
 	"gitlab.com/mnm/bud/socket"
 
-	"gitlab.com/mnm/bud/commander"
 	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/generator"
 	"gitlab.com/mnm/bud/internal/gobin"
+	"gitlab.com/mnm/bud/pkg/commander"
 )
 
 type Command struct {
