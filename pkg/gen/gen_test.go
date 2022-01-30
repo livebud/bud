@@ -620,7 +620,7 @@ func TestHTTP(t *testing.T) {
 	is := is.New(t)
 	df := gen.New(os.DirFS("."))
 	df.Add(map[string]gen.Generator{
-		"duo/view": gen.ServeFile(func(f gen.F, file *gen.File) error {
+		"bud/view": gen.ServeFile(func(f gen.F, file *gen.File) error {
 			file.Write([]byte(file.Path() + `'s data`))
 			return nil
 		}),
@@ -643,13 +643,13 @@ func TestHTTP(t *testing.T) {
 	}
 
 	w := httptest.NewRecorder()
-	r := httptest.NewRequest("GET", "/duo/view/_index.svelte", nil)
+	r := httptest.NewRequest("GET", "/bud/view/_index.svelte", nil)
 	handler(w, r)
 
 	response := w.Result()
 	body, err := ioutil.ReadAll(response.Body)
 	is.NoErr(err)
-	is.Equal(string(body), `duo/view/_index.svelte's data`)
+	is.Equal(string(body), `bud/view/_index.svelte's data`)
 	is.Equal(response.StatusCode, 200)
 }
 

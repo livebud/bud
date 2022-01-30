@@ -143,7 +143,7 @@ func (l *loader) loadActions(controller *Controller, stct *parser.Struct) (actio
 			l.Bail(err)
 		}
 		l.imports.Add(importPath)
-		l.imports.Add("gitlab.com/mnm/duo/response")
+		l.imports.Add("gitlab.com/mnm/bud/runtime/action/response")
 		l.imports.Add("net/http")
 	}
 	return actions
@@ -236,7 +236,7 @@ func (l *loader) loadActionParams(params []*parser.Param) (inputs []*ActionParam
 		inputs = append(inputs, l.loadActionParam(param, nth, numParams))
 	}
 	if len(inputs) > 0 {
-		l.imports.Add("gitlab.com/mnm/duo/request")
+		l.imports.Add("gitlab.com/mnm/bud/runtime/action/request")
 	}
 	return inputs
 }

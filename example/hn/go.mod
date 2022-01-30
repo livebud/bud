@@ -20,7 +20,7 @@ require (
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac // indirect
 	github.com/matthewmueller/text v0.0.0-20210424201111-ec1e4af8dfe8 // indirect
 	github.com/otiai10/copy v1.7.0 // indirect
-	github.com/stretchr/testify v1.6.1 // indirect
+	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/timewasted/go-accept-headers v0.0.0-20130320203746-c78f304b1b09 // indirect
 	github.com/yalue/merged_fs v1.1.1 // indirect
 	gitlab.com/mnm/bud-tailwind v0.0.0-20211218025321-2c7485847414 // indirect
@@ -29,7 +29,7 @@ require (
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20211117180635-dee7805ff2e1 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20200605160147-a5ece683394c // indirect
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	rogchap.com/v8go v0.7.0 // indirect
 )
 

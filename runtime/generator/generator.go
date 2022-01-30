@@ -9,7 +9,7 @@ import (
 	"gitlab.com/mnm/bud/pkg/budfs"
 	"gitlab.com/mnm/bud/pkg/gen"
 
-	"gitlab.com/mnm/bud/internal/fsync"
+	"gitlab.com/mnm/bud/internal/dsync"
 
 	"gitlab.com/mnm/bud/generator/action"
 	"gitlab.com/mnm/bud/generator/command"
@@ -195,7 +195,7 @@ func (g *Generator) Module() *gomod.Module {
 }
 
 func (g *Generator) Generate(ctx context.Context) error {
-	skipOption := fsync.WithSkip(
+	skipOption := dsync.WithSkip(
 		gitignore.New(g.appFS),
 		// Don't delete files that were pre-generated.
 		func(name string, isDir bool) bool {
@@ -203,7 +203,7 @@ func (g *Generator) Generate(ctx context.Context) error {
 		},
 	)
 	// Sync bud
-	if err := fsync.Dir(vfs.SingleFlight(g.bfs), "bud", g.appFS, "bud", skipOption); err != nil {
+	if err := dsync.Dir(vfs.SingleFlight(g.bfs), "bud", g.appFS, "bud", skipOption); err != nil {
 		return err
 	}
 	return nil

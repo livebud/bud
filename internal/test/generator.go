@@ -119,13 +119,11 @@ func cleanup(t testing.TB, root, dir string) func() {
 	}
 }
 
-// TODO: remove gitlab.com/mnm/duo
 var goMod = []byte(`
 module app.com
 
 require (
 	gitlab.com/mnm/bud v0.0.0
-	gitlab.com/mnm/duo v0.0.0-20220108212322-310ab0354067
 )
 `)
 

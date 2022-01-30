@@ -60,47 +60,6 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// func Runner(dir string) *dfs.DFS {
-// 	vm := v8.New()
-// 	dirfs := os.DirFS(dir)
-// 	return dfs.New(dirfs, map[string]dfs.Generator{
-// 		"duo/view/view.go": dfs.GenerateFile(func(f dfs.FS, file *dfs.File) error {
-// 			views, err := entrypoint.List(f)
-// 			if err != nil {
-// 				return err
-// 			}
-// 			if len(views) == 0 {
-// 				return fs.ErrNotExist
-// 			}
-// 			imports := imports.New()
-// 			imports.AddNamed("os", "os")
-// 			imports.AddNamed("v8", "gitlab.com/mnm/duo/js/v8")
-// 			imports.AddNamed("view", "gitlab.com/mnm/duo/runtime/view")
-// 			imports.AddNamed("dfs", "gitlab.com/mnm/duo/runtime/dfs")
-// 			imports.AddNamed("dom", "gitlab.com/mnm/duo/runtime/view/dom")
-// 			imports.AddNamed("ssr", "gitlab.com/mnm/duo/runtime/view/ssr")
-// 			imports.AddNamed("svelte", "gitlab.com/mnm/duo/runtime/view/svelte")
-// 			state := &runState{
-// 				Imports: imports.List(),
-// 			}
-// 			code, err := runner.Generate(state)
-// 			if err != nil {
-// 				return err
-// 			}
-// 			file.Write(code)
-// 			return nil
-// 		}),
-// 	})
-// }
-
-// func Builder(dir string) *dfs.DFS {
-// 	vm := v8.New()
-// 	dirfs := os.DirFS(dir)
-// 	return dfs.New(dirfs, map[string]dfs.Generator{
-// 		"duo/view/view.go": view.Builder(dirfs, vm, dir),
-// 	})
-// }
-
 func testDir(t testing.TB) (string, func()) {
 	t.Helper()
 	is := is.New(t)

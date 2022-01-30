@@ -16,7 +16,7 @@ import (
 
 	"gitlab.com/mnm/bud/pkg/socket"
 
-	"gitlab.com/mnm/bud/internal/fsync"
+	"gitlab.com/mnm/bud/internal/dsync"
 	"gitlab.com/mnm/bud/pkg/vfs"
 
 	"gitlab.com/mnm/bud/pkg/budfs"
@@ -218,14 +218,14 @@ func (c *runCommand2) Run(ctx context.Context) error {
 		Minify:   c.bud.Minify,
 	}))
 	appFS := vfs.OS(module.Directory())
-	skipOption := fsync.WithSkip(
+	skipOption := dsync.WithSkip(
 		gitignore.New(appFS),
 		// Keep bud/main around to improve build caching
 		func(name string, isDir bool) bool {
 			return !isDir && name == "bud/main"
 		},
 	)
-	if err := fsync.Dir(vfs.SingleFlight(bfs), "bud", appFS, "bud", skipOption); err != nil {
+	if err := dsync.Dir(vfs.SingleFlight(bfs), "bud", appFS, "bud", skipOption); err != nil {
 		return err
 	}
 	mainPath := filepath.Join(module.Directory(), "bud", "generate", "main.go")

@@ -1,4 +1,4 @@
-package fsync_test
+package dsync_test
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/fsync"
+	"gitlab.com/mnm/bud/internal/dsync"
 	"gitlab.com/mnm/bud/pkg/gen"
 	"gitlab.com/mnm/bud/pkg/vfs"
 )
@@ -30,7 +30,7 @@ func TestFileSync(t *testing.T) {
 	}
 
 	// sync
-	err := fsync.Dir(sourceFS, ".", targetFS, ".")
+	err := dsync.Dir(sourceFS, ".", targetFS, ".")
 	is.NoErr(err)
 	is.Equal(len(targetFS), 2)
 
@@ -76,7 +76,7 @@ func TestDirSync(t *testing.T) {
 	}
 
 	// sync
-	err := fsync.Dir(sourceFS, "duo", targetFS, "duo")
+	err := dsync.Dir(sourceFS, "duo", targetFS, "duo")
 	is.NoErr(err)
 	is.Equal(len(targetFS), 5)
 
@@ -151,7 +151,7 @@ func TestNoDuo(t *testing.T) {
 	targetFS := vfs.Memory{}
 
 	// sync
-	err := fsync.Dir(sourceFS, "duo", targetFS, "duo")
+	err := dsync.Dir(sourceFS, "duo", targetFS, "duo")
 	is.NoErr(err)
 	is.Equal(len(targetFS), 2)
 
@@ -193,7 +193,7 @@ func TestSkipGenerator(t *testing.T) {
 	targetFS := vfs.Memory{}
 
 	// sync
-	err := fsync.Dir(sourceFS, ".", targetFS, ".")
+	err := dsync.Dir(sourceFS, ".", targetFS, ".")
 	is.NoErr(err)
 	is.Equal(len(targetFS), 0)
 }
@@ -214,7 +214,7 @@ func TestErrorGenerator(t *testing.T) {
 	targetFS := vfs.Memory{}
 
 	// sync
-	err := fsync.Dir(sourceFS, ".", targetFS, ".")
+	err := dsync.Dir(sourceFS, ".", targetFS, ".")
 	is.True(err != nil)
 	is.Equal(err.Error(), "open bud/generate/main.go > uh oh")
 	is.Equal(len(targetFS), 0)
@@ -229,7 +229,7 @@ func TestWithSkip(t *testing.T) {
 	targetFS := vfs.Memory{
 		"node_modules/svelte/svelte.js": &vfs.File{Data: []byte("svelte")},
 	}
-	err := fsync.Dir(sourceFS, ".", targetFS, ".")
+	err := dsync.Dir(sourceFS, ".", targetFS, ".")
 	is.NoErr(err)
 	is.Equal(len(targetFS), 1) // this should have deleted node_modules
 	// starting points
@@ -248,7 +248,7 @@ func TestWithSkip(t *testing.T) {
 	skip2 := func(name string, isDir bool) bool {
 		return !isDir && name == "bud/generate.go"
 	}
-	err = fsync.Dir(sourceFS, ".", targetFS, ".", fsync.WithSkip(skip1, skip2))
+	err = dsync.Dir(sourceFS, ".", targetFS, ".", dsync.WithSkip(skip1, skip2))
 	is.NoErr(err)
 	is.Equal(len(targetFS), 4) // this should have kept node_modules & generate
 }

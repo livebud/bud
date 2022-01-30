@@ -1,4 +1,4 @@
-package fsync
+package dsync
 
 import (
 	"errors"
@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"gitlab.com/mnm/bud/internal/fsync/set"
+	"gitlab.com/mnm/bud/internal/dsync/set"
 	"gitlab.com/mnm/bud/pkg/vfs"
 )
 
