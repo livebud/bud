@@ -43,9 +43,9 @@ func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 	imports.AddStd("os")
 	// imports.AddStd("fmt")
 	imports.AddNamed("console", "gitlab.com/mnm/bud/pkg/log/console")
-	imports.AddNamed("mod", "gitlab.com/mnm/bud/pkg/gomod")
+	imports.AddNamed("gomod", "gitlab.com/mnm/bud/pkg/gomod")
 	imports.AddNamed("budfs", "gitlab.com/mnm/bud/pkg/budfs")
-	imports.AddNamed("generate", "gitlab.com/mnm/bud/generate")
+	imports.AddNamed("generate", "gitlab.com/mnm/bud/runtime/generate")
 	provider, err := g.Injector.Wire(&di.Function{
 		Name:   "Load",
 		Target: g.Module.Import("bud/generate"),

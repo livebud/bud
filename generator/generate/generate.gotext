@@ -21,7 +21,7 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
-	module, err := mod.Find(dir)
+	module, err := gomod.Find(dir)
 	if err != nil {
 		return err
 	}

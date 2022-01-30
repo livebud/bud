@@ -23,9 +23,9 @@ import (
 	"gitlab.com/mnm/bud/pkg/gen"
 
 	"github.com/mattn/go-isatty"
+	"gitlab.com/mnm/bud/generator/generate"
+	generatorGenerator "gitlab.com/mnm/bud/generator/generator"
 	"gitlab.com/mnm/bud/internal/di"
-	"gitlab.com/mnm/bud/internal/generator/generate"
-	generatorGenerator "gitlab.com/mnm/bud/internal/generator/generator"
 	"gitlab.com/mnm/bud/internal/gitignore"
 	"gitlab.com/mnm/bud/internal/gobin"
 	"gitlab.com/mnm/bud/internal/parser"
@@ -205,8 +205,8 @@ func (c *runCommand2) Run(ctx context.Context) error {
 	}))
 	parser := parser.New(bfs, module)
 	injector := di.New(bfs, module, parser, di.Map{
-		toType("gitlab.com/mnm/bud/pkg/gen", "FS"):    toType("gitlab.com/mnm/bud/pkg/gen", "*FileSystem"),
-		toType("gitlab.com/mnm/bud/pkg/js", "VM"):     toType("gitlab.com/mnm/bud/pkg/js/v8client", "*Client"),
+		toType("gitlab.com/mnm/bud/pkg/gen", "FS"):            toType("gitlab.com/mnm/bud/pkg/gen", "*FileSystem"),
+		toType("gitlab.com/mnm/bud/pkg/js", "VM"):             toType("gitlab.com/mnm/bud/pkg/js/v8client", "*Client"),
 		toType("gitlab.com/mnm/bud/runtime/view", "Renderer"): toType("gitlab.com/mnm/bud/runtime/view", "*Server"),
 	})
 	bfs.Entry("bud/generate/main.go", gen.FileGenerator(&generate.Generator{

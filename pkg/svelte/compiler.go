@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"gitlab.com/mnm/bud/ldflag"
+	"gitlab.com/mnm/bud/internal/ldflag"
 
 	_ "embed"
 

@@ -11,15 +11,15 @@ import (
 
 	"gitlab.com/mnm/bud/internal/fsync"
 
+	"gitlab.com/mnm/bud/generator/action"
+	"gitlab.com/mnm/bud/generator/command"
+	"gitlab.com/mnm/bud/generator/maingo"
+	"gitlab.com/mnm/bud/generator/program"
 	"gitlab.com/mnm/bud/generator/public"
+	"gitlab.com/mnm/bud/generator/transform"
+	"gitlab.com/mnm/bud/generator/view"
+	"gitlab.com/mnm/bud/generator/web"
 	"gitlab.com/mnm/bud/internal/di"
-	"gitlab.com/mnm/bud/internal/generator/action"
-	"gitlab.com/mnm/bud/internal/generator/command"
-	"gitlab.com/mnm/bud/internal/generator/maingo"
-	"gitlab.com/mnm/bud/internal/generator/program"
-	"gitlab.com/mnm/bud/internal/generator/transform"
-	"gitlab.com/mnm/bud/internal/generator/view"
-	"gitlab.com/mnm/bud/internal/generator/web"
 	"gitlab.com/mnm/bud/internal/modcache"
 	"gitlab.com/mnm/bud/internal/parser"
 	"gitlab.com/mnm/bud/pkg/gomod"
@@ -110,9 +110,9 @@ func Load(dir string, options ...Option) (*Generator, error) {
 	}
 	parser := parser.New(bfs, module)
 	injector := di.New(bfs, module, parser, di.Map{
-		toType("gitlab.com/mnm/bud/bfs", "FS"):        toType("gitlab.com/mnm/bud/pkg/gen", "*FileSystem"),
-		toType("gitlab.com/mnm/bud/pkg/gen", "FS"):    toType("gitlab.com/mnm/bud/pkg/gen", "*FileSystem"),
-		toType("gitlab.com/mnm/bud/pkg/js", "VM"):     toType("gitlab.com/mnm/bud/pkg/js/v8client", "*Client"),
+		toType("gitlab.com/mnm/bud/bfs", "FS"):                toType("gitlab.com/mnm/bud/pkg/gen", "*FileSystem"),
+		toType("gitlab.com/mnm/bud/pkg/gen", "FS"):            toType("gitlab.com/mnm/bud/pkg/gen", "*FileSystem"),
+		toType("gitlab.com/mnm/bud/pkg/js", "VM"):             toType("gitlab.com/mnm/bud/pkg/js/v8client", "*Client"),
 		toType("gitlab.com/mnm/bud/runtime/view", "Renderer"): toType("gitlab.com/mnm/bud/runtime/view", "*Server"),
 	})
 
