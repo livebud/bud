@@ -3,7 +3,7 @@ package router
 import (
 	_ "embed"
 
-	"gitlab.com/mnm/bud/gen"
+	"gitlab.com/mnm/bud/pkg/gen"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
@@ -24,7 +24,7 @@ func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 	}
 	imports := imports.New()
 	// imports.AddStd("net/http")
-	imports.AddNamed("router", "gitlab.com/mnm/bud/router")
+	imports.AddNamed("router", "gitlab.com/mnm/bud/pkg/router")
 	imports.AddNamed("action", g.Module.Import("bud/action"))
 	imports.AddNamed("public", g.Module.Import("bud/public"))
 	imports.AddNamed("view", g.Module.Import("bud/view"))

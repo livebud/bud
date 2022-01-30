@@ -3,11 +3,11 @@ package public
 import (
 	_ "embed"
 
-	"gitlab.com/mnm/bud/budfs"
+	"gitlab.com/mnm/bud/pkg/budfs"
 	"gitlab.com/mnm/bud/pkg/gomod"
 
-	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/gotemplate"
+	"gitlab.com/mnm/bud/pkg/gen"
 )
 
 //go:embed public.gotext

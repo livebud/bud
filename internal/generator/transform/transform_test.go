@@ -35,7 +35,7 @@ func TestMarkdownPlugin(t *testing.T) {
 		"gitlab.com/mnm/bud-markdown@v0.0.1": modcache.Files{
 			"transform/markdown/transform.go": `
 				package markdown
-				import "gitlab.com/mnm/bud/transform"
+				import "gitlab.com/mnm/bud/runtime/transform"
 				type Transform struct {}
 				func (t *Transform) MdToSvelte(file *transform.File) error {
 					file.Code = "<h1>hello</h1>"

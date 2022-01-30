@@ -8,11 +8,11 @@ import (
 
 	"github.com/matthewmueller/text"
 
-	"gitlab.com/mnm/bud/budfs"
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/imports"
 	"gitlab.com/mnm/bud/internal/parser"
 	"gitlab.com/mnm/bud/internal/valid"
+	"gitlab.com/mnm/bud/pkg/budfs"
 	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
@@ -41,8 +41,8 @@ func (l *loader) Load() (state *State, err error) {
 	state = new(State)
 	// Add initial imports
 	l.imports.AddNamed("commander", "gitlab.com/mnm/bud/pkg/commander")
-	l.imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
-	l.imports.AddNamed("budfs", "gitlab.com/mnm/bud/budfs")
+	l.imports.AddNamed("gen", "gitlab.com/mnm/bud/pkg/gen")
+	l.imports.AddNamed("budfs", "gitlab.com/mnm/bud/pkg/budfs")
 	l.imports.AddNamed("mod", "gitlab.com/mnm/bud/pkg/gomod")
 	// Load the commands
 	state.Command = l.loadRoot("command")
@@ -63,7 +63,7 @@ func (l *loader) loadRoot(base string) *Command {
 		l.imports.AddStd("os", "context")
 		// l.imports.AddStd("fmt")
 		l.imports.AddNamed("web", l.module.Import("bud", "web"))
-		l.imports.AddNamed("socket", "gitlab.com/mnm/bud/socket")
+		l.imports.AddNamed("socket", "gitlab.com/mnm/bud/pkg/socket")
 		command.Runnable = true
 	}
 	des, err := fs.ReadDir(l.bfs, base)

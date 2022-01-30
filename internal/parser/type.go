@@ -8,7 +8,7 @@ import (
 	"go/token"
 	"path/filepath"
 
-	"gitlab.com/mnm/bud/go/is"
+	"gitlab.com/mnm/bud/internal/gois"
 )
 
 // Get the expression
@@ -61,7 +61,7 @@ func Innermost(t Type) Type {
 
 // IsBuiltin returns true if the type is built into Go
 func IsBuiltin(t Type) bool {
-	return is.Builtin(TypeName(t))
+	return gois.Builtin(TypeName(t))
 }
 
 // Qualify adds a package to a type
@@ -229,7 +229,7 @@ func (t *IdentType) String() string {
 // ImportPath returns the import path if there is one
 func (t *IdentType) ImportPath() (path string, err error) {
 	// Builtins aren't imported
-	if is.Builtin(t.n.Name) {
+	if gois.Builtin(t.n.Name) {
 		return "", nil
 	}
 	return t.f.File().Import()

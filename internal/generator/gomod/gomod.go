@@ -3,7 +3,7 @@ package gomod
 import (
 	_ "embed"
 
-	"gitlab.com/mnm/bud/gen"
+	"gitlab.com/mnm/bud/pkg/gen"
 	"gitlab.com/mnm/bud/pkg/gomod"
 )
 

@@ -4,12 +4,12 @@ import (
 	_ "embed"
 	"fmt"
 
-	"gitlab.com/mnm/bud/budfs"
 	"gitlab.com/mnm/bud/internal/di"
+	"gitlab.com/mnm/bud/pkg/budfs"
 
-	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
+	"gitlab.com/mnm/bud/pkg/gen"
 	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
@@ -37,9 +37,9 @@ func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 	imports := imports.New()
 	imports.AddStd("os", "errors", "context", "runtime", "path/filepath")
 	// imports.AddStd("fmt")
-	imports.AddNamed("console", "gitlab.com/mnm/bud/log/console")
-	imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
-	imports.AddNamed("budfs", "gitlab.com/mnm/bud/budfs")
+	imports.AddNamed("console", "gitlab.com/mnm/bud/pkg/log/console")
+	imports.AddNamed("gen", "gitlab.com/mnm/bud/pkg/gen")
+	imports.AddNamed("budfs", "gitlab.com/mnm/bud/pkg/budfs")
 	// imports.AddNamed("plugin", "gitlab.com/mnm/bud/plugin")
 	imports.AddNamed("gomod", "gitlab.com/mnm/bud/pkg/gomod")
 	imports.Add(g.Module.Import("bud/command"))
@@ -49,8 +49,8 @@ func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 		Params: []di.Dependency{
 			&di.Type{Import: "gitlab.com/mnm/bud/pkg/gomod", Type: "*Module"},
 			// TODO: remove gen
-			&di.Type{Import: "gitlab.com/mnm/bud/gen", Type: "*FileSystem"},
-			&di.Type{Import: "gitlab.com/mnm/bud/budfs", Type: "FS"},
+			&di.Type{Import: "gitlab.com/mnm/bud/pkg/gen", Type: "*FileSystem"},
+			&di.Type{Import: "gitlab.com/mnm/bud/pkg/budfs", Type: "FS"},
 		},
 		Results: []di.Dependency{
 			&di.Type{Import: g.Module.Import("bud", "command"), Type: "*CLI"},

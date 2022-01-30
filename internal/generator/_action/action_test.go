@@ -13,7 +13,7 @@ import (
 
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/fsync"
-	"gitlab.com/mnm/bud/gen"
+	"gitlab.com/mnm/bud/pkg/gen"
 	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/generator/action"
 	"gitlab.com/mnm/bud/internal/generator/command"
@@ -24,7 +24,7 @@ import (
 	"gitlab.com/mnm/bud/internal/modtest"
 	"gitlab.com/mnm/bud/internal/parser"
 	"gitlab.com/mnm/bud/internal/test"
-	"gitlab.com/mnm/bud/socket"
+	"gitlab.com/mnm/bud/pkg/socket"
 	"gitlab.com/mnm/bud/vfs"
 )
 

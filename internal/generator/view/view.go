@@ -4,12 +4,12 @@ import (
 	_ "embed"
 	"io/fs"
 
-	"gitlab.com/mnm/bud/budfs"
-	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
+	"gitlab.com/mnm/bud/pkg/budfs"
+	"gitlab.com/mnm/bud/pkg/gen"
 	"gitlab.com/mnm/bud/pkg/gomod"
-	"gitlab.com/mnm/bud/vfs"
+	"gitlab.com/mnm/bud/pkg/vfs"
 )
 
 //go:embed view.gotext
@@ -33,10 +33,10 @@ func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 	}
 	imports := imports.New()
 	imports.AddNamed("transform", g.Module.Import("bud/transform"))
-	imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
+	imports.AddNamed("gen", "gitlab.com/mnm/bud/pkg/gen")
 	imports.AddNamed("mod", "gitlab.com/mnm/bud/pkg/gomod")
-	imports.AddNamed("js", "gitlab.com/mnm/bud/js")
-	imports.AddNamed("view", "gitlab.com/mnm/bud/view")
+	imports.AddNamed("js", "gitlab.com/mnm/bud/pkg/js")
+	imports.AddNamed("view", "gitlab.com/mnm/bud/runtime/view")
 	code, err := generator.Generate(State{
 		Imports: imports.List(),
 	})

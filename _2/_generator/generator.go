@@ -103,9 +103,9 @@ func Load(dir string, options ...Option) (*Generator, error) {
 	// }
 	// parser := parser.New(module)
 	// injector := di.New(module, parser, di.Map{
-	// 	toType("gitlab.com/mnm/bud/gen", "FS"):        toType("gitlab.com/mnm/bud/gen", "*FileSystem"),
-	// 	toType("gitlab.com/mnm/bud/js", "VM"):         toType("gitlab.com/mnm/bud/js/v8client", "*Client"),
-	// 	toType("gitlab.com/mnm/bud/view", "Renderer"): toType("gitlab.com/mnm/bud/view", "*Server"),
+	// 	toType("gitlab.com/mnm/bud/pkg/gen", "FS"):        toType("gitlab.com/mnm/bud/pkg/gen", "*FileSystem"),
+	// 	toType("gitlab.com/mnm/bud/pkg/js", "VM"):         toType("gitlab.com/mnm/bud/pkg/js/v8client", "*Client"),
+	// 	toType("gitlab.com/mnm/bud/runtime/view", "Renderer"): toType("gitlab.com/mnm/bud/runtime/view", "*Server"),
 	// })
 	// _ = injector
 	// genFS.Add(map[string]gen.Generator{

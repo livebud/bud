@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"go/ast"
 
-	"gitlab.com/mnm/bud/go/is"
+	"gitlab.com/mnm/bud/internal/gois"
 )
 
 // Definition looks a local definition up by name
 // TODO: support more type definitions
 func (pkg *Package) definition(name string) (decl Declaration, err error) {
-	if is.Builtin(name) {
+	if gois.Builtin(name) {
 		return builtin(name), nil
 	}
 	err = fmt.Errorf("parser: unable to find declaration for %q in %q", name, pkg.Name())

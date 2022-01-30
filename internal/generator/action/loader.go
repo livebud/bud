@@ -14,13 +14,13 @@ import (
 
 	"github.com/matthewmueller/gotext"
 	"github.com/matthewmueller/text"
-	"gitlab.com/mnm/bud/budfs"
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/imports"
 	"gitlab.com/mnm/bud/internal/parser"
+	"gitlab.com/mnm/bud/pkg/budfs"
 	"gitlab.com/mnm/bud/pkg/gomod"
-	"gitlab.com/mnm/bud/vfs"
+	"gitlab.com/mnm/bud/pkg/vfs"
 )
 
 func Load(bfs budfs.FS, injector *di.Injector, module *gomod.Module, parser *parser.Parser) (*State, error) {

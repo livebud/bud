@@ -6,7 +6,7 @@ import (
 	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/parser"
 
-	"gitlab.com/mnm/bud/gen"
+	"gitlab.com/mnm/bud/pkg/gen"
 	"gitlab.com/mnm/bud/go/mod"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 )

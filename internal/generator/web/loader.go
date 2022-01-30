@@ -8,13 +8,13 @@ import (
 	"gitlab.com/mnm/bud/internal/scan"
 
 	"github.com/matthewmueller/text"
-	"gitlab.com/mnm/bud/budfs"
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/imports"
 	"gitlab.com/mnm/bud/internal/parser"
 	"gitlab.com/mnm/bud/ldflag"
+	"gitlab.com/mnm/bud/pkg/budfs"
 	"gitlab.com/mnm/bud/pkg/gomod"
-	"gitlab.com/mnm/bud/vfs"
+	"gitlab.com/mnm/bud/pkg/vfs"
 )
 
 func Load(bfs budfs.FS, module *gomod.Module, parser *parser.Parser) (*State, error) {
@@ -51,10 +51,10 @@ func (l *loader) Load() (state *State, err error) {
 	state = new(State)
 	// Add initial imports
 	l.imports.AddStd("net", "net/http", "context")
-	l.imports.AddNamed("hot", "gitlab.com/mnm/bud/hot")
-	l.imports.AddNamed("middleware", "gitlab.com/mnm/bud/middleware")
-	l.imports.AddNamed("web", "gitlab.com/mnm/bud/web")
-	l.imports.AddNamed("router", "gitlab.com/mnm/bud/router")
+	l.imports.AddNamed("hot", "gitlab.com/mnm/bud/runtime/hot")
+	l.imports.AddNamed("middleware", "gitlab.com/mnm/bud/pkg/middleware")
+	l.imports.AddNamed("web", "gitlab.com/mnm/bud/runtime/web")
+	l.imports.AddNamed("router", "gitlab.com/mnm/bud/pkg/router")
 	if l.exist["bud/public/public.go"] {
 		state.HasPublic = true
 		l.imports.AddNamed("public", l.module.Import("bud/public"))

@@ -12,7 +12,7 @@ import (
 	"gitlab.com/mnm/bud/internal/fscache"
 	"gitlab.com/mnm/bud/internal/modcache"
 	"gitlab.com/mnm/bud/pkg/gomod"
-	"gitlab.com/mnm/bud/vfs"
+	"gitlab.com/mnm/bud/pkg/vfs"
 
 	"github.com/matryer/is"
 )
@@ -357,7 +357,7 @@ func TestModuleFindLocal(t *testing.T) {
 	module1, err := gomod.Find(wd)
 	is.NoErr(err)
 	// Find local web directory within module1
-	module2, err := module1.Find(module1.Import("web"))
+	module2, err := module1.Find(module1.Import("runtime", "web"))
 	is.NoErr(err)
 	is.Equal(module1.Directory(), module2.Directory())
 }

@@ -10,8 +10,8 @@ import (
 	"path"
 	"time"
 
-	"gitlab.com/mnm/bud/budfs"
-	"gitlab.com/mnm/bud/middleware"
+	"gitlab.com/mnm/bud/pkg/budfs"
+	"gitlab.com/mnm/bud/pkg/middleware"
 )
 
 func New(bfs budfs.FS) Middleware {

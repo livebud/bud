@@ -10,7 +10,7 @@ import (
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/internal/modcache"
 	"gitlab.com/mnm/bud/pkg/gomod"
-	"gitlab.com/mnm/bud/vfs"
+	"gitlab.com/mnm/bud/pkg/vfs"
 )
 
 type Module struct {

@@ -3,10 +3,10 @@ package maingo
 import (
 	_ "embed"
 
-	"gitlab.com/mnm/bud/budfs"
-	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
+	"gitlab.com/mnm/bud/pkg/budfs"
+	"gitlab.com/mnm/bud/pkg/gen"
 	"gitlab.com/mnm/bud/pkg/gomod"
 )
 

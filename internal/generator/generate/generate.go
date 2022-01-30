@@ -6,10 +6,10 @@ import (
 	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/pkg/gomod"
 
-	"gitlab.com/mnm/bud/budfs"
-	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
+	"gitlab.com/mnm/bud/pkg/budfs"
+	"gitlab.com/mnm/bud/pkg/gen"
 )
 
 //go:embed generate.gotext
@@ -42,16 +42,16 @@ func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 	imports := imports.New()
 	imports.AddStd("os")
 	// imports.AddStd("fmt")
-	imports.AddNamed("console", "gitlab.com/mnm/bud/log/console")
+	imports.AddNamed("console", "gitlab.com/mnm/bud/pkg/log/console")
 	imports.AddNamed("mod", "gitlab.com/mnm/bud/pkg/gomod")
-	imports.AddNamed("budfs", "gitlab.com/mnm/bud/budfs")
+	imports.AddNamed("budfs", "gitlab.com/mnm/bud/pkg/budfs")
 	imports.AddNamed("generate", "gitlab.com/mnm/bud/generate")
 	provider, err := g.Injector.Wire(&di.Function{
 		Name:   "Load",
 		Target: g.Module.Import("bud/generate"),
 		Params: []di.Dependency{
 			&di.Type{
-				Import: "gitlab.com/mnm/bud/budfs",
+				Import: "gitlab.com/mnm/bud/pkg/budfs",
 				Type:   "FS",
 			},
 			&di.Type{

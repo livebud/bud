@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.com/mnm/bud/go/is"
 	"gitlab.com/mnm/bud/internal/fscache"
+	"gitlab.com/mnm/bud/internal/gois"
 )
 
 type Module struct {
@@ -103,7 +103,7 @@ func (m *Module) ResolveDirectory(importPath string) (directory string, err erro
 // modules filesystem.
 func (m *Module) ResolveDirectoryIn(localFS fs.FS, importPath string) (directory string, err error) {
 	// Handle standard library
-	if is.StdLib(importPath) {
+	if gois.StdLib(importPath) {
 		return filepath.Join(stdDir, importPath), nil
 	}
 	// Handle local packages

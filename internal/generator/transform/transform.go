@@ -6,10 +6,10 @@ import (
 
 	"gitlab.com/mnm/bud/internal/entrypoint"
 
-	"gitlab.com/mnm/bud/budfs"
-	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
+	"gitlab.com/mnm/bud/pkg/budfs"
+	"gitlab.com/mnm/bud/pkg/gen"
 	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
@@ -45,8 +45,8 @@ func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 		return fs.ErrNotExist
 	}
 	imports := imports.New()
-	imports.AddNamed("transform", "gitlab.com/mnm/bud/transform")
-	imports.AddNamed("svelte", "gitlab.com/mnm/bud/svelte")
+	imports.AddNamed("transform", "gitlab.com/mnm/bud/runtime/transform")
+	imports.AddNamed("svelte", "gitlab.com/mnm/bud/pkg/svelte")
 	code, err := generator.Generate(State{
 		Imports: imports.List(),
 	})

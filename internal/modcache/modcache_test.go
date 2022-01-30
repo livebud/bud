@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/mnm/bud/vfs"
+	"gitlab.com/mnm/bud/pkg/vfs"
 
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/internal/modcache"

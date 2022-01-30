@@ -43,7 +43,7 @@ func (l *loader) Load() (state *State, err error) {
 	l.imports.AddStd("net/http", "context")
 	// l.imports.AddStd("fmt")
 	l.imports.AddNamed("controller", "gitlab.com/mnm/bud/controller")
-	l.imports.AddNamed("view", "gitlab.com/mnm/bud/view")
+	l.imports.AddNamed("view", "gitlab.com/mnm/bud/runtime/view")
 	l.imports.AddNamed("action", l.module.Import("action"))
 	l.imports.AddNamed("users", l.module.Import("action", "users"))
 	// state.Controllers = l.loadControllers("action", "")

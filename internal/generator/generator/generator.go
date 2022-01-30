@@ -3,12 +3,12 @@ package generator
 import (
 	_ "embed"
 
-	"gitlab.com/mnm/bud/budfs"
+	"gitlab.com/mnm/bud/pkg/budfs"
 	"gitlab.com/mnm/bud/pkg/gomod"
 
-	"gitlab.com/mnm/bud/gen"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
+	"gitlab.com/mnm/bud/pkg/gen"
 )
 
 //go:embed generator.gotext
@@ -39,7 +39,7 @@ func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 	imports := imports.New()
 	imports.AddNamed("public", "gitlab.com/mnm/bud/generator/public")
 	// imports.AddStd("os", "fmt")
-	imports.AddNamed("gen", "gitlab.com/mnm/bud/gen")
+	imports.AddNamed("gen", "gitlab.com/mnm/bud/pkg/gen")
 	// imports.AddNamed("generator", g.Module.Import("bud/generator"))
 	code, err := generator.Generate(&State{
 		Imports: imports.List(),
