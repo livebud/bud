@@ -4,9 +4,9 @@ import (
 	"io/fs"
 
 	"gitlab.com/mnm/bud/internal/fscache"
-	"gitlab.com/mnm/bud/internal/pluginfs"
 	"gitlab.com/mnm/bud/pkg/gen"
 	"gitlab.com/mnm/bud/pkg/gomod"
+	"gitlab.com/mnm/bud/pkg/pluginfs"
 )
 
 type option struct {
