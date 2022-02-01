@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"gitlab.com/mnm/bud/internal/gois"
-	"gitlab.com/mnm/bud/internal/parser"
+	"gitlab.com/mnm/bud/pkg/parser"
 )
 
 // Function is the top-level load function that we generate to provide all the

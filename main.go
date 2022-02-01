@@ -25,11 +25,11 @@ import (
 	"github.com/mattn/go-isatty"
 	"gitlab.com/mnm/bud/generator/generate"
 	generatorGenerator "gitlab.com/mnm/bud/generator/generator"
-	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/gitignore"
 	"gitlab.com/mnm/bud/internal/gobin"
-	"gitlab.com/mnm/bud/internal/parser"
+	"gitlab.com/mnm/bud/pkg/di"
 	v8 "gitlab.com/mnm/bud/pkg/js/v8"
+	"gitlab.com/mnm/bud/pkg/parser"
 	"gitlab.com/mnm/bud/runtime/generator"
 
 	"gitlab.com/mnm/bud/pkg/gomod"

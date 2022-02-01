@@ -4,8 +4,8 @@ import (
 	_ "embed"
 	"fmt"
 
-	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/pkg/budfs"
+	"gitlab.com/mnm/bud/pkg/di"
 
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"

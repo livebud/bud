@@ -5,12 +5,12 @@ import (
 	// Embed templates
 	_ "embed"
 
-	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/gotemplate"
-	"gitlab.com/mnm/bud/internal/parser"
 	"gitlab.com/mnm/bud/pkg/budfs"
+	"gitlab.com/mnm/bud/pkg/di"
 	"gitlab.com/mnm/bud/pkg/gen"
 	"gitlab.com/mnm/bud/pkg/gomod"
+	"gitlab.com/mnm/bud/pkg/parser"
 )
 
 //go:embed action.gotext

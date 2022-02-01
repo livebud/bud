@@ -3,8 +3,8 @@ package di
 import (
 	"io/fs"
 
-	"gitlab.com/mnm/bud/internal/parser"
 	"gitlab.com/mnm/bud/pkg/gomod"
+	"gitlab.com/mnm/bud/pkg/parser"
 )
 
 type Map = map[Dependency]Dependency

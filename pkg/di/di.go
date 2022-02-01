@@ -1,6 +1,6 @@
 package di
 
-import "gitlab.com/mnm/bud/internal/parser"
+import "gitlab.com/mnm/bud/pkg/parser"
 
 type Dependency interface {
 	ID() string

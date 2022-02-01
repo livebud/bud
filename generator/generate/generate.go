@@ -3,7 +3,7 @@ package generate
 import (
 	_ "embed"
 
-	"gitlab.com/mnm/bud/internal/di"
+	"gitlab.com/mnm/bud/pkg/di"
 	"gitlab.com/mnm/bud/pkg/gomod"
 
 	"gitlab.com/mnm/bud/internal/gotemplate"

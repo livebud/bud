@@ -10,10 +10,10 @@ import (
 
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/internal/parser"
 	"gitlab.com/mnm/bud/internal/valid"
 	"gitlab.com/mnm/bud/pkg/budfs"
 	"gitlab.com/mnm/bud/pkg/gomod"
+	"gitlab.com/mnm/bud/pkg/parser"
 )
 
 // Load state

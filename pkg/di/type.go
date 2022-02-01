@@ -1,8 +1,8 @@
 package di
 
 import (
-	"gitlab.com/mnm/bud/internal/parser"
 	"gitlab.com/mnm/bud/pkg/gomod"
+	"gitlab.com/mnm/bud/pkg/parser"
 )
 
 type Type struct {

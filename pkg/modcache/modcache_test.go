@@ -14,7 +14,7 @@ import (
 	"gitlab.com/mnm/bud/pkg/vfs"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/modcache"
+	"gitlab.com/mnm/bud/pkg/modcache"
 )
 
 // Run calls `go run -mod=mod main.go ...`

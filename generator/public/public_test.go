@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/modcache"
 	"gitlab.com/mnm/bud/internal/test"
+	"gitlab.com/mnm/bud/pkg/modcache"
 )
 
 func TestEmpty(t *testing.T) {

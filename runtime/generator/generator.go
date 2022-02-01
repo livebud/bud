@@ -19,10 +19,10 @@ import (
 	"gitlab.com/mnm/bud/generator/transform"
 	"gitlab.com/mnm/bud/generator/view"
 	"gitlab.com/mnm/bud/generator/web"
-	"gitlab.com/mnm/bud/internal/di"
-	"gitlab.com/mnm/bud/internal/modcache"
-	"gitlab.com/mnm/bud/internal/parser"
+	"gitlab.com/mnm/bud/pkg/di"
 	"gitlab.com/mnm/bud/pkg/gomod"
+	"gitlab.com/mnm/bud/pkg/modcache"
+	"gitlab.com/mnm/bud/pkg/parser"
 	"gitlab.com/mnm/bud/pkg/vfs"
 )
 

@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/mnm/bud/internal/modcache"
-	"gitlab.com/mnm/bud/internal/parser"
 	"gitlab.com/mnm/bud/pkg/gen"
+	"gitlab.com/mnm/bud/pkg/modcache"
+	"gitlab.com/mnm/bud/pkg/parser"
 
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/internal/txtar"
