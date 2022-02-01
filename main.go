@@ -28,9 +28,9 @@ import (
 	"gitlab.com/mnm/bud/internal/gitignore"
 	"gitlab.com/mnm/bud/internal/gobin"
 	"gitlab.com/mnm/bud/pkg/di"
+	"gitlab.com/mnm/bud/pkg/generator"
 	v8 "gitlab.com/mnm/bud/pkg/js/v8"
 	"gitlab.com/mnm/bud/pkg/parser"
-	"gitlab.com/mnm/bud/runtime/generator"
 
 	"gitlab.com/mnm/bud/pkg/gomod"
 

@@ -15,7 +15,7 @@ import (
 	"gitlab.com/mnm/bud/internal/gobin"
 	"gitlab.com/mnm/bud/pkg/commander"
 	"gitlab.com/mnm/bud/pkg/gen"
-	"gitlab.com/mnm/bud/runtime/generator"
+	"gitlab.com/mnm/bud/pkg/generator"
 )
 
 type Command struct {

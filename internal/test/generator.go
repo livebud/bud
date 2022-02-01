@@ -28,11 +28,11 @@ import (
 	"github.com/matthewmueller/diff"
 	"gitlab.com/mnm/bud/internal/fscache"
 	"gitlab.com/mnm/bud/internal/npm"
+	"gitlab.com/mnm/bud/pkg/generator"
 	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/pkg/modcache"
 	"gitlab.com/mnm/bud/pkg/socket"
 	"gitlab.com/mnm/bud/pkg/vfs"
-	"gitlab.com/mnm/bud/runtime/generator"
 )
 
 func replaceBud(code string) (string, error) {

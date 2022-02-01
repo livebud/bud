@@ -107,20 +107,6 @@ func Load(dir string, options ...Option) (*Generator, error) {
 	parser := parser.New(bfs, module)
 	injector := di.New(bfs, module, parser)
 
-	// go.mod generator
-	// bfs.Entry("go.mod", gen.FileGenerator(&gomod.Generator{
-	// 	Module: module,
-	// }))
-
-	// generate generator
-	// bfs.Entry("bud/generate/main.go", gen.FileGenerator(&generate.Generator{
-	// 	BFS:    bfs,
-	// 	Module: module,
-	// 	Embed:  option.Embed,
-	// 	Hot:    option.Hot,
-	// 	Minify: option.Minify,
-	// }))
-
 	// TODO: separate the following from the generators to give the generators
 	// a chance to add files that are picked up by these compiler plugins.
 	bfs.Entry("bud/command/command.go", gen.FileGenerator(&command.Generator{
