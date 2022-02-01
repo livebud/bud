@@ -474,6 +474,12 @@ func (l *loader) loadContext(controller *Controller, method *parser.Function) *C
 				Type:   "*Request",
 			},
 		},
+		Aliases: di.Aliases{
+			di.ToType("gitlab.com/mnm/bud/bfs", "FS"):                di.ToType("gitlab.com/mnm/bud/pkg/gen", "*FileSystem"),
+			di.ToType("gitlab.com/mnm/bud/pkg/gen", "FS"):            di.ToType("gitlab.com/mnm/bud/pkg/gen", "*FileSystem"),
+			di.ToType("gitlab.com/mnm/bud/pkg/js", "VM"):             di.ToType("gitlab.com/mnm/bud/pkg/js/v8client", "*Client"),
+			di.ToType("gitlab.com/mnm/bud/runtime/view", "Renderer"): di.ToType("gitlab.com/mnm/bud/runtime/view", "*Server"),
+		},
 	})
 	if err != nil {
 		l.Bail(err)

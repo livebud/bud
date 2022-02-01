@@ -204,11 +204,7 @@ func (c *runCommand2) Run(ctx context.Context) error {
 		Minify: c.bud.Minify,
 	}))
 	parser := parser.New(bfs, module)
-	injector := di.New(bfs, module, parser, di.Map{
-		toType("gitlab.com/mnm/bud/pkg/gen", "FS"):            toType("gitlab.com/mnm/bud/pkg/gen", "*FileSystem"),
-		toType("gitlab.com/mnm/bud/pkg/js", "VM"):             toType("gitlab.com/mnm/bud/pkg/js/v8client", "*Client"),
-		toType("gitlab.com/mnm/bud/runtime/view", "Renderer"): toType("gitlab.com/mnm/bud/runtime/view", "*Server"),
-	})
+	injector := di.New(bfs, module, parser)
 	bfs.Entry("bud/generate/main.go", gen.FileGenerator(&generate.Generator{
 		BFS:      bfs,
 		Injector: injector,
@@ -340,7 +336,6 @@ func (c *diCommand) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	typeMap := di.Map{}
 	// Add the type mapping
 	for from, to := range c.Map {
 		fromDep, err := c.toDependency(module, from)
@@ -351,7 +346,7 @@ func (c *diCommand) Run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		typeMap[fromDep] = toDep
+		fn.Aliases[fromDep] = toDep
 	}
 	// Add the dependencies
 	for _, dependency := range c.Dependencies {
@@ -369,7 +364,7 @@ func (c *diCommand) Run(ctx context.Context) error {
 		}
 		fn.Params = append(fn.Params, ext)
 	}
-	injector := di.New(bfs, module, parser, typeMap)
+	injector := di.New(bfs, module, parser)
 	node, err := injector.Load(fn)
 	if err != nil {
 		return err

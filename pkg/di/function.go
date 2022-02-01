@@ -21,6 +21,9 @@ type Function struct {
 	// externals. This is to avoid initializing these inner deps every time.
 	// Useful for per-request dependency injection.
 	Hoist bool
+	// Aliases allow you to map one dependency to another. Useful to supporting
+	// interfaces as inputs that are mapped to a concrete value.
+	Aliases Aliases
 	// Target import path where this function will be generated to
 	Target string
 }

@@ -16,7 +16,7 @@ import (
 	"gitlab.com/mnm/bud/2/mod"
 	"gitlab.com/mnm/bud/internal/di"
 	"gitlab.com/mnm/bud/internal/generator/gomod"
-	"gitlab.com/mnm/bud/internal/modcache"
+	"gitlab.com/mnm/bud/pkg/modcache"
 	"gitlab.com/mnm/bud/vfs"
 )
 

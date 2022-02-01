@@ -32,3 +32,10 @@ func (t *Type) TypeName() string {
 func (t *Type) Find(finder Finder) (Declaration, error) {
 	return finder.Find(t.module, t)
 }
+
+func ToType(importPath, dataType string) *Type {
+	return &Type{
+		Import: importPath,
+		Type:   dataType,
+	}
+}

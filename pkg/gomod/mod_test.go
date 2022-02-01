@@ -93,9 +93,9 @@ func TestResolveDirectoryNestedSame(t *testing.T) {
 	modCache := modcache.Default()
 	module, err := gomod.Find(wd, gomod.WithModCache(modCache))
 	is.NoErr(err)
-	dir, err := module.ResolveDirectory("gitlab.com/mnm/bud/internal/modcache")
+	dir, err := module.ResolveDirectory("gitlab.com/mnm/bud/pkg/modcache")
 	is.NoErr(err)
-	expected := module.Directory("internal/modcache")
+	expected := module.Directory("pkg/modcache")
 	is.Equal(dir, expected)
 }
 

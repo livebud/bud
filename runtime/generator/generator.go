@@ -76,10 +76,6 @@ func WithFSCache(fc *fscache.Cache) func(*option) {
 	}
 }
 
-func toType(importPath, dataType string) *di.Type {
-	return &di.Type{Import: importPath, Type: dataType}
-}
-
 func Load(dir string, options ...Option) (*Generator, error) {
 	appFS := vfs.OS(dir)
 	option := &option{
@@ -109,12 +105,7 @@ func Load(dir string, options ...Option) (*Generator, error) {
 		return nil, err
 	}
 	parser := parser.New(bfs, module)
-	injector := di.New(bfs, module, parser, di.Map{
-		toType("gitlab.com/mnm/bud/bfs", "FS"):                toType("gitlab.com/mnm/bud/pkg/gen", "*FileSystem"),
-		toType("gitlab.com/mnm/bud/pkg/gen", "FS"):            toType("gitlab.com/mnm/bud/pkg/gen", "*FileSystem"),
-		toType("gitlab.com/mnm/bud/pkg/js", "VM"):             toType("gitlab.com/mnm/bud/pkg/js/v8client", "*Client"),
-		toType("gitlab.com/mnm/bud/runtime/view", "Renderer"): toType("gitlab.com/mnm/bud/runtime/view", "*Server"),
-	})
+	injector := di.New(bfs, module, parser)
 
 	// go.mod generator
 	// bfs.Entry("go.mod", gen.FileGenerator(&gomod.Generator{

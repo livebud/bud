@@ -66,6 +66,11 @@ func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 			},
 			&di.Error{},
 		},
+		Aliases: di.Aliases{
+			di.ToType("gitlab.com/mnm/bud/pkg/gen", "FS"):            di.ToType("gitlab.com/mnm/bud/pkg/gen", "*FileSystem"),
+			di.ToType("gitlab.com/mnm/bud/pkg/js", "VM"):             di.ToType("gitlab.com/mnm/bud/pkg/js/v8client", "*Client"),
+			di.ToType("gitlab.com/mnm/bud/runtime/view", "Renderer"): di.ToType("gitlab.com/mnm/bud/runtime/view", "*Server"),
+		},
 	})
 	if err != nil {
 		return err

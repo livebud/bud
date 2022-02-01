@@ -41,7 +41,6 @@ func goRun(cacheDir, appDir string) (string, error) {
 }
 
 type Test struct {
-	Map      di.Map
 	Function *di.Function
 	Modules  modcache.Modules
 	Files    map[string]string
@@ -78,11 +77,7 @@ func runTest(t testing.TB, test Test) {
 	module, err := gomod.Find(appDir, gomod.WithModCache(modCache))
 	is.NoErr(err)
 	parser := parser.New(appFS, module)
-	typeMap := di.Map{}
-	for from, to := range test.Map {
-		typeMap[from] = to
-	}
-	injector := di.New(appFS, module, parser, typeMap)
+	injector := di.New(appFS, module, parser)
 	node, err := injector.Load(test.Function)
 	if err != nil {
 		is.Equal(test.Expect, err.Error())
@@ -1667,15 +1662,15 @@ func TestSlice(t *testing.T) {
 
 func TestStructMap(t *testing.T) {
 	runTest(t, Test{
-		Map: di.Map{
-			toType("app.com/js", "VM"): toType("app.com/js/v8", "*VM"),
-		},
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
 			Params: []di.Dependency{},
 			Results: []di.Dependency{
 				toType("app.com/web", "*Web"),
+			},
+			Aliases: di.Aliases{
+				toType("app.com/js", "VM"): toType("app.com/js/v8", "*VM"),
 			},
 		},
 		Expect: `
@@ -1717,15 +1712,15 @@ func TestStructMap(t *testing.T) {
 
 func TestFunctionMap(t *testing.T) {
 	runTest(t, Test{
-		Map: di.Map{
-			toType("app.com/js", "VM"): toType("app.com/js/v8", "*VM"),
-		},
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
 			Params: []di.Dependency{},
 			Results: []di.Dependency{
 				toType("app.com/web", "*Web"),
+			},
+			Aliases: di.Aliases{
+				toType("app.com/js", "VM"): toType("app.com/js/v8", "*VM"),
 			},
 		},
 		Expect: `
@@ -1771,15 +1766,15 @@ func TestFunctionMap(t *testing.T) {
 
 func TestStructMapNeedsPointer(t *testing.T) {
 	runTest(t, Test{
-		Map: di.Map{
-			toType("app.com/js", "VM"): toType("app.com/js/v8", "*VM"),
-		},
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
 			Params: []di.Dependency{},
 			Results: []di.Dependency{
 				toType("app.com/web", "*Web"),
+			},
+			Aliases: di.Aliases{
+				toType("app.com/js", "VM"): toType("app.com/js/v8", "*VM"),
 			},
 		},
 		Expect: `
@@ -1825,15 +1820,15 @@ func TestStructMapNeedsPointer(t *testing.T) {
 
 func TestFunctionMapNeedsPointer(t *testing.T) {
 	runTest(t, Test{
-		Map: di.Map{
-			toType("app.com/js", "VM"): toType("app.com/js/v8", "*VM"),
-		},
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
 			Params: []di.Dependency{},
 			Results: []di.Dependency{
 				toType("app.com/web", "*Web"),
+			},
+			Aliases: di.Aliases{
+				toType("app.com/js", "VM"): toType("app.com/js/v8", "*VM"),
 			},
 		},
 		Expect: `
@@ -2088,9 +2083,9 @@ func TestMappedExternal(t *testing.T) {
 			Results: []di.Dependency{
 				toType("app.com/web", "*Web"),
 			},
-		},
-		Map: di.Map{
-			toType("app.com/gen", "FS"): toType("app.com/gen", "*FileSystem"),
+			Aliases: di.Aliases{
+				toType("app.com/gen", "FS"): toType("app.com/gen", "*FileSystem"),
+			},
 		},
 		Expect: `
 			&web.Web{genfs: &gen.FileSystem{

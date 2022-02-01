@@ -6,7 +6,7 @@ import (
 
 	"gitlab.com/mnm/bud/2/mod"
 	"gitlab.com/mnm/bud/internal/fstree"
-	"gitlab.com/mnm/bud/internal/modcache"
+	"gitlab.com/mnm/bud/pkg/modcache"
 
 	"github.com/matryer/is"
 	"github.com/yalue/merged_fs"

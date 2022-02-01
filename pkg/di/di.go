@@ -2,6 +2,8 @@ package di
 
 import "gitlab.com/mnm/bud/pkg/parser"
 
+type Aliases map[Dependency]Dependency
+
 type Dependency interface {
 	ID() string
 	ImportPath() string

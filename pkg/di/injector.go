@@ -7,18 +7,11 @@ import (
 	"gitlab.com/mnm/bud/pkg/parser"
 )
 
-type Map = map[Dependency]Dependency
-
-func New(fsys fs.FS, module *gomod.Module, parser *parser.Parser, typeMap Map) *Injector {
-	tm := map[string]Dependency{}
-	for from, to := range typeMap {
-		tm[from.ID()] = to
-	}
+func New(fsys fs.FS, module *gomod.Module, parser *parser.Parser) *Injector {
 	return &Injector{
-		fsys:    fsys,
-		module:  module,
-		parser:  parser,
-		typeMap: tm,
+		fsys:   fsys,
+		module: module,
+		parser: parser,
 	}
 }
 
@@ -29,13 +22,15 @@ type Injector struct {
 	module *gomod.Module
 	// Go parser
 	parser *parser.Parser
-	// Type aliasing
-	typeMap map[string]Dependency
 }
 
 // Load the dependency graph, but don't generate any code. Load is intentionally
 // low-level and used by higher-level APIs like Generate.
 func (i *Injector) Load(fn *Function) (*Node, error) {
+	aliases := map[string]Dependency{}
+	for from, to := range fn.Aliases {
+		aliases[from.ID()] = to
+	}
 	externals := map[string]bool{}
 	for _, param := range fn.Params {
 		id := param.ID()
@@ -49,7 +44,7 @@ func (i *Injector) Load(fn *Function) (*Node, error) {
 	}
 	// Load the dependencies
 	for _, result := range fn.Results {
-		node, err := i.load(externals, result)
+		node, err := i.load(externals, aliases, result)
 		if err != nil {
 			return nil, err
 		}
@@ -62,9 +57,9 @@ func (i *Injector) Load(fn *Function) (*Node, error) {
 }
 
 // Load the dependencies recursively. This produces a dependency graph of nodes.
-func (i *Injector) load(externals map[string]bool, dep Dependency) (*Node, error) {
+func (i *Injector) load(externals map[string]bool, aliases map[string]Dependency, dep Dependency) (*Node, error) {
 	// Replace dep with mapped type alias if we have one
-	if alias, ok := i.typeMap[dep.ID()]; ok {
+	if alias, ok := aliases[dep.ID()]; ok {
 		dep = alias
 	}
 	// Handle external nodes
@@ -92,7 +87,7 @@ func (i *Injector) load(externals map[string]bool, dep Dependency) (*Node, error
 	deps := decl.Dependencies()
 	// Find and load the dependencies
 	for _, dep := range deps {
-		child, err := i.load(externals, dep)
+		child, err := i.load(externals, aliases, dep)
 		if err != nil {
 			return nil, err
 		}
