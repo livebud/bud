@@ -215,7 +215,7 @@ func (c *runCommand2) Run(ctx context.Context) error {
 	}))
 	appFS := vfs.OS(module.Directory())
 	skipOption := dsync.WithSkip(
-		gitignore.New(appFS),
+		gitignore.FromFS(appFS),
 		// Keep bud/main around to improve build caching
 		func(name string, isDir bool) bool {
 			return !isDir && name == "bud/main"

@@ -173,7 +173,7 @@ func (g *Generator) Module() *gomod.Module {
 
 func (g *Generator) Generate(ctx context.Context) error {
 	skipOption := dsync.WithSkip(
-		gitignore.New(g.appFS),
+		gitignore.FromFS(g.appFS),
 		// Don't delete files that were pre-generated.
 		func(name string, isDir bool) bool {
 			return isDir && (name == "bud/generate" || name == "bud/generator")
