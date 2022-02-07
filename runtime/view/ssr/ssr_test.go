@@ -2,7 +2,6 @@ package ssr_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
@@ -371,7 +370,6 @@ func TestSvelteLocalImports(t *testing.T) {
 	is.Equal(res.Status, 200)
 	is.Equal(len(res.Headers), 1)
 	is.Equal(res.Headers["Content-Type"], "text/html")
-	fmt.Println(res.Body)
 	is.True(strings.Contains(res.Body, `<h1>first story</h1>`))
 	is.True(strings.Contains(res.Body, `<h2>first comment</h2><h2>second comment</h2>`))
 }

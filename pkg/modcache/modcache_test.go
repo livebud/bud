@@ -10,7 +10,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+	"testing/fstest"
 
+	"gitlab.com/mnm/bud/internal/dsync"
 	"gitlab.com/mnm/bud/pkg/vfs"
 
 	"github.com/matryer/is"
@@ -60,6 +62,66 @@ func TestWriteModule(t *testing.T) {
 			"const.go": "package one\n\nconst Answer = 43",
 		},
 	})
+	is.NoErr(err)
+	dir, err := modCache.ResolveDirectory("mod.test/one", "v0.0.2")
+	is.NoErr(err)
+	is.Equal(dir, modCache.Directory("mod.test", "one@v0.0.2"))
+	// Now verify that the go commands don't try downloading mod.test/one
+	appDir := t.TempDir()
+	err = vfs.Write(appDir, vfs.Map{
+		"go.mod": []byte(`
+			module app.com
+
+			require (
+				mod.test/one v0.0.2
+			)
+		`),
+		"main.go": []byte(`
+			package main
+
+			import (
+				"fmt"
+				"mod.test/one"
+			)
+
+			func main() {
+				fmt.Print(one.Answer)
+			}
+		`),
+	})
+	is.NoErr(err)
+	stdout, stderr, err := goRun(cacheDir, appDir)
+	is.NoErr(err)
+	is.Equal(stderr, "")
+	is.Equal(stdout, "43")
+}
+
+func TestWriteModuleFS(t *testing.T) {
+	is := is.New(t)
+	cacheDir := t.TempDir()
+	modCache := modcache.New(cacheDir)
+	fsys, err := modCache.WriteFS(modcache.Modules{
+		"mod.test/one@v0.0.1": modcache.Files{
+			"const.go": "package one\n\nconst Answer = 42",
+		},
+		"mod.test/one@v0.0.2": modcache.Files{
+			"const.go": "package one\n\nconst Answer = 43",
+		},
+	})
+	is.NoErr(err)
+	err = fstest.TestFS(fsys,
+		"cache/download/mod.test/one/@v/v0.0.1.mod",
+		"cache/download/mod.test/one/@v/v0.0.1.ziphash",
+		"cache/download/mod.test/one/@v/v0.0.1.ziphash",
+		"cache/download/mod.test/one/@v/v0.0.2.mod",
+		"cache/download/mod.test/one/@v/v0.0.2.ziphash",
+		"mod.test/one@v0.0.1/const.go",
+		"mod.test/one@v0.0.1/go.mod",
+		"mod.test/one@v0.0.2/const.go",
+		"mod.test/one@v0.0.2/go.mod",
+	)
+	is.NoErr(err)
+	err = dsync.Dir(fsys, ".", vfs.OS(cacheDir), ".")
 	is.NoErr(err)
 	dir, err := modCache.ResolveDirectory("mod.test/one", "v0.0.2")
 	is.NoErr(err)

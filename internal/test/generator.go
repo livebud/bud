@@ -164,7 +164,7 @@ func getModSnapDir(name string) (string, error) {
 	return filepath.Join(cacheDir, "bud-mod-cache-snapshot", id), nil
 }
 
-func (g *Gen) Generate() (*App, error) {
+func (g *Gen) Generate(fsCache *fscache.Cache) (*App, error) {
 	ctx := context.Background()
 	modCache := modcache.Default()
 	// Try loading the snapshot dir
@@ -245,7 +245,6 @@ func (g *Gen) Generate() (*App, error) {
 			return nil, err
 		}
 	}
-	fsCache := fscache.New()
 	gen, err := generator.Load(appDir, generator.WithModCache(modCache), generator.WithFSCache(fsCache))
 	if err != nil {
 		return nil, err
@@ -259,6 +258,7 @@ func (g *Gen) Generate() (*App, error) {
 		modSnapDir: modSnapDir,
 		modCache:   modCache,
 		module:     gen.Module(),
+		generator:  gen,
 		env: env{
 			"HOME":       os.Getenv("HOME"),
 			"PATH":       os.Getenv("PATH"),
@@ -286,6 +286,7 @@ type App struct {
 	dir        string
 	modSnapDir string
 	modCache   *modcache.Cache
+	generator  *generator.Generator
 	module     *gomod.Module
 	env        env
 	extras     []*os.File
@@ -299,6 +300,16 @@ func (a *App) ExtraFiles(files ...*os.File) *App {
 func (a *App) Env(key, value string) *App {
 	a.env[key] = value
 	return a
+}
+
+func (a *App) Regenerate(ctx context.Context) error {
+	if err := a.generator.Generate(ctx); err != nil {
+		return err
+	}
+	if _, err := a.build(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (a *App) build() (string, error) {
@@ -380,15 +391,15 @@ func (a *App) Start(args ...string) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	files, env, err := socket.Files(ln)
-	if err != nil {
-		return nil, err
-	}
 	transport, err := socket.Transport(socketPath)
 	if err != nil {
 		return nil, err
 	}
 	// Add socket configuration to the command
+	files, env, err := socket.Files(ln)
+	if err != nil {
+		return nil, err
+	}
 	cmd.ExtraFiles = append(cmd.ExtraFiles, files...)
 	cmd.Env = append(cmd.Env, string(env))
 	// Start the webserver
@@ -441,6 +452,35 @@ func (c *Server) Close() error {
 		return err
 	}
 	return nil
+}
+
+func (c *Server) Restart() error {
+	p := c.cmd.Process
+	if p != nil {
+		if err := p.Signal(os.Interrupt); err != nil {
+			p.Kill()
+		}
+	}
+	if err := c.cmd.Wait(); err != nil {
+		if !isExitStatus(err) {
+			return err
+		}
+	}
+	cmd := exec.Command(c.cmd.Path, c.cmd.Args...)
+	cmd.Env = c.cmd.Env
+	cmd.Stdout = c.cmd.Stdout
+	cmd.Stderr = c.cmd.Stderr
+	cmd.Stdin = c.cmd.Stdin
+	cmd.ExtraFiles = c.cmd.ExtraFiles
+	cmd.Dir = c.cmd.Dir
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func isExitStatus(err error) bool {
+	return strings.Contains(err.Error(), "exit status ")
 }
 
 func (a *Server) Request(req *http.Request) (*Response, error) {

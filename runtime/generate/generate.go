@@ -3,6 +3,7 @@ package generate
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io/fs"
 	"net"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"gitlab.com/mnm/bud/pkg/hot"
 	"gitlab.com/mnm/bud/pkg/watcher"
 
 	"golang.org/x/sync/errgroup"
@@ -18,6 +20,7 @@ import (
 	"gitlab.com/mnm/bud/pkg/log/console"
 	"gitlab.com/mnm/bud/pkg/socket"
 
+	"gitlab.com/mnm/bud/internal/fscache"
 	"gitlab.com/mnm/bud/internal/gobin"
 	"gitlab.com/mnm/bud/pkg/commander"
 	"gitlab.com/mnm/bud/pkg/gen"
@@ -43,7 +46,8 @@ func (c *Command) Parse() error {
 func (c *Command) Run(ctx context.Context) error {
 	// TODO: Use the passed in generators (c.Generators)
 	// TODO: Enable file caching
-	generator, err := generator.Load(c.Dir)
+	fsCache := fscache.New()
+	generator, err := generator.Load(c.Dir, generator.WithFSCache(fsCache))
 	if err != nil {
 		return err
 	}
@@ -52,6 +56,13 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	// Start listening
+	hotListener, err := socket.Listen(":35729")
+	if err != nil {
+		fmt.Println("load error", err)
+		return err
+	}
+	hotServer := hot.New()
 	// Setup the command runner
 	runner := &Runner{
 		Generator: generator,
@@ -67,15 +78,29 @@ func (c *Command) Run(ctx context.Context) error {
 	// Watch for file changes
 	eg.Go(func() error {
 		return watcher.Watch(ctx, c.Dir, func(path string) error {
+			fsCache.Update(path)
+			// Hot reload non-Go files
+			if filepath.Ext(path) != ".go" {
+				hotServer.Reload("*")
+				return nil
+			}
+			fmt.Println("restarting", path)
+			// Restart the process for Go files
 			if err := runner.Restart(ctx); err != nil {
 				console.Error("error restarting app > %s", err)
 			}
+			// Then hot reload
+			hotServer.Reload("*")
 			return nil
 		})
 	})
 
 	// Start the hot reload server
 	eg.Go(func() error {
+		if err := hotServer.Serve(hotListener); err != nil {
+			fmt.Println("serve error", err)
+			return err
+		}
 		return nil
 	})
 

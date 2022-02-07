@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
+	"gitlab.com/mnm/bud/internal/fscache"
 	"gitlab.com/mnm/bud/internal/test"
 )
 
@@ -21,7 +22,8 @@ func TestIndexString(t *testing.T) {
 			return "Hello Users!"
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -48,7 +50,8 @@ func TestAboutIndexString(t *testing.T) {
 		type Controller struct {}
 		func (c *Controller) Index() string { return "About" }
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -75,7 +78,8 @@ func TestCreate302(t *testing.T) {
 		func (c *Controller) Create() {
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -100,7 +104,8 @@ func TestIndex204(t *testing.T) {
 		func (c *Controller) Index() {
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -127,7 +132,8 @@ func TestIndex500(t *testing.T) {
 			return nil, errors.New("unable to list posts")
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -158,7 +164,8 @@ func TestIndexList500(t *testing.T) {
 			return 0, "", errors.New("unable to list posts")
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -186,7 +193,8 @@ func TestIndexList200(t *testing.T) {
 			return 0, "a", nil
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -215,7 +223,8 @@ func TestIndexListObject500(t *testing.T) {
 			return 0, "a", errors.New("unable to list posts")
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -243,7 +252,8 @@ func TestIndexListObject200(t *testing.T) {
 			return 0, "a", nil
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -273,7 +283,8 @@ func TestIndexStructs200(t *testing.T) {
 			return []*Post{{0, "a"}, {1, "b"}}, nil
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -299,7 +310,8 @@ func TestJSONCreate204(t *testing.T) {
 		type Controller struct {}
 		func (c *Controller) Create() {}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -326,7 +338,8 @@ func TestJSONCreate500(t *testing.T) {
 			return "", errors.New("Not implemented yet")
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -362,7 +375,8 @@ func TestDependencyHoist(t *testing.T) {
 			return c.Pool.ID
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -399,7 +413,8 @@ func TestDependencyRequest(t *testing.T) {
 			return c.Pool.Path
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -436,7 +451,8 @@ func TestShareStruct(t *testing.T) {
 			return a, nil
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -507,7 +523,8 @@ func TestJSONCreateNested(t *testing.T) {
 			return p
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -563,7 +580,8 @@ func TestJSONDelete500(t *testing.T) {
 			return "", errors.New("Not implemented yet")
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -595,7 +613,8 @@ func TestJSONDelete200(t *testing.T) {
 			return &Post{id, "a"}, nil
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -627,7 +646,8 @@ func TestJSONMultipleActions(t *testing.T) {
 			return id
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -665,7 +685,8 @@ func TestJSONUpdate500(t *testing.T) {
 			return "", errors.New("Not implemented yet")
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -697,7 +718,8 @@ func TestJSONUpdate200(t *testing.T) {
 			return &Post{id, "a"}, nil
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -749,7 +771,8 @@ func TestReturnKeyedStruct(t *testing.T) {
 			return nil
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -790,7 +813,8 @@ func TestNestedResource(t *testing.T) {
 			return nil
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -887,7 +911,8 @@ func TestDeepNestedResource(t *testing.T) {
 			return &Comment{postID, id, ""}, nil
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -986,7 +1011,8 @@ func TestRedirectRootResource(t *testing.T) {
 			return &Post{id, ""}, nil
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -1040,7 +1066,8 @@ func TestRedirectNestedResource(t *testing.T) {
 			return &Post{id, ""}, nil
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -1105,7 +1132,8 @@ func TestRedirectDeepNestedResource(t *testing.T) {
 			return &Comment{postID, id, ""}, nil
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -1185,7 +1213,8 @@ func TestViewRootResourceUnkeyed(t *testing.T) {
 		}
 	`)
 	// Generate the app
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -1332,7 +1361,8 @@ func TestViewNestedResourceUnkeyed(t *testing.T) {
 		}
 	`)
 	// Generate the app
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -1479,7 +1509,8 @@ func TestViewDeepResourceUnkeyed(t *testing.T) {
 		}
 	`)
 	// Generate the app
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -1607,7 +1638,8 @@ func TestResourceContext(t *testing.T) {
 			return &User{id, "a"}, nil
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/action/action.go"))
 	is.True(app.Exists("bud/main.go"))
@@ -1669,3 +1701,52 @@ func TestResourceContext(t *testing.T) {
 		{"id":2,"name":"a"}
 	`)
 }
+
+// func TestWorkingThenWorking(t *testing.T) {
+// 	is := is.New(t)
+// 	generator := test.Generator(t)
+// 	generator.Files["action/action.go"] = []byte(`
+// 		package action
+
+// 		type Controller struct {
+// 		}
+
+// 		func (c *Controller) Index() string {
+// 			return "Hello Users!"
+// 		}
+// 	`)
+// 	fsCache := fscache.New()
+// 	app, err := generator.Generate(fsCache)
+// 	is.NoErr(err)
+// 	is.True(app.Exists("bud/action/action.go"))
+// 	is.True(app.Exists("bud/main.go"))
+// 	server, err := app.Start()
+// 	is.NoErr(err)
+// 	defer server.Close()
+// 	res, err := server.Get("/")
+// 	is.NoErr(err)
+// 	is.NoErr(err)
+// 	res.Expect(`
+// 		HTTP/1.1 200 OK
+// 		Content-Type: application/json
+// 		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+// 		"Hello Users!"
+// 	`)
+// 	ctx := context.Background()
+// 	err = app.Regenerate(ctx)
+// 	is.NoErr(err)
+// 	is.True(app.Exists("bud/action/action.go"))
+// 	is.True(app.Exists("bud/main.go"))
+// 	err = server.Restart()
+// 	is.NoErr(err)
+// 	res, err = server.Get("/")
+// 	is.NoErr(err)
+// 	res.Expect(`
+// 		HTTP/1.1 200 OK
+// 		Content-Type: application/json
+// 		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+// 		"Hello Users!"
+// 	`)
+// }

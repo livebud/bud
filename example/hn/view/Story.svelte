@@ -30,7 +30,7 @@
 <div class="p-5 bg-white flex items-center">
   {#if i > 0}<div class="text-sm text-gray-500">{i}.</div>{/if}
   <div class="ml-5 text-orange-600">
-    <svg
+    <!-- <svg
       xmlns="http://www.w3.org/2000/svg"
       class="h-6 w-6"
       viewBox="0 0 20 20"
@@ -41,7 +41,7 @@
         d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"
         clip-rule="evenodd"
       />
-    </svg>
+    </svg> -->
   </div>
   <div class="pl-5">
     <div class="text-lg">

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
+	"gitlab.com/mnm/bud/internal/fscache"
 	"gitlab.com/mnm/bud/internal/test"
 	"gitlab.com/mnm/bud/pkg/modcache"
 )
@@ -13,7 +14,8 @@ import (
 func TestEmpty(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.Equal(false, app.Exists("bud/public/public.go"))
 }
@@ -33,7 +35,8 @@ func TestFavicon(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
 	generator.Files["public/favicon.ico"] = favicon
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.Equal(true, app.Exists("bud/public/public.go")) // bud/public/public.go should exist
 	is.Equal(true, app.Exists("bud/main.go"))          // bud/main.go should exist
@@ -54,7 +57,8 @@ func TestNested(t *testing.T) {
 	generator := test.Generator(t)
 	css := []byte(`* { box-sizing: border-box; }`)
 	generator.Files["public/normalize/normalize.css"] = css
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.Equal(true, app.Exists("bud/public/public.go"))
 	is.Equal(true, app.Exists("bud/main.go"))
@@ -79,7 +83,8 @@ func TestPlugin(t *testing.T) {
 			"public/tailwind/preflight.css": preflight,
 		},
 	}
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.Equal(true, app.Exists("bud/public/public.go"))
 	is.Equal(true, app.Exists("bud/main.go"))

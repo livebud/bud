@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
+	"gitlab.com/mnm/bud/internal/fscache"
 	"gitlab.com/mnm/bud/internal/test"
 	"gitlab.com/mnm/bud/pkg/modcache"
 )
@@ -12,7 +13,8 @@ import (
 func TestEmpty(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.Equal(false, app.Exists("bud/transform/transform.go"))
 }
@@ -21,7 +23,8 @@ func TestSvelteView(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
 	generator.Files["view/index.svelte"] = []byte(`<h1>hello world!</h1>`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.Equal(true, app.Exists("bud/transform/transform.go"))
 	is.Equal(true, app.Exists("bud/main.go"))
@@ -44,7 +47,8 @@ func TestMarkdownPlugin(t *testing.T) {
 		},
 	}
 	generator.Files["view/index.md"] = []byte(`# hello`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.Equal(true, app.Exists("bud/transform/transform.go"))
 	is.Equal(true, app.Exists("bud/main.go"))

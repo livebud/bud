@@ -1,6 +1,7 @@
 package modcache
 
 import (
+	"archive/zip"
 	"bytes"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"testing/fstest"
 	"time"
 
 	cp "github.com/otiai10/copy"
@@ -44,6 +46,113 @@ func (c *Cache) Directory(subpaths ...string) string {
 
 type Files = map[string]string
 type Modules = map[string]Files
+
+// Write modules directly into the cache directory in an acceptable format so
+// that Go thinks these files are cached and doesn't try reading them from the
+// network.
+//
+// This implementation is the minimal format needed to get `go mod tidy` to
+// think the files are cached. This shouldn't be used outside of testing
+// contexts.
+//
+// Based on: https://github.com/golang/go/blob/master/src/cmd/go/internal/modfetch/fetch.go
+func (c *Cache) WriteFS(modules Modules) (fs.FS, error) {
+	mapfs := fstest.MapFS{}
+	for pv, files := range modules {
+		if err := writeModuleFS(mapfs, pv, files); err != nil {
+			return nil, err
+		}
+	}
+	return mapfs, nil
+}
+
+func writeModuleFS(mapfs fstest.MapFS, pv string, files map[string]string) error {
+	parts := strings.SplitN(pv, "@", 2)
+	if len(parts) != 2 {
+		return fmt.Errorf("modcache: invalid module key")
+	}
+	modulePath, moduleVersion := parts[0], parts[1]
+	goMod, ok := files["go.mod"]
+	if !ok {
+		goMod = `module ` + modulePath + "\n"
+		// Write go.mod back into module to make cached files a valid go.mod
+		files["go.mod"] = goMod
+	}
+	if modulePath == "" {
+		return fmt.Errorf("modcache: missing module path in go.mod")
+	}
+	if modfile.ModulePath([]byte(goMod)) != modulePath {
+		return fmt.Errorf("modcache: %q does not match module path in go.mod", modulePath)
+	}
+	downloadDir, err := downloadDir(modulePath)
+	if err != nil {
+		return err
+	}
+	escapedVersion, err := module.EscapeVersion(moduleVersion)
+	if err != nil {
+		return err
+	}
+	extlessPath := filepath.Join(downloadDir, escapedVersion)
+	zipData := new(bytes.Buffer)
+	module := module.Version{Path: modulePath, Version: moduleVersion}
+	var zipFiles []modzip.File
+	for path, data := range files {
+		zipFiles = append(zipFiles, &zipEntry{path, data})
+	}
+	if err := modzip.Create(zipData, module, zipFiles); err != nil {
+		return err
+	}
+	hash, err := hashZip(bytes.NewReader(zipData.Bytes()), int64(zipData.Len()), dirhash.DefaultHash)
+	if err != nil {
+		return err
+	}
+	// Write the zip hash
+	mapfs[extlessPath+".ziphash"] = &fstest.MapFile{
+		Data:    []byte(hash),
+		ModTime: time.Now(),
+		Mode:    0644,
+	}
+	// Write the .mod
+	mapfs[extlessPath+".mod"] = &fstest.MapFile{
+		Data:    []byte(goMod),
+		ModTime: time.Now(),
+		Mode:    0644,
+	}
+	// Write all the files
+	for path, data := range files {
+		mapfs[filepath.Join(pv, path)] = &fstest.MapFile{
+			Data:    []byte(data),
+			ModTime: time.Now(),
+			Mode:    0644,
+		}
+	}
+	return nil
+}
+
+// HashZip returns the hash of the file content in the named zip file.
+// Only the file names and their contents are included in the hash:
+// the exact zip file format encoding, compression method,
+// per-file modification times, and other metadata are ignored.
+func hashZip(r io.ReaderAt, size int64, hash dirhash.Hash) (string, error) {
+	z, err := zip.NewReader(r, size)
+	if err != nil {
+		return "", err
+	}
+	var files []string
+	zfiles := make(map[string]*zip.File)
+	for _, file := range z.File {
+		files = append(files, file.Name)
+		zfiles[file.Name] = file
+	}
+	zipOpen := func(name string) (io.ReadCloser, error) {
+		f := zfiles[name]
+		if f == nil {
+			return nil, fmt.Errorf("file %q not found in zip", name) // should never happen
+		}
+		return f.Open()
+	}
+	return hash(files, zipOpen)
+}
 
 // Write modules directly into the cache directory in an acceptable format so
 // that Go thinks these files are cached and doesn't try reading them from the
@@ -283,9 +392,18 @@ func (e *downloadDirPartialError) Is(err error) bool { return err == os.ErrNotEx
 
 // partialDownloadPath returns the partial download path
 func (c *Cache) downloadDir(modulePath string) (string, error) {
+	dir, err := downloadDir(modulePath)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(c.cacheDir, dir), nil
+}
+
+// partialDownloadPath returns the partial download path
+func downloadDir(modulePath string) (string, error) {
 	enc, err := module.EscapePath(modulePath)
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(c.cacheDir, "cache/download", enc, "/@v"), nil
+	return filepath.Join("cache/download", enc, "/@v"), nil
 }

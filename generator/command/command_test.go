@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"gitlab.com/mnm/bud/internal/fscache"
 	"gitlab.com/mnm/bud/internal/test"
 
 	"github.com/lithammer/dedent"
@@ -22,7 +23,8 @@ func isEqual(t testing.TB, actual, expect string) {
 func TestEmpty(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(!app.Exists("bud/command/command.go"))
 }
@@ -66,7 +68,8 @@ func TestCommand(t *testing.T) {
 			return nil
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/main.go"))
 	isEqual(t, app.Run("-h"), `
@@ -140,7 +143,8 @@ func TestNested(t *testing.T) {
 			return nil
 		}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.True(app.Exists("bud/main.go"))
 	isEqual(t, app.Run("-h"), `

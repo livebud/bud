@@ -57,7 +57,7 @@ func TestRunner(t *testing.T) {
 	is.True(strings.Contains(string(code), `text("index")`))
 	is.True(strings.Contains(string(code), `"/bud/view/index.svelte": view_default`))
 	is.True(strings.Contains(string(code), `page: "/bud/view/index.svelte",`))
-	is.True(strings.Contains(string(code), `hot: new Hot("/bud/hot?page=%2Fbud%2Fview%2Findex.svelte", components)`))
+	is.True(strings.Contains(string(code), `hot: new Hot("http://0.0.0.0:35729/?page=%2Fbud%2Fview%2Findex.svelte", components)`))
 
 	// Unwrapped version with node_modules rewritten
 	code, err = fs.ReadFile(bf, "bud/view/index.svelte")
@@ -68,7 +68,7 @@ func TestRunner(t *testing.T) {
 	// Unwrapped version doesn't contain wrapping
 	is.True(!strings.Contains(string(code), `"/bud/view/index.svelte": view_default`))
 	is.True(!strings.Contains(string(code), `page: "/bud/view/index.svelte",`))
-	is.True(!strings.Contains(string(code), `hot: new Hot("/bud/hot?page=%2Fbud%2Fview%2Findex.svelte", components)`))
+	is.True(!strings.Contains(string(code), `hot: new Hot("http://0.0.0.0:35729/?page=%2Fbud%2Fview%2Findex.svelte", components)`))
 
 	// Read the wrapped version of about/index.svelte with node_modules rewritten
 	code, err = fs.ReadFile(bf, "bud/view/about/_index.svelte")
@@ -78,7 +78,7 @@ func TestRunner(t *testing.T) {
 	is.True(strings.Contains(string(code), `text("about")`))
 	is.True(strings.Contains(string(code), `"/bud/view/about/index.svelte": about_default`))
 	is.True(strings.Contains(string(code), `page: "/bud/view/about/index.svelte",`))
-	is.True(strings.Contains(string(code), `hot: new Hot("/bud/hot?page=%2Fbud%2Fview%2Fabout%2Findex.svelte", components)`))
+	is.True(strings.Contains(string(code), `hot: new Hot("http://0.0.0.0:35729/?page=%2Fbud%2Fview%2Fabout%2Findex.svelte", components)`))
 
 	// Unwrapped version with node_modules rewritten
 	code, err = fs.ReadFile(bf, "bud/view/about/index.svelte")
@@ -89,7 +89,7 @@ func TestRunner(t *testing.T) {
 	// Unwrapped version doesn't contain wrapping
 	is.True(!strings.Contains(string(code), `"/bud/view/about/index.svelte": about_default`))
 	is.True(!strings.Contains(string(code), `page: "/bud/view/about/index.svelte",`))
-	is.True(!strings.Contains(string(code), `hot: new Hot("/bud/hot?page=%2Fbud%2Fview%2Fabout%2Findex.svelte", components)`))
+	is.True(!strings.Contains(string(code), `hot: new Hot("http://0.0.0.0:35729/?page=%2Fbud%2Fview%2Fabout%2Findex.svelte", components)`))
 }
 
 func TestImportLocal(t *testing.T) {

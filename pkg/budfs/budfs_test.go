@@ -1,7 +1,6 @@
 package budfs_test
 
 import (
-	"fmt"
 	"io/fs"
 	"testing"
 
@@ -59,7 +58,6 @@ type action struct {
 
 // TODO: pass in the cache3 and remove fs
 func (a *action) GenerateFile(_ gen.F, file *gen.File) error {
-	fmt.Println("parsing...")
 	pkg, err := a.Parser.Parse("action")
 	if err != nil {
 		return err

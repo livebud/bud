@@ -57,7 +57,7 @@ type DOM struct {
 
 // Compile DOM code
 func (c *Compiler) DOM(path string, code []byte) (*DOM, error) {
-	expr := fmt.Sprintf(`%s; __svelte__.compile({ "path": %q, "code": %q, "target": "dom", "dev": %t, "css": false })`, compiler, path, code, c.Dev)
+	expr := fmt.Sprintf(`%s; __svelte__.compile({ "path": %q, "code": %q, "target": "dom", "dev": %t, "css": true })`, compiler, path, code, c.Dev)
 	result, err := c.VM.Eval(path, expr)
 	if err != nil {
 		return nil, err

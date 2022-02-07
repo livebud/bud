@@ -4,13 +4,15 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
+	"gitlab.com/mnm/bud/internal/fscache"
 	"gitlab.com/mnm/bud/internal/test"
 )
 
 func TestNoRoutes(t *testing.T) {
 	is := is.New(t)
 	generator := test.Generator(t)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.Equal(false, app.Exists("bud/web/web.go"))
 	is.Equal(false, app.Exists("bud/main.go"))
@@ -30,7 +32,8 @@ func TestRootAction(t *testing.T) {
 		func (c *Controller) Update() {}
 		func (c *Controller) Delete() {}
 	`)
-	app, err := generator.Generate()
+	fsCache := fscache.New()
+	app, err := generator.Generate(fsCache)
 	is.NoErr(err)
 	is.Equal(true, app.Exists("bud/web/web.go"))
 	is.Equal(true, app.Exists("bud/main.go"))
