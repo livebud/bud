@@ -1,6 +1,7 @@
 package snapshot_test
 
 import (
+	"errors"
 	"io/fs"
 	"testing"
 	"testing/fstest"
@@ -24,31 +25,31 @@ func TestHash(t *testing.T) {
 	mapfs["b/c/d.go"] = &fstest.MapFile{Data: []byte("package d"), Mode: 0644, ModTime: modTime}
 	key, err = snapshot.Hash(mapfs)
 	is.NoErr(err)
-	is.Equal(key, `CWmhz9qgIFo`)
+	is.Equal(key, `du1Yyvmk_Ks`)
 	mapfs["e"] = &fstest.MapFile{Mode: fs.ModeDir, ModTime: modTime}
 	key, err = snapshot.Hash(mapfs)
 	is.NoErr(err)
-	is.Equal(key, `XQ4COBOPHtE`)
+	is.Equal(key, `QY1LgL2TFbE`)
 	// Adjust data
 	mapfs["main.go"] = &fstest.MapFile{Data: []byte(`package main; func main() {}`)}
 	key, err = snapshot.Hash(mapfs)
 	is.NoErr(err)
-	is.Equal(key, `xEpUlkb9G0E`)
+	is.Equal(key, `6Y0qe6ntDqs`)
 	// Adjust mode
 	mapfs["b/c/d.go"] = &fstest.MapFile{Data: []byte("package d"), Mode: 0655, ModTime: modTime}
 	key, err = snapshot.Hash(mapfs)
 	is.NoErr(err)
-	is.Equal(key, `86nQ-5k1RP4`)
-	// Adjust modtime
+	is.Equal(key, `k12v200Bmu4`)
+	// Adjust modtime, shouldn't change anything
 	mapfs["b/c/d.go"] = &fstest.MapFile{Data: []byte("package d"), Mode: 0655, ModTime: modTime2}
 	key, err = snapshot.Hash(mapfs)
 	is.NoErr(err)
-	is.Equal(key, `ixro1htVtx8`)
+	is.Equal(key, `k12v200Bmu4`)
 	// Hash with nothing changing
 	mapfs["b/c/d.go"] = &fstest.MapFile{Data: []byte("package d"), Mode: 0655, ModTime: modTime2}
 	key, err = snapshot.Hash(mapfs)
 	is.NoErr(err)
-	is.Equal(key, `ixro1htVtx8`)
+	is.Equal(key, `k12v200Bmu4`)
 }
 
 func TestBackupRestore(t *testing.T) {
@@ -74,4 +75,18 @@ func TestBackupRestore(t *testing.T) {
 	data, err = fs.ReadFile(fsys, "main.go")
 	is.NoErr(err)
 	is.Equal(string(data), "package main")
+}
+
+func TestRestoreNotExist(t *testing.T) {
+	is := is.New(t)
+	original := fstest.MapFS{
+		"bin.go": &fstest.MapFile{Data: []byte(`package bin`)},
+	}
+	hash, err := snapshot.Hash(original)
+	is.NoErr(err)
+	is.Equal(hash, "wAkDzu4jU2g")
+	// Restore non-existent
+	fsys, err := snapshot.Restore(hash)
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.Equal(fsys, nil)
 }

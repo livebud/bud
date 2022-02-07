@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing/fstest"
+	"time"
 
 	"gitlab.com/mnm/bud/internal/targz"
 
@@ -44,8 +45,8 @@ func Hash(fsys fs.FS) (string, error) {
 		}
 		mapfs[path] = &fstest.MapFile{
 			Mode:    info.Mode(),
-			ModTime: info.ModTime(),
 			Sys:     info.Sys(),
+			ModTime: time.Time{}, // ModTime does not affect snapshot
 		}
 		if de.IsDir() {
 			return nil

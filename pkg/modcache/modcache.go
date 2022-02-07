@@ -56,7 +56,7 @@ type Modules = map[string]Files
 // contexts.
 //
 // Based on: https://github.com/golang/go/blob/master/src/cmd/go/internal/modfetch/fetch.go
-func (c *Cache) WriteFS(modules Modules) (fs.FS, error) {
+func WriteFS(modules Modules) (fs.FS, error) {
 	mapfs := fstest.MapFS{}
 	for pv, files := range modules {
 		if err := writeModuleFS(mapfs, pv, files); err != nil {
@@ -66,20 +66,32 @@ func (c *Cache) WriteFS(modules Modules) (fs.FS, error) {
 	return mapfs, nil
 }
 
-func writeModuleFS(mapfs fstest.MapFS, pv string, files map[string]string) error {
-	parts := strings.SplitN(pv, "@", 2)
+// SplitPathVersion splits a path@version into path & version
+func SplitPathVersion(pathVersion string) (path, version string, err error) {
+	parts := strings.SplitN(pathVersion, "@", 2)
 	if len(parts) != 2 {
-		return fmt.Errorf("modcache: invalid module key")
+		return "", "", fmt.Errorf("modcache: invalid module key for %q", pathVersion)
 	}
-	modulePath, moduleVersion := parts[0], parts[1]
+	path, version = parts[0], parts[1]
+	if path == "" {
+		return "", "", fmt.Errorf("modcache: missing module path in %q", pathVersion)
+	}
+	if version == "" {
+		return "", "", fmt.Errorf("modcache: missing module version in %q", pathVersion)
+	}
+	return path, version, nil
+}
+
+func writeModuleFS(mapfs fstest.MapFS, pv string, files map[string]string) error {
+	modulePath, moduleVersion, err := SplitPathVersion(pv)
+	if err != nil {
+		return err
+	}
 	goMod, ok := files["go.mod"]
 	if !ok {
 		goMod = `module ` + modulePath + "\n"
 		// Write go.mod back into module to make cached files a valid go.mod
 		files["go.mod"] = goMod
-	}
-	if modulePath == "" {
-		return fmt.Errorf("modcache: missing module path in go.mod")
 	}
 	if modfile.ModulePath([]byte(goMod)) != modulePath {
 		return fmt.Errorf("modcache: %q does not match module path in go.mod", modulePath)

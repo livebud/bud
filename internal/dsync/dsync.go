@@ -119,6 +119,9 @@ func diff(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string
 
 func createOps(opt *option, sfs fs.FS, dir string, des []fs.DirEntry) (ops []Op, err error) {
 	for _, de := range des {
+		if de.Name() == "." {
+			continue
+		}
 		path := filepath.Join(dir, de.Name())
 		if opt.Skip(path, de.IsDir()) {
 			continue
@@ -150,6 +153,10 @@ func createOps(opt *option, sfs fs.FS, dir string, des []fs.DirEntry) (ops []Op,
 
 func deleteOps(opt *option, dir string, des []fs.DirEntry) (ops []Op) {
 	for _, de := range des {
+		// Don't allow the directory itself to be deleted
+		if de.Name() == "." {
+			continue
+		}
 		path := filepath.Join(dir, de.Name())
 		if opt.Skip(path, de.IsDir()) {
 			continue
@@ -162,6 +169,9 @@ func deleteOps(opt *option, dir string, des []fs.DirEntry) (ops []Op) {
 
 func updateOps(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string, des []fs.DirEntry) (ops []Op, err error) {
 	for _, de := range des {
+		if de.Name() == "." {
+			continue
+		}
 		path := filepath.Join(sdir, de.Name())
 		if opt.Skip(path, de.IsDir()) {
 			continue
@@ -236,7 +246,8 @@ func stamp(fsys fs.FS, path string) (stamp string, err error) {
 		return "", err
 	}
 	mtime := stat.ModTime().UnixNano()
+	mode := stat.Mode()
 	size := stat.Size()
-	stamp = strconv.Itoa(int(size)) + ":" + strconv.Itoa(int(mtime))
+	stamp = strconv.Itoa(int(size)) + ":" + mode.String() + ":" + strconv.Itoa(int(mtime))
 	return stamp, nil
 }

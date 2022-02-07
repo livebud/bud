@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
-	"testing/fstest"
 
 	"gitlab.com/mnm/bud/internal/dsync"
 	"gitlab.com/mnm/bud/pkg/vfs"
@@ -96,11 +95,19 @@ func TestWriteModule(t *testing.T) {
 	is.Equal(stdout, "43")
 }
 
+func exists(fsys fs.FS, paths ...string) error {
+	for _, path := range paths {
+		if _, err := fs.Stat(fsys, path); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func TestWriteModuleFS(t *testing.T) {
 	is := is.New(t)
 	cacheDir := t.TempDir()
-	modCache := modcache.New(cacheDir)
-	fsys, err := modCache.WriteFS(modcache.Modules{
+	fsys, err := modcache.WriteFS(modcache.Modules{
 		"mod.test/one@v0.0.1": modcache.Files{
 			"const.go": "package one\n\nconst Answer = 42",
 		},
@@ -109,7 +116,7 @@ func TestWriteModuleFS(t *testing.T) {
 		},
 	})
 	is.NoErr(err)
-	err = fstest.TestFS(fsys,
+	err = exists(fsys,
 		"cache/download/mod.test/one/@v/v0.0.1.mod",
 		"cache/download/mod.test/one/@v/v0.0.1.ziphash",
 		"cache/download/mod.test/one/@v/v0.0.1.ziphash",
@@ -123,6 +130,7 @@ func TestWriteModuleFS(t *testing.T) {
 	is.NoErr(err)
 	err = dsync.Dir(fsys, ".", vfs.OS(cacheDir), ".")
 	is.NoErr(err)
+	modCache := modcache.New(cacheDir)
 	dir, err := modCache.ResolveDirectory("mod.test/one", "v0.0.2")
 	is.NoErr(err)
 	is.Equal(dir, modCache.Directory("mod.test", "one@v0.0.2"))

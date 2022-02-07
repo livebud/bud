@@ -252,3 +252,43 @@ func TestWithSkip(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(len(targetFS), 4) // this should have kept node_modules & generate
 }
+
+func TestAvoidDotCreate(t *testing.T) {
+	is := is.New(t)
+	// starting points
+	sourceFS := vfs.Memory{
+		".": &vfs.File{Mode: fs.ModeDir},
+	}
+	targetFS := vfs.Memory{}
+	err := dsync.Dir(sourceFS, ".", targetFS, ".")
+	is.NoErr(err)
+	is.Equal(len(targetFS), 0)
+}
+
+func TestAvoidDotUpdate(t *testing.T) {
+	is := is.New(t)
+	// starting points
+	sourceFS := vfs.Memory{
+		".": &vfs.File{Mode: fs.ModeDir},
+	}
+	targetFS := vfs.Memory{
+		".": &vfs.File{Mode: fs.ModeDir | 0755},
+	}
+	err := dsync.Dir(sourceFS, ".", targetFS, ".")
+	is.NoErr(err)
+	is.Equal(len(targetFS), 1)
+}
+
+// Avoid deleting the root of the target fs
+func TestAvoidDotDelete(t *testing.T) {
+	is := is.New(t)
+	// starting points
+	sourceFS := vfs.Memory{}
+	targetFS := vfs.Memory{
+		".": &vfs.File{Mode: fs.ModeDir},
+	}
+	err := dsync.Dir(sourceFS, ".", targetFS, ".")
+	is.NoErr(err)
+	// . should be ignored
+	is.Equal(len(targetFS), 1)
+}
