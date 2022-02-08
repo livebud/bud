@@ -14,6 +14,7 @@ type skipFunc = func(name string, isDir bool) bool
 
 type option struct {
 	Skip skipFunc
+	rel  func(path string) (string, error)
 }
 
 type Option func(o *option)
@@ -40,11 +41,22 @@ func composeSkips(skips []skipFunc) skipFunc {
 	}
 }
 
+func Rel(sdir, tdir string) func(path string) (string, error) {
+	return func(path string) (string, error) {
+		rel, err := filepath.Rel(sdir, path)
+		if err != nil {
+			return "", err
+		}
+		return filepath.Join(tdir, rel), nil
+	}
+}
+
 // Dir syncs the source directory from the source filesystem to the target directory
 // in the target filesystem
 func Dir(sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string, options ...Option) error {
 	opt := &option{
 		Skip: func(string, bool) bool { return false },
+		rel:  Rel(sdir, tdir),
 	}
 	for _, option := range options {
 		option(opt)
@@ -106,7 +118,10 @@ func diff(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string
 	if err != nil {
 		return nil, err
 	}
-	deleteOps := deleteOps(opt, sdir, deletes.List())
+	deleteOps, err := deleteOps(opt, sdir, deletes.List())
+	if err != nil {
+		return nil, err
+	}
 	childOps, err := updateOps(opt, sfs, sdir, tfs, tdir, updates.List())
 	if err != nil {
 		return nil, err
@@ -135,7 +150,11 @@ func createOps(opt *option, sfs fs.FS, dir string, des []fs.DirEntry) (ops []Op,
 				}
 				return nil, err
 			}
-			ops = append(ops, Op{CreateType, path, data})
+			rel, err := opt.rel(path)
+			if err != nil {
+				return nil, err
+			}
+			ops = append(ops, Op{CreateType, rel, data})
 			continue
 		}
 		des, err := fs.ReadDir(sfs, path)
@@ -151,7 +170,7 @@ func createOps(opt *option, sfs fs.FS, dir string, des []fs.DirEntry) (ops []Op,
 	return ops, nil
 }
 
-func deleteOps(opt *option, dir string, des []fs.DirEntry) (ops []Op) {
+func deleteOps(opt *option, dir string, des []fs.DirEntry) (ops []Op, err error) {
 	for _, de := range des {
 		// Don't allow the directory itself to be deleted
 		if de.Name() == "." {
@@ -161,10 +180,14 @@ func deleteOps(opt *option, dir string, des []fs.DirEntry) (ops []Op) {
 		if opt.Skip(path, de.IsDir()) {
 			continue
 		}
-		ops = append(ops, Op{DeleteType, path, nil})
+		rel, err := opt.rel(path)
+		if err != nil {
+			return nil, err
+		}
+		ops = append(ops, Op{DeleteType, rel, nil})
 		continue
 	}
-	return ops
+	return ops, nil
 }
 
 func updateOps(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string, des []fs.DirEntry) (ops []Op, err error) {
@@ -206,7 +229,11 @@ func updateOps(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir s
 			}
 			return nil, err
 		}
-		ops = append(ops, Op{UpdateType, path, data})
+		rel, err := opt.rel(path)
+		if err != nil {
+			return nil, err
+		}
+		ops = append(ops, Op{UpdateType, rel, data})
 	}
 	return ops, nil
 }

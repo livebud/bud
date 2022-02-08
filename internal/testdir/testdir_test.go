@@ -31,7 +31,7 @@ func TestDir(t *testing.T) {
 	td.BFiles["public/favicon.ico"] = []byte{0x00}
 	td.NodeModules["svelte"] = `3.46.4`
 	dir := t.TempDir()
-	err := td.DownloadTo(dir)
+	err := td.Write(dir)
 	is.NoErr(err)
 	err = exists(os.DirFS(dir),
 		"action/action.go",

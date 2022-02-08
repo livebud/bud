@@ -383,3 +383,16 @@ func TestModuleFindFromFS(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(module1.Directory("imagine"), absDir)
 }
+
+func TestDirFS(t *testing.T) {
+	is := is.New(t)
+	wd, err := os.Getwd()
+	is.NoErr(err)
+	module, err := gomod.Find(wd)
+	is.NoErr(err)
+	fsys := module.DirFS("internal")
+	is.NoErr(err)
+	des, err := fs.ReadDir(fsys, ".")
+	is.NoErr(err)
+	is.Equal(true, contains(des, "bail", "dsync"))
+}

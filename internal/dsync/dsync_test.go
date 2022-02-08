@@ -292,3 +292,39 @@ func TestAvoidDotDelete(t *testing.T) {
 	// . should be ignored
 	is.Equal(len(targetFS), 1)
 }
+
+// Relative path from source path
+func TestRelativeSource(t *testing.T) {
+	is := is.New(t)
+	// starting points
+	sourceFS := vfs.Memory{
+		"bud/.cli/main.go": &vfs.File{Data: []byte("package main")},
+		"bud/.cli/a/a.go":  &vfs.File{Data: []byte("package a")},
+	}
+	targetFS := vfs.Memory{
+		"a/a.go": &vfs.File{Data: []byte("package aa")},
+	}
+	err := dsync.Dir(sourceFS, "bud/.cli", targetFS, ".")
+	is.NoErr(err)
+	_, ok := targetFS["main.go"]
+	is.True(ok) // missing main.go
+	data, err := fs.ReadFile(targetFS, "a/a.go")
+	is.NoErr(err)
+	is.Equal(string(data), "package a")
+}
+
+func TestRel(t *testing.T) {
+	is := is.New(t)
+	rel, err := dsync.Rel("bud/.cli", ".")("bud/.cli/a/a.go")
+	is.NoErr(err)
+	is.Equal(rel, "a/a.go")
+	rel, err = dsync.Rel(".", ".")("a/a.go")
+	is.NoErr(err)
+	is.Equal(rel, "a/a.go")
+	rel, err = dsync.Rel(".", "bud/.cli")("a/a.go")
+	is.NoErr(err)
+	is.Equal(rel, "bud/.cli/a/a.go")
+	rel, err = dsync.Rel("bud", "app")("bud/a/a.go")
+	is.NoErr(err)
+	is.Equal(rel, "app/a/a.go")
+}

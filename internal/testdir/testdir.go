@@ -159,8 +159,8 @@ func (d *Dir) mapfs() (fstest.MapFS, error) {
 	return mapfs, nil
 }
 
-// Download into dir
-func (d *Dir) DownloadTo(dir string) error {
+// Write testdir into dir
+func (d *Dir) Write(dir string) error {
 	fsys, err := d.mapfs()
 	if err != nil {
 		return err

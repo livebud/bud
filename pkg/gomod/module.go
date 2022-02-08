@@ -10,6 +10,7 @@ import (
 
 	"gitlab.com/mnm/bud/internal/fscache"
 	"gitlab.com/mnm/bud/internal/gois"
+	"gitlab.com/mnm/bud/pkg/vfs"
 )
 
 type Module struct {
@@ -21,6 +22,11 @@ type Module struct {
 // Directory returns the module directory (e.g. /Users/$USER/...)
 func (m *Module) Directory(subpaths ...string) string {
 	return filepath.Join(append([]string{m.dir}, subpaths...)...)
+}
+
+// DirFS returns an OS filesystem you can read and write from.
+func (m *Module) DirFS(subpaths ...string) vfs.ReadWritable {
+	return vfs.OS(m.Directory(subpaths...))
 }
 
 // ModCache returns the module cache directory

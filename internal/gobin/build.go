@@ -11,7 +11,6 @@ func Build(ctx context.Context, dir, mainpath string, outpath string) error {
 	cmd := exec.CommandContext(ctx, "go", "build", "-mod=mod", "-o", outpath, mainpath)
 	cmd.Env = os.Environ()
 	cmd.Stdout = os.Stdout
-	// stderr := new(bytes.Buffer)
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	cmd.Dir = dir
