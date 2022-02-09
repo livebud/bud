@@ -9,30 +9,8 @@ import (
 	"gitlab.com/mnm/bud/internal/imports"
 )
 
-func methodName(dataType string) (string, error) {
-	switch strings.TrimLeft(dataType, "*") {
-	case "bool":
-		return "Bool", nil
-	case "string":
-		return "String", nil
-	default:
-		return "", fmt.Errorf("command: unhandled type for method %q", dataType)
-	}
-}
-
-// Flatten out the commands
-func flatten(commands []*Command) (results []*Command) {
-	for _, cmd := range commands {
-		results = append(results, cmd)
-		results = append(results, flatten(cmd.Subs)...)
-	}
-	return results
-}
-
 type State struct {
 	Imports []*imports.Import
-	// Functions []*Function
-	// Structs   []*Struct
 	Command *Command
 }
 
@@ -122,4 +100,24 @@ type Dep struct {
 
 func (d *Dep) Camel() string {
 	return gotext.Camel(d.Type)
+}
+
+func methodName(dataType string) (string, error) {
+	switch strings.TrimLeft(dataType, "*") {
+	case "bool":
+		return "Bool", nil
+	case "string":
+		return "String", nil
+	default:
+		return "", fmt.Errorf("command: unhandled type for method %q", dataType)
+	}
+}
+
+// Flatten out the commands
+func flatten(commands []*Command) (results []*Command) {
+	for _, cmd := range commands {
+		results = append(results, cmd)
+		results = append(results, flatten(cmd.Subs)...)
+	}
+	return results
 }

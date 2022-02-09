@@ -23,3 +23,30 @@ func Run(args ...string) int {
 	}
 	return 0
 }
+
+func run(args ...string) error {
+	dir, err := dirname()
+	if err != nil {
+		return err
+	}
+	bd, err := buddy.Load(dir)
+	if err != nil {
+		return err
+	}
+	cli, err := loadCLI(bd)
+	if err != nil {
+		return err
+	}
+	return cli.Parse(args...)
+}
+
+// dirname gets the directory of this file
+func dirname() (string, error) {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		return "", errors.New("unable to get the current filename")
+	}
+	return filepath.Dir(filename), nil
+}
+
+{{ $.Provider.Function }}

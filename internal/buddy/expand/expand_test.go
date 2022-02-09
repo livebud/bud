@@ -2,36 +2,26 @@ package expand_test
 
 import (
 	"context"
+	"os"
 	"testing"
 
-	"gitlab.com/mnm/bud/pkg/di"
-
-	"gitlab.com/mnm/bud/pkg/gen"
-	"gitlab.com/mnm/bud/pkg/parser"
-	"gitlab.com/mnm/bud/pkg/pluginfs"
+	"gitlab.com/mnm/bud/pkg/buddy"
 
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/internal/buddy/expand"
 	"gitlab.com/mnm/bud/internal/testdir"
-	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
 func TestEmpty(t *testing.T) {
-	t.SkipNow()
 	is := is.New(t)
 	td := testdir.New()
-	dir := t.TempDir()
+	dir := "_tmp"
+	is.NoErr(os.RemoveAll(dir))
 	err := td.Write(dir)
 	is.NoErr(err)
-	module, err := gomod.Find(dir)
+	bud, err := buddy.Load(dir)
 	is.NoErr(err)
-	pluginFS, err := pluginfs.Load(module)
-	is.NoErr(err)
-	genFS := gen.New(pluginFS)
-	parser := parser.New(genFS, module)
-	injector := di.New(genFS, module, parser)
-	expander := expand.New(genFS, injector, module, parser)
 	ctx := context.Background()
-	err = expander.Expand(ctx, &expand.Input{})
+	err = bud.Expand(ctx, &expand.Input{})
 	is.NoErr(err)
 }

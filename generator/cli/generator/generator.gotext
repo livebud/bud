@@ -1,0 +1,18 @@
+package generator
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+func New(
+) Map {
+	return Map{
+	}
+}
+
+type Map = map[string]gen.Generator

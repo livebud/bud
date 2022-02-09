@@ -2,10 +2,10 @@ package command
 
 import (
 	_ "embed"
-	"errors"
 
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/gotemplate"
+	"gitlab.com/mnm/bud/internal/imports"
 	"gitlab.com/mnm/bud/pkg/budfs"
 	"gitlab.com/mnm/bud/pkg/gen"
 	"gitlab.com/mnm/bud/pkg/gomod"
@@ -43,18 +43,21 @@ func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
 }
 
 func (g *Generator) Load() (*State, error) {
-	loader := &loader{Generator: g}
+	loader := &loader{Generator: g, imports: imports.New()}
 	return loader.Load()
 }
 
 type loader struct {
 	bail.Struct
 	*Generator
+	imports *imports.Set
 }
 
 func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
 	state = new(State)
-	l.Bail(errors.New("not implemented yet"))
+	l.imports.AddNamed("buddy", "gitlab.com/mnm/bud/pkg/buddy")
+	l.imports.AddNamed("generator", l.module.Import("bud/.cli/generator"))
+	state.Imports = l.imports.List()
 	return state, nil
 }
