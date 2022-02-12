@@ -3,15 +3,15 @@ package run
 import (
 	"context"
 
-	"gitlab.com/mnm/bud/pkg/gomod"
+	"gitlab.com/mnm/bud/pkg/buddy"
 )
 
-func New(mod *gomod.Module) *Command {
-	return &Command{mod}
+func New(kit buddy.Kit) *Command {
+	return &Command{kit}
 }
 
 type Command struct {
-	mod *gomod.Module
+	kit buddy.Kit
 }
 
 type Option func(option *option)

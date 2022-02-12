@@ -25,6 +25,7 @@ func (m *Module) Directory(subpaths ...string) string {
 }
 
 // DirFS returns an OS filesystem you can read and write from.
+// TODO: remove vfs.ReadWritable
 func (m *Module) DirFS(subpaths ...string) vfs.ReadWritable {
 	return vfs.OS(m.Directory(subpaths...))
 }

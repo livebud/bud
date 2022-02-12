@@ -4,23 +4,36 @@ import (
 	"context"
 	"io/fs"
 
+	"gitlab.com/mnm/bud/internal/dsync"
+	"gitlab.com/mnm/bud/internal/gobin"
 	"gitlab.com/mnm/bud/pkg/di"
 	"gitlab.com/mnm/bud/pkg/gen"
 
 	"gitlab.com/mnm/bud/pkg/parser"
 	"gitlab.com/mnm/bud/pkg/pluginfs"
 
-	"gitlab.com/mnm/bud/internal/buddy/build"
-	"gitlab.com/mnm/bud/internal/buddy/expand"
-	"gitlab.com/mnm/bud/internal/buddy/generate"
-	"gitlab.com/mnm/bud/internal/buddy/run"
 	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
-type Option func(d *Driver)
+type Kit interface {
+	// DirFS(subpaths ...string) vfs.ReadWritable
+	ImportPath(subpaths ...string) string
+	Parse(dir string) (*parser.Package, error)
+	Wire(fn *Function) (*Provider, error)
+	Generator(path string, generator gen.Generator) error
+	Open(name string) (fs.File, error)
+	Sync(from, to string) error
+	Go() Go
+}
+
+type Go interface {
+	Build(ctx context.Context, mainPath, outPath string) error
+}
+
+type Option func(*Kit)
 
 // Load the driver from a directory
-func Load(dir string, options ...Option) (*Driver, error) {
+func Load(dir string, options ...Option) (Kit, error) {
 	module, err := gomod.Find(dir)
 	if err != nil {
 		return nil, err
@@ -32,81 +45,72 @@ func Load(dir string, options ...Option) (*Driver, error) {
 	genFS := gen.New(pluginFS)
 	parser := parser.New(genFS, module)
 	injector := di.New(genFS, module, parser)
-	return &Driver{
-		mod:       module,
-		gen:       genFS,
-		parser:    parser,
-		injector:  injector,
-		expander:  expand.New(genFS, injector, module, parser),
-		generator: generate.New(module),
-		builder:   build.New(module),
-		runner:    run.New(module),
+	return &kit{
+		mod:      module,
+		gen:      genFS,
+		parser:   parser,
+		injector: injector,
+		golang:   &golang{module},
 	}, nil
 }
 
-// Driver is a single, public entrypoint that generators and commands can use to
-// extend Bud. The driver itself, should not do much, rather it should delegate
-// to various internal implementations.
-type Driver struct {
-	mod       *gomod.Module
-	gen       *gen.FileSystem
-	injector  *di.Injector
-	expander  *expand.Command
-	generator *generate.Command
-	builder   *build.Command
-	runner    *run.Command
-	parser    *parser.Parser
+type kit struct {
+	mod      *gomod.Module
+	gen      *gen.FileSystem
+	injector *di.Injector
+	parser   *parser.Parser
+	golang   *golang
 }
 
-// Expand input
-type Expand = expand.Input
-
-// Expand commands and user-defined generators and generate a "project CLI"
-func (d *Driver) Expand(ctx context.Context, in *Expand) error {
-	return d.expander.Expand(ctx, in)
-}
-
-// Generate bud files from the project CLI. Depends on Expand. Generate does not
-// run go build on the files.
-func (d *Driver) Generate(ctx context.Context, options ...generate.Option) error {
-	return d.generator.Generate(ctx, options...)
-}
-
-// Build an application from the generated files. Depends on Generate.
-func (d *Driver) Build(ctx context.Context, options ...build.Option) error {
-	return d.builder.Build(ctx, options...)
-}
-
-// Run an application from the generated files and watch for changes.
-// Depends on Generate.
-func (d *Driver) Run(ctx context.Context, options ...run.Option) error {
-	return d.runner.Run(ctx, options...)
-}
+// DirFS returns the app directory that's readable and writable.
+// func (k *kit) DirFS(subpaths ...string) vfs.ReadWritable {
+// 	return k.mod.DirFS(subpaths...)
+// }
 
 // ImportPath returns an import path within the application module.
-func (d *Driver) ImportPath(subpaths ...string) string {
-	return d.mod.Import(subpaths...)
+func (k *kit) ImportPath(subpaths ...string) string {
+	return k.mod.Import(subpaths...)
 }
 
 // Parse a Go package
-func (d *Driver) Parse(dir string) (*parser.Package, error) {
-	return d.parser.Parse(dir)
+func (k *kit) Parse(dir string) (*parser.Package, error) {
+	return k.parser.Parse(dir)
 }
 
 type Function = di.Function
 type Provider = di.Provider
 
 // Wire up a function
-func (d *Driver) Wire(fn *Function) (*Provider, error) {
-	return d.injector.Wire(fn)
+func (k *kit) Wire(fn *Function) (*Provider, error) {
+	return k.injector.Wire(fn)
 }
 
 // Generator adds a new generator
-func (d *Driver) Generator(path string, generator gen.Generator) {
-	d.gen.Add(map[string]gen.Generator{path: generator})
+func (k *kit) Generator(path string, generator gen.Generator) error {
+	k.gen.Add(map[string]gen.Generator{path: generator})
+	return nil
 }
 
 // Open a file. Implements fs.FS. Open is looped over to generate bud files.
-func (d *Driver) Open(name string) (fs.File, error) {
-	return d.gen.Open(name)
+func (k *kit) Open(name string) (fs.File, error) {
+	return k.gen.Open(name)
+}
+
+// Sync the generators with the filesystem.
+func (k *kit) Sync(from, to string) error {
+	return dsync.Dir(k.gen, from, k.mod.DirFS(to), ".")
+}
+
+// Get the Go commands.
+func (k *kit) Go() Go {
+	return k.golang
+}
+
+type golang struct {
+	mod *gomod.Module
+}
+
+// Run `go build`
+func (g *golang) Build(ctx context.Context, mainPath, outPath string) error {
+	return gobin.Build(ctx, g.mod.Directory(), mainPath, outPath)
 }

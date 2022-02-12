@@ -124,9 +124,22 @@ func writeModuleFS(mapfs fstest.MapFS, pv string, files map[string]string) error
 		ModTime: time.Now(),
 		Mode:    0644,
 	}
+	// Write the info file
+	infoFile := fmt.Sprintf(`{"Version":%q,"Time":%q}`, moduleVersion, time.Now().Format(time.RFC3339))
+	mapfs[extlessPath+".info"] = &fstest.MapFile{
+		Data:    []byte(infoFile),
+		ModTime: time.Now(),
+		Mode:    0644,
+	}
 	// Write the .mod
 	mapfs[extlessPath+".mod"] = &fstest.MapFile{
 		Data:    []byte(goMod),
+		ModTime: time.Now(),
+		Mode:    0644,
+	}
+	// Write the zip
+	mapfs[extlessPath+".zip"] = &fstest.MapFile{
+		Data:    zipData.Bytes(),
 		ModTime: time.Now(),
 		Mode:    0644,
 	}
@@ -304,15 +317,6 @@ func (z *zipEntry) Open() (io.ReadCloser, error) {
 	return ioutil.NopCloser(bytes.NewBufferString(z.data)), nil
 }
 
-// func (c *Cache) downloadDir(modulePath string) (string, error) {
-// 	module.EscapePath
-// 	enc, err := module.(modulePath)
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	return filepath.Join(c.cacheDir, "cache/download", enc, "/@v"), nil
-// }
-
 // ResolveDirectory returns the directory to which m should have been
 // downloaded. An error will be returned if the module path or version cannot be
 // escaped. An error satisfying errors.Is(err, os.ErrNotExist) will be returned
@@ -332,6 +336,18 @@ func (c *Cache) ResolveDirectory(modulePath, version string) (string, error) {
 	}
 	return dir, nil
 }
+
+// InCache returns true if the module with this version is in the cache,
+// otherwise it returns false.
+// func (c *Cache) InCache(modulePath, version string) (bool, error) {
+// 	if _, err := c.ResolveDirectory(modulePath, version); err != nil {
+// 		if !errors.Is(err, fs.ErrNotExist) {
+// 			return false, err
+// 		}
+// 		return false, nil
+// 	}
+// 	return true, nil
+// }
 
 // Import from a directory
 func (c *Cache) Import(from string) error {

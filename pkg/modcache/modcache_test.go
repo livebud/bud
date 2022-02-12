@@ -117,9 +117,12 @@ func TestWriteModuleFS(t *testing.T) {
 	})
 	is.NoErr(err)
 	err = exists(fsys,
+		"cache/download/mod.test/one/@v/v0.0.1.info",
+		"cache/download/mod.test/one/@v/v0.0.1.zip",
 		"cache/download/mod.test/one/@v/v0.0.1.mod",
 		"cache/download/mod.test/one/@v/v0.0.1.ziphash",
-		"cache/download/mod.test/one/@v/v0.0.1.ziphash",
+		"cache/download/mod.test/one/@v/v0.0.2.info",
+		"cache/download/mod.test/one/@v/v0.0.2.zip",
 		"cache/download/mod.test/one/@v/v0.0.2.mod",
 		"cache/download/mod.test/one/@v/v0.0.2.ziphash",
 		"mod.test/one@v0.0.1/const.go",

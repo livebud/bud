@@ -6,9 +6,8 @@ import (
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
+	"gitlab.com/mnm/bud/pkg/buddy"
 	"gitlab.com/mnm/bud/pkg/gen"
-	"gitlab.com/mnm/bud/pkg/gomod"
-	"gitlab.com/mnm/bud/pkg/parser"
 )
 
 //go:embed generator.gotext
@@ -16,14 +15,12 @@ var template string
 
 var generator = gotemplate.MustParse("generator.gotext", template)
 
-func New(genFS gen.FS, module *gomod.Module, parser *parser.Parser) *Generator {
-	return &Generator{genFS, module, parser}
+func New(kit buddy.Kit) *Generator {
+	return &Generator{kit}
 }
 
 type Generator struct {
-	genFS  gen.FS
-	module *gomod.Module
-	parser *parser.Parser
+	kit buddy.Kit
 }
 
 func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
@@ -55,8 +52,8 @@ type loader struct {
 func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
 	state = new(State)
-	// TODO: alias with buddy or runtime package
-	l.imports.AddNamed("gen", "gitlab.com/mnm/bud/pkg/gen")
+	l.imports.AddNamed("buddy", "gitlab.com/mnm/bud/pkg/buddy")
+	l.imports.AddNamed("generator", "gitlab.com/mnm/bud/runtime/cli/generator")
 	state.Imports = l.imports.List()
 	return state, nil
 }

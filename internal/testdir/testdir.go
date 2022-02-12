@@ -12,6 +12,8 @@ import (
 	"testing/fstest"
 	"time"
 
+	"gitlab.com/mnm/bud/internal/fstree"
+
 	"golang.org/x/sync/errgroup"
 
 	"gitlab.com/mnm/bud/internal/dsync"
@@ -159,8 +161,28 @@ func (d *Dir) mapfs() (fstest.MapFS, error) {
 	return mapfs, nil
 }
 
+type Option func(o *option)
+
+type option struct {
+	backup bool
+}
+
+func WithBackup(backup bool) Option {
+	return func(o *option) {
+		o.backup = backup
+	}
+}
+
 // Write testdir into dir
-func (d *Dir) Write(dir string) error {
+func (d *Dir) Write(dir string, options ...Option) error {
+	// Load the options
+	opt := &option{
+		backup: true,
+	}
+	for _, option := range options {
+		option(opt)
+	}
+	// Map out the filesystem
 	fsys, err := d.mapfs()
 	if err != nil {
 		return err
@@ -171,11 +193,13 @@ func (d *Dir) Write(dir string) error {
 		return err
 	}
 	// Try restoring from cache
-	cachedFS, err := snapshot.Restore(hash)
-	if nil == err {
-		return dsync.Dir(cachedFS, ".", vfs.OS(dir), ".")
-	} else if !errors.Is(err, fs.ErrNotExist) {
-		return err
+	if opt.backup {
+		cachedFS, err := snapshot.Restore(hash)
+		if nil == err {
+			return dsync.Dir(cachedFS, ".", vfs.OS(dir), ".")
+		} else if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
 	}
 	if err := dsync.Dir(fsys, ".", vfs.OS(dir), "."); err != nil {
 		return err
@@ -189,13 +213,15 @@ func (d *Dir) Write(dir string) error {
 	if err != nil {
 		return err
 	}
-	// Run `go mod tidy`
+
 	eg, ctx := errgroup.WithContext(context.Background())
+
+	// Download modules that aren't in the module cache
 	if _, ok := fsys["go.mod"]; ok {
-		cmd := exec.CommandContext(ctx, "go", "mod", "tidy")
+		cmd := exec.CommandContext(ctx, "go", "mod", "download", "-modcacherw")
 		cmd.Dir = dir
 		cmd.Stderr = os.Stderr
-		// cmd.Stdout = os.Stdout
+		cmd.Stdout = os.Stdout
 		cmd.Env = []string{
 			"HOME=" + os.Getenv("HOME"),
 			"PATH=" + os.Getenv("PATH"),
@@ -208,6 +234,7 @@ func (d *Dir) Write(dir string) error {
 		}
 		eg.Go(cmd.Run)
 	}
+
 	if _, ok := fsys["package.json"]; ok {
 		cmd := exec.CommandContext(ctx, "npm", "install", "--loglevel=error")
 		cmd.Dir = dir
@@ -229,8 +256,18 @@ func (d *Dir) Write(dir string) error {
 		return err
 	}
 	// Backing the snapshot up
-	if err := snapshot.Backup(hash, os.DirFS(dir)); err != nil {
-		return err
+	if opt.backup {
+		if err := snapshot.Backup(hash, os.DirFS(dir)); err != nil {
+			return err
+		}
 	}
 	return nil
+}
+
+func (d *Dir) Tree(dir string) (string, error) {
+	tree, err := fstree.Walk(os.DirFS(dir))
+	if err != nil {
+		return "", err
+	}
+	return tree.String(), nil
 }
