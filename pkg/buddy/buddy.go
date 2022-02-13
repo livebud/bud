@@ -15,12 +15,14 @@ import (
 	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
+type Generator = gen.Generator
+
 type Kit interface {
 	// DirFS(subpaths ...string) vfs.ReadWritable
 	ImportPath(subpaths ...string) string
 	Parse(dir string) (*parser.Package, error)
 	Wire(fn *Function) (*Provider, error)
-	Generator(path string, generator gen.Generator) error
+	Generators(generators map[string]Generator) error
 	Open(name string) (fs.File, error)
 	Sync(from, to string) error
 	Go() Go
@@ -62,11 +64,6 @@ type kit struct {
 	golang   *golang
 }
 
-// DirFS returns the app directory that's readable and writable.
-// func (k *kit) DirFS(subpaths ...string) vfs.ReadWritable {
-// 	return k.mod.DirFS(subpaths...)
-// }
-
 // ImportPath returns an import path within the application module.
 func (k *kit) ImportPath(subpaths ...string) string {
 	return k.mod.Import(subpaths...)
@@ -77,8 +74,13 @@ func (k *kit) Parse(dir string) (*parser.Package, error) {
 	return k.parser.Parse(dir)
 }
 
+// TODO: this is just going to get worse over time.
+type Dependency = di.Dependency
 type Function = di.Function
 type Provider = di.Provider
+type ErrorType = di.Error
+
+var ToType = di.ToType
 
 // Wire up a function
 func (k *kit) Wire(fn *Function) (*Provider, error) {
@@ -86,8 +88,8 @@ func (k *kit) Wire(fn *Function) (*Provider, error) {
 }
 
 // Generator adds a new generator
-func (k *kit) Generator(path string, generator gen.Generator) error {
-	k.gen.Add(map[string]gen.Generator{path: generator})
+func (k *kit) Generators(generators map[string]Generator) error {
+	k.gen.Add(generators)
 	return nil
 }
 

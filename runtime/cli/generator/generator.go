@@ -8,16 +8,17 @@ import (
 	"gitlab.com/mnm/bud/pkg/gen"
 )
 
-type Handler struct {
-	Path      string
-	Generator gen.Generator
-}
+type Map map[string]gen.Generator
 
-func Load(kit buddy.Kit, handlers ...Handler) (*Generator, error) {
-	for _, handler := range handlers {
-		if err := kit.Generator(handler.Path, handler.Generator); err != nil {
-			return nil, err
-		}
+// Load the generators
+func Load(kit buddy.Kit, generators Map) (*Generator, error) {
+	// Add the core generator
+	if err := kit.Generators(generators); err != nil {
+		return nil, err
+	}
+	// Add the user generators
+	if err := kit.Generators(generators); err != nil {
+		return nil, err
 	}
 	return &Generator{kit}, nil
 }

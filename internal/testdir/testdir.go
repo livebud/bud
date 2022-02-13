@@ -264,10 +264,18 @@ func (d *Dir) Write(dir string, options ...Option) error {
 	return nil
 }
 
-func (d *Dir) Tree(dir string) (string, error) {
+func Tree(dir string) (string, error) {
 	tree, err := fstree.Walk(os.DirFS(dir))
 	if err != nil {
 		return "", err
 	}
 	return tree.String(), nil
+}
+
+func ModCache(dir string) *modcache.Cache {
+	modDir := filepath.Join(dir, ".mod")
+	if _, err := os.Stat(modDir); err != nil {
+		return modcache.Default()
+	}
+	return modcache.New(modDir)
 }

@@ -10,11 +10,11 @@ import (
 {{- end }}
 
 type CLI struct {
-	Buddy *buddy.Driver
-	Generator generator.Map
+	Kit buddy.Kit
+	Generator *generator.Generator
 }
 
 func (c *CLI) Parse(args ...string) error {
-	println(c.Buddy.ImportPath())
+	println(c.Kit.ImportPath())
 	panic("Parse not implemented yet")
 }

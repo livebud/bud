@@ -9,6 +9,12 @@ import (
 )
 {{- end }}
 
-func New(kit buddy.Kit) (*generator.Generator, error) {
-	return generator.Load(kit)
+func New(
+	kit buddy.Kit,
+) (*Generator, error) {
+	return generator.Load(kit, generator.Map{
+
+	})
 }
+
+type Generator = generator.Generator

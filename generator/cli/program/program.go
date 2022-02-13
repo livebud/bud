@@ -7,9 +7,9 @@ import (
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
+	"gitlab.com/mnm/bud/pkg/buddy"
 	"gitlab.com/mnm/bud/pkg/di"
 	"gitlab.com/mnm/bud/pkg/gen"
-	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
 //go:embed program.gotext
@@ -17,14 +17,12 @@ var template string
 
 var generator = gotemplate.MustParse("program.gotext", template)
 
-func New(genFS gen.FS, injector *di.Injector, module *gomod.Module) *Generator {
-	return &Generator{genFS, injector, module}
+func New(kit buddy.Kit) *Generator {
+	return &Generator{kit}
 }
 
 type Generator struct {
-	genFS    gen.FS
-	injector *di.Injector
-	module   *gomod.Module
+	kit buddy.Kit
 }
 
 func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
@@ -61,14 +59,14 @@ func (l *loader) Load() (state *State, err error) {
 	l.imports.AddNamed("console", "gitlab.com/mnm/bud/pkg/log/console")
 	l.imports.AddNamed("buddy", "gitlab.com/mnm/bud/pkg/buddy")
 	// Inject the provider
-	state.Provider, err = l.injector.Wire(&di.Function{
+	state.Provider, err = l.kit.Wire(&di.Function{
 		Name:   "loadCLI",
-		Target: l.module.Import("bud/.cli/program"),
+		Target: l.kit.ImportPath("bud/.cli/program"),
 		Params: []di.Dependency{
-			di.ToType("gitlab.com/mnm/bud/pkg/buddy", "*Driver"),
+			di.ToType("gitlab.com/mnm/bud/pkg/buddy", "Kit"),
 		},
 		Results: []di.Dependency{
-			di.ToType(l.module.Import("bud/.cli/command"), "*CLI"),
+			di.ToType(l.kit.ImportPath("bud/.cli/command"), "*CLI"),
 			&di.Error{},
 		},
 	})
