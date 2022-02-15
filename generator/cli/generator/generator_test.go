@@ -126,7 +126,6 @@ func TestEmpty(t *testing.T) {
 	is.NoErr(err)
 	td := testdir.New()
 	// td.Files["main.go"] = mainFile
-	is.NoErr(os.RemoveAll(dir))
 	err = td.Write(dir)
 	is.NoErr(err)
 	stdout, err := run(dir)

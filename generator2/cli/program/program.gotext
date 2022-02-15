@@ -1,0 +1,52 @@
+package program
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+func Run(args ...string) int {
+	if err := run(args...); err != nil {
+		if errors.Is(err, context.Canceled) {
+			// Unfortunately interrupts like SIGINT trigger a non-zero exit code,
+			// regardless of whether you do os.Exit(0) or not. We're going to use exit
+			// code 3 to distinguish between non-zero exit codes so "bud run" can know
+			// that we exited cleanly on an interrupt.
+			return 3
+		}
+		console.Error(err.Error())
+		return 1
+	}
+	return 0
+}
+
+func run(args ...string) error {
+	dir, err := dirname()
+	if err != nil {
+		return err
+	}
+	bd, err := buddy.Load(dir)
+	if err != nil {
+		return err
+	}
+	cli, err := loadCLI(bd)
+	if err != nil {
+		return err
+	}
+	return cli.Parse(args...)
+}
+
+// dirname gets the directory of this file
+func dirname() (string, error) {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		return "", errors.New("unable to get the current filename")
+	}
+	return filepath.Dir(filename), nil
+}
+
+{{ $.Provider.Function }}
