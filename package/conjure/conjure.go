@@ -22,25 +22,37 @@ type FS interface {
 	fs.FS
 }
 
-func (f *FileSystem) File(path string, generator FileGenerator) {
-	f.radix.Set(path, &fileGenerator{path, generator})
+func (f *FileSystem) GenerateFile(path string, fn func(f *File) error) {
+	f.radix.Set(path, &fileGenerator{path, fn})
 	f.filler[path] = &fstest.MapFile{}
 }
 
-func (f *FileSystem) Dir(path string, generator DirGenerator) {
+func (f *FileSystem) FileGenerator(path string, generator FileGenerator) {
+	f.GenerateFile(path, generator.GenerateFile)
+}
+
+func (f *FileSystem) GenerateDir(path string, fn func(d *Dir) error) {
 	f.filler[path] = &fstest.MapFile{Mode: fs.ModeDir}
 	f.radix.Set(path, &dirg{
 		path:   path,
-		gen:    generator,
+		fn:     fn,
 		filler: f.filler,
 	})
 }
 
-func (f *FileSystem) ServeFile(path string, server FileServer) {
+func (f *FileSystem) DirGenerator(path string, generator DirGenerator) {
+	f.GenerateDir(path, generator.GenerateDir)
+}
+
+func (f *FileSystem) ServeFile(path string, fn func(f *File) error) {
 	f.radix.Set(path, &serverg{
-		path:   path,
-		server: server,
+		path: path,
+		fn:   fn,
 	})
+}
+
+func (f *FileSystem) FileServer(path string, server FileServer) {
+	f.ServeFile(path, server.ServeFile)
 }
 
 func (f *FileSystem) Open(target string) (fs.File, error) {

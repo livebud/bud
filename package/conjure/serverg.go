@@ -5,19 +5,13 @@ import (
 	"io/fs"
 )
 
-type ServeFile func(file *File) error
-
-func (fn ServeFile) ServeFile(file *File) error {
-	return fn(file)
-}
-
 type FileServer interface {
 	ServeFile(file *File) error
 }
 
 type serverg struct {
-	path   string // defined generator path
-	server FileServer
+	path string // defined generator path
+	fn   func(f *File) error
 }
 
 func (g *serverg) Generate(target string) (fs.File, error) {
@@ -27,7 +21,7 @@ func (g *serverg) Generate(target string) (fs.File, error) {
 	file := &File{
 		path: target,
 	}
-	if err := g.server.ServeFile(file); err != nil {
+	if err := g.fn(file); err != nil {
 		return nil, fmt.Errorf("conjure: serve %q > %w", target, err)
 	}
 	return file.open()

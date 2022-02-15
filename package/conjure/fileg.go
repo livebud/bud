@@ -5,19 +5,13 @@ import (
 	"io/fs"
 )
 
-type GenerateFile func(file *File) error
-
-func (fn GenerateFile) GenerateFile(file *File) error {
-	return fn(file)
-}
-
 type FileGenerator interface {
 	GenerateFile(file *File) error
 }
 
 type fileGenerator struct {
 	path string
-	gen  FileGenerator
+	fn   func(file *File) error
 }
 
 func (g *fileGenerator) Generate(target string) (fs.File, error) {
@@ -29,7 +23,7 @@ func (g *fileGenerator) Generate(target string) (fs.File, error) {
 	file := &File{
 		path: target,
 	}
-	if err := g.gen.GenerateFile(file); err != nil {
+	if err := g.fn(file); err != nil {
 		return nil, fmt.Errorf("conjure: generate %q > %w", target, err)
 	}
 	return file.open()

@@ -19,24 +19,24 @@ import (
 	"gitlab.com/mnm/bud/package/mergefs"
 )
 
-func View() conjure.DirGenerator {
-	return conjure.GenerateDir(func(dir *conjure.Dir) error {
-		dir.File("index.svelte", conjure.GenerateFile(func(file *conjure.File) error {
+func View() func(dir *conjure.Dir) error {
+	return func(dir *conjure.Dir) error {
+		dir.GenerateFile("index.svelte", func(file *conjure.File) error {
 			file.Data = []byte(`<h1>index</h1>`)
 			return nil
-		}))
-		dir.File("about/about.svelte", conjure.GenerateFile(func(file *conjure.File) error {
+		})
+		dir.GenerateFile("about/about.svelte", func(file *conjure.File) error {
 			file.Data = []byte(`<h2>about</h2>`)
 			return nil
-		}))
+		})
 		return nil
-	})
+	}
 }
 
 func TestFS(t *testing.T) {
 	is := is.New(t)
 	cfs := conjure.New()
-	cfs.Dir("duo/view", View())
+	cfs.GenerateDir("duo/view", View())
 
 	// 1. duo
 	file, err := cfs.Open("duo")
@@ -264,18 +264,18 @@ func TestFS(t *testing.T) {
 func TestDir(t *testing.T) {
 	is := is.New(t)
 	cfs := conjure.New()
-	cfs.Dir("duo/view", conjure.GenerateDir(func(dir *conjure.Dir) error {
-		dir.Dir("about", conjure.GenerateDir(func(dir *conjure.Dir) error {
-			dir.Dir("me", conjure.GenerateDir(func(dir *conjure.Dir) error {
+	cfs.GenerateDir("duo/view", func(dir *conjure.Dir) error {
+		dir.GenerateDir("about", func(dir *conjure.Dir) error {
+			dir.GenerateDir("me", func(dir *conjure.Dir) error {
 				return nil
-			}))
+			})
 			return nil
-		}))
-		dir.Dir("users/admin", conjure.GenerateDir(func(dir *conjure.Dir) error {
+		})
+		dir.GenerateDir("users/admin", func(dir *conjure.Dir) error {
 			return nil
-		}))
+		})
 		return nil
-	}))
+	})
 	des, err := fs.ReadDir(cfs, "duo")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
@@ -309,9 +309,9 @@ func TestDir(t *testing.T) {
 func TestGenerateFileError(t *testing.T) {
 	is := is.New(t)
 	cfs := conjure.New()
-	cfs.File("duo/main.go", conjure.GenerateFile(func(file *conjure.File) error {
+	cfs.GenerateFile("duo/main.go", func(file *conjure.File) error {
 		return fs.ErrNotExist
-	}))
+	})
 	code, err := fs.ReadFile(cfs, "duo/main.go")
 	is.True(err != nil)
 	is.Equal(err.Error(), `conjure: generate "duo/main.go" > file does not exist`)
@@ -322,10 +322,10 @@ func TestGenerateFileError(t *testing.T) {
 func TestServeFile(t *testing.T) {
 	is := is.New(t)
 	cfs := conjure.New()
-	cfs.ServeFile("duo/view", conjure.ServeFile(func(file *conjure.File) error {
+	cfs.ServeFile("duo/view", func(file *conjure.File) error {
 		file.Data = []byte(file.Path() + `'s data`)
 		return nil
-	}))
+	})
 	des, err := fs.ReadDir(cfs, "duo/view")
 	is.True(errors.Is(err, fs.ErrInvalid))
 	is.Equal(len(des), 0)
@@ -364,10 +364,10 @@ func TestServeFile(t *testing.T) {
 func TestHTTP(t *testing.T) {
 	is := is.New(t)
 	cfs := conjure.New()
-	cfs.ServeFile("bud/view", conjure.ServeFile(func(file *conjure.File) error {
+	cfs.ServeFile("bud/view", func(file *conjure.File) error {
 		file.Data = []byte(file.Path() + `'s data`)
 		return nil
-	}))
+	})
 	hfs := http.FS(cfs)
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
@@ -405,13 +405,13 @@ func TestTargetPath(t *testing.T) {
 	is := is.New(t)
 	// Test inner file and rootless
 	cfs := conjure.New()
-	cfs.Dir("duo/view", conjure.GenerateDir(func(dir *conjure.Dir) error {
-		dir.File("about/about.svelte", conjure.GenerateFile(func(file *conjure.File) error {
+	cfs.GenerateDir("duo/view", func(dir *conjure.Dir) error {
+		dir.GenerateFile("about/about.svelte", func(file *conjure.File) error {
 			file.Data = []byte(rootless(file.Path()))
 			return nil
-		}))
+		})
 		return nil
-	}))
+	})
 	code, err := fs.ReadFile(cfs, "duo/view/about/about.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), "view/about/about.svelte")
@@ -420,17 +420,17 @@ func TestTargetPath(t *testing.T) {
 func TestDynamicDir(t *testing.T) {
 	is := is.New(t)
 	cfs := conjure.New()
-	cfs.Dir("duo/view", conjure.GenerateDir(func(dir *conjure.Dir) error {
+	cfs.GenerateDir("duo/view", func(dir *conjure.Dir) error {
 		doms := []string{"about/about.svelte", "index.svelte"}
 		for _, dom := range doms {
 			dom := dom
-			dir.File(dom, conjure.GenerateFile(func(file *conjure.File) error {
+			dir.GenerateFile(dom, func(file *conjure.File) error {
 				file.Data = []byte(`<h1>` + dom + `</h1>`)
 				return nil
-			}))
+			})
 		}
 		return nil
-	}))
+	})
 	des, err := fs.ReadDir(cfs, "duo/view")
 	is.NoErr(err)
 	is.Equal(len(des), 2)
@@ -445,12 +445,12 @@ func TestDynamicDir(t *testing.T) {
 func TestBases(t *testing.T) {
 	is := is.New(t)
 	cfs := conjure.New()
-	cfs.Dir("duo/view", conjure.GenerateDir(func(dir *conjure.Dir) error {
+	cfs.GenerateDir("duo/view", func(dir *conjure.Dir) error {
 		return nil
-	}))
-	cfs.Dir("duo/controller", conjure.GenerateDir(func(dir *conjure.Dir) error {
+	})
+	cfs.GenerateDir("duo/controller", func(dir *conjure.Dir) error {
 		return nil
-	}))
+	})
 	stat, err := fs.Stat(cfs, "duo/controller")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "controller")
@@ -462,26 +462,26 @@ func TestBases(t *testing.T) {
 func TestDirPath(t *testing.T) {
 	is := is.New(t)
 	cfs := conjure.New()
-	cfs.Dir("duo/view", conjure.GenerateDir(func(dir *conjure.Dir) error {
-		dir.Dir("public", conjure.GenerateDir(func(dir *conjure.Dir) error {
-			dir.File("favicon.ico", conjure.GenerateFile(func(file *conjure.File) error {
+	cfs.GenerateDir("duo/view", func(dir *conjure.Dir) error {
+		dir.GenerateDir("public", func(dir *conjure.Dir) error {
+			dir.GenerateFile("favicon.ico", func(file *conjure.File) error {
 				file.Data = []byte("cool_favicon.ico")
 				return nil
-			}))
+			})
 			return nil
-		}))
+		})
 		return nil
-	}))
-	cfs.Dir("duo", conjure.GenerateDir(func(dir *conjure.Dir) error {
-		dir.Dir("controller", conjure.GenerateDir(func(dir *conjure.Dir) error {
-			dir.File("controller.go", conjure.GenerateFile(func(file *conjure.File) error {
+	})
+	cfs.GenerateDir("duo", func(dir *conjure.Dir) error {
+		dir.GenerateDir("controller", func(dir *conjure.Dir) error {
+			dir.GenerateFile("controller.go", func(file *conjure.File) error {
 				file.Data = []byte("package controller")
 				return nil
-			}))
+			})
 			return nil
-		}))
+		})
 		return nil
-	}))
+	})
 	code, err := fs.ReadFile(cfs, "duo/view/public/favicon.ico")
 	is.NoErr(err)
 	is.Equal(string(code), "cool_favicon.ico")
@@ -493,24 +493,24 @@ func TestDirPath(t *testing.T) {
 func TestDirMerge(t *testing.T) {
 	is := is.New(t)
 	cfs := conjure.New()
-	cfs.Dir("duo/view", conjure.GenerateDir(func(dir *conjure.Dir) error {
-		dir.File("index.svelte", conjure.GenerateFile(func(file *conjure.File) error {
+	cfs.GenerateDir("duo/view", func(dir *conjure.Dir) error {
+		dir.GenerateFile("index.svelte", func(file *conjure.File) error {
 			file.Data = []byte(`<h1>index</h1>`)
 			return nil
-		}))
-		dir.Dir("somedir", conjure.GenerateDir(func(dir *conjure.Dir) error {
+		})
+		dir.GenerateDir("somedir", func(dir *conjure.Dir) error {
 			return nil
-		}))
+		})
 		return nil
-	}))
-	cfs.File("duo/view/view.go", conjure.GenerateFile(func(file *conjure.File) error {
+	})
+	cfs.GenerateFile("duo/view/view.go", func(file *conjure.File) error {
 		file.Data = []byte(`package view`)
 		return nil
-	}))
-	cfs.File("duo/view/plugin.go", conjure.GenerateFile(func(file *conjure.File) error {
+	})
+	cfs.GenerateFile("duo/view/plugin.go", func(file *conjure.File) error {
 		file.Data = []byte(`package plugin`)
 		return nil
-	}))
+	})
 	// duo/view
 	des, err := fs.ReadDir(cfs, "duo/view")
 	is.NoErr(err)
@@ -529,16 +529,16 @@ func TestAddGenerator(t *testing.T) {
 	is := is.New(t)
 	// Add the view
 	cfs := conjure.New()
-	cfs.Dir("duo/view", View())
+	cfs.GenerateDir("duo/view", View())
 
 	// Add the controller
-	cfs.Dir("duo/controller", conjure.GenerateDir(func(dir *conjure.Dir) error {
-		dir.File("controller.go", conjure.GenerateFile(func(file *conjure.File) error {
+	cfs.GenerateDir("duo/controller", func(dir *conjure.Dir) error {
+		dir.GenerateFile("controller.go", func(file *conjure.File) error {
 			file.Data = []byte(`package controller`)
 			return nil
-		}))
+		})
 		return nil
-	}))
+	})
 
 	des, err := fs.ReadDir(cfs, "duo")
 	is.NoErr(err)
@@ -567,10 +567,10 @@ func (c *commandGenerator) GenerateFile(file *conjure.File) error {
 }
 
 func (c *commandGenerator) GenerateDir(dir *conjure.Dir) error {
-	dir.File("index.svelte", conjure.GenerateFile(func(file *conjure.File) error {
+	dir.GenerateFile("index.svelte", func(file *conjure.File) error {
 		file.Data = []byte(c.Input + c.Input)
 		return nil
-	}))
+	})
 	return nil
 }
 
@@ -582,7 +582,7 @@ func (c *commandGenerator) ServeFile(file *conjure.File) error {
 func TestFileGenerator(t *testing.T) {
 	is := is.New(t)
 	cfs := conjure.New()
-	cfs.File("duo/command/command.go", &commandGenerator{Input: "a"})
+	cfs.FileGenerator("duo/command/command.go", &commandGenerator{Input: "a"})
 	code, err := fs.ReadFile(cfs, "duo/command/command.go")
 	is.NoErr(err)
 	is.Equal(string(code), "aa")
@@ -592,7 +592,7 @@ func TestDirGenerator(t *testing.T) {
 	is := is.New(t)
 	// Add the view
 	cfs := conjure.New()
-	cfs.Dir("duo/view", &commandGenerator{Input: "a"})
+	cfs.DirGenerator("duo/view", &commandGenerator{Input: "a"})
 	code, err := fs.ReadFile(cfs, "duo/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), "aa")
@@ -601,7 +601,7 @@ func TestDirGenerator(t *testing.T) {
 func TestFileServer(t *testing.T) {
 	is := is.New(t)
 	cfs := conjure.New()
-	cfs.ServeFile("duo/view", &commandGenerator{Input: "a"})
+	cfs.FileServer("duo/view", &commandGenerator{Input: "a"})
 	code, err := fs.ReadFile(cfs, "duo/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), "a/duo/view/index.svelte")
@@ -610,14 +610,14 @@ func TestFileServer(t *testing.T) {
 func TestDotReadDirEmpty(t *testing.T) {
 	is := is.New(t)
 	cfs := conjure.New()
-	cfs.File("bud/generate/main.go", conjure.GenerateFile(func(file *conjure.File) error {
+	cfs.GenerateFile("bud/generate/main.go", func(file *conjure.File) error {
 		file.Data = []byte("package main")
 		return nil
-	}))
-	cfs.File("go.mod", conjure.GenerateFile(func(file *conjure.File) error {
+	})
+	cfs.GenerateFile("go.mod", func(file *conjure.File) error {
 		file.Data = []byte("module pkg")
 		return nil
-	}))
+	})
 	des, err := fs.ReadDir(cfs, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 2)
@@ -635,14 +635,14 @@ func TestDotReadDirFiles(t *testing.T) {
 		"a.txt": &fstest.MapFile{Data: []byte("a"), Mode: 0644},
 		"b.txt": &fstest.MapFile{Data: []byte("b"), Mode: 0644},
 	}
-	cfs.File("bud/generate/main.go", conjure.GenerateFile(func(file *conjure.File) error {
+	cfs.GenerateFile("bud/generate/main.go", func(file *conjure.File) error {
 		file.Data = []byte("package main")
 		return nil
-	}))
-	cfs.File("go.mod", conjure.GenerateFile(func(file *conjure.File) error {
+	})
+	cfs.GenerateFile("go.mod", func(file *conjure.File) error {
 		file.Data = []byte("module pkg")
 		return nil
-	}))
+	})
 	fsys := mergefs.Merge(cfs, mapfs)
 	des, err := fs.ReadDir(fsys, ".")
 	is.NoErr(err)
@@ -655,10 +655,10 @@ func TestReadDirDuplicates(t *testing.T) {
 		"go.mod": &fstest.MapFile{Data: []byte(`module app.com`)},
 	}
 	cfs := conjure.New()
-	cfs.File("go.mod", conjure.GenerateFile(func(file *conjure.File) error {
+	cfs.GenerateFile("go.mod", func(file *conjure.File) error {
 		file.Data = []byte("module app.cool")
 		return nil
-	}))
+	})
 	fsys := mergefs.Merge(cfs, mapfs)
 	des, err := fs.ReadDir(fsys, ".")
 	is.NoErr(err)
@@ -673,17 +673,17 @@ func TestEmbedOpen(t *testing.T) {
 	is := is.New(t)
 	now := time.Now()
 	cfs := conjure.New()
-	cfs.File("duo/view/index.svelte", &conjure.Embed{
+	cfs.FileGenerator("duo/view/index.svelte", &conjure.Embed{
 		Data:    []byte(`<h1>index</h1>`),
 		Mode:    fs.FileMode(0644),
 		ModTime: now,
 	})
-	cfs.File("duo/view/about/about.svelte", &conjure.Embed{
+	cfs.FileGenerator("duo/view/about/about.svelte", &conjure.Embed{
 		Data:    []byte(`<h1>about</h1>`),
 		Mode:    fs.FileMode(0644),
 		ModTime: now,
 	})
-	cfs.File("duo/public/favicon.ico", &conjure.Embed{
+	cfs.FileGenerator("duo/public/favicon.ico", &conjure.Embed{
 		Data:    []byte(`favicon.ico`),
 		Mode:    fs.FileMode(0644),
 		ModTime: now,
@@ -730,10 +730,10 @@ func TestEmbedOpen(t *testing.T) {
 func TestGoModGoMod(t *testing.T) {
 	is := is.New(t)
 	cfs := conjure.New()
-	cfs.File("go.mod", conjure.GenerateFile(func(file *conjure.File) error {
+	cfs.GenerateFile("go.mod", func(file *conjure.File) error {
 		file.Data = []byte("module app.com\nrequire mod.test/module v1.2.4")
 		return nil
-	}))
+	})
 	stat, err := fs.Stat(cfs, "go.mod/go.mod")
 	is.True(err != nil)
 	is.True(errors.Is(err, fs.ErrNotExist))
@@ -746,7 +746,7 @@ func TestGoModGoMod(t *testing.T) {
 func TestGoModGoModEmbed(t *testing.T) {
 	is := is.New(t)
 	cfs := conjure.New()
-	cfs.File("go.mod", &conjure.Embed{
+	cfs.FileGenerator("go.mod", &conjure.Embed{
 		Data: []byte("module app.com\nrequire mod.test/module v1.2.4"),
 	})
 	stat, err := fs.Stat(cfs, "go.mod/go.mod")
