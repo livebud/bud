@@ -2,6 +2,7 @@ package command
 
 import (
 	_ "embed"
+	"strconv"
 
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/gotemplate"
@@ -51,8 +52,43 @@ type loader struct {
 func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
 	state = new(State)
-	l.imports.AddNamed("buddy", "gitlab.com/mnm/bud/pkg/buddy")
 	l.imports.AddNamed("generator", l.module.Import("bud/.cli/generator"))
-	state.Imports = l.imports.List()
+	l.imports.AddNamed("commander", "gitlab.com/mnm/bud/pkg/commander")
+	l.imports.AddNamed("build", "gitlab.com/mnm/bud/package/command/build")
+	// state.Imports = l.imports.List()
+
+	// TODO: finish state
+	state = &State{
+		Imports: l.imports.List(),
+		Command: &Command{
+			Name: "cli",
+			Subs: []*Command{
+				&Command{
+					Name:     "build",
+					Runnable: true,
+					Import:   &imports.Import{Name: "build", Path: "gitlab.com/mnm/bud/package/command/build"},
+					Flags: []*Flag{
+						&Flag{
+							Name:    "dir",
+							Type:    "string",
+							Help:    "project directory",
+							Default: strconv.Quote(l.module.Directory()),
+						},
+					},
+					Deps: []*Dep{
+						&Dep{
+							Import: &imports.Import{Name: "generator", Path: l.module.Import("bud/.cli/generator")},
+							Name:   "Generator",
+							Type:   "*generator.Generator",
+						},
+					},
+				},
+				// &Command{
+				// 	Name:   "run",
+				// 	Import: &imports.Import{Name: "run", Path: ""},
+				// },
+			},
+		},
+	}
 	return state, nil
 }

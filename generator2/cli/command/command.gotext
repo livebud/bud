@@ -9,12 +9,72 @@ import (
 )
 {{- end }}
 
-type CLI struct {
-	Kit buddy.Kit
-	Generator *generator.Generator
+// Load the CLI
+// TODO: remove unused arguments. We currently need them because di will
+// remove these parameters if they're unused, breaking the signature. This
+// should be fixed in di.
+func Load(generator *generator.Generator, commands *Commands) *CLI {
+	return &CLI{generator, commands}
 }
 
-func (c *CLI) Parse(args ...string) error {
-	println(c.Kit.ImportPath())
-	return nil
+type CLI struct {
+	generator *generator.Generator
+	commands *Commands
 }
+
+{{- define "command" }}
+{{- range $flag := $.Flags }}
+cmd.Flag(`{{ $flag.Slug }}`, `{{ $flag.Help }}`).{{ $flag.Method }}(&c.commands.{{ $.Full.Pascal }}Command.{{ $flag.Pascal }}){{ if $flag.Default }}.Default({{ $flag.Default }}){{ end }}
+{{- end }}
+{{- range $arg := $.Args }}
+cmd.Arg(`{{ $arg.Slug }}`, `{{ $arg.Help }}`).{{ $arg.Method }}(&c.commands.{{ $.Full.Pascal }}Command.{{ $arg.Pascal }}){{ if $arg.Default }}.Default({{ $arg.Default }}){{ end }}
+{{- end }}
+{{- if $.Runnable }}
+cmd.Run(c.commands.{{ $.Full.Pascal }}Command.Run)
+{{ end }}
+{{- range $sub := $.Subs }}
+
+{ // $ {{ $.Name }} {{ $sub.Name }}
+	cmd := cmd.Command(`{{ $sub.Name }}`, `{{ $sub.Help}}`)
+	{{- template "command" $sub }}
+}
+{{- end }}
+{{- end }}
+
+func (c *CLI) Parse(args ...string) error {
+	// $ bud run/build
+	cmd := commander.New(`{{ $.Command.Slug }}`)
+	{{- template "command" $.Command }}
+
+	return cmd.Parse(args)
+}
+
+// Commands contains all of the commands
+type Commands struct {
+	{{- range $cmd := $.Commands }}
+	{{ $cmd.Full.Pascal }}Command *{{ $cmd.Full.Pascal }}Command
+	{{- end }}
+}
+
+{{- range $cmd := $.Commands }}
+
+// Load{{ $cmd.Full.Pascal }}Command loads the command
+func Load{{ $cmd.Full.Pascal }}Command(
+{{- range $dep := $cmd.Deps }}
+{{ $dep.Camel }} {{ $dep.Type }},
+{{- end }}
+) *{{ $cmd.Full.Pascal }}Command {
+	return &{{ $cmd.Full.Pascal }}Command{
+		{{- range $dep := $cmd.Deps }}
+		{{ $dep.Name }}: {{ $dep.Camel }},
+		{{- end }}
+	}
+}
+
+{{- if $cmd.Import }}
+
+// {{ $cmd.Full.Pascal }}Command is an alias to `{{ $cmd.Import.Path }}`
+type {{ $cmd.Full.Pascal }}Command = {{ $cmd.Import.Name }}.Command
+{{- end }}
+
+{{- end }}

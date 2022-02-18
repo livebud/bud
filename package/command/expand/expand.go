@@ -1,17 +1,12 @@
-package expander
+package expand
 
 import (
 	"context"
-	"io"
-	"io/fs"
-	"os"
-	"os/exec"
 
 	"gitlab.com/mnm/bud/generator2/cli/command"
 	"gitlab.com/mnm/bud/generator2/cli/generator"
 	"gitlab.com/mnm/bud/generator2/cli/mainfile"
 	"gitlab.com/mnm/bud/generator2/cli/program"
-	"gitlab.com/mnm/bud/internal/dsync"
 	"gitlab.com/mnm/bud/internal/gobin"
 	"gitlab.com/mnm/bud/package/overlay"
 	"gitlab.com/mnm/bud/pkg/di"
@@ -19,7 +14,7 @@ import (
 	"gitlab.com/mnm/bud/pkg/parser"
 )
 
-func Load(dir string) (*Expander, error) {
+func Load(dir string) (*Command, error) {
 	module, err := gomod.Find(dir)
 	if err != nil {
 		return nil, err
@@ -34,42 +29,26 @@ func Load(dir string) (*Expander, error) {
 	ofs.FileGenerator("bud/.cli/program/program.go", program.New(injector, module))
 	ofs.FileGenerator("bud/.cli/command/command.go", command.New(module))
 	ofs.FileGenerator("bud/.cli/generator/generator.go", generator.New())
-	if err := dsync.Dir(ofs, ".", module.DirFS("."), "."); err != nil {
-		return nil, err
-	}
-	return &Expander{
+	return &Command{
 		dir:     dir,
 		overlay: ofs,
 		module:  module,
-		Env:     os.Environ(),
-		Stdout:  os.Stdout,
-		Stderr:  os.Stderr,
 	}, nil
 }
 
-type Expander struct {
+type Command struct {
 	dir     string
-	overlay fs.FS
+	overlay *overlay.FileSystem
 	module  *gomod.Module
-	Env     []string
-	Stdout  io.Writer
-	Stderr  io.Writer
 }
 
-func (e *Expander) Expand(ctx context.Context, args ...string) error {
-	// Generate the CLI
-	if err := dsync.Dir(e.overlay, ".", e.module.DirFS("."), "."); err != nil {
+func (c *Command) Run(ctx context.Context) error {
+	if err := c.overlay.Sync("bud/.cli"); err != nil {
 		return err
 	}
 	// Build the CLI
-	if err := gobin.Build(ctx, e.dir, "bud/.cli/main.go", "bud/cli"); err != nil {
+	if err := gobin.Build(ctx, c.dir, "bud/.cli/main.go", "bud/cli"); err != nil {
 		return err
 	}
-	// Run the CLI
-	cmd := exec.CommandContext(ctx, "./bud/cli", args...)
-	cmd.Dir = e.dir
-	cmd.Stdout = e.Stdout
-	cmd.Stderr = e.Stderr
-	cmd.Env = e.Env
-	return cmd.Run()
+	return nil
 }

@@ -57,13 +57,15 @@ func (l *loader) Load() (state *State, err error) {
 	// Add imports
 	l.imports.AddStd("errors", "context", "path/filepath", "runtime")
 	l.imports.AddNamed("console", "gitlab.com/mnm/bud/pkg/log/console")
-	l.imports.AddNamed("buddy", "gitlab.com/mnm/bud/pkg/buddy")
 	// Inject the provider
 	state.Provider, err = l.injector.Wire(&di.Function{
 		Name:   "loadCLI",
 		Target: l.module.Import("bud/.cli/program"),
 		Params: []di.Dependency{
-			di.ToType("gitlab.com/mnm/bud/pkg/buddy", "Kit"),
+			di.ToType("gitlab.com/mnm/bud/pkg/di", "*Injector"),
+			di.ToType("gitlab.com/mnm/bud/pkg/gomod", "*Module"),
+			di.ToType("gitlab.com/mnm/bud/package/overlay", "*FileSystem"),
+			di.ToType("gitlab.com/mnm/bud/pkg/parser", "*Parser"),
 		},
 		Results: []di.Dependency{
 			di.ToType(l.module.Import("bud/.cli/command"), "*CLI"),

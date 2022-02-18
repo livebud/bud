@@ -10,11 +10,24 @@ import (
 {{- end }}
 
 func New(
-	kit buddy.Kit,
-) (*Generator, error) {
-	return generator.Load(kit, generator.Map{
-
-	})
+	ofs *overlay.FileSystem,
+	{{- range $generator := $.Generators }}
+	{{ $generator.Camel }} *{{ $generator.Import.Name }}.Generator,
+	{{- end }}
+) *Generator {
+	{{- range $generator := $.Generators }}
+	ofs.DirGenerator(`{{ $generator.Path }}`, {{ $generator.Camel }})
+	{{- end }}
+	return &Generator{ofs}
 }
 
-type Generator = generator.Generator
+type Generator struct {
+  ofs *overlay.FileSystem
+}
+
+func (g *Generator) Generate(ctx context.Context) error {
+	if err := g.ofs.Sync("bud/.app"); err != nil {
+		return err
+	}
+	return nil
+}

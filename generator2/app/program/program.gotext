@@ -25,25 +25,29 @@ func Run(args ...string) int {
 }
 
 func run(args ...string) error {
-	dir, err := dirname()
+	program, err := Load()
 	if err != nil {
 		return err
+	}
+	return program.Run(args...)
+}
+
+func Load() (*Program, error) {
+	dir, err := dirname()
+	if err != nil {
+		return nil, err
 	}
 	module, err := gomod.Find(dir)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	overlay, err := overlay.Load(module)
+	cli, err := loadCLI(module)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	parser := parser.New(overlay, module)
-	injector := di.New(overlay, module, parser)
-	cli, err := loadCLI(injector, module, overlay, parser)
-	if err != nil {
-		return err
-	}
-	return cli.Parse(args...)
+	return &Program{
+		cli: cli,
+	}, nil
 }
 
 // dirname gets the directory of this file
@@ -53,6 +57,14 @@ func dirname() (string, error) {
 		return "", errors.New("unable to get the current filename")
 	}
 	return filepath.Dir(filename), nil
+}
+
+type Program struct {
+	cli *process.CLI
+}
+
+func (p *Program) Run(args ...string) error {
+	return p.cli.Parse(args...)
 }
 
 {{ $.Provider.Function }}

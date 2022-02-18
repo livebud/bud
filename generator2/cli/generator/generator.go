@@ -49,8 +49,29 @@ type loader struct {
 func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
 	state = new(State)
-	l.imports.AddNamed("buddy", "gitlab.com/mnm/bud/pkg/buddy")
-	l.imports.AddNamed("generator", "gitlab.com/mnm/bud/runtime/cli/generator")
+	l.imports.AddStd("context")
+	l.imports.AddNamed("overlay", "gitlab.com/mnm/bud/package/overlay")
+	l.imports.AddNamed("mainfile", "gitlab.com/mnm/bud/generator2/app/mainfile")
+	l.imports.AddNamed("program", "gitlab.com/mnm/bud/generator2/app/program")
+	l.imports.AddNamed("process", "gitlab.com/mnm/bud/generator2/app/process")
 	state.Imports = l.imports.List()
+	// TODO: finish state
+	state = &State{
+		Imports: l.imports.List(),
+		Generators: []*DirGenerator{
+			&DirGenerator{
+				Path:   "bud/.app",
+				Import: &imports.Import{Name: "mainfile", Path: "gitlab.com/mnm/bud/generator2/app/mainfile"},
+			},
+			&DirGenerator{
+				Path:   "bud/.app/program",
+				Import: &imports.Import{Name: "program", Path: "gitlab.com/mnm/bud/generator2/app/program"},
+			},
+			&DirGenerator{
+				Path:   "bud/.app/process",
+				Import: &imports.Import{Name: "process", Path: "gitlab.com/mnm/bud/generator2/app/process"},
+			},
+		},
+	}
 	return state, nil
 }

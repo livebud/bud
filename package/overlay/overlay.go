@@ -3,6 +3,8 @@ package overlay
 import (
 	"io/fs"
 
+	"gitlab.com/mnm/bud/internal/dsync"
+
 	"gitlab.com/mnm/bud/internal/dag"
 	"gitlab.com/mnm/bud/package/mergefs"
 
@@ -64,4 +66,9 @@ func (f *FileSystem) GenerateDir(path string, fn func(fsys F, dir *Dir) error) {
 
 func (f *FileSystem) DirGenerator(path string, generator DirGenerator) {
 	f.GenerateDir(path, generator.GenerateDir)
+}
+
+// Sync the overlay to the filesystem
+func (f *FileSystem) Sync(dir string) error {
+	return dsync.Dir(f.fsys, dir, f.module.DirFS(dir), ".")
 }
