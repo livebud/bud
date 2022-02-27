@@ -53,7 +53,7 @@ type loader struct {
 
 func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
-	l.imports.AddStd("os")
+	l.imports.AddStd("os", "context")
 	l.imports.AddNamed("program", l.module.Import("bud/.cli/program"))
 	return &State{
 		Imports: l.imports.List(),

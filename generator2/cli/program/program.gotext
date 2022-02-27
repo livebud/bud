@@ -9,8 +9,8 @@ import (
 )
 {{- end }}
 
-func Run(args ...string) int {
-	if err := run(args...); err != nil {
+func Run(ctx context.Context, args ...string) int {
+	if err := run(ctx, args...); err != nil {
 		if errors.Is(err, context.Canceled) {
 			// Unfortunately interrupts like SIGINT trigger a non-zero exit code,
 			// regardless of whether you do os.Exit(0) or not. We're going to use exit
@@ -24,7 +24,7 @@ func Run(args ...string) int {
 	return 0
 }
 
-func run(args ...string) error {
+func run(ctx context.Context, args ...string) error {
 	dir, err := dirname()
 	if err != nil {
 		return err
@@ -43,7 +43,7 @@ func run(args ...string) error {
 	if err != nil {
 		return err
 	}
-	return cli.Parse(args...)
+	return cli.Parse(ctx, args...)
 }
 
 // dirname gets the directory of this file

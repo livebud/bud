@@ -29,7 +29,8 @@ func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
 	state = new(State)
 	// Add initial imports
-	l.imports.AddNamed("commander", "gitlab.com/mnm/bud/pkg/commander")
+	l.imports.AddStd("context")
+	l.imports.AddNamed("commander", "gitlab.com/mnm/bud/package/commander")
 	l.imports.AddNamed("gomod", "gitlab.com/mnm/bud/pkg/gomod")
 	state.Imports = l.imports.List()
 	// TODO: finish state

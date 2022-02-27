@@ -22,7 +22,7 @@ import (
 
 	"gitlab.com/mnm/bud/internal/fscache"
 	"gitlab.com/mnm/bud/internal/gobin"
-	"gitlab.com/mnm/bud/pkg/commander"
+	"gitlab.com/mnm/bud/package/commander"
 	"gitlab.com/mnm/bud/pkg/gen"
 	"gitlab.com/mnm/bud/pkg/generator"
 )
@@ -37,10 +37,10 @@ type Command struct {
 	Args       []string
 }
 
-func (c *Command) Parse() error {
+func (c *Command) Parse(ctx context.Context) error {
 	cli := commander.New("bud")
 	cli.Run(c.Run)
-	return cli.Parse([]string{})
+	return cli.Parse(ctx, []string{})
 }
 
 func (c *Command) Run(ctx context.Context) error {

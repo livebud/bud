@@ -41,12 +41,12 @@ cmd.Run(c.commands.{{ $.Full.Pascal }}Command.Run)
 {{- end }}
 {{- end }}
 
-func (c *CLI) Parse(args ...string) error {
+func (c *CLI) Parse(ctx context.Context, args ...string) error {
 	// $ bud run/build
 	cmd := commander.New(`{{ $.Command.Slug }}`)
 	{{- template "command" $.Command }}
 
-	return cmd.Parse(args)
+	return cmd.Parse(ctx, args)
 }
 
 // Commands contains all of the commands

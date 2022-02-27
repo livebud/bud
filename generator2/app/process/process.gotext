@@ -40,10 +40,10 @@ cmd.Run(c.m.{{ $.Full.Pascal }}Command.Run)
 {{- end }}
 {{- end }}
 
-func (c *CLI) Parse(args ...string) error {
+func (c *CLI) Parse(ctx context.Context, args ...string) error {
 	// $ bud run/build
 	cmd := commander.New(`{{ $.Process.Slug }}`)
 	{{- template "process" $.Process }}
 
-	return cmd.Parse(args)
+	return cmd.Parse(ctx, args)
 }

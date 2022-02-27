@@ -9,8 +9,8 @@ import (
 )
 {{- end }}
 
-func Run(args ...string) int {
-	if err := run(args...); err != nil {
+func Run(ctx context.Context, args ...string) int {
+	if err := run(ctx, args...); err != nil {
 		if errors.Is(err, context.Canceled) {
 			// Unfortunately interrupts like SIGINT trigger a non-zero exit code,
 			// regardless of whether you do os.Exit(0) or not. We're going to use exit
@@ -24,12 +24,12 @@ func Run(args ...string) int {
 	return 0
 }
 
-func run(args ...string) error {
+func run(ctx context.Context, args ...string) error {
 	program, err := Load()
 	if err != nil {
 		return err
 	}
-	return program.Run(args...)
+	return program.Run(ctx, args...)
 }
 
 func Load() (*Program, error) {
@@ -72,8 +72,8 @@ type Program struct {
 	cli *command.CLI
 }
 
-func (p *Program) Run(args ...string) error {
-	return p.cli.Parse(args...)
+func (p *Program) Run(ctx context.Context, args ...string) error {
+	return p.cli.Parse(ctx, args...)
 }
 
 {{ $.Provider.Function }}

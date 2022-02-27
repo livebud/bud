@@ -34,7 +34,7 @@ import (
 
 	"gitlab.com/mnm/bud/pkg/gomod"
 
-	"gitlab.com/mnm/bud/pkg/commander"
+	"gitlab.com/mnm/bud/package/commander"
 
 	"gitlab.com/mnm/bud/pkg/log/console"
 )
@@ -112,8 +112,8 @@ func do() error {
 			}
 		}
 	}
-
-	return cli.Parse(os.Args[1:])
+	ctx := context.Background()
+	return cli.Parse(ctx, os.Args[1:])
 }
 
 type bud struct {

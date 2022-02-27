@@ -10,6 +10,7 @@ import (
 {{- end }}
 
 func main() {
-	exitCode := program.Run(os.Args[1:]...)
+	ctx := context.Background()
+	exitCode := program.Run(ctx, os.Args[1:]...)
 	os.Exit(exitCode)
 }

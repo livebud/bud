@@ -80,8 +80,8 @@ func (c *CLI) Trap(signals ...os.Signal) {
 	c.config.signals = signals
 }
 
-func (c *CLI) Parse(args []string) error {
-	ctx, cancel := sig.Trap(context.Background(), c.config.signals...)
+func (c *CLI) Parse(ctx context.Context, args []string) error {
+	ctx, cancel := sig.Trap(ctx, c.config.signals...)
 	defer cancel()
 	if err := c.root.parse(ctx, args); err != nil {
 		return err

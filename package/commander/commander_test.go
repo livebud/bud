@@ -12,7 +12,7 @@ import (
 
 	"github.com/matryer/is"
 	"github.com/matthewmueller/diff"
-	"gitlab.com/mnm/bud/pkg/commander"
+	"gitlab.com/mnm/bud/package/commander"
 )
 
 func isEqual(t testing.TB, actual, expected string) {
@@ -57,7 +57,8 @@ func TestHelp(t *testing.T) {
 	is := is.New(t)
 	actual := new(bytes.Buffer)
 	cmd := commander.New("cli").Writer(actual)
-	err := cmd.Parse([]string{"-h"})
+	ctx := context.Background()
+	err := cmd.Parse(ctx, []string{"-h"})
 	is.NoErr(err)
 	isEqual(t, actual.String(), `
   {bold}Usage:{reset}
@@ -70,7 +71,8 @@ func TestInvalid(t *testing.T) {
 	is := is.New(t)
 	actual := new(bytes.Buffer)
 	cmd := commander.New("cli").Writer(actual)
-	err := cmd.Parse([]string{"blargle"})
+	ctx := context.Background()
+	err := cmd.Parse(ctx, []string{"blargle"})
 	is.Equal(err.Error(), "unexpected blargle")
 	isEqual(t, actual.String(), ``)
 }
@@ -83,7 +85,8 @@ func TestSimple(t *testing.T) {
 		called++
 		return nil
 	})
-	err := cli.Parse([]string{})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{})
 	is.NoErr(err)
 	is.Equal(1, called)
 	isEqual(t, actual.String(), ``)
@@ -99,7 +102,8 @@ func TestFlagString(t *testing.T) {
 	})
 	var flag string
 	cli.Flag("flag", "cli flag").String(&flag)
-	err := cli.Parse([]string{"--flag", "cool"})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"--flag", "cool"})
 	is.NoErr(err)
 	is.Equal(1, called)
 	is.Equal(flag, "cool")
@@ -116,7 +120,8 @@ func TestFlagStringDefault(t *testing.T) {
 	})
 	var flag string
 	cli.Flag("flag", "cli flag").String(&flag).Default("default")
-	err := cli.Parse([]string{})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{})
 	is.NoErr(err)
 	is.Equal(1, called)
 	is.Equal(flag, "default")
@@ -134,7 +139,8 @@ func TestFlagStringRequired(t *testing.T) {
 	})
 	var flag string
 	cli.Flag("flag", "cli flag").String(&flag)
-	err := cli.Parse([]string{})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{})
 	is.Equal(err.Error(), "missing --flag")
 }
 func TestFlagInt(t *testing.T) {
@@ -148,7 +154,8 @@ func TestFlagInt(t *testing.T) {
 	})
 	var flag int
 	cli.Flag("flag", "cli flag").Int(&flag)
-	err := cli.Parse([]string{"--flag", "10"})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"--flag", "10"})
 	is.NoErr(err)
 	is.Equal(1, called)
 	is.Equal(flag, 10)
@@ -165,7 +172,8 @@ func TestFlagIntDefault(t *testing.T) {
 	})
 	var flag int
 	cli.Flag("flag", "cli flag").Int(&flag).Default(10)
-	err := cli.Parse([]string{})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{})
 	is.NoErr(err)
 	is.Equal(1, called)
 	is.Equal(flag, 10)
@@ -183,7 +191,8 @@ func TestFlagIntRequired(t *testing.T) {
 	})
 	var flag int
 	cli.Flag("flag", "cli flag").Int(&flag)
-	err := cli.Parse([]string{})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{})
 	is.Equal(err.Error(), "missing --flag")
 }
 func TestFlagBool(t *testing.T) {
@@ -197,7 +206,8 @@ func TestFlagBool(t *testing.T) {
 	})
 	var flag bool
 	cli.Flag("flag", "cli flag").Bool(&flag)
-	err := cli.Parse([]string{"--flag"})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"--flag"})
 	is.NoErr(err)
 	is.Equal(1, called)
 	is.Equal(flag, true)
@@ -214,7 +224,8 @@ func TestFlagBoolDefault(t *testing.T) {
 	})
 	var flag bool
 	cli.Flag("flag", "cli flag").Bool(&flag).Default(true)
-	err := cli.Parse([]string{})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{})
 	is.NoErr(err)
 	is.Equal(1, called)
 	is.Equal(flag, true)
@@ -232,7 +243,8 @@ func TestFlagBoolRequired(t *testing.T) {
 	})
 	var flag bool
 	cli.Flag("flag", "cli flag").Bool(&flag)
-	err := cli.Parse([]string{})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{})
 	is.Equal(err.Error(), "missing --flag")
 }
 
@@ -247,7 +259,8 @@ func TestFlagStrings(t *testing.T) {
 	})
 	var flags []string
 	cli.Flag("flag", "cli flag").Strings(&flags)
-	err := cli.Parse([]string{"--flag", "1", "--flag", "2"})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"--flag", "1", "--flag", "2"})
 	is.NoErr(err)
 	is.Equal(len(flags), 2)
 	is.Equal(flags[0], "1")
@@ -265,7 +278,8 @@ func TestFlagStringsRequired(t *testing.T) {
 	})
 	var flags []string
 	cli.Flag("flag", "cli flag").Strings(&flags)
-	err := cli.Parse([]string{})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{})
 	is.Equal(err.Error(), "missing --flag")
 }
 
@@ -280,7 +294,8 @@ func TestFlagStringsDefault(t *testing.T) {
 	})
 	var flags []string
 	cli.Flag("flag", "cli flag").Strings(&flags).Default("a", "b")
-	err := cli.Parse([]string{})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{})
 	is.NoErr(err)
 	is.Equal(len(flags), 2)
 	is.Equal(flags[0], "a")
@@ -298,7 +313,8 @@ func TestFlagStringMap(t *testing.T) {
 	})
 	var flags map[string]string
 	cli.Flag("flag", "cli flag").StringMap(&flags)
-	err := cli.Parse([]string{"--flag", "a:1 + 1", "--flag", "b:2"})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"--flag", "a:1 + 1", "--flag", "b:2"})
 	is.NoErr(err)
 	is.Equal(len(flags), 2)
 	is.Equal(flags["a"], "1 + 1")
@@ -316,7 +332,8 @@ func TestFlagStringMapRequired(t *testing.T) {
 	})
 	var flags map[string]string
 	cli.Flag("flag", "cli flag").StringMap(&flags)
-	err := cli.Parse([]string{})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{})
 	is.Equal(err.Error(), "missing --flag")
 }
 
@@ -334,7 +351,8 @@ func TestFlagStringMapDefault(t *testing.T) {
 		"a": "1",
 		"b": "2",
 	})
-	err := cli.Parse([]string{})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{})
 	is.NoErr(err)
 	is.Equal(len(flags), 2)
 	is.Equal(flags["a"], "1")
@@ -353,7 +371,8 @@ func TestArgStringMap(t *testing.T) {
 	var args map[string]string
 	cli.Arg("arg", "cli arg").StringMap(&args)
 	// Can have only one arg
-	err := cli.Parse([]string{"a:1 + 1"})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"a:1 + 1"})
 	is.NoErr(err)
 	is.Equal(len(args), 1)
 	is.Equal(args["a"], "1 + 1")
@@ -370,7 +389,8 @@ func TestArgStringMapRequired(t *testing.T) {
 	})
 	var args map[string]string
 	cli.Arg("arg", "cli arg").StringMap(&args)
-	err := cli.Parse([]string{})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{})
 	is.Equal(err.Error(), "missing arg")
 }
 
@@ -388,7 +408,8 @@ func TestArgStringMapDefault(t *testing.T) {
 		"a": "1",
 		"b": "2",
 	})
-	err := cli.Parse([]string{})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{})
 	is.NoErr(err)
 	is.Equal(len(args), 2)
 	is.Equal(args["a"], "1")
@@ -418,7 +439,8 @@ func TestSub(t *testing.T) {
 			return nil
 		})
 	}
-	err := cli.Parse([]string{"build"})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"build"})
 	is.NoErr(err)
 	is.Equal(len(trace), 1)
 	is.Equal(trace[0], "build")
@@ -432,7 +454,8 @@ func TestSubHelp(t *testing.T) {
 	cli.Flag("log", "specify the logger").Bool(nil)
 	cli.Command("run", "run your application")
 	cli.Command("build", "build your application")
-	err := cli.Parse([]string{"-h"})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"-h"})
 	is.NoErr(err)
 	isEqual(t, actual.String(), `
   {bold}Usage:{reset}
@@ -454,7 +477,8 @@ func TestEmptyUsage(t *testing.T) {
 	cli := commander.New("bud").Writer(actual)
 	cli.Flag("log", "").Bool(nil)
 	cli.Command("run", "")
-	err := cli.Parse([]string{"-h"})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"-h"})
 	is.NoErr(err)
 	isEqual(t, actual.String(), `
   {bold}Usage:{reset}
@@ -494,7 +518,8 @@ func TestSubHelpShort(t *testing.T) {
 			return nil
 		})
 	}
-	err := cli.Parse([]string{"-h"})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"-h"})
 	is.NoErr(err)
 	isEqual(t, actual.String(), `
   {bold}Usage:{reset}
@@ -522,7 +547,8 @@ func TestArgString(t *testing.T) {
 	})
 	var arg string
 	cli.Arg("arg", "cli arg").String(&arg)
-	err := cli.Parse([]string{"cool"})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"cool"})
 	is.NoErr(err)
 	is.Equal(1, called)
 	is.Equal(arg, "cool")
@@ -540,7 +566,8 @@ func TestArgStringDefault(t *testing.T) {
 	})
 	var arg string
 	cli.Arg("arg", "cli arg").String(&arg).Default("default")
-	err := cli.Parse([]string{})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{})
 	is.NoErr(err)
 	is.Equal(1, called)
 	is.Equal(arg, "default")
@@ -558,7 +585,8 @@ func TestArgStringRequired(t *testing.T) {
 	})
 	var arg string
 	cli.Arg("arg", "cli arg").String(&arg)
-	err := cli.Parse([]string{})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{})
 	is.Equal(err.Error(), "missing arg")
 }
 
@@ -575,7 +603,8 @@ func TestSubArgString(t *testing.T) {
 	cli.Command("build", "build command")
 	cli.Command("run", "run command")
 	cli.Arg("arg", "cli arg").String(&arg)
-	err := cli.Parse([]string{"deploy"})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"deploy"})
 	is.NoErr(err)
 	is.Equal(1, called)
 	is.Equal(arg, "deploy")
@@ -631,7 +660,8 @@ func TestInterrupt(t *testing.T) {
 		os.Stdout.Write([]byte("cancelled\n"))
 		return nil
 	})
-	if err := cli.Parse([]string{}); err != nil {
+	ctx := context.Background()
+	if err := cli.Parse(ctx, []string{}); err != nil {
 		if errors.Is(err, context.Canceled) {
 			return
 		}
@@ -654,7 +684,8 @@ func TestArgsStrings(t *testing.T) {
 	cli.Command("build", "build command")
 	cli.Command("run", "run command")
 	cli.Args("custom", "custom arg").Strings(&args)
-	err := cli.Parse([]string{"new", "view"})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"new", "view"})
 	is.NoErr(err)
 	is.Equal(1, called)
 	is.Equal(len(args), 2)

@@ -52,8 +52,9 @@ type loader struct {
 func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
 	state = new(State)
+	l.imports.AddStd("context")
 	l.imports.AddNamed("generator", l.module.Import("bud/.cli/generator"))
-	l.imports.AddNamed("commander", "gitlab.com/mnm/bud/pkg/commander")
+	l.imports.AddNamed("commander", "gitlab.com/mnm/bud/package/commander")
 	l.imports.AddNamed("build", "gitlab.com/mnm/bud/package/command/build")
 	// state.Imports = l.imports.List()
 
