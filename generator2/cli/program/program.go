@@ -1,6 +1,7 @@
 package program
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
 
@@ -26,7 +27,7 @@ type Generator struct {
 	module   *gomod.Module
 }
 
-func (g *Generator) GenerateFile(f overlay.F, file *overlay.File) error {
+func (g *Generator) GenerateFile(ctx context.Context, f overlay.F, file *overlay.File) error {
 	// Load command state
 	state, err := g.Load()
 	if err != nil {

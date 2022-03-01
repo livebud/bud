@@ -1,9 +1,13 @@
 package overlay
 
-import "gitlab.com/mnm/bud/package/conjure"
+import (
+	"context"
+
+	"gitlab.com/mnm/bud/package/conjure"
+)
 
 type DirGenerator interface {
-	GenerateDir(fsys F, dir *Dir) error
+	GenerateDir(ctx context.Context, fsys F, dir *Dir) error
 }
 
 type Dir struct {
@@ -11,9 +15,9 @@ type Dir struct {
 	*conjure.Dir
 }
 
-func (d *Dir) GenerateFile(path string, fn func(fsys F, file *File) error) {
-	d.Dir.GenerateFile(path, func(file *conjure.File) error {
-		return fn(d.fsys, &File{file})
+func (d *Dir) GenerateFile(path string, fn func(ctx context.Context, fsys F, file *File) error) {
+	d.Dir.GenerateFile(path, func(ctx context.Context, file *conjure.File) error {
+		return fn(ctx, d.fsys, &File{file})
 	})
 }
 
@@ -21,9 +25,9 @@ func (d *Dir) FileGenerator(path string, generator FileGenerator) {
 	d.GenerateFile(path, generator.GenerateFile)
 }
 
-func (d *Dir) GenerateDir(path string, fn func(fsys F, dir *Dir) error) {
-	d.Dir.GenerateDir(path, func(dir *conjure.Dir) error {
-		return fn(d.fsys, &Dir{d.fsys, dir})
+func (d *Dir) GenerateDir(path string, fn func(ctx context.Context, fsys F, dir *Dir) error) {
+	d.Dir.GenerateDir(path, func(ctx context.Context, dir *conjure.Dir) error {
+		return fn(ctx, d.fsys, &Dir{d.fsys, dir})
 	})
 }
 

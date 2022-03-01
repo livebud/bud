@@ -1,22 +1,23 @@
 package conjure
 
 import (
+	"context"
 	"io/fs"
 	"path/filepath"
 	"testing/fstest"
 )
 
 type DirGenerator interface {
-	GenerateDir(dir *Dir) error
+	GenerateDir(ctx context.Context, dir *Dir) error
 }
 
 type dirg struct {
 	path   string // defined generator path
-	fn     func(dir *Dir) error
+	fn     func(ctx context.Context, dir *Dir) error
 	filler fstest.MapFS
 }
 
-func (g *dirg) Generate(target string) (fs.File, error) {
+func (g *dirg) Generate(ctx context.Context, target string) (fs.File, error) {
 	dir := &Dir{
 		gpath:  g.path,
 		tpath:  target,
@@ -24,7 +25,7 @@ func (g *dirg) Generate(target string) (fs.File, error) {
 		filler: g.filler,
 		radix:  newRadix(),
 	}
-	if err := g.fn(dir); err != nil {
+	if err := g.fn(ctx, dir); err != nil {
 		return nil, err
 	}
 	// TODO: we shouldn't rely on filepath since paths should be agnostic
@@ -33,5 +34,5 @@ func (g *dirg) Generate(target string) (fs.File, error) {
 	if err != nil {
 		return nil, err
 	}
-	return dir.open(rel)
+	return dir.open(ctx, rel)
 }

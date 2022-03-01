@@ -1,8 +1,8 @@
 package conjure_test
 
 import (
+	"context"
 	"errors"
-	"io/fs"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -16,16 +16,17 @@ import (
 
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/package/conjure"
-	"gitlab.com/mnm/bud/package/mergefs"
+	"gitlab.com/mnm/bud/package/fs"
+	"gitlab.com/mnm/bud/package/merged"
 )
 
-func View() func(dir *conjure.Dir) error {
-	return func(dir *conjure.Dir) error {
-		dir.GenerateFile("index.svelte", func(file *conjure.File) error {
+func View() func(ctx context.Context, dir *conjure.Dir) error {
+	return func(ctx context.Context, dir *conjure.Dir) error {
+		dir.GenerateFile("index.svelte", func(ctx context.Context, file *conjure.File) error {
 			file.Data = []byte(`<h1>index</h1>`)
 			return nil
 		})
-		dir.GenerateFile("about/about.svelte", func(file *conjure.File) error {
+		dir.GenerateFile("about/about.svelte", func(ctx context.Context, file *conjure.File) error {
 			file.Data = []byte(`<h2>about</h2>`)
 			return nil
 		})
@@ -35,11 +36,12 @@ func View() func(dir *conjure.Dir) error {
 
 func TestFS(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	cfs := conjure.New()
 	cfs.GenerateDir("duo/view", View())
 
 	// 1. duo
-	file, err := cfs.Open("duo")
+	file, err := cfs.OpenContext(ctx, "duo")
 	is.NoErr(err)
 	rcfs, ok := file.(fs.ReadDirFile)
 	is.True(ok)
@@ -66,7 +68,7 @@ func TestFS(t *testing.T) {
 	is.Equal(stat.Size(), int64(0))
 	is.Equal(stat.Sys(), nil)
 	// Stat duo
-	stat, err = fs.Stat(cfs, "duo")
+	stat, err = fs.Stat(ctx, cfs, "duo")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "duo")
 	is.Equal(stat.Mode(), fs.ModeDir)
@@ -75,7 +77,7 @@ func TestFS(t *testing.T) {
 	is.Equal(stat.Size(), int64(0))
 	is.Equal(stat.Sys(), nil)
 	// ReadDir duo
-	des, err = fs.ReadDir(cfs, "duo")
+	des, err = fs.ReadDir(ctx, cfs, "duo")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "view")
@@ -83,7 +85,7 @@ func TestFS(t *testing.T) {
 	is.Equal(des[0].Type(), fs.ModeDir)
 
 	// 2. duo/view
-	file, err = cfs.Open("duo/view")
+	file, err = cfs.OpenContext(ctx, "duo/view")
 	is.NoErr(err)
 	rcfs, ok = file.(fs.ReadDirFile)
 	is.True(ok)
@@ -121,7 +123,7 @@ func TestFS(t *testing.T) {
 	is.Equal(stat.Size(), int64(0))
 	is.Equal(stat.Sys(), nil)
 	// Stat duo
-	stat, err = fs.Stat(cfs, "duo/view")
+	stat, err = fs.Stat(ctx, cfs, "duo/view")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "view")
 	is.Equal(stat.Mode(), fs.ModeDir)
@@ -130,7 +132,7 @@ func TestFS(t *testing.T) {
 	is.Equal(stat.Size(), int64(0))
 	is.Equal(stat.Sys(), nil)
 	// ReadDir duo
-	des, err = fs.ReadDir(cfs, "duo/view")
+	des, err = fs.ReadDir(ctx, cfs, "duo/view")
 	is.NoErr(err)
 	is.Equal(len(des), 2)
 	is.Equal(des[0].Name(), "about")
@@ -157,7 +159,7 @@ func TestFS(t *testing.T) {
 	is.Equal(fi.Sys(), nil)
 
 	// 3. duo/view/about
-	file, err = cfs.Open("duo/view/about")
+	file, err = cfs.OpenContext(ctx, "duo/view/about")
 	is.NoErr(err)
 	rcfs, ok = file.(fs.ReadDirFile)
 	is.True(ok)
@@ -184,7 +186,7 @@ func TestFS(t *testing.T) {
 	is.Equal(stat.Size(), int64(0))
 	is.Equal(stat.Sys(), nil)
 	// Stat duo
-	stat, err = fs.Stat(cfs, "duo/view/about")
+	stat, err = fs.Stat(ctx, cfs, "duo/view/about")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "about")
 	is.Equal(stat.Mode(), fs.ModeDir)
@@ -193,7 +195,7 @@ func TestFS(t *testing.T) {
 	is.Equal(stat.Size(), int64(0))
 	is.Equal(stat.Sys(), nil)
 	// ReadDir duo
-	des, err = fs.ReadDir(cfs, "duo/view/about")
+	des, err = fs.ReadDir(ctx, cfs, "duo/view/about")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "about.svelte")
@@ -210,7 +212,7 @@ func TestFS(t *testing.T) {
 
 	// 4. duo/view/index.svelte
 	// Open
-	file, err = cfs.Open("duo/view/index.svelte")
+	file, err = cfs.OpenContext(ctx, "duo/view/index.svelte")
 	is.NoErr(err)
 	stat, err = file.Stat()
 	is.NoErr(err)
@@ -221,7 +223,7 @@ func TestFS(t *testing.T) {
 	is.Equal(stat.Size(), int64(14))
 	is.Equal(stat.Sys(), nil)
 	// Stat
-	stat, err = fs.Stat(cfs, "duo/view/index.svelte")
+	stat, err = fs.Stat(ctx, cfs, "duo/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "index.svelte")
 	is.Equal(stat.Mode(), fs.FileMode(0))
@@ -230,13 +232,13 @@ func TestFS(t *testing.T) {
 	is.Equal(stat.Size(), int64(14))
 	is.Equal(stat.Sys(), nil)
 	// ReadFile
-	code, err := fs.ReadFile(cfs, "duo/view/index.svelte")
+	code, err := fs.ReadFile(ctx, cfs, "duo/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), `<h1>index</h1>`)
 
 	// 4. duo/view/about/about.svelte
 	// Open
-	file, err = cfs.Open("duo/view/about/about.svelte")
+	file, err = cfs.OpenContext(ctx, "duo/view/about/about.svelte")
 	is.NoErr(err)
 	stat, err = file.Stat()
 	is.NoErr(err)
@@ -247,7 +249,7 @@ func TestFS(t *testing.T) {
 	is.Equal(stat.Size(), int64(14))
 	is.Equal(stat.Sys(), nil)
 	// Stat
-	stat, err = fs.Stat(cfs, "duo/view/about/about.svelte")
+	stat, err = fs.Stat(ctx, cfs, "duo/view/about/about.svelte")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "about.svelte")
 	is.Equal(stat.Mode(), fs.FileMode(0))
@@ -256,63 +258,65 @@ func TestFS(t *testing.T) {
 	is.Equal(stat.Size(), int64(14))
 	is.Equal(stat.Sys(), nil)
 	// ReadFile
-	code, err = fs.ReadFile(cfs, "duo/view/about/about.svelte")
+	code, err = fs.ReadFile(ctx, cfs, "duo/view/about/about.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), `<h2>about</h2>`)
 }
 
 func TestDir(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	cfs := conjure.New()
-	cfs.GenerateDir("duo/view", func(dir *conjure.Dir) error {
-		dir.GenerateDir("about", func(dir *conjure.Dir) error {
-			dir.GenerateDir("me", func(dir *conjure.Dir) error {
+	cfs.GenerateDir("duo/view", func(ctx context.Context, dir *conjure.Dir) error {
+		dir.GenerateDir("about", func(ctx context.Context, dir *conjure.Dir) error {
+			dir.GenerateDir("me", func(ctx context.Context, dir *conjure.Dir) error {
 				return nil
 			})
 			return nil
 		})
-		dir.GenerateDir("users/admin", func(dir *conjure.Dir) error {
+		dir.GenerateDir("users/admin", func(ctx context.Context, dir *conjure.Dir) error {
 			return nil
 		})
 		return nil
 	})
-	des, err := fs.ReadDir(cfs, "duo")
+	des, err := fs.ReadDir(ctx, cfs, "duo")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "view")
 	is.Equal(des[0].IsDir(), true)
-	des, err = fs.ReadDir(cfs, "duo/view")
+	des, err = fs.ReadDir(ctx, cfs, "duo/view")
 	is.NoErr(err)
 	is.Equal(len(des), 2)
 	is.Equal(des[0].Name(), "about")
 	is.Equal(des[0].IsDir(), true)
 	is.Equal(des[1].Name(), "users")
 	is.Equal(des[1].IsDir(), true)
-	des, err = fs.ReadDir(cfs, "duo/view/about")
+	des, err = fs.ReadDir(ctx, cfs, "duo/view/about")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "me")
 	is.Equal(des[0].IsDir(), true)
-	des, err = fs.ReadDir(cfs, "duo/view/about/me")
+	des, err = fs.ReadDir(ctx, cfs, "duo/view/about/me")
 	is.NoErr(err)
 	is.Equal(len(des), 0)
-	des, err = fs.ReadDir(cfs, "duo/view/users")
+	des, err = fs.ReadDir(ctx, cfs, "duo/view/users")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "admin")
 	is.Equal(des[0].IsDir(), true)
-	des, err = fs.ReadDir(cfs, "duo/view/users/admin")
+	des, err = fs.ReadDir(ctx, cfs, "duo/view/users/admin")
 	is.NoErr(err)
 	is.Equal(len(des), 0)
 }
 
 func TestGenerateFileError(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	cfs := conjure.New()
-	cfs.GenerateFile("duo/main.go", func(file *conjure.File) error {
+	cfs.GenerateFile("duo/main.go", func(ctx context.Context, file *conjure.File) error {
 		return fs.ErrNotExist
 	})
-	code, err := fs.ReadFile(cfs, "duo/main.go")
+	code, err := fs.ReadFile(ctx, cfs, "duo/main.go")
 	is.True(err != nil)
 	is.Equal(err.Error(), `conjure: generate "duo/main.go" > file does not exist`)
 	is.True(errors.Is(err, fs.ErrNotExist))
@@ -321,17 +325,18 @@ func TestGenerateFileError(t *testing.T) {
 
 func TestServeFile(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	cfs := conjure.New()
-	cfs.ServeFile("duo/view", func(file *conjure.File) error {
+	cfs.ServeFile("duo/view", func(ctx context.Context, file *conjure.File) error {
 		file.Data = []byte(file.Path() + `'s data`)
 		return nil
 	})
-	des, err := fs.ReadDir(cfs, "duo/view")
+	des, err := fs.ReadDir(ctx, cfs, "duo/view")
 	is.True(errors.Is(err, fs.ErrInvalid))
 	is.Equal(len(des), 0)
 
 	// _index.svelte
-	file, err := cfs.Open("duo/view/_index.svelte")
+	file, err := cfs.OpenContext(ctx, "duo/view/_index.svelte")
 	is.NoErr(err)
 	stat, err := file.Stat()
 	is.NoErr(err)
@@ -341,12 +346,12 @@ func TestServeFile(t *testing.T) {
 	is.True(stat.ModTime().IsZero())
 	is.Equal(stat.Size(), int64(29))
 	is.Equal(stat.Sys(), nil)
-	code, err := fs.ReadFile(cfs, "duo/view/_index.svelte")
+	code, err := fs.ReadFile(ctx, cfs, "duo/view/_index.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), `duo/view/_index.svelte's data`)
 
 	// about/_about.svelte
-	file, err = cfs.Open("duo/view/about/_about.svelte")
+	file, err = cfs.OpenContext(ctx, "duo/view/about/_about.svelte")
 	is.NoErr(err)
 	stat, err = file.Stat()
 	is.NoErr(err)
@@ -356,7 +361,7 @@ func TestServeFile(t *testing.T) {
 	is.True(stat.ModTime().IsZero())
 	is.Equal(stat.Size(), int64(35))
 	is.Equal(stat.Sys(), nil)
-	code, err = fs.ReadFile(cfs, "duo/view/about/_about.svelte")
+	code, err = fs.ReadFile(ctx, cfs, "duo/view/about/_about.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), `duo/view/about/_about.svelte's data`)
 }
@@ -364,7 +369,7 @@ func TestServeFile(t *testing.T) {
 func TestHTTP(t *testing.T) {
 	is := is.New(t)
 	cfs := conjure.New()
-	cfs.ServeFile("bud/view", func(file *conjure.File) error {
+	cfs.ServeFile("bud/view", func(ctx context.Context, file *conjure.File) error {
 		file.Data = []byte(file.Path() + `'s data`)
 		return nil
 	})
@@ -403,40 +408,42 @@ func rootless(fpath string) string {
 
 func TestTargetPath(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	// Test inner file and rootless
 	cfs := conjure.New()
-	cfs.GenerateDir("duo/view", func(dir *conjure.Dir) error {
-		dir.GenerateFile("about/about.svelte", func(file *conjure.File) error {
+	cfs.GenerateDir("duo/view", func(ctx context.Context, dir *conjure.Dir) error {
+		dir.GenerateFile("about/about.svelte", func(ctx context.Context, file *conjure.File) error {
 			file.Data = []byte(rootless(file.Path()))
 			return nil
 		})
 		return nil
 	})
-	code, err := fs.ReadFile(cfs, "duo/view/about/about.svelte")
+	code, err := fs.ReadFile(ctx, cfs, "duo/view/about/about.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), "view/about/about.svelte")
 }
 
 func TestDynamicDir(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	cfs := conjure.New()
-	cfs.GenerateDir("duo/view", func(dir *conjure.Dir) error {
+	cfs.GenerateDir("duo/view", func(ctx context.Context, dir *conjure.Dir) error {
 		doms := []string{"about/about.svelte", "index.svelte"}
 		for _, dom := range doms {
 			dom := dom
-			dir.GenerateFile(dom, func(file *conjure.File) error {
+			dir.GenerateFile(dom, func(ctx context.Context, file *conjure.File) error {
 				file.Data = []byte(`<h1>` + dom + `</h1>`)
 				return nil
 			})
 		}
 		return nil
 	})
-	des, err := fs.ReadDir(cfs, "duo/view")
+	des, err := fs.ReadDir(ctx, cfs, "duo/view")
 	is.NoErr(err)
 	is.Equal(len(des), 2)
 	is.Equal(des[0].Name(), "about")
 	is.Equal(des[1].Name(), "index.svelte")
-	des, err = fs.ReadDir(cfs, "duo/view/about")
+	des, err = fs.ReadDir(ctx, cfs, "duo/view/about")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "about.svelte")
@@ -444,27 +451,29 @@ func TestDynamicDir(t *testing.T) {
 
 func TestBases(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	cfs := conjure.New()
-	cfs.GenerateDir("duo/view", func(dir *conjure.Dir) error {
+	cfs.GenerateDir("duo/view", func(ctx context.Context, dir *conjure.Dir) error {
 		return nil
 	})
-	cfs.GenerateDir("duo/controller", func(dir *conjure.Dir) error {
+	cfs.GenerateDir("duo/controller", func(ctx context.Context, dir *conjure.Dir) error {
 		return nil
 	})
-	stat, err := fs.Stat(cfs, "duo/controller")
+	stat, err := fs.Stat(ctx, cfs, "duo/controller")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "controller")
-	stat, err = fs.Stat(cfs, "duo/view")
+	stat, err = fs.Stat(ctx, cfs, "duo/view")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "view")
 }
 
 func TestDirPath(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	cfs := conjure.New()
-	cfs.GenerateDir("duo/view", func(dir *conjure.Dir) error {
-		dir.GenerateDir("public", func(dir *conjure.Dir) error {
-			dir.GenerateFile("favicon.ico", func(file *conjure.File) error {
+	cfs.GenerateDir("duo/view", func(ctx context.Context, dir *conjure.Dir) error {
+		dir.GenerateDir("public", func(ctx context.Context, dir *conjure.Dir) error {
+			dir.GenerateFile("favicon.ico", func(ctx context.Context, file *conjure.File) error {
 				file.Data = []byte("cool_favicon.ico")
 				return nil
 			})
@@ -472,9 +481,9 @@ func TestDirPath(t *testing.T) {
 		})
 		return nil
 	})
-	cfs.GenerateDir("duo", func(dir *conjure.Dir) error {
-		dir.GenerateDir("controller", func(dir *conjure.Dir) error {
-			dir.GenerateFile("controller.go", func(file *conjure.File) error {
+	cfs.GenerateDir("duo", func(ctx context.Context, dir *conjure.Dir) error {
+		dir.GenerateDir("controller", func(ctx context.Context, dir *conjure.Dir) error {
+			dir.GenerateFile("controller.go", func(ctx context.Context, file *conjure.File) error {
 				file.Data = []byte("package controller")
 				return nil
 			})
@@ -482,37 +491,38 @@ func TestDirPath(t *testing.T) {
 		})
 		return nil
 	})
-	code, err := fs.ReadFile(cfs, "duo/view/public/favicon.ico")
+	code, err := fs.ReadFile(ctx, cfs, "duo/view/public/favicon.ico")
 	is.NoErr(err)
 	is.Equal(string(code), "cool_favicon.ico")
-	code, err = fs.ReadFile(cfs, "duo/controller/controller.go")
+	code, err = fs.ReadFile(ctx, cfs, "duo/controller/controller.go")
 	is.NoErr(err)
 	is.Equal(string(code), "package controller")
 }
 
 func TestDirMerge(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	cfs := conjure.New()
-	cfs.GenerateDir("duo/view", func(dir *conjure.Dir) error {
-		dir.GenerateFile("index.svelte", func(file *conjure.File) error {
+	cfs.GenerateDir("duo/view", func(ctx context.Context, dir *conjure.Dir) error {
+		dir.GenerateFile("index.svelte", func(ctx context.Context, file *conjure.File) error {
 			file.Data = []byte(`<h1>index</h1>`)
 			return nil
 		})
-		dir.GenerateDir("somedir", func(dir *conjure.Dir) error {
+		dir.GenerateDir("somedir", func(ctx context.Context, dir *conjure.Dir) error {
 			return nil
 		})
 		return nil
 	})
-	cfs.GenerateFile("duo/view/view.go", func(file *conjure.File) error {
+	cfs.GenerateFile("duo/view/view.go", func(ctx context.Context, file *conjure.File) error {
 		file.Data = []byte(`package view`)
 		return nil
 	})
-	cfs.GenerateFile("duo/view/plugin.go", func(file *conjure.File) error {
+	cfs.GenerateFile("duo/view/plugin.go", func(ctx context.Context, file *conjure.File) error {
 		file.Data = []byte(`package plugin`)
 		return nil
 	})
 	// duo/view
-	des, err := fs.ReadDir(cfs, "duo/view")
+	des, err := fs.ReadDir(ctx, cfs, "duo/view")
 	is.NoErr(err)
 	is.Equal(len(des), 4)
 	is.Equal(des[0].Name(), "index.svelte")
@@ -527,32 +537,33 @@ func TestDirMerge(t *testing.T) {
 
 func TestAddGenerator(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	// Add the view
 	cfs := conjure.New()
 	cfs.GenerateDir("duo/view", View())
 
 	// Add the controller
-	cfs.GenerateDir("duo/controller", func(dir *conjure.Dir) error {
-		dir.GenerateFile("controller.go", func(file *conjure.File) error {
+	cfs.GenerateDir("duo/controller", func(ctx context.Context, dir *conjure.Dir) error {
+		dir.GenerateFile("controller.go", func(ctx context.Context, file *conjure.File) error {
 			file.Data = []byte(`package controller`)
 			return nil
 		})
 		return nil
 	})
 
-	des, err := fs.ReadDir(cfs, "duo")
+	des, err := fs.ReadDir(ctx, cfs, "duo")
 	is.NoErr(err)
 	is.Equal(len(des), 2)
 	is.Equal(des[0].Name(), "controller")
 	is.Equal(des[1].Name(), "view")
 
 	// Read from view
-	code, err := fs.ReadFile(cfs, "duo/view/index.svelte")
+	code, err := fs.ReadFile(ctx, cfs, "duo/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), `<h1>index</h1>`)
 
 	// Read from controller
-	code, err = fs.ReadFile(cfs, "duo/controller/controller.go")
+	code, err = fs.ReadFile(ctx, cfs, "duo/controller/controller.go")
 	is.NoErr(err)
 	is.Equal(string(code), `package controller`)
 }
@@ -561,70 +572,75 @@ type commandGenerator struct {
 	Input string
 }
 
-func (c *commandGenerator) GenerateFile(file *conjure.File) error {
+func (c *commandGenerator) GenerateFile(ctx context.Context, file *conjure.File) error {
 	file.Data = []byte(c.Input + c.Input)
 	return nil
 }
 
-func (c *commandGenerator) GenerateDir(dir *conjure.Dir) error {
-	dir.GenerateFile("index.svelte", func(file *conjure.File) error {
+func (c *commandGenerator) GenerateDir(ctx context.Context, dir *conjure.Dir) error {
+	dir.GenerateFile("index.svelte", func(ctx context.Context, file *conjure.File) error {
 		file.Data = []byte(c.Input + c.Input)
 		return nil
 	})
 	return nil
 }
 
-func (c *commandGenerator) ServeFile(file *conjure.File) error {
+func (c *commandGenerator) ServeFile(ctx context.Context, file *conjure.File) error {
 	file.Data = []byte(c.Input + "/" + file.Path())
 	return nil
 }
 
 func TestFileGenerator(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	cfs := conjure.New()
 	cfs.FileGenerator("duo/command/command.go", &commandGenerator{Input: "a"})
-	code, err := fs.ReadFile(cfs, "duo/command/command.go")
+	code, err := fs.ReadFile(ctx, cfs, "duo/command/command.go")
 	is.NoErr(err)
 	is.Equal(string(code), "aa")
 }
 
 func TestDirGenerator(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	// Add the view
 	cfs := conjure.New()
 	cfs.DirGenerator("duo/view", &commandGenerator{Input: "a"})
-	code, err := fs.ReadFile(cfs, "duo/view/index.svelte")
+	code, err := fs.ReadFile(ctx, cfs, "duo/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), "aa")
 }
 
 func TestFileServer(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	cfs := conjure.New()
 	cfs.FileServer("duo/view", &commandGenerator{Input: "a"})
-	code, err := fs.ReadFile(cfs, "duo/view/index.svelte")
+	code, err := fs.ReadFile(ctx, cfs, "duo/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), "a/duo/view/index.svelte")
 }
 
 func TestDotReadDirEmpty(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	cfs := conjure.New()
-	cfs.GenerateFile("bud/generate/main.go", func(file *conjure.File) error {
+	cfs.GenerateFile("bud/generate/main.go", func(ctx context.Context, file *conjure.File) error {
 		file.Data = []byte("package main")
 		return nil
 	})
-	cfs.GenerateFile("go.mod", func(file *conjure.File) error {
+	cfs.GenerateFile("go.mod", func(ctx context.Context, file *conjure.File) error {
 		file.Data = []byte("module pkg")
 		return nil
 	})
-	des, err := fs.ReadDir(cfs, ".")
+	des, err := fs.ReadDir(ctx, cfs, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 2)
 }
 
 func TestDotReadDirFiles(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	tmp := t.TempDir()
 	err := os.WriteFile(filepath.Join(tmp, "a.txt"), []byte("a"), 0644)
 	is.NoErr(err)
@@ -635,42 +651,44 @@ func TestDotReadDirFiles(t *testing.T) {
 		"a.txt": &fstest.MapFile{Data: []byte("a"), Mode: 0644},
 		"b.txt": &fstest.MapFile{Data: []byte("b"), Mode: 0644},
 	}
-	cfs.GenerateFile("bud/generate/main.go", func(file *conjure.File) error {
+	cfs.GenerateFile("bud/generate/main.go", func(ctx context.Context, file *conjure.File) error {
 		file.Data = []byte("package main")
 		return nil
 	})
-	cfs.GenerateFile("go.mod", func(file *conjure.File) error {
+	cfs.GenerateFile("go.mod", func(ctx context.Context, file *conjure.File) error {
 		file.Data = []byte("module pkg")
 		return nil
 	})
-	fsys := mergefs.Merge(cfs, mapfs)
-	des, err := fs.ReadDir(fsys, ".")
+	fsys := merged.Merge(cfs, mapfs)
+	des, err := fs.ReadDir(ctx, fsys, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 4)
 }
 
 func TestReadDirDuplicates(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	mapfs := fstest.MapFS{
 		"go.mod": &fstest.MapFile{Data: []byte(`module app.com`)},
 	}
 	cfs := conjure.New()
-	cfs.GenerateFile("go.mod", func(file *conjure.File) error {
+	cfs.GenerateFile("go.mod", func(ctx context.Context, file *conjure.File) error {
 		file.Data = []byte("module app.cool")
 		return nil
 	})
-	fsys := mergefs.Merge(cfs, mapfs)
-	des, err := fs.ReadDir(fsys, ".")
+	fsys := merged.Merge(cfs, mapfs)
+	des, err := fs.ReadDir(ctx, fsys, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "go.mod")
-	code, err := fs.ReadFile(fsys, "go.mod")
+	code, err := fs.ReadFile(ctx, fsys, "go.mod")
 	is.NoErr(err)
 	is.Equal(string(code), "module app.cool")
 }
 
 func TestEmbedOpen(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	now := time.Now()
 	cfs := conjure.New()
 	cfs.FileGenerator("duo/view/index.svelte", &conjure.Embed{
@@ -689,30 +707,30 @@ func TestEmbedOpen(t *testing.T) {
 		ModTime: now,
 	})
 	// duo/view/index.svelte
-	code, err := fs.ReadFile(cfs, "duo/view/index.svelte")
+	code, err := fs.ReadFile(ctx, cfs, "duo/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), `<h1>index</h1>`)
-	stat, err := fs.Stat(cfs, "duo/view/index.svelte")
+	stat, err := fs.Stat(ctx, cfs, "duo/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(stat.ModTime(), now)
 	is.Equal(stat.Mode(), fs.FileMode(0644))
 	is.Equal(stat.IsDir(), false)
 
 	// duo/view/about/about.svelte
-	code, err = fs.ReadFile(cfs, "duo/view/about/about.svelte")
+	code, err = fs.ReadFile(ctx, cfs, "duo/view/about/about.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), `<h1>about</h1>`)
-	stat, err = fs.Stat(cfs, "duo/view/about/about.svelte")
+	stat, err = fs.Stat(ctx, cfs, "duo/view/about/about.svelte")
 	is.NoErr(err)
 	is.Equal(stat.ModTime(), now)
 	is.Equal(stat.Mode(), fs.FileMode(0644))
 	is.Equal(stat.IsDir(), false)
 
 	// duo/public/favicon.ico
-	code, err = fs.ReadFile(cfs, "duo/public/favicon.ico")
+	code, err = fs.ReadFile(ctx, cfs, "duo/public/favicon.ico")
 	is.NoErr(err)
 	is.Equal(string(code), `favicon.ico`)
-	stat, err = fs.Stat(cfs, "duo/public/favicon.ico")
+	stat, err = fs.Stat(ctx, cfs, "duo/public/favicon.ico")
 	is.NoErr(err)
 	is.Equal(stat.ModTime(), now)
 	is.Equal(stat.Mode(), fs.FileMode(0644))
@@ -721,7 +739,7 @@ func TestEmbedOpen(t *testing.T) {
 	// duo/public
 	// TODO: consider locking this down, though this might be taken care of higher
 	// up in the stack.
-	des, err := fs.ReadDir(cfs, "duo/public")
+	des, err := fs.ReadDir(ctx, cfs, "duo/public")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "favicon.ico")
@@ -729,31 +747,33 @@ func TestEmbedOpen(t *testing.T) {
 
 func TestGoModGoMod(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	cfs := conjure.New()
-	cfs.GenerateFile("go.mod", func(file *conjure.File) error {
+	cfs.GenerateFile("go.mod", func(ctx context.Context, file *conjure.File) error {
 		file.Data = []byte("module app.com\nrequire mod.test/module v1.2.4")
 		return nil
 	})
-	stat, err := fs.Stat(cfs, "go.mod/go.mod")
+	stat, err := fs.Stat(ctx, cfs, "go.mod/go.mod")
 	is.True(err != nil)
 	is.True(errors.Is(err, fs.ErrNotExist))
 	is.Equal(stat, nil)
-	stat, err = fs.Stat(cfs, "go.mod")
+	stat, err = fs.Stat(ctx, cfs, "go.mod")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "go.mod")
 }
 
 func TestGoModGoModEmbed(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	cfs := conjure.New()
 	cfs.FileGenerator("go.mod", &conjure.Embed{
 		Data: []byte("module app.com\nrequire mod.test/module v1.2.4"),
 	})
-	stat, err := fs.Stat(cfs, "go.mod/go.mod")
+	stat, err := fs.Stat(ctx, cfs, "go.mod/go.mod")
 	is.True(err != nil)
 	is.True(errors.Is(err, fs.ErrNotExist))
 	is.Equal(stat, nil)
-	stat, err = fs.Stat(cfs, "go.mod")
+	stat, err = fs.Stat(ctx, cfs, "go.mod")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "go.mod")
 }

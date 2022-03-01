@@ -1,10 +1,12 @@
 package overlay_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"gitlab.com/mnm/bud/package/fs"
 	"gitlab.com/mnm/bud/package/overlay"
 
 	"github.com/matryer/is"
@@ -19,8 +21,9 @@ require gitlab.com/mnm/bud-tailwind v0.0.1
 require gitlab.com/mnm/bud-lambda v1.0.0
 `
 
-func TestAll(t *testing.T) {
+func TestPlugins(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	cacheDir := t.TempDir()
 	modCache := modcache.New(cacheDir)
 	err := modCache.Write(map[string]modcache.Files{
@@ -39,5 +42,33 @@ func TestAll(t *testing.T) {
 	is.NoErr(err)
 	ofs, err := overlay.Load(module)
 	is.NoErr(err)
-	_ = ofs
+	code, err := fs.ReadFile(ctx, ofs, "public/tailwind/preflight.css")
+	is.NoErr(err)
+	is.Equal(string(code), `/* tailwind */`)
+	code, err = fs.ReadFile(ctx, ofs, "command/lambda/lambda.go")
+	is.NoErr(err)
+	is.Equal(string(code), `package lambda`)
+}
+
+type ctxKey string
+
+func TestContextPropagation(t *testing.T) {
+	is := is.New(t)
+	appDir := t.TempDir()
+	err := os.WriteFile(filepath.Join(appDir, "go.mod"), []byte(`module app.com`), 0644)
+	is.NoErr(err)
+	module, err := gomod.Find(appDir)
+	is.NoErr(err)
+	ofs, err := overlay.Load(module)
+	is.NoErr(err)
+	ofs.GenerateFile("public/normalize.css", func(ctx context.Context, fsys overlay.F, file *overlay.File) error {
+		test := ctx.Value(ctxKey("test")).(string)
+		is.Equal(test, "test")
+		file.Data = []byte("/* normalize */")
+		return nil
+	})
+	ctx := context.WithValue(context.Background(), ctxKey("test"), "test")
+	code, err := fs.ReadFile(ctx, ofs, "public/normalize.css")
+	is.NoErr(err)
+	is.Equal(string(code), `/* normalize */`)
 }

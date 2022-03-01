@@ -1,12 +1,13 @@
 package pluginfs
 
 import (
-	"io/fs"
+	"context"
 	"path"
 	"strings"
 
-	mergefs "github.com/yalue/merged_fs"
 	"gitlab.com/mnm/bud/internal/fscache"
+	"gitlab.com/mnm/bud/package/fs"
+	"gitlab.com/mnm/bud/package/merged"
 	"gitlab.com/mnm/bud/pkg/gomod"
 	"golang.org/x/sync/errgroup"
 )
@@ -32,7 +33,7 @@ func Load(module *gomod.Module, options ...Option) (fs.FS, error) {
 	if err != nil {
 		return nil, err
 	}
-	merged := merge(module, plugins)
+	merged := merged.Merge(append([]fs.FS{module}, plugins...)...)
 	return &FS{
 		opt:    opt,
 		merged: merged,
@@ -40,7 +41,7 @@ func Load(module *gomod.Module, options ...Option) (fs.FS, error) {
 }
 
 // Load plugins
-func loadPlugins(module *gomod.Module) (plugins []*gomod.Module, err error) {
+func loadPlugins(module *gomod.Module) (plugins []fs.FS, err error) {
 	modfile := module.File()
 	var importPaths []string
 	for _, req := range modfile.Requires() {
@@ -51,7 +52,7 @@ func loadPlugins(module *gomod.Module) (plugins []*gomod.Module, err error) {
 		importPaths = append(importPaths, req.Mod.Path)
 	}
 	// Concurrently resolve directories
-	plugins = make([]*gomod.Module, len(importPaths))
+	plugins = make([]fs.FS, len(importPaths))
 	eg := new(errgroup.Group)
 	for i, importPath := range importPaths {
 		i, importPath := i, importPath
@@ -73,7 +74,7 @@ func loadPlugins(module *gomod.Module) (plugins []*gomod.Module, err error) {
 
 type FS struct {
 	opt    *option
-	merged fs.FS
+	merged *merged.FS
 }
 
 func (f *FS) Open(name string) (fs.File, error) {
@@ -81,6 +82,11 @@ func (f *FS) Open(name string) (fs.File, error) {
 		return f.merged.Open(name)
 	}
 	return f.cachedOpen(f.opt.fsCache, name)
+}
+
+func (f *FS) OpenContext(ctx context.Context, name string) (fs.File, error) {
+	// TODO: support caching
+	return f.merged.OpenContext(ctx, name)
 }
 
 func (f *FS) cachedOpen(fmap *fscache.Cache, name string) (fs.File, error) {
@@ -98,16 +104,4 @@ func (f *FS) cachedOpen(fmap *fscache.Cache, name string) (fs.File, error) {
 	}
 	fmap.Set(name, vfile)
 	return fmap.Open(name)
-}
-
-// Merge the filesystems into one
-func merge(app fs.FS, plugins []*gomod.Module) fs.FS {
-	if len(plugins) == 0 {
-		return app
-	}
-	var next = app
-	for _, plugin := range plugins {
-		next = mergefs.NewMergedFS(next, plugin)
-	}
-	return next
 }

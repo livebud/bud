@@ -63,6 +63,7 @@ func TestBuild(t *testing.T) {
 	app := testapp.New(dir)
 	stdout, stderr, err = app.Run("-h")
 	is.NoErr(err)
+	is.Equal(stderr, "")
 	is.True(strings.Contains(stdout, "Usage:")) // should contain Usage
 	is.True(strings.Contains(stdout, "app"))    // should contain app
 }

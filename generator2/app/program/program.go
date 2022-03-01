@@ -1,6 +1,7 @@
 package program
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
 
@@ -31,8 +32,8 @@ type State struct {
 	Provider *di.Provider
 }
 
-func (g *Generator) GenerateDir(f overlay.F, dir *overlay.Dir) error {
-	dir.GenerateFile("program.go", func(f overlay.F, file *overlay.File) error {
+func (g *Generator) GenerateDir(ctx context.Context, f overlay.F, dir *overlay.Dir) error {
+	dir.GenerateFile("program.go", func(ctx context.Context, f overlay.F, file *overlay.File) error {
 		// if err := gen.SkipUnless(g.BFS, "bud/command/command.go"); err != nil {
 		// 	return err
 		// }

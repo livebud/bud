@@ -1,4 +1,4 @@
-package mergefs_test
+package merged_test
 
 import (
 	"io/fs"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/matryer/is"
 
-	"gitlab.com/mnm/bud/package/mergefs"
+	"gitlab.com/mnm/bud/package/merged"
 )
 
 func TestMerge(t *testing.T) {
@@ -21,7 +21,7 @@ func TestMerge(t *testing.T) {
 	c := fstest.MapFS{
 		"c.txt": &fstest.MapFile{Data: []byte("c")},
 	}
-	fsys := mergefs.Merge(a, b, c)
+	fsys := merged.Merge(a, b, c)
 	des, err := fs.ReadDir(fsys, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 3)
@@ -41,7 +41,7 @@ func TestInnerMerge(t *testing.T) {
 	c := fstest.MapFS{
 		"d/c.txt": &fstest.MapFile{Data: []byte("c")},
 	}
-	fsys := mergefs.Merge(a, b, c)
+	fsys := merged.Merge(a, b, c)
 	des, err := fs.ReadDir(fsys, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 2)
@@ -62,7 +62,7 @@ func TestOverride(t *testing.T) {
 	b := fstest.MapFS{
 		"a.txt": &fstest.MapFile{Data: []byte("b")},
 	}
-	fsys := mergefs.Merge(a, b)
+	fsys := merged.Merge(a, b)
 	des, err := fs.ReadDir(fsys, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
@@ -70,4 +70,30 @@ func TestOverride(t *testing.T) {
 	code, err := fs.ReadFile(fsys, "a.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "a")
+}
+
+func TestFS(t *testing.T) {
+	is := is.New(t)
+	a := fstest.MapFS{
+		"a.txt": &fstest.MapFile{Data: []byte("a")},
+	}
+	a2 := fstest.MapFS{
+		"a.txt": &fstest.MapFile{Data: []byte("b")},
+	}
+	b := fstest.MapFS{
+		"b.txt": &fstest.MapFile{Data: []byte("b")},
+	}
+	c := fstest.MapFS{
+		"c.txt": &fstest.MapFile{Data: []byte("c")},
+	}
+	d := fstest.MapFS{
+		"d/b.txt": &fstest.MapFile{Data: []byte("b")},
+	}
+	d2 := fstest.MapFS{
+		"d/c.txt": &fstest.MapFile{Data: []byte("c")},
+	}
+	fsys := merged.Merge(a, a2, b, c, d, d2)
+	// Sanity check
+	err := fstest.TestFS(fsys, "a.txt", "b.txt", "c.txt", "d/b.txt", "d/c.txt")
+	is.NoErr(err)
 }

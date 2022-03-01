@@ -1,6 +1,7 @@
 package process
 
 import (
+	"context"
 	_ "embed"
 
 	"gitlab.com/mnm/bud/internal/gotemplate"
@@ -23,8 +24,8 @@ type Generator struct {
 	parser *parser.Parser
 }
 
-func (g *Generator) GenerateDir(f overlay.F, dir *overlay.Dir) error {
-	dir.GenerateFile("process.go", func(f overlay.F, file *overlay.File) error {
+func (g *Generator) GenerateDir(ctx context.Context, f overlay.F, dir *overlay.Dir) error {
+	dir.GenerateFile("process.go", func(ctx context.Context, f overlay.F, file *overlay.File) error {
 		// Load process state
 		state, err := Load(g.module, g.parser)
 		if err != nil {

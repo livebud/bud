@@ -1,6 +1,7 @@
 package conjure
 
 import (
+	"context"
 	"io/fs"
 
 	goradix "github.com/armon/go-radix"
@@ -18,7 +19,7 @@ type radix struct {
 }
 
 type Generator interface {
-	Generate(target string) (fs.File, error)
+	Generate(ctx context.Context, target string) (fs.File, error)
 }
 
 func (t *radix) Keys() []string {

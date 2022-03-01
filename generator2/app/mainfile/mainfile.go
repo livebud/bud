@@ -1,6 +1,7 @@
 package mainfile
 
 import (
+	"context"
 	_ "embed"
 
 	"gitlab.com/mnm/bud/internal/bail"
@@ -23,8 +24,8 @@ type Generator struct {
 	module *gomod.Module
 }
 
-func (g *Generator) GenerateDir(f overlay.F, dir *overlay.Dir) error {
-	dir.GenerateFile("main.go", func(f overlay.F, file *overlay.File) error {
+func (g *Generator) GenerateDir(ctx context.Context, f overlay.F, dir *overlay.Dir) error {
+	dir.GenerateFile("main.go", func(ctx context.Context, f overlay.F, file *overlay.File) error {
 		// Load command state
 		state, err := g.Load()
 		if err != nil {
