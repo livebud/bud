@@ -1,0 +1,72 @@
+package logfilter
+
+type parser Peg {
+  filters filters
+
+  // scratch
+  filter filter
+  pkgs []string
+  pkg string
+  level string
+}
+
+Filters <- Filter* End {
+  p.filters = append(p.filters, p.filter)
+}
+
+Filter <- _ InnerFilter _ {
+  p.filter = filter{
+    level: p.level,
+    packages: p.pkgs,
+  }
+}
+
+InnerFilter <- LevelPackages {}
+             / Level {}
+
+LevelPackages <- Level ':' Packages {}
+
+Packages <- Package ("," Package)* {
+}
+
+Package <- Include { p.pkgs = append(p.pkgs, p.pkg) }
+         / Exclude { p.pkgs = append(p.pkgs, p.pkg) }
+
+Exclude <- < "-" Include > {
+  p.pkg = text
+}
+
+Include <- < [a-zA-Z][a-zA-Z0-9/.*]* > {
+  p.pkg = text
+}
+
+Level <- Debug {}
+       / Info {}
+       / Notice {}
+       / Warn {}
+       / Error {}
+
+Debug <- < [dD] [eE] [bB] [uU] [gG] > {
+  p.level = "debug"
+}
+
+Info <- < [iI] [nN] [fF] [oO] > {
+  p.level = "info"
+}
+
+Notice <- < [nN] [oO] [tT] [iI] [cC] [eE] > {
+  p.level = "notice"
+}
+
+Warn <- < [wW] [aA] [rR] [nN] > {
+  p.level = "warn"
+}
+
+Error <- < [eE] [rR] [rR] [oO] [rR] > {
+  p.level = "error"
+}
+
+_ <- [ \t\n\r]*
+
+End
+  <- !.
