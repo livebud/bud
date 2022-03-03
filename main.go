@@ -36,7 +36,9 @@ import (
 
 	"gitlab.com/mnm/bud/package/commander"
 
+	"gitlab.com/mnm/bud/pkg/log"
 	"gitlab.com/mnm/bud/pkg/log/console"
+	"gitlab.com/mnm/bud/pkg/log/filter"
 )
 
 func main() {
@@ -53,6 +55,7 @@ func do() error {
 	bud := new(bud)
 	cli := commander.New("bud")
 	cli.Flag("chdir", "Change the working directory").Short('C').String(&bud.Chdir).Default(".")
+	cli.Flag("log", "Set the log level").Short('l').String(&bud.LogLevel).Default("info")
 	cli.Args("command", "custom command").Strings(&bud.Args)
 	cli.Run(bud.Run)
 
@@ -117,11 +120,21 @@ func do() error {
 }
 
 type bud struct {
-	Chdir  string
-	Embed  bool
-	Hot    bool
-	Minify bool
-	Args   []string
+	LogLevel string
+	Chdir    string
+	Embed    bool
+	Hot      bool
+	Minify   bool
+	Args     []string
+}
+
+// Logger loads the logger
+func (c *bud) Logger() (log.Logger, error) {
+	handler, err := filter.Load(console.New(os.Stderr), c.LogLevel)
+	if err != nil {
+		return nil, err
+	}
+	return log.New(handler), nil
 }
 
 func (c *bud) Build(ctx context.Context, dir string) (string, error) {
@@ -187,7 +200,7 @@ func (c *runCommand2) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	console.Info("Listening on http://%s", listener.Addr().String())
+	console.Info("Listening on http://" + listener.Addr().String())
 	module, err := gomod.Find(c.bud.Chdir)
 	if err != nil {
 		return err
