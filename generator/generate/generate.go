@@ -40,7 +40,7 @@ func (g *Generator) GenerateFile(_ gen.F, file *gen.File) error {
 		return err
 	}
 	imports := imports.New()
-	imports.AddStd("os")
+	imports.AddStd("os", "context")
 	// imports.AddStd("fmt")
 	imports.AddNamed("console", "gitlab.com/mnm/bud/pkg/log/console")
 	imports.AddNamed("gomod", "gitlab.com/mnm/bud/pkg/gomod")

@@ -41,7 +41,7 @@ func run(args []string) error {
 		Generators: generators,
 		Args: args,
 	}
-	return cmd.Parse()
+	return cmd.Parse(context.Background())
 }
 
 {{ $.Provider.Function }}
