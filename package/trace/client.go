@@ -48,14 +48,9 @@ func (c *Client) Print(ctx context.Context) (string, error) {
 
 // ExportSpans exports the spans to the server
 func (c *Client) ExportSpans(ctx context.Context, spans []ReadOnlySpan) error {
-	var scs []spanData
+	var scs []*SpanData
 	for _, span := range spans {
-		scs = append(scs, spanData{
-			ID:       span.SpanContext().SpanID().String(),
-			Name:     span.Name(),
-			ParentID: span.Parent().SpanID().String(),
-			Duration: span.EndTime().Sub(span.StartTime()).String(),
-		})
+		scs = append(scs, ToSpanData(span))
 	}
 	body, err := json.Marshal(scs)
 	if err != nil {

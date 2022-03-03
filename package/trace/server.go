@@ -14,11 +14,13 @@ import (
 )
 
 // TODO: align with OpenTelemetry's data structure
-type spanData struct {
+type SpanData struct {
 	ID       string
-	Name     string
 	ParentID string
+	Name     string
+	Attrs    map[string]string
 	Duration string
+	Error    string
 }
 
 func Serve(path string) (*http.Server, error) {
@@ -35,7 +37,7 @@ func Handler() http.Handler {
 	router := router.New()
 	api := &api{
 		Router: router,
-		traces: map[string][]*spanData{},
+		traces: map[string][]*SpanData{},
 	}
 	router.Post("/", http.HandlerFunc(api.Create))
 	router.Get("/", http.HandlerFunc(api.Index))
@@ -49,7 +51,7 @@ func newServer() *http.Server {
 type api struct {
 	*router.Router
 	mu     sync.RWMutex
-	traces map[string][]*spanData
+	traces map[string][]*SpanData
 }
 
 func (a *api) Create(w http.ResponseWriter, r *http.Request) {
@@ -58,7 +60,7 @@ func (a *api) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	var spans []*spanData
+	var spans []*SpanData
 	if err := json.Unmarshal(body, &spans); err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -89,7 +91,7 @@ func (a *api) Index(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(tree.String()))
 }
 
-func (a *api) print(tree treeprint.Tree, span *spanData) {
+func (a *api) print(tree treeprint.Tree, span *SpanData) {
 	tree = tree.AddBranch(fmt.Sprintf("%s (%s)", span.Name, span.Duration))
 	children := a.traces[span.ID]
 	for _, child := range children {
