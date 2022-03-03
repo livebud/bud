@@ -126,7 +126,7 @@ func TestTCPPassthrough(t *testing.T) {
 		cmd.ExtraFiles = append(cmd.ExtraFiles, extras...)
 		cmd.Env = append(os.Environ(), "CHILD=1", string(env))
 		is.NoErr(cmd.Start())
-		transport, err := socket.Transport(":0")
+		transport, err := socket.Transport(listener.Addr().String())
 		is.NoErr(err)
 		client := &http.Client{
 			Transport: transport,
@@ -137,7 +137,7 @@ func TestTCPPassthrough(t *testing.T) {
 		body, err := ioutil.ReadAll(res.Body)
 		is.NoErr(err)
 		is.Equal(string(body), "/hello")
-		res, err = client.Get("http://" + listener.Addr().String() + "/hello")
+		_, err = client.Get("http://" + listener.Addr().String() + "/hello")
 		is.NoErr(err)
 		is.NoErr(cmd.Wait())
 	}
@@ -185,7 +185,7 @@ func TestLoadTCP(t *testing.T) {
 		}),
 	}
 	go server.Serve(listener)
-	transport, err := socket.Transport(":0")
+	transport, err := socket.Transport(listener.Addr().String())
 	is.NoErr(err)
 	client := &http.Client{
 		Transport: transport,
@@ -209,7 +209,7 @@ func TestLoadNumberOnly(t *testing.T) {
 		}),
 	}
 	go server.Serve(listener)
-	transport, err := socket.Transport("0")
+	transport, err := socket.Transport(listener.Addr().String())
 	is.NoErr(err)
 	client := &http.Client{
 		Transport: transport,

@@ -67,7 +67,7 @@ var tests = []struct {
 	},
 	{
 		input:  "https:",
-		expect: "https://0.0.0.0:3000",
+		expect: "https://0.0.0.0:443",
 	},
 	{
 		input:  "https://localhost:8000/a/b/c",
@@ -76,5 +76,17 @@ var tests = []struct {
 	{
 		input:  "80.ab",
 		expect: `urlx: unable to parse "80.ab"`,
+	},
+	{
+		input:  "http://127.0.0.1:49341",
+		expect: "http://127.0.0.1:49341",
+	},
+	{
+		input:  "[::]:50516",
+		expect: "http://[::]:50516",
+	},
+	{
+		input:  "[::]:443",
+		expect: "https://[::]:443",
 	},
 }

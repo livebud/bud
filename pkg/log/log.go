@@ -113,7 +113,7 @@ func (l *logger) keyValues(kvs ...interface{}) (list Fields) {
 	for i := 1; i < size; i += 2 {
 		list = append(list, Field{
 			Key:   fmt.Sprintf("%s", kvs[i-1]),
-			Value: fmt.Sprintf("%s", kvs[i]),
+			Value: fmt.Sprintf("%v", kvs[i]),
 		})
 	}
 	// Add in the fields

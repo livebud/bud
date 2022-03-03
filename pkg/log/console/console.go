@@ -13,7 +13,7 @@ import (
 func color(level log.Level) string {
 	switch level {
 	case log.DebugLevel:
-		return ansi.Color.Teal
+		return ansi.Color.White
 	case log.InfoLevel:
 		return ansi.Color.Blue
 	case log.WarnLevel:
@@ -62,8 +62,8 @@ func (c *console) Log(log log.Entry) {
 
 	// Format the message
 	msg := color + level + ansi.Color.Reset + " " + log.Message
-	for key, field := range log.Fields {
-		msg += ansi.Color.Dim + key + "=" + field + ansi.Color.Reset
+	for _, field := range log.Fields {
+		msg += ansi.Color.Dim + " " + field.Key + "=" + field.Value + ansi.Color.Reset
 	}
 	msg += "\n"
 

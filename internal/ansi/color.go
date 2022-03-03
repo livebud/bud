@@ -8,6 +8,7 @@ type Colors struct {
 	Dim       string
 	Underline string
 
+	White  string
 	Teal   string
 	Blue   string
 	Yellow string
@@ -26,6 +27,7 @@ var Color = func() Colors {
 		Dim:       "\033[37m",
 		Underline: "\033[4m",
 
+		White:  "\033[37m",
 		Teal:   "\033[36m",
 		Blue:   "\033[34m",
 		Yellow: "\033[33m",

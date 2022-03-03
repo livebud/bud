@@ -11,7 +11,7 @@ URL <- URI
     / OnlyPort
     End
 
-URI <- < Scheme '//' Host Path > {
+URI <- < Scheme '//' Host Path? > {
   p.url.uri = text
 }
 
@@ -19,10 +19,11 @@ Scheme <- < [a-zA-Z][a-zA-Z+0-9]* ':' > {
   p.url.scheme = text[:len(text)-1]
 }
 
-Host <- IPPort / HostNamePort / IPV4 / HostName
+Host <- IPPort / HostNamePort / IPV4 / HostName / BracketsPort / Brackets
 
 IPPort <- IP ':' Port
 HostNamePort <- HostName ':' Port
+BracketsPort <- Brackets ':' Port
 
 IP <- IPV4
 
@@ -42,6 +43,10 @@ Port <- < [0-9]+ > {
 
 Path <- < '/' .* > {
   p.url.path = text
+}
+
+Brackets <- '[::]' {
+  p.url.host = "[::]"
 }
 
 End

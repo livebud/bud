@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"gitlab.com/mnm/bud/internal/urlx"
 )
@@ -73,5 +74,24 @@ func Transport(path string) (http.RoundTripper, error) {
 			},
 		}, nil
 	}
-	return http.DefaultTransport, nil
+	return httpTransport(url.Host), nil
+}
+
+// httpTransport is a modified from http.DefaultTransport
+func httpTransport(host string) http.RoundTripper {
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+	return &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return dialer.DialContext(ctx, network, host)
+		},
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
 }
