@@ -70,17 +70,17 @@ func exporter() *testExporter {
 
 func TestTrace(t *testing.T) {
 	// Setup functions
-	d := func(tracer *trace.Tracer, ctx context.Context) (err error) {
+	d := func(tracer trace.Tracer, ctx context.Context) (err error) {
 		_, span := tracer.Start(ctx, "d")
 		defer span.End(&err)
 		return nil
 	}
-	b := func(tracer *trace.Tracer, ctx context.Context) (err error) {
+	b := func(tracer trace.Tracer, ctx context.Context) (err error) {
 		_, span := tracer.Start(ctx, "b")
 		defer span.End(&err)
 		return nil
 	}
-	c := func(tracer *trace.Tracer, ctx context.Context) (err error) {
+	c := func(tracer trace.Tracer, ctx context.Context) (err error) {
 		ctx, span := tracer.Start(ctx, "c")
 		defer span.End(&err)
 		if err := d(tracer, ctx); err != nil {
@@ -88,7 +88,7 @@ func TestTrace(t *testing.T) {
 		}
 		return nil
 	}
-	a := func(tracer *trace.Tracer, ctx context.Context) (err error) {
+	a := func(tracer trace.Tracer, ctx context.Context) (err error) {
 		ctx, span := tracer.Start(ctx, "a")
 		defer span.End(&err)
 		if err := b(tracer, ctx); err != nil {
@@ -113,12 +113,12 @@ func TestTrace(t *testing.T) {
 func TestPropagation(t *testing.T) {
 	exporter := exporter()
 	// Setup functions
-	e := func(tracer *trace.Tracer, ctx context.Context) (err error) {
+	e := func(tracer trace.Tracer, ctx context.Context) (err error) {
 		_, span := tracer.Start(ctx, "e")
 		defer span.End(&err)
 		return nil
 	}
-	d := func(tracer *trace.Tracer, ctx context.Context) (err error) {
+	d := func(tracer trace.Tracer, ctx context.Context) (err error) {
 		ctx, span := tracer.Start(ctx, "d")
 		defer span.End(&err)
 		if err := e(tracer, ctx); err != nil {
@@ -139,12 +139,12 @@ func TestPropagation(t *testing.T) {
 		}
 		return nil
 	}
-	b := func(tracer *trace.Tracer, ctx context.Context) (err error) {
+	b := func(tracer trace.Tracer, ctx context.Context) (err error) {
 		_, span := tracer.Start(ctx, "b")
 		defer span.End(&err)
 		return nil
 	}
-	c := func(tracer *trace.Tracer, ctx context.Context) (err error) {
+	c := func(tracer trace.Tracer, ctx context.Context) (err error) {
 		ctx, span := tracer.Start(ctx, "c")
 		defer span.End(&err)
 		data, err := trace.Encode(ctx)
@@ -156,7 +156,7 @@ func TestPropagation(t *testing.T) {
 		}
 		return nil
 	}
-	a := func(tracer *trace.Tracer, ctx context.Context) (err error) {
+	a := func(tracer trace.Tracer, ctx context.Context) (err error) {
 		ctx, span := tracer.Start(ctx, "a")
 		defer span.End(&err)
 		if err := b(tracer, ctx); err != nil {
@@ -179,17 +179,17 @@ func TestPropagation(t *testing.T) {
 
 func TestError(t *testing.T) {
 	// Setup functions
-	d := func(tracer *trace.Tracer, ctx context.Context) (err error) {
+	d := func(tracer trace.Tracer, ctx context.Context) (err error) {
 		_, span := tracer.Start(ctx, "d")
 		defer span.End(&err)
 		return fmt.Errorf("oh noz")
 	}
-	b := func(tracer *trace.Tracer, ctx context.Context) (err error) {
+	b := func(tracer trace.Tracer, ctx context.Context) (err error) {
 		_, span := tracer.Start(ctx, "b")
 		defer span.End(&err)
 		return nil
 	}
-	c := func(tracer *trace.Tracer, ctx context.Context) (err error) {
+	c := func(tracer trace.Tracer, ctx context.Context) (err error) {
 		ctx, span := tracer.Start(ctx, "c")
 		defer span.End(&err)
 		if err := d(tracer, ctx); err != nil {
@@ -197,7 +197,7 @@ func TestError(t *testing.T) {
 		}
 		return nil
 	}
-	a := func(tracer *trace.Tracer, ctx context.Context) (err error) {
+	a := func(tracer trace.Tracer, ctx context.Context) (err error) {
 		ctx, span := tracer.Start(ctx, "a")
 		defer span.End(&err)
 		if err := b(tracer, ctx); err != nil {
@@ -221,17 +221,17 @@ func TestError(t *testing.T) {
 
 func TestAttributes(t *testing.T) {
 	// Setup functions
-	d := func(tracer *trace.Tracer, ctx context.Context) (err error) {
+	d := func(tracer trace.Tracer, ctx context.Context) (err error) {
 		_, span := tracer.Start(ctx, "d", "path", "/")
 		defer span.End(&err)
 		return nil
 	}
-	b := func(tracer *trace.Tracer, ctx context.Context) (err error) {
+	b := func(tracer trace.Tracer, ctx context.Context) (err error) {
 		_, span := tracer.Start(ctx, "b")
 		defer span.End(&err)
 		return nil
 	}
-	c := func(tracer *trace.Tracer, ctx context.Context) (err error) {
+	c := func(tracer trace.Tracer, ctx context.Context) (err error) {
 		ctx, span := tracer.Start(ctx, "c")
 		defer span.End(&err)
 		if err := d(tracer, ctx); err != nil {
@@ -239,7 +239,7 @@ func TestAttributes(t *testing.T) {
 		}
 		return nil
 	}
-	a := func(tracer *trace.Tracer, ctx context.Context) (err error) {
+	a := func(tracer trace.Tracer, ctx context.Context) (err error) {
 		ctx, span := tracer.Start(ctx, "a", "port", 3000, "id", "10")
 		defer span.End(&err)
 		if err := b(tracer, ctx); err != nil {

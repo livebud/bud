@@ -20,14 +20,22 @@ type Exporter = sdktrace.SpanExporter
 type Provider = trace.TracerProvider
 type SpanID = trace.SpanID
 
-func New(exporter Exporter) *Tracer {
+func New(exporter Exporter) Tracer {
 	provider := sdktrace.NewTracerProvider(
 		sdktrace.WithSpanProcessor(sdktrace.NewSimpleSpanProcessor(exporter)),
 	)
-	return &Tracer{t: provider.Tracer("")}
+	return &tracer{t: provider.Tracer("")}
 }
 
-type Tracer struct {
+type Tracer interface {
+	Start(ctx context.Context, label string, attrs ...interface{}) (context.Context, Span)
+}
+
+type Span interface {
+	End(err *error)
+}
+
+type tracer struct {
 	t trace.Tracer
 }
 
@@ -65,19 +73,18 @@ func attributes(kvs []interface{}) (list keyValues) {
 }
 
 // Start a trace
-// TODO: support key-value attributes
-func (t *Tracer) Start(ctx context.Context, label string, attrs ...interface{}) (context.Context, *Span) {
-	ctx, span := t.t.Start(ctx, label)
-	return ctx, &Span{s: span, kvs: attrs}
+func (t *tracer) Start(ctx context.Context, label string, attrs ...interface{}) (context.Context, Span) {
+	ctx, s := t.t.Start(ctx, label)
+	return ctx, &span{s: s, kvs: attrs}
 }
 
-type Span struct {
+type span struct {
 	s   trace.Span
 	kvs []interface{}
 }
 
 // End the span
-func (s *Span) End(err *error) {
+func (s *span) End(err *error) {
 	// Set the attributes
 	attrs := attributes(s.kvs)
 	s.s.SetAttributes(attrs...)
