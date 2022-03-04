@@ -1,4 +1,4 @@
-package trace
+package tracer
 
 import (
 	"context"
@@ -20,14 +20,14 @@ type Exporter = sdktrace.SpanExporter
 type Provider = trace.TracerProvider
 type SpanID = trace.SpanID
 
-func New(exporter Exporter) Tracer {
+func New(exporter Exporter) Trace {
 	provider := sdktrace.NewTracerProvider(
 		sdktrace.WithSpanProcessor(sdktrace.NewSimpleSpanProcessor(exporter)),
 	)
 	return &tracer{t: provider.Tracer("")}
 }
 
-type Tracer interface {
+type Trace interface {
 	Start(ctx context.Context, label string, attrs ...interface{}) (context.Context, Span)
 }
 

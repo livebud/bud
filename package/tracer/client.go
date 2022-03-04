@@ -1,4 +1,4 @@
-package trace
+package tracer
 
 import (
 	"bytes"
