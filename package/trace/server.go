@@ -2,10 +2,13 @@ package trace
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
+	"sort"
+	"strconv"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/xlab/treeprint"
 	"gitlab.com/mnm/bud/pkg/router"
@@ -19,8 +22,58 @@ type SpanData struct {
 	ParentID string
 	Name     string
 	Attrs    map[string]string
-	Duration string
+	Start    int64
+	End      int64
 	Error    string
+}
+
+func (s *SpanData) Duration() time.Duration {
+	startTime := time.Unix(0, s.Start)
+	endTime := time.Unix(0, s.End)
+	return endTime.Sub(startTime)
+}
+
+type SpanFields []*SpanField
+
+func (f SpanFields) Len() int {
+	return len(f)
+}
+
+func (f SpanFields) Less(i, j int) bool {
+	return f[i].Key < f[j].Key
+}
+
+func (f SpanFields) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
+}
+
+type SpanField struct {
+	Key   string
+	Value string
+}
+
+func (s *SpanData) Fields() (fields SpanFields) {
+	for key, val := range s.Attrs {
+		fields = append(fields, &SpanField{key, val})
+	}
+	sort.Sort(fields)
+	return fields
+}
+
+func (s *SpanData) String() string {
+	out := new(strings.Builder)
+	out.WriteString(s.Name)
+	dur := s.Duration()
+	if dur > 0 {
+		out.WriteString(" (" + dur.String() + ")")
+	}
+	if s.Error != "" {
+		out.WriteString(" error=" + strconv.Quote(s.Error))
+	}
+	for _, field := range s.Fields() {
+		out.WriteString(" " + field.Key + "=" + field.Value)
+	}
+	return out.String()
 }
 
 func Serve(path string) (*http.Server, error) {
@@ -83,8 +136,9 @@ func (a *api) Index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	root := roots[0]
-	tree := treeprint.NewWithRoot(fmt.Sprintf("%s (%s)", root.Name, root.Duration))
+	tree := treeprint.NewWithRoot(root.String())
 	children := a.traces[root.ID]
+	sortByStart(children)
 	for _, child := range children {
 		a.print(tree, child)
 	}
@@ -92,9 +146,16 @@ func (a *api) Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) print(tree treeprint.Tree, span *SpanData) {
-	tree = tree.AddBranch(fmt.Sprintf("%s (%s)", span.Name, span.Duration))
+	tree = tree.AddBranch(span.String())
 	children := a.traces[span.ID]
+	sortByStart(children)
 	for _, child := range children {
 		a.print(tree, child)
 	}
+}
+
+func sortByStart(spans []*SpanData) {
+	sort.Slice(spans, func(i, j int) bool {
+		return spans[i].Start < spans[j].Start
+	})
 }

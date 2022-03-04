@@ -115,7 +115,8 @@ func ToSpanData(span ReadOnlySpan) *SpanData {
 		ID:       span.SpanContext().SpanID().String(),
 		Name:     span.Name(),
 		ParentID: span.Parent().SpanID().String(),
-		Duration: span.EndTime().Sub(span.StartTime()).String(),
+		Start:    span.StartTime().UnixNano(),
+		End:      span.EndTime().UnixNano(),
 		Attrs:    map[string]string{},
 	}
 	if span.Status().Code == codes.Error {

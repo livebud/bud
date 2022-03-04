@@ -46,10 +46,10 @@ func (e *testExporter) Print() string {
 func (e *testExporter) print(w io.Writer, span *trace.SpanData) {
 	fmt.Fprintf(w, "%s", span.Name)
 	if span.Error != "" {
-		fmt.Fprintf(w, " [%s]", span.Error)
+		fmt.Fprintf(w, " error=%q", span.Error)
 	}
-	for key, value := range span.Attrs {
-		fmt.Fprintf(w, " {%s:%s}", key, value)
+	for _, field := range span.Fields() {
+		fmt.Fprintf(w, " %s=%s", field.Key, field.Value)
 	}
 	children := e.m[span.ID]
 	if len(children) > 0 {
@@ -216,7 +216,7 @@ func TestError(t *testing.T) {
 	err := a(tracer, ctx)
 	is.Equal(err.Error(), "oh noz")
 	actual := exporter.Print()
-	is.Equal(actual, `a [oh noz] (b c [oh noz] (d [oh noz]))`)
+	is.Equal(actual, `a error="oh noz" (b c error="oh noz" (d error="oh noz"))`)
 }
 
 func TestAttributes(t *testing.T) {
@@ -258,5 +258,5 @@ func TestAttributes(t *testing.T) {
 	err := a(tracer, ctx)
 	is.NoErr(err)
 	actual := exporter.Print()
-	is.Equal(actual, `a {id:10} {port:3000} (b c (d {path:/}))`)
+	is.Equal(actual, `a id=10 port=3000 (b c (d path=/))`)
 }
