@@ -1,6 +1,7 @@
 package command_test
 
 import (
+	"context"
 	"os"
 	"strings"
 	"testing"
@@ -16,13 +17,14 @@ import (
 func TestEmpty(t *testing.T) {
 	t.SkipNow()
 	is := is.New(t)
+	ctx := context.Background()
 	dir := t.TempDir()
 	err := os.RemoveAll(dir)
 	is.NoErr(err)
 	td := testdir.New()
 	err = td.Write(dir)
 	is.NoErr(err)
-	cli, err := testcli.Load(dir)
+	cli, err := testcli.Load(ctx, dir)
 	is.NoErr(err)
 	stdout, stderr, err := cli.Run("-h")
 	is.NoErr(err)
@@ -32,13 +34,14 @@ func TestEmpty(t *testing.T) {
 
 func TestHelp(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	dir := "_tmp"
 	err := os.RemoveAll(dir)
 	is.NoErr(err)
 	td := testdir.New()
 	err = td.Write(dir)
 	is.NoErr(err)
-	cli, err := testcli.Load(dir)
+	cli, err := testcli.Load(ctx, dir)
 	is.NoErr(err)
 	stdout, stderr, err := cli.Run("-h")
 	is.NoErr(err)
@@ -49,11 +52,12 @@ func TestHelp(t *testing.T) {
 
 func TestBuild(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New()
 	err := td.Write(dir)
 	is.NoErr(err)
-	cli, err := testcli.Load(dir)
+	cli, err := testcli.Load(ctx, dir)
 	is.NoErr(err)
 	stdout, stderr, err := cli.Run("build")
 	is.NoErr(err)

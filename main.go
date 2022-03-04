@@ -8,11 +8,12 @@ import (
 	"io"
 	"io/fs"
 	"io/ioutil"
-	"net/http"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"gitlab.com/mnm/bud/pkg/socket"
 
@@ -34,11 +35,11 @@ import (
 
 	"gitlab.com/mnm/bud/pkg/gomod"
 
+	"gitlab.com/mnm/bud/package/command/expand"
 	"gitlab.com/mnm/bud/package/commander"
+	"gitlab.com/mnm/bud/package/trace"
 
-	"gitlab.com/mnm/bud/pkg/log"
 	"gitlab.com/mnm/bud/pkg/log/console"
-	"gitlab.com/mnm/bud/pkg/log/filter"
 )
 
 func main() {
@@ -55,8 +56,8 @@ func do() error {
 	bud := new(bud)
 	cli := commander.New("bud")
 	cli.Flag("chdir", "Change the working directory").Short('C').String(&bud.Chdir).Default(".")
-	cli.Flag("log", "Set the log level").Short('l').String(&bud.LogLevel).Default("info")
-	cli.Args("command", "custom command").Strings(&bud.Args)
+	cli.Flag("trace", "Enable tracing").Short('t').Bool(&bud.Trace).Default(false)
+	cli.Args("command", "Custom command").Strings(&bud.Args)
 	cli.Run(bud.Run)
 
 	{ // $ bud run
@@ -65,7 +66,7 @@ func do() error {
 		cli.Flag("embed", "embed the assets").Bool(&bud.Embed).Default(false)
 		cli.Flag("hot", "hot reload the frontend").Bool(&bud.Hot).Default(true)
 		cli.Flag("minify", "minify the assets").Bool(&bud.Minify).Default(false)
-		cli.Flag("port", "port").Int(&cmd.Port).Default(3000)
+		cli.Flag("port", "port").String(&cmd.Port).Default("3000")
 		cli.Run(cmd.Run)
 	}
 
@@ -120,21 +121,34 @@ func do() error {
 }
 
 type bud struct {
-	LogLevel string
-	Chdir    string
-	Embed    bool
-	Hot      bool
-	Minify   bool
-	Args     []string
+	Trace  bool
+	Chdir  string
+	Embed  bool
+	Hot    bool
+	Minify bool
+	Args   []string
 }
 
-// Logger loads the logger
-func (c *bud) Logger() (log.Logger, error) {
-	handler, err := filter.Load(console.New(os.Stderr), c.LogLevel)
+func (c *bud) Tracer(ctx context.Context) (context.Context, func(*error), error) {
+	tracer, ctx, err := trace.Serve(ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return log.New(handler), nil
+	shutdown := func(outerError *error) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		trace, err := tracer.Print(ctx)
+		if err != nil {
+			*outerError = err
+			return
+		}
+		fmt.Fprintf(os.Stderr, "\n%s", trace)
+		if err := tracer.Shutdown(ctx); err != nil {
+			*outerError = err
+			return
+		}
+	}
+	return ctx, shutdown, nil
 }
 
 func (c *bud) Build(ctx context.Context, dir string) (string, error) {
@@ -189,18 +203,27 @@ func (c *bud) Run(ctx context.Context) error {
 	return nil
 }
 
-type runCommand2 struct {
+type runCommand struct {
 	bud  *bud
 	Port string
-	Args []string
 }
 
-func (c *runCommand2) Run(ctx context.Context) error {
+func (c *runCommand) Run(ctx context.Context) (err error) {
+	// Start listening on the port
 	listener, err := socket.Load(c.Port)
 	if err != nil {
 		return err
 	}
-	console.Info("Listening on http://" + listener.Addr().String())
+	host, port, err := net.SplitHostPort(listener.Addr().String())
+	if err != nil {
+		return err
+	}
+	// https://serverfault.com/a/444557
+	if host == "::" {
+		host = "0.0.0.0"
+	}
+	console.Info("Listening on http://" + host + ":" + port)
+	// Find go.mod
 	module, err := gomod.Find(c.bud.Chdir)
 	if err != nil {
 		return err
@@ -254,7 +277,7 @@ func (c *runCommand2) Run(ctx context.Context) error {
 		return err
 	}
 	// Run the generator
-	cmd := exec.Command(binPath, c.Args...)
+	cmd := exec.CommandContext(ctx, binPath)
 	cmd.Env = append(os.Environ(), string(env))
 	cmd.ExtraFiles = files
 	cmd.Stdin = os.Stdin
@@ -268,47 +291,153 @@ func (c *runCommand2) Run(ctx context.Context) error {
 	return nil
 }
 
-type runCommand struct {
+type runCommand2 struct {
 	bud  *bud
-	Port int
-	Args []string
+	Port string
 }
 
-func (c *runCommand) Run(ctx context.Context) error {
-	// Find the project directory
-	dir, err := gomod.Absolute(c.bud.Chdir)
+func (c *runCommand2) Run(ctx context.Context) (err error) {
+	// Initialize tracing
+	ctx, shutdown, err := c.bud.Tracer(ctx)
 	if err != nil {
 		return err
 	}
-	// Generate the code
-	binPath, err := c.bud.Build(ctx, dir)
-	if err != nil {
-		if !errors.Is(err, fs.ErrNotExist) {
-			return err
-		}
-		// TODO: improve the welcome server
-		address := fmt.Sprintf(":%d", c.Port)
-		console.Info("Listening on http://localhost%s", address)
-		return http.ListenAndServe(address, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("Welcome Server!\n"))
-		}))
-	}
-	// Run the app
-	cmd := exec.Command(binPath, c.Args...)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	err = cmd.Run()
+	defer shutdown(&err)
+	// Run the command
+	return c.run(ctx)
+}
+
+func (c *runCommand2) run(ctx context.Context) (err error) {
+	ctx, span := trace.Start(ctx, "bud run")
+	defer span.End(&err)
+	// Start listening on the port
+	// listener, err := c.startListener(ctx, c.Port)
+	// if err != nil {
+	// 	return err
+	// }
+	// Find go.mod
+	module, err := c.findModule(ctx, c.bud.Chdir)
 	if err != nil {
 		return err
 	}
+	expander, err := expand.Load(ctx, module.Directory())
+	if err != nil {
+		return err
+	}
+	if err := expander.Run(ctx); err != nil {
+		return err
+	}
+	fmt.Println("ran the expander")
+	// bfs, err := budfs.Load(module)
+	// if err != nil {
+	// 	return err
+	// }
+	// bfs.Entry("bud/generator/generator.go", gen.FileGenerator(&generatorGenerator.Generator{
+	// 	BFS:    bfs,
+	// 	Module: module,
+	// 	Embed:  c.bud.Embed,
+	// 	Hot:    c.bud.Hot,
+	// 	Minify: c.bud.Minify,
+	// }))
+	// parser := parser.New(bfs, module)
+	// injector := di.New(bfs, module, parser)
+	// bfs.Entry("bud/generate/main.go", gen.FileGenerator(&generate.Generator{
+	// 	BFS:      bfs,
+	// 	Injector: injector,
+	// 	Module:   module,
+	// 	Embed:    c.bud.Embed,
+	// 	Hot:      c.bud.Hot,
+	// 	Minify:   c.bud.Minify,
+	// }))
+	// appFS := vfs.OS(module.Directory())
+	// skipOption := dsync.WithSkip(
+	// 	gitignore.FromFS(appFS),
+	// 	// Keep bud/main around to improve build caching
+	// 	func(name string, isDir bool) bool {
+	// 		return !isDir && name == "bud/main"
+	// 	},
+	// )
+	// if err := dsync.Dir(vfs.SingleFlight(bfs), "bud", appFS, "bud", skipOption); err != nil {
+	// 	return err
+	// }
+	// mainPath := filepath.Join(module.Directory(), "bud", "generate", "main.go")
+	// // Check to see if we generated a main.go
+	// if _, err := os.Stat(mainPath); err != nil {
+	// 	return err
+	// }
+	// // Building over an existing binary is faster for some reason, so we'll use
+	// // the cache directory for a consistent place to output builds
+	// binPath := filepath.Join(module.Directory(), "bud", "generate", "main")
+	// if err := gobin.Build(ctx, module.Directory(), mainPath, binPath); err != nil {
+	// 	return err
+	// }
+	// // Pass the socket through
+	// files, env, err := socket.Files(listener)
+	// if err != nil {
+	// 	return err
+	// }
+	// // Encode the trace data
+	// traceData, err := trace.Encode(ctx)
+	// if err != nil {
+	// 	return err
+	// }
+	// // Run the generator
+	// cmd := exec.CommandContext(ctx, binPath)
+	// cmd.Env = append(os.Environ(), string(env), fmt.Sprintf("TRACE_DATA=%q", traceData))
+	// cmd.ExtraFiles = files
+	// cmd.Stdin = os.Stdin
+	// cmd.Stderr = os.Stderr
+	// cmd.Stdout = os.Stdout
+	// cmd.Dir = module.Directory()
+	// err = cmd.Run()
+	// if err != nil {
+	// 	return err
+	// }
 	return nil
+}
+
+func (c *runCommand2) startListener(ctx context.Context, addr string) (l net.Listener, err error) {
+	_, span := trace.Start(ctx, "started listening", "addr", addr)
+	defer span.End(&err)
+	listener, err := socket.Load(addr)
+	if err != nil {
+		return nil, err
+	}
+	host, port, err := net.SplitHostPort(listener.Addr().String())
+	if err != nil {
+		return nil, err
+	}
+	// https://serverfault.com/a/444557
+	if host == "::" {
+		host = "0.0.0.0"
+	}
+	console.Info("Listening on http://" + host + ":" + port)
+	return listener, nil
+}
+
+func (c *runCommand2) findModule(ctx context.Context, dir string) (mod *gomod.Module, err error) {
+	_, span := trace.Start(ctx, "find go.mod", "dir", dir)
+	defer span.End(&err)
+	// Run find go.mod
+	module, err := gomod.Find(c.bud.Chdir)
+	if err != nil {
+		return nil, err
+	}
+	return module, nil
 }
 
 type buildCommand struct {
 	bud *bud
 }
 
-func (c *buildCommand) Run(ctx context.Context) error {
+func (c *buildCommand) Run(ctx context.Context) (err error) {
+	ctx, shutdown, err := c.bud.Tracer(ctx)
+	if err != nil {
+		return err
+	}
+	defer shutdown(&err)
+	_, span := trace.Start(ctx, "bud build")
+	defer span.End(&err)
 	// Find the project directory
 	dir, err := gomod.Absolute(c.bud.Chdir)
 	if err != nil {

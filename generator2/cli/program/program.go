@@ -56,8 +56,9 @@ func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
 	state = new(State)
 	// Add imports
-	l.imports.AddStd("errors", "context", "path/filepath", "runtime")
+	l.imports.AddStd("os", "errors", "context", "path/filepath", "runtime")
 	l.imports.AddNamed("console", "gitlab.com/mnm/bud/pkg/log/console")
+	l.imports.AddNamed("trace", "gitlab.com/mnm/bud/package/trace")
 	// Inject the provider
 	state.Provider, err = l.injector.Wire(&di.Function{
 		Name:   "loadCLI",

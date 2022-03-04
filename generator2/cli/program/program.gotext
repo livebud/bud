@@ -25,6 +25,11 @@ func Run(ctx context.Context, args ...string) int {
 }
 
 func run(ctx context.Context, args ...string) error {
+	// Decode the trace data
+	 ctx, err := trace.Decode(ctx, []byte(os.Getenv("TRACE_DATA")))
+	if err != nil {
+		return err
+	}
 	dir, err := dirname()
 	if err != nil {
 		return err

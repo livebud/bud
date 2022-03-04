@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/package/tracer"
+	"gitlab.com/mnm/bud/internal/tracer"
 )
 
 func TestSingleClient(t *testing.T) {
@@ -82,7 +82,12 @@ func TestMultiClient(t *testing.T) {
 		return nil
 	}
 	subprocess := func(data []byte) (err error) {
-		ctx, trace, err := tracer.Resume(context.Background(), server.URL, data)
+		client, err := tracer.NewClient(server.URL)
+		if err != nil {
+			return err
+		}
+		trace := tracer.New(client)
+		ctx, err := tracer.Decode(context.Background(), data)
 		if err != nil {
 			return err
 		}
@@ -186,53 +191,6 @@ func TestServer(t *testing.T) {
 	is.True(strings.Contains(tree, "└── c ("))
 	is.True(strings.Contains(tree, "    └── d ("))
 	err = server.Shutdown(ctx)
-	is.NoErr(err)
-}
-
-func TestStart(t *testing.T) {
-	// Setup functions
-	d := func(trace tracer.Trace, ctx context.Context) (err error) {
-		_, span := trace.Start(ctx, "d")
-		defer span.End(&err)
-		return nil
-	}
-	b := func(trace tracer.Trace, ctx context.Context) (err error) {
-		_, span := trace.Start(ctx, "b")
-		defer span.End(&err)
-		return nil
-	}
-	c := func(trace tracer.Trace, ctx context.Context) (err error) {
-		ctx, span := trace.Start(ctx, "c")
-		defer span.End(&err)
-		if err := d(trace, ctx); err != nil {
-			return err
-		}
-		return nil
-	}
-	a := func(trace tracer.Trace, ctx context.Context) (err error) {
-		ctx, span := trace.Start(ctx, "a")
-		defer span.End(&err)
-		if err := b(trace, ctx); err != nil {
-			return err
-		}
-		if err := c(trace, ctx); err != nil {
-			return err
-		}
-		return nil
-	}
-	is := is.New(t)
-	ctx := context.Background()
-	tracer, err := tracer.Start()
-	is.NoErr(err)
-	err = a(tracer, ctx)
-	is.NoErr(err)
-	tree, err := tracer.Print(ctx)
-	is.NoErr(err)
-	is.True(strings.Contains(tree, "a ("))
-	is.True(strings.Contains(tree, "├── b ("))
-	is.True(strings.Contains(tree, "└── c ("))
-	is.True(strings.Contains(tree, "    └── d ("))
-	err = tracer.Shutdown(ctx)
 	is.NoErr(err)
 }
 

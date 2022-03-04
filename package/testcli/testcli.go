@@ -12,8 +12,8 @@ import (
 	"gitlab.com/mnm/bud/package/command/expand"
 )
 
-func Load(dir string) (*CLI, error) {
-	expander, err := expand.Load(dir)
+func Load(ctx context.Context, dir string) (*CLI, error) {
+	expander, err := expand.Load(ctx, dir)
 	if err != nil {
 		return nil, err
 	}
