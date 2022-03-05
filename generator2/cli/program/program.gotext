@@ -24,12 +24,15 @@ func Run(ctx context.Context, args ...string) int {
 	return 0
 }
 
-func run(ctx context.Context, args ...string) error {
+func run(ctx context.Context, args ...string) (err error) {
 	// Decode the trace data
-	 ctx, err := trace.Decode(ctx, []byte(os.Getenv("TRACE_DATA")))
+	ctx, err = trace.Decode(ctx, []byte(os.Getenv("TRACE_DATA")))
 	if err != nil {
 		return err
 	}
+	ctx, span := trace.Start(ctx, "run project cli", "args", args)
+	defer span.End(&err)
+	// Load the dirname
 	dir, err := dirname()
 	if err != nil {
 		return err

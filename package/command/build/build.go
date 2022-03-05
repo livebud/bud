@@ -12,8 +12,6 @@ type Generator interface {
 	Generate(ctx context.Context) error
 }
 
-// type generators map[string]overlay.DirGenerator
-
 func Load(generator Generator) *Command {
 	return &Command{Generator: generator}
 }

@@ -311,15 +311,16 @@ func (c *runCommand2) run(ctx context.Context) (err error) {
 	ctx, span := trace.Start(ctx, "bud run")
 	defer span.End(&err)
 	// Start listening on the port
-	// listener, err := c.startListener(ctx, c.Port)
-	// if err != nil {
-	// 	return err
-	// }
+	listener, err := c.startListener(ctx, c.Port)
+	if err != nil {
+		return err
+	}
 	// Find go.mod
 	module, err := c.findModule(ctx, c.bud.Chdir)
 	if err != nil {
 		return err
 	}
+	// Run the expander
 	expander, err := expand.Load(ctx, module.Directory())
 	if err != nil {
 		return err
@@ -327,72 +328,10 @@ func (c *runCommand2) run(ctx context.Context) (err error) {
 	if err := expander.Run(ctx); err != nil {
 		return err
 	}
-	fmt.Println("ran the expander")
-	// bfs, err := budfs.Load(module)
-	// if err != nil {
-	// 	return err
-	// }
-	// bfs.Entry("bud/generator/generator.go", gen.FileGenerator(&generatorGenerator.Generator{
-	// 	BFS:    bfs,
-	// 	Module: module,
-	// 	Embed:  c.bud.Embed,
-	// 	Hot:    c.bud.Hot,
-	// 	Minify: c.bud.Minify,
-	// }))
-	// parser := parser.New(bfs, module)
-	// injector := di.New(bfs, module, parser)
-	// bfs.Entry("bud/generate/main.go", gen.FileGenerator(&generate.Generator{
-	// 	BFS:      bfs,
-	// 	Injector: injector,
-	// 	Module:   module,
-	// 	Embed:    c.bud.Embed,
-	// 	Hot:      c.bud.Hot,
-	// 	Minify:   c.bud.Minify,
-	// }))
-	// appFS := vfs.OS(module.Directory())
-	// skipOption := dsync.WithSkip(
-	// 	gitignore.FromFS(appFS),
-	// 	// Keep bud/main around to improve build caching
-	// 	func(name string, isDir bool) bool {
-	// 		return !isDir && name == "bud/main"
-	// 	},
-	// )
-	// if err := dsync.Dir(vfs.SingleFlight(bfs), "bud", appFS, "bud", skipOption); err != nil {
-	// 	return err
-	// }
-	// mainPath := filepath.Join(module.Directory(), "bud", "generate", "main.go")
-	// // Check to see if we generated a main.go
-	// if _, err := os.Stat(mainPath); err != nil {
-	// 	return err
-	// }
-	// // Building over an existing binary is faster for some reason, so we'll use
-	// // the cache directory for a consistent place to output builds
-	// binPath := filepath.Join(module.Directory(), "bud", "generate", "main")
-	// if err := gobin.Build(ctx, module.Directory(), mainPath, binPath); err != nil {
-	// 	return err
-	// }
-	// // Pass the socket through
-	// files, env, err := socket.Files(listener)
-	// if err != nil {
-	// 	return err
-	// }
-	// // Encode the trace data
-	// traceData, err := trace.Encode(ctx)
-	// if err != nil {
-	// 	return err
-	// }
-	// // Run the generator
-	// cmd := exec.CommandContext(ctx, binPath)
-	// cmd.Env = append(os.Environ(), string(env), fmt.Sprintf("TRACE_DATA=%q", traceData))
-	// cmd.ExtraFiles = files
-	// cmd.Stdin = os.Stdin
-	// cmd.Stderr = os.Stderr
-	// cmd.Stdout = os.Stdout
-	// cmd.Dir = module.Directory()
-	// err = cmd.Run()
-	// if err != nil {
-	// 	return err
-	// }
+	// Run the project CLI
+	if err := c.runCLI(ctx, module, listener); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -424,6 +363,40 @@ func (c *runCommand2) findModule(ctx context.Context, dir string) (mod *gomod.Mo
 		return nil, err
 	}
 	return module, nil
+}
+
+func (c *runCommand2) encodeTrace(ctx context.Context) (data []byte, err error) {
+	_, span := trace.Start(ctx, "encode trace")
+	defer span.End(&err)
+	return trace.Encode(ctx)
+}
+
+// Run the CLI
+func (c *runCommand2) runCLI(ctx context.Context, module *gomod.Module, listener net.Listener) (err error) {
+	ctx, span := trace.Start(ctx, "run cli process")
+	defer span.End(&err)
+	// Pass the socket through
+	files, env, err := socket.Files(listener)
+	if err != nil {
+		return err
+	}
+	// Encode the trace
+	traceData, err := c.encodeTrace(ctx)
+	if err != nil {
+		return err
+	}
+	// Run the CLI
+	cmd := exec.CommandContext(ctx, filepath.Join("bud", "cli"), "run")
+	cmd.Env = append(os.Environ(), string(env), "TRACE_DATA="+string(traceData))
+	cmd.ExtraFiles = append(cmd.ExtraFiles, files...)
+	cmd.Dir = module.Directory()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type buildCommand struct {
