@@ -9,27 +9,27 @@ import (
 )
 {{- end }}
 
-// Load the CLI
-func Load(_ *gomod.Module, processes *Processes) *CLI {
-	return &CLI{processes}
+// Load the App
+func Load(_ *gomod.Module, processes *Processes) *App {
+	return &App{processes}
 }
 
 type Processes struct {
 }
 
-type CLI struct {
+type App struct {
 	processes *Processes
 }
 
 {{- define "process" }}
 {{- range $flag := $.Flags }}
-cmd.Flag(`{{ $flag.Slug }}`, `{{ $flag.Help }}`).{{ $flag.Method }}(&c.m.{{ $.Full.Pascal }}Command.{{ $flag.Pascal }}){{ if $flag.Default }}.Default({{ $flag.Default }}){{ end }}
+cmd.Flag(`{{ $flag.Slug }}`, `{{ $flag.Help }}`).{{ $flag.Method }}(&a.processes.{{ $.Full.Pascal }}Command.{{ $flag.Pascal }}){{ if $flag.Default }}.Default({{ $flag.Default }}){{ end }}
 {{- end }}
 {{- range $arg := $.Args }}
-cmd.Arg(`{{ $arg.Slug }}`, `{{ $arg.Help }}`).{{ $arg.Method }}(&c.m.{{ $.Full.Pascal }}Command.{{ $arg.Pascal }}){{ if $arg.Default }}.Default({{ $arg.Default }}){{ end }}
+cmd.Arg(`{{ $arg.Slug }}`, `{{ $arg.Help }}`).{{ $arg.Method }}(&a.processes.{{ $.Full.Pascal }}Command.{{ $arg.Pascal }}){{ if $arg.Default }}.Default({{ $arg.Default }}){{ end }}
 {{- end }}
 {{- if $.Runnable }}
-cmd.Run(c.m.{{ $.Full.Pascal }}Command.Run)
+cmd.Run(a.processes.{{ $.Full.Pascal }}Command.Run)
 {{ end }}
 {{- range $sub := $.Subs }}
 
@@ -40,7 +40,7 @@ cmd.Run(c.m.{{ $.Full.Pascal }}Command.Run)
 {{- end }}
 {{- end }}
 
-func (c *CLI) Parse(ctx context.Context, args ...string) error {
+func (a *App) Parse(ctx context.Context, args ...string) error {
 	// $ bud run/build
 	cmd := commander.New(`{{ $.Process.Slug }}`)
 	{{- template "process" $.Process }}

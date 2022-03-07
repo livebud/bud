@@ -41,12 +41,12 @@ func Load() (*Program, error) {
 	if err != nil {
 		return nil, err
 	}
-	cli, err := loadCLI(module)
+	app, err := loadApp(module)
 	if err != nil {
 		return nil, err
 	}
 	return &Program{
-		cli: cli,
+		app: app,
 	}, nil
 }
 
@@ -60,11 +60,11 @@ func dirname() (string, error) {
 }
 
 type Program struct {
-	cli *process.CLI
+	app *process.App
 }
 
 func (p *Program) Run(ctx context.Context, args ...string) error {
-	return p.cli.Parse(ctx, args...)
+	return p.app.Parse(ctx, args...)
 }
 
 {{ $.Provider.Function }}

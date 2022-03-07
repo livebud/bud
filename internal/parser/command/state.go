@@ -1,4 +1,4 @@
-package process
+package command
 
 import (
 	"fmt"
@@ -11,10 +11,16 @@ import (
 
 type State struct {
 	Imports []*imports.Import
-	Process *Process
+	Command *Command
 }
 
-type Process struct {
+// Flatten out the commands, intentionally ignoring the root command
+// because that is custom generated.
+func (s *State) Commands() []*Command {
+	return flatten(s.Command.Subs)
+}
+
+type Command struct {
 	Parents  []string
 	Import   *imports.Import
 	Name     string
@@ -22,19 +28,23 @@ type Process struct {
 	Help     string
 	Flags    []*Flag
 	Args     []*Arg
-	Subs     []*Process
+	Subs     []*Command
 	Deps     []*Dep
 	Context  bool
 	Runnable bool
 }
 
-func (p *Process) Full() Full {
+func (c *Command) Pascal() string {
+	return gotext.Pascal(c.Name)
+}
+
+func (c *Command) Full() Full {
 	// Make a copy
-	parents := make([]string, len(p.Parents))
-	for i, parent := range p.Parents {
+	parents := make([]string, len(c.Parents))
+	for i, parent := range c.Parents {
 		parents[i] = parent
 	}
-	return Full(strings.Join(append(parents, p.Name), " "))
+	return Full(strings.Join(append(parents, c.Name), " "))
 }
 
 type Full string
@@ -101,4 +111,13 @@ func methodName(dataType string) (string, error) {
 	default:
 		return "", fmt.Errorf("command: unhandled type for method %q", dataType)
 	}
+}
+
+// Flatten out the commands
+func flatten(commands []*Command) (results []*Command) {
+	for _, cmd := range commands {
+		results = append(results, cmd)
+		results = append(results, flatten(cmd.Subs)...)
+	}
+	return results
 }

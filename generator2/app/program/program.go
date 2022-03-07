@@ -44,13 +44,13 @@ func (g *Generator) GenerateDir(ctx context.Context, f overlay.F, dir *overlay.D
 		imports.AddNamed("gomod", "gitlab.com/mnm/bud/pkg/gomod")
 		imports.Add(g.module.Import("bud/.app/process"))
 		provider, err := g.injector.Wire(&di.Function{
-			Name:   "loadCLI",
+			Name:   "loadApp",
 			Target: g.module.Import("bud", "program"),
 			Params: []di.Dependency{
 				&di.Type{Import: "gitlab.com/mnm/bud/pkg/gomod", Type: "*Module"},
 			},
 			Results: []di.Dependency{
-				&di.Type{Import: g.module.Import("bud", ".app", "process"), Type: "*CLI"},
+				&di.Type{Import: g.module.Import("bud", ".app", "process"), Type: "*App"},
 				&di.Error{},
 			},
 			Aliases: di.Aliases{

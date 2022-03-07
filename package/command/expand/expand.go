@@ -8,6 +8,7 @@ import (
 	"gitlab.com/mnm/bud/generator2/cli/mainfile"
 	"gitlab.com/mnm/bud/generator2/cli/program"
 	"gitlab.com/mnm/bud/internal/gobin"
+	commandparser "gitlab.com/mnm/bud/internal/parser/command"
 	"gitlab.com/mnm/bud/package/overlay"
 	"gitlab.com/mnm/bud/package/trace"
 	"gitlab.com/mnm/bud/pkg/di"
@@ -30,7 +31,7 @@ func Load(ctx context.Context, dir string) (cmd *Command, err error) {
 	injector := di.New(ofs, module, parser)
 	ofs.FileGenerator("bud/.cli/main.go", mainfile.New(module))
 	ofs.FileGenerator("bud/.cli/program/program.go", program.New(injector, module))
-	ofs.FileGenerator("bud/.cli/command/command.go", command.New(module))
+	ofs.FileGenerator("bud/.cli/command/command.go", command.New(commandparser.New(module, parser)))
 	ofs.FileGenerator("bud/.cli/generator/generator.go", generator.New())
 	return &Command{
 		dir:     dir,

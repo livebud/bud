@@ -10,9 +10,6 @@ import (
 {{- end }}
 
 // Load the CLI
-// TODO: remove unused arguments. We currently need them because di will
-// remove these parameters if they're unused, breaking the signature. This
-// should be fixed in di.
 func Load(generator *generator.Generator, commands *Commands) *CLI {
 	return &CLI{generator, commands}
 }

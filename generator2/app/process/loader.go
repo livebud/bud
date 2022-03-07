@@ -39,6 +39,29 @@ func (l *loader) Load() (state *State, err error) {
 		Process: &Process{
 			Name: "app",
 			Slug: "app",
+			// Runnable: true,
+			// Subs:     []*Process{
+			// 	&Process{
+			// 		Name:     "build",
+			// 		Runnable: true,
+			// 		Import:   &imports.Import{Name: "build", Path: "gitlab.com/mnm/bud/package/command/build"},
+			// 		Flags: []*Flag{
+			// 			&Flag{
+			// 				Name:    "dir",
+			// 				Type:    "string",
+			// 				Help:    "project directory",
+			// 				Default: strconv.Quote(l.module.Directory()),
+			// 			},
+			// 		},
+			// 		Deps: []*Dep{
+			// 			&Dep{
+			// 				Import: &imports.Import{Name: "generator", Path: l.module.Import("bud/.cli/generator")},
+			// 				Name:   "Generator",
+			// 				Type:   "*generator.Generator",
+			// 			},
+			// 		},
+			// 	},
+			// },
 		},
 	}
 	return state, nil

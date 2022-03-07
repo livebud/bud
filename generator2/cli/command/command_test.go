@@ -48,6 +48,7 @@ func TestHelp(t *testing.T) {
 	is.Equal(stderr, "")
 	is.True(strings.Contains(stdout, "Usage")) // should contain Usage
 	is.True(strings.Contains(stdout, "build")) // should contain build
+	is.True(strings.Contains(stdout, "run"))   // should contain run
 }
 
 func TestBuild(t *testing.T) {
