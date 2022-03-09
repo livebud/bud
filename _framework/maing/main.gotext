@@ -1,0 +1,16 @@
+package main
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+func main() {
+	ctx := context.Background()
+	exitCode := program.Run(ctx, os.Args[1:]...)
+	os.Exit(exitCode)
+}

@@ -67,6 +67,22 @@ func TestHelp(t *testing.T) {
 `)
 }
 
+func TestHelpArgs(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	cmd := commander.New("cp").Writer(actual)
+	cmd.Arg("src").String(nil)
+	cmd.Arg("dst").String(nil).Default(".")
+	ctx := context.Background()
+	err := cmd.Parse(ctx, []string{"-h"})
+	is.NoErr(err)
+	isEqual(t, actual.String(), `
+  {bold}Usage:{reset}
+    cp {dim}<src>{reset} {dim}<dst>{reset}
+
+`)
+}
+
 func TestInvalid(t *testing.T) {
 	is := is.New(t)
 	actual := new(bytes.Buffer)
@@ -369,7 +385,7 @@ func TestArgStringMap(t *testing.T) {
 		return nil
 	})
 	var args map[string]string
-	cli.Arg("arg", "cli arg").StringMap(&args)
+	cli.Arg("arg").StringMap(&args)
 	// Can have only one arg
 	ctx := context.Background()
 	err := cli.Parse(ctx, []string{"a:1 + 1"})
@@ -388,7 +404,7 @@ func TestArgStringMapRequired(t *testing.T) {
 		return nil
 	})
 	var args map[string]string
-	cli.Arg("arg", "cli arg").StringMap(&args)
+	cli.Arg("arg").StringMap(&args)
 	ctx := context.Background()
 	err := cli.Parse(ctx, []string{})
 	is.Equal(err.Error(), "missing arg")
@@ -404,7 +420,7 @@ func TestArgStringMapDefault(t *testing.T) {
 		return nil
 	})
 	var args map[string]string
-	cli.Arg("arg", "cli arg").StringMap(&args).Default(map[string]string{
+	cli.Arg("arg").StringMap(&args).Default(map[string]string{
 		"a": "1",
 		"b": "2",
 	})
@@ -546,7 +562,7 @@ func TestArgString(t *testing.T) {
 		return nil
 	})
 	var arg string
-	cli.Arg("arg", "cli arg").String(&arg)
+	cli.Arg("arg").String(&arg)
 	ctx := context.Background()
 	err := cli.Parse(ctx, []string{"cool"})
 	is.NoErr(err)
@@ -565,7 +581,7 @@ func TestArgStringDefault(t *testing.T) {
 		return nil
 	})
 	var arg string
-	cli.Arg("arg", "cli arg").String(&arg).Default("default")
+	cli.Arg("arg").String(&arg).Default("default")
 	ctx := context.Background()
 	err := cli.Parse(ctx, []string{})
 	is.NoErr(err)
@@ -584,7 +600,7 @@ func TestArgStringRequired(t *testing.T) {
 		return nil
 	})
 	var arg string
-	cli.Arg("arg", "cli arg").String(&arg)
+	cli.Arg("arg").String(&arg)
 	ctx := context.Background()
 	err := cli.Parse(ctx, []string{})
 	is.Equal(err.Error(), "missing arg")
@@ -602,7 +618,7 @@ func TestSubArgString(t *testing.T) {
 	var arg string
 	cli.Command("build", "build command")
 	cli.Command("run", "run command")
-	cli.Arg("arg", "cli arg").String(&arg)
+	cli.Arg("arg").String(&arg)
 	ctx := context.Background()
 	err := cli.Parse(ctx, []string{"deploy"})
 	is.NoErr(err)
@@ -683,7 +699,7 @@ func TestArgsStrings(t *testing.T) {
 	var args []string
 	cli.Command("build", "build command")
 	cli.Command("run", "run command")
-	cli.Args("custom", "custom arg").Strings(&args)
+	cli.Args("custom").Strings(&args)
 	ctx := context.Background()
 	err := cli.Parse(ctx, []string{"new", "view"})
 	is.NoErr(err)

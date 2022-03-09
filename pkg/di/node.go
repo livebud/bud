@@ -46,9 +46,11 @@ func (n *Node) Generate(fnName, target string) *Provider {
 		output.Type = g.DataType(output.Import, output.Type)
 	}
 	// Add an error if we have one
-	rightmost := outputs[len(outputs)-1]
-	if !g.HasError && rightmost.Type == "error" {
-		rightmost.Name = "nil"
+	if len(outputs) > 0 {
+		rightmost := outputs[len(outputs)-1]
+		if !g.HasError && rightmost.Type == "error" {
+			rightmost.Name = "nil"
+		}
 	}
 	// Create the provider
 	return &Provider{

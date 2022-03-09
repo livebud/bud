@@ -27,6 +27,11 @@ type Injector struct {
 // Load the dependency graph, but don't generate any code. Load is intentionally
 // low-level and used by higher-level APIs like Generate.
 func (i *Injector) Load(fn *Function) (*Node, error) {
+	// Validate the function
+	if err := fn.Validate(); err != nil {
+		return nil, err
+	}
+	// Setup the aliases
 	aliases := map[string]Dependency{}
 	for from, to := range fn.Aliases {
 		aliases[from.ID()] = to

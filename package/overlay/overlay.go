@@ -51,6 +51,8 @@ func (f *FileSystem) OpenContext(ctx context.Context, name string) (fs.File, err
 
 var _ fs.FS = (*FileSystem)(nil)
 
+type GenerateFile = func(ctx context.Context, fsys F, file *File) error
+
 func (f *FileSystem) GenerateFile(path string, fn func(ctx context.Context, fsys F, file *File) error) {
 	f.cfs.GenerateFile(path, func(ctx context.Context, file *conjure.File) error {
 		return fn(ctx, f, &File{File: file})
@@ -60,6 +62,8 @@ func (f *FileSystem) GenerateFile(path string, fn func(ctx context.Context, fsys
 func (f *FileSystem) FileGenerator(path string, generator FileGenerator) {
 	f.GenerateFile(path, generator.GenerateFile)
 }
+
+type GenerateDir = func(ctx context.Context, fsys F, dir *Dir) error
 
 func (f *FileSystem) GenerateDir(path string, fn func(ctx context.Context, fsys F, dir *Dir) error) {
 	f.cfs.GenerateDir(path, func(ctx context.Context, dir *conjure.Dir) error {

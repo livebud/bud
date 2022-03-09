@@ -1,6 +1,6 @@
 
   {{bold}}Usage:{{reset}}
-    {{ $.Name }}{{ if $.Flags }} {{dim}}[flags]{{reset}}{{ end }}{{ if $.Commands }} {{dim}}[command]{{reset}}{{ end }}
+    {{ $.Name }}{{ if $.Flags }} {{dim}}[flags]{{reset}}{{ end }}{{ range $arg := $.Args }} {{dim}}{{$arg}}{{reset}}{{ end }}
 
 {{- if $.Flags}}
 

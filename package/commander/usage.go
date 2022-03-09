@@ -42,6 +42,21 @@ func (cmds generateCommands) Usage() (string, error) {
 	return strings.TrimSpace(buf.String()), nil
 }
 
+func (g *generateCommand) Args() (args []string) {
+	for i, arg := range g.c.args {
+		// TODO: differentiate between required and optional args
+		if i == 0 && len(g.c.commands) > 0 {
+			args = append(args, "<command|"+arg.Name+">")
+			continue
+		}
+		args = append(args, "<"+arg.Name+">")
+	}
+	if len(args) == 0 && len(g.c.commands) > 0 {
+		args = append(args, "[command]")
+	}
+	return args
+}
+
 func (g *generateCommand) Commands() (commands generateCommands) {
 	commands = make(generateCommands, len(g.c.commands))
 	i := 0

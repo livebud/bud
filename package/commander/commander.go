@@ -99,12 +99,12 @@ func (c *CLI) Flag(name, usage string) *Flag {
 	return c.root.Flag(name, usage)
 }
 
-func (c *CLI) Arg(name, usage string) *Arg {
-	return c.root.Arg(name, usage)
+func (c *CLI) Arg(name string) *Arg {
+	return c.root.Arg(name)
 }
 
-func (c *CLI) Args(name, usage string) *Args {
-	return c.root.Args(name, usage)
+func (c *CLI) Args(name string) *Args {
+	return c.root.Args(name)
 }
 
 func (c *CLI) Run(runner func(ctx context.Context) error) {
@@ -195,24 +195,22 @@ func (c *Command) Command(name, usage string) *Command {
 	return cmd
 }
 
-func (c *Command) Arg(name, usage string) *Arg {
+func (c *Command) Arg(name string) *Arg {
 	arg := &Arg{
-		Name:  name,
-		Usage: usage,
+		Name: name,
 	}
 	c.args = append(c.args, arg)
 	return arg
 }
 
-func (c *Command) Args(name, usage string) *Args {
+func (c *Command) Args(name string) *Args {
 	if c.restArgs != nil {
 		// Panic is okay here because settings commands should be done during
 		// initialization. We want to fail fast for invalid usage.
 		panic("commander: you can only use cmd.Args(name, usage) once per command")
 	}
 	args := &Args{
-		Name:  name,
-		Usage: usage,
+		Name: name,
 	}
 	c.restArgs = args
 	return args

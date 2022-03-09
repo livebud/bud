@@ -34,6 +34,13 @@ func (fn *Function) ID() string {
 	return getID(fn.Target, fn.Name)
 }
 
+func (fn *Function) Validate() error {
+	if fn.Name == "" {
+		return fmt.Errorf("di: function must have a name")
+	}
+	return nil
+}
+
 func (fn *Function) Dependencies() []Dependency {
 	return fn.Results
 }

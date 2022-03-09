@@ -2,7 +2,6 @@ package commander
 
 type Args struct {
 	Name  string
-	Usage string
 	value value
 }
 
