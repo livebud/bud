@@ -9,11 +9,11 @@ import (
 	"gitlab.com/mnm/bud/framework2/command"
 )
 
-func root() *command.Command {
-	return &command.Command{
+func rootState() *command.Cmd {
+	return &command.Cmd{
 		Name:     "",
 		Runnable: false,
-		Subs: []*command.Command{
+		Subs: []*command.Cmd{
 			{
 				Name:     "Run",
 				Context:  true,
@@ -60,11 +60,11 @@ func root() *command.Command {
 	}
 }
 
-func migrate() *command.Command {
-	return &command.Command{
+func migrateState() *command.Cmd {
+	return &command.Cmd{
 		Name: "migrate",
 		Help: "migrate your database",
-		Subs: []*command.Command{
+		Subs: []*command.Cmd{
 			{
 				Name:     "New",
 				Context:  true,
@@ -75,13 +75,13 @@ func migrate() *command.Command {
 						Name:    "Dir",
 						Type:    "string",
 						Help:    "migrations directory",
-						Default: `"./migrate"`,
+						Default: ptrString(`"./migrate"`),
 					},
 					{
 						Name:    "Table",
 						Type:    "string",
 						Help:    "migration table",
-						Default: `"migrate"`,
+						Default: ptrString(`"migrate"`),
 					},
 				},
 				Args: []*command.Arg{
@@ -101,13 +101,13 @@ func migrate() *command.Command {
 						Name:    "Dir",
 						Type:    "string",
 						Help:    "migrations directory",
-						Default: `"./migrate"`,
+						Default: ptrString(`"./migrate"`),
 					},
 					{
 						Name:    "Table",
 						Type:    "string",
 						Help:    "migration table",
-						Default: `"migrate"`,
+						Default: ptrString(`"migrate"`),
 					},
 				},
 				Args: []*command.Arg{
@@ -131,13 +131,13 @@ func migrate() *command.Command {
 						Name:    "Dir",
 						Type:    "string",
 						Help:    "migrations directory",
-						Default: `"./migrate"`,
+						Default: ptrString(`"./migrate"`),
 					},
 					{
 						Name:    "Table",
 						Type:    "string",
 						Help:    "migration table",
-						Default: `"migrate"`,
+						Default: ptrString(`"migrate"`),
 					},
 				},
 				Args: []*command.Arg{
@@ -151,6 +151,10 @@ func migrate() *command.Command {
 	}
 }
 
+func ptrString(s string) *string {
+	return &s
+}
+
 func TestGenerateEmpty(t *testing.T) {
 	is := is.New(t)
 	code, err := command.Generate(&command.State{})
@@ -162,7 +166,7 @@ func TestGenerateEmpty(t *testing.T) {
 func TestGenerateRoot(t *testing.T) {
 	is := is.New(t)
 	code, err := command.Generate(&command.State{
-		Command: root(),
+		Command: rootState(),
 	})
 	is.NoErr(err)
 	code, err = format.Source(code)
@@ -171,8 +175,8 @@ func TestGenerateRoot(t *testing.T) {
 
 func TestGenerateMigrate(t *testing.T) {
 	is := is.New(t)
-	rootCmd := root()
-	rootCmd.Subs = append(rootCmd.Subs, migrate())
+	rootCmd := rootState()
+	rootCmd.Subs = append(rootCmd.Subs, migrateState())
 	code, err := command.Generate(&command.State{
 		Command: rootCmd,
 	})

@@ -11,44 +11,41 @@ import (
 
 type State struct {
 	Imports []*imports.Import
-	Command *Command
+	Command *Cmd
 }
 
 // Flatten out the commands, intentionally ignoring the root command
 // because that is custom generated.
-func (s *State) Commands() []*Command {
+func (s *State) Commands() []*Cmd {
 	return flatten(s.Command.Subs)
 }
 
-type Command struct {
-	Parents  []string
+type Cmd struct {
+	Parent   *Cmd
 	Import   *imports.Import
 	Name     string
-	Path     string
 	Help     string
 	Flags    []*Flag
 	Args     []*Arg
-	Subs     []*Command
-	Deps     []*Dep
+	Subs     []*Cmd
 	Context  bool
 	Runnable bool
 }
 
-func (c *Command) Pascal() string {
+func (c *Cmd) Pascal() string {
 	return gotext.Pascal(c.Name)
 }
 
-func (c *Command) Slug() string {
+func (c *Cmd) Slug() string {
 	return text.Slug(c.Name)
 }
 
-func (c *Command) Full() Full {
+func (c *Cmd) Full() Full {
 	// Make a copy
-	parents := make([]string, len(c.Parents))
-	for i, parent := range c.Parents {
-		parents[i] = parent
+	if c.Parent == nil {
+		return Full(c.Name)
 	}
-	return Full(strings.Join(append(parents, c.Name), " "))
+	return Full(strings.TrimSpace(string(c.Parent.Full()) + " " + c.Name))
 }
 
 type Full string
@@ -58,11 +55,12 @@ func (f Full) Pascal() string {
 }
 
 type Flag struct {
-	Name    string
-	Help    string
-	Type    string
-	Default string
-	Short   byte
+	Name     string
+	Help     string
+	Type     string
+	Default  *string
+	Optional bool
+	Short    byte
 }
 
 func (f *Flag) Pascal() string {
@@ -78,8 +76,9 @@ func (f *Flag) Method() (string, error) {
 }
 
 type Arg struct {
-	Name string
-	Type string
+	Name     string
+	Type     string
+	Optional bool
 }
 
 func (a *Arg) Pascal() string {
@@ -120,7 +119,7 @@ func methodName(dataType string) (string, error) {
 }
 
 // Flatten out the commands
-func flatten(commands []*Command) (results []*Command) {
+func flatten(commands []*Cmd) (results []*Cmd) {
 	for _, cmd := range commands {
 		results = append(results, cmd)
 		results = append(results, flatten(cmd.Subs)...)

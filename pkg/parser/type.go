@@ -110,6 +110,26 @@ func Requalify(t Type, replace string) Type {
 	return Qualify(Unqualify(t), replace)
 }
 
+// IsImportType checks if the type matches the import type
+func IsImportType(t Type, importPath, name string) (bool, error) {
+	t = Innermost(t)
+	v, ok := t.(*SelectorType)
+	if !ok {
+		return false, nil
+	}
+	if v.Name() != name {
+		return false, nil
+	}
+	im, err := v.ImportPath()
+	if err != nil {
+		return false, err
+	}
+	if im != importPath {
+		return false, nil
+	}
+	return true, nil
+}
+
 // Definition tries going to the type's definition
 func Definition(t Type) (Declaration, error) {
 	d, ok := t.(definition)
