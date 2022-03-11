@@ -43,19 +43,25 @@ func invalidViewEntry(name string) bool {
 		unicode.IsUpper(firstRune(name)) // Starts with a capital letter
 }
 
-func ActionFile(name string) bool {
-	return !invalidActionFile(name)
-}
-
-func invalidActionFile(name string) bool {
+// Invalid Go file
+func invalidGoFile(name string) bool {
 	return len(name) == 0 || // Empty string
 		path.Ext(name) != ".go" ||
 		name[0] == '_' || // Starts with _
 		name[0] == '.' || // Starts with .
-		name == "bud.go" // Named bud (reserved)
+		name == "bud.go" || // Named bud (reserved)
+		strings.HasSuffix(name, "_test") // Test file
+}
+
+func ActionFile(name string) bool {
+	return !invalidGoFile(name)
 }
 
 func firstRune(s string) rune {
 	r, _ := utf8.DecodeRuneInString(s)
 	return r
+}
+
+func CommandFile(name string) bool {
+	return !invalidGoFile(name)
 }

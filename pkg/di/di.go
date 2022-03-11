@@ -29,10 +29,15 @@ type Variable struct {
 	Kind   parser.Kind // Kind of type (struct, interface, etc.)
 }
 
+func (v *Variable) ID() string {
+	return getID(v.Import, v.Type)
+}
+
 type External struct {
-	*Variable
-	Key     string // Name to be used as a key in a struct
-	Hoisted bool   // True if this external was hoisted up
+	Variable *Variable
+	Key      string // Name to be used as a key in a struct
+	Hoisted  bool   // True if this external was hoisted up
+	FullType string // Type name including package name
 }
 
 type Declaration interface {

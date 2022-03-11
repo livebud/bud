@@ -3,6 +3,8 @@ package overlay
 import (
 	"context"
 
+	"gitlab.com/mnm/bud/internal/fscache"
+
 	"gitlab.com/mnm/bud/internal/dsync"
 
 	"gitlab.com/mnm/bud/internal/dag"
@@ -23,7 +25,8 @@ func Load(module *gomod.Module) (*FileSystem, error) {
 	cfs := conjure.New()
 	merged := merged.Merge(cfs, pluginFS)
 	dag := dag.New()
-	return &FileSystem{cfs, dag, merged, module}, nil
+	cached := fscache.Wrap(merged)
+	return &FileSystem{cfs, dag, cached, module}, nil
 }
 
 type F interface {
@@ -34,7 +37,7 @@ type F interface {
 type FileSystem struct {
 	cfs    *conjure.FileSystem
 	dag    *dag.Graph
-	fsys   *merged.FS
+	fsys   fs.FS
 	module *gomod.Module
 }
 
@@ -42,11 +45,11 @@ func (f *FileSystem) Link(from, to string) {
 }
 
 func (f *FileSystem) Open(name string) (fs.File, error) {
-	return f.fsys.Open(name)
+	return f.OpenContext(context.Background(), name)
 }
 
 func (f *FileSystem) OpenContext(ctx context.Context, name string) (fs.File, error) {
-	return f.fsys.OpenContext(ctx, name)
+	return fs.Open(ctx, f.fsys, name)
 }
 
 var _ fs.FS = (*FileSystem)(nil)

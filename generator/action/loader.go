@@ -509,9 +509,9 @@ func (l *loader) loadContextInputs(provider *di.Provider) (fields []*ContextFiel
 func (l *loader) loadContextField(param *di.External) *ContextField {
 	field := new(ContextField)
 	field.Name = param.Key
-	field.Variable = param.Name
+	field.Variable = param.Variable.Name
 	field.Hoisted = param.Hoisted
-	field.Type = param.Type
+	field.Type = param.FullType
 	return field
 }
 

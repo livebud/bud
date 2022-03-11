@@ -54,6 +54,10 @@ func (f Full) Pascal() string {
 	return gotext.Pascal(string(f))
 }
 
+func (f Full) Camel() string {
+	return gotext.Camel(string(f))
+}
+
 type Flag struct {
 	Name     string
 	Help     string

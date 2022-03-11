@@ -26,7 +26,7 @@ type CLI struct {
 cmd.Flag(`{{ $flag.Slug }}`, `{{ $flag.Help }}`).{{ $flag.Method }}(&c.m.{{ $.Full.Pascal }}Command.{{ $flag.Pascal }}){{ if $flag.Default }}.Default({{ $flag.Default }}){{ end }}
 {{- end }}
 {{- range $arg := $.Args }}
-cmd.Arg(`{{ $arg.Slug }}`, `{{ $arg.Help }}`).{{ $arg.Method }}(&c.m.{{ $.Full.Pascal }}Command.{{ $arg.Pascal }}){{ if $arg.Default }}.Default({{ $arg.Default }}){{ end }}
+cmd.Arg(`{{ $arg.Slug }}`).{{ $arg.Method }}(&c.m.{{ $.Full.Pascal }}Command.{{ $arg.Pascal }})
 {{- end }}
 {{- if $.Runnable }}
 cmd.Run(c.m.{{ $.Full.Pascal }}Command.Run)

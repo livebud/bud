@@ -202,26 +202,31 @@ func (fn *function) Generate(gen Generator, inputs []*Variable) (outputs []*Vari
 // maybePrefix allows us to reference and derefence values during generate so
 // the result type doesn't need to be exact.
 func maybePrefixParam(param *Type, input *Variable) string {
-	if param.Type == input.Type {
-		if isInterface(param.kind) && !isInterface(input.Kind) {
-			// Create a pointer to the input when the param is an interface type, but
-			// the input is not an interface.
-			return "&" + input.Name
-		}
+	sameImport := param.Import == input.Import
+	sameType := param.Type == input.Type
+	// Nothing to change
+	if sameImport && sameType {
 		return input.Name
 	}
 	// Want *T, got T. Need to reference.
-	if strings.HasPrefix(param.Type, "*") && !strings.HasPrefix(input.Type, "*") {
+	if sameImport && strings.HasPrefix(param.Type, "*") && !strings.HasPrefix(input.Type, "*") {
 		return "&" + input.Name
 	}
 	// Want T, got *T. Need to dereference.
-	if !strings.HasPrefix(param.Type, "*") && strings.HasPrefix(input.Type, "*") {
+	if sameImport && !strings.HasPrefix(param.Type, "*") && strings.HasPrefix(input.Type, "*") {
 		if isInterface(param.kind) {
 			// Don't dereference the type when the param is an interface type
 			return input.Name
 		}
 		return "*" + input.Name
 	}
-	// We really shouldn't reach here.
+	// Create a pointer to the input when param is an interface type, but the
+	// input is not an interface.
+	// TODO: This is hacky because input.Kind can't tell if it's a pointer to a
+	// struct vs. a struct, so we need extra logic to tell.
+	if !sameImport && isInterface(param.kind) && !isInterface(input.Kind) && !strings.HasPrefix(input.Type, "*") {
+		return "&" + input.Name
+	}
+	// Passing through, not sure what to do.
 	return input.Name
 }

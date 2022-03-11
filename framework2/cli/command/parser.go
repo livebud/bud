@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"path/filepath"
@@ -28,10 +29,55 @@ type parser struct {
 
 func (p *parser) Parse(ctx context.Context) (state *State, err error) {
 	defer p.Recover2(&err, "command: unable to parse")
+	// Default imports
+	p.imports.AddStd("context")
 	state = new(State)
-	state.Command = p.loadCommand(nil, "command", "")
+	state.Command = p.loadCommand2(nil, "command", "")
+	state.Imports = p.imports.List()
 	return state, nil
 }
+
+func (p *parser) loadCommand2(parent *Cmd, base, dir string) *Cmd {
+	cmd := new(Cmd)
+	commandDir := filepath.Join(base, dir)
+	// Traverse the subdirectories
+	des, err := fs.ReadDir(p.fs, commandDir)
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			p.Bail(err)
+		}
+		return cmd
+	}
+	shouldParse := false
+	for _, de := range des {
+		// Valid command file
+		if !de.IsDir() {
+			shouldParse = shouldParse || valid.CommandFile(de.Name())
+			continue
+		}
+		// 	// Valid sub-directory
+		// 	if !valid.Dir(de.Name()) {
+		// 		continue
+		// 	}
+		// 	// Valid sub-command dir
+
+		// 	if de.IsDir() && valid.Dir(de.Name()) {
+		// 		sub := p.loadCommand(command, base, filepath.Join(dir, de.Name()))
+		// 		if sub == nil {
+		// 			continue
+		// 		}
+		// 		if hasNameConflict(command, sub) {
+		// 			p.Bail(fmt.Errorf("command and subcommand cannot have conflicting names %s", command.Name))
+		// 		}
+		// 		command.Subs = append(command.Subs, sub)
+		// 	}
+	}
+	return cmd
+}
+
+// func isValidSubDir(de fs.DirEntry) bool {
+// 	return de.IsDir() && valid.Dir(de.Name())
+// }
 
 func (p *parser) loadCommand(parent *Cmd, base, dir string) *Cmd {
 	commandDir := filepath.Join(base, dir)

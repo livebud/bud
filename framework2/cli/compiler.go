@@ -3,8 +3,9 @@ package cli
 import (
 	"context"
 
-	"gitlab.com/mnm/bud/framework2/mainfile"
-	"gitlab.com/mnm/bud/framework2/program"
+	"gitlab.com/mnm/bud/framework2/cli/command"
+	"gitlab.com/mnm/bud/framework2/cli/mainfile"
+	"gitlab.com/mnm/bud/framework2/cli/program"
 	"gitlab.com/mnm/bud/internal/gobin"
 	"gitlab.com/mnm/bud/package/overlay"
 	"gitlab.com/mnm/bud/package/trace"
@@ -36,9 +37,9 @@ func (c *Compiler) Compile(ctx context.Context) (err error) {
 	parser := parser.New(overlay, c.module)
 	injector := di.New(overlay, c.module, parser)
 	// Setup the generators
-	overlay.FileGenerator("bud/.cli/main.go", mainfile.ForCLI(c.module))
-	overlay.FileGenerator("bud/.cli/program/program.go", program.ForCLI(injector, c.module))
-	// overlay.FileGenerator("bud/.cli/command/command.go", command.New(commandparser.New(module, parser)))
+	overlay.FileGenerator("bud/.cli/main.go", mainfile.New(c.module))
+	overlay.FileGenerator("bud/.cli/program/program.go", program.New(injector, c.module))
+	overlay.FileGenerator("bud/.cli/command/command.go", command.New(overlay, c.module, parser))
 	// overlay.FileGenerator("bud/.cli/generator/generator.go", generator.New())
 	// Sync the generators
 	if err := c.sync(ctx, overlay); err != nil {
@@ -62,7 +63,8 @@ func (c *Compiler) overlay(ctx context.Context) (fsys *overlay.FileSystem, err e
 func (c *Compiler) sync(ctx context.Context, overlay *overlay.FileSystem) (err error) {
 	_, span := trace.Start(ctx, "sync cli", "dir", "bud/.cli")
 	defer span.End(&err)
-	return overlay.Sync("bud/.cli")
+	err = overlay.Sync("bud/.cli")
+	return err
 }
 
 // Build the CLI

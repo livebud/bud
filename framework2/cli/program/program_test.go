@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/framework2/program"
+	"gitlab.com/mnm/bud/framework2/cli/program"
 	"gitlab.com/mnm/bud/pkg/di"
 )
 

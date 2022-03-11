@@ -75,6 +75,10 @@ func TestParseRoot(t *testing.T) {
 	is.NoErr(err)
 	state, err := parse(ctx, dir)
 	is.NoErr(err)
+	// Imports
+	is.Equal(len(state.Imports), 1)
+	is.Equal(state.Imports[0].Name, "command")
+	is.Equal(state.Imports[0].Path, "app.com/command")
 	// Root command
 	rootCmd := state.Command
 	is.Equal(rootCmd.Runnable, false)

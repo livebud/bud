@@ -41,3 +41,36 @@ func verifyArgs(args []*Arg) error {
 	}
 	return nil
 }
+
+// func (a *Arg) Optional() *optionalArg {
+
+// }
+
+// type optionalArg struct {
+// 	Name  string
+// 	value value
+// }
+
+// func (a *optionalArg) Int(target **int) *Int {
+// 	value := &Int{target: target}
+// 	a.value = &intValue{inner: value}
+// 	return value
+// }
+
+// func (a *optionalArg) String(target **string) *String {
+// 	value := &String{target: target}
+// 	a.value = &stringValue{inner: value}
+// 	return value
+// }
+
+// func (a *optionalArg) Strings(target **[]string) *Strings {
+// 	value := &Strings{target: target}
+// 	a.value = &stringsValue{inner: value}
+// 	return value
+// }
+
+// func (a *optionalArg) StringMap(target **map[string]string) *StringMap {
+// 	value := &StringMap{target: target}
+// 	a.value = &stringMapValue{inner: value}
+// 	return value
+// }

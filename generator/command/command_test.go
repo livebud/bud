@@ -167,7 +167,7 @@ func TestNested(t *testing.T) {
 	`)
 	isEqual(t, app.Run("new", "view", "-h"), `
 		Usage:
-		  view [flags]
+		  view [flags] <name>
 
 		Flags:
 		  --with-test  include a view test

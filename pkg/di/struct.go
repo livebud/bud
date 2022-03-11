@@ -150,29 +150,34 @@ func tryStruct(stct *parser.Struct, dataType string) (*Struct, error) {
 	return decl, nil
 }
 
-// maybePrefix allows us to reference and derefence values during generate so
+// maybePrefix allows us to reference and dereference values during generate so
 // the result type doesn't need to be exact.
 func maybePrefixField(field *StructField, input *Variable) string {
-	if field.Type == input.Type {
-		if isInterface(field.kind) && !isInterface(input.Kind) {
-			// Create a pointer to the input when field is an interface type, but the
-			// input is not an interface.
-			return "&" + input.Name
-		}
+	sameImport := field.Import == input.Import
+	sameType := field.Type == input.Type
+	// Nothing to change
+	if sameImport && sameType {
 		return input.Name
 	}
 	// Want *T, got T. Need to reference.
-	if strings.HasPrefix(field.Type, "*") && !strings.HasPrefix(input.Type, "*") {
+	if sameImport && strings.HasPrefix(field.Type, "*") && !strings.HasPrefix(input.Type, "*") {
 		return "&" + input.Name
 	}
 	// Want T, got *T. Need to dereference.
-	if !strings.HasPrefix(field.Type, "*") && strings.HasPrefix(input.Type, "*") {
+	if sameImport && !strings.HasPrefix(field.Type, "*") && strings.HasPrefix(input.Type, "*") {
 		if isInterface(field.kind) {
 			// Don't dereference the type when the field is an interface type
 			return input.Name
 		}
 		return "*" + input.Name
 	}
-	// We really shouldn't reach here.
+	// Create a pointer to the input when field is an interface type, but the
+	// input is not an interface.
+	// TODO: This is hacky because input.Kind can't tell if it's a pointer to a
+	// struct vs. a struct, so we need extra logic to tell.
+	if !sameImport && isInterface(field.kind) && !isInterface(input.Kind) && !strings.HasPrefix(input.Type, "*") {
+		return "&" + input.Name
+	}
+	// Passing through, not sure what to do.
 	return input.Name
 }

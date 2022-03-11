@@ -85,6 +85,7 @@ func runTest(t testing.TB, test Test) {
 	}
 	provider := node.Generate(test.Function.Name, test.Function.Target)
 	code := provider.File()
+	// fmt.Println(code)
 	// TODO: provide a module method for doing this, module.ResolveDirectory
 	// also stats the final dir, which doesn't exist yet.
 	targetDir := module.Directory(strings.TrimPrefix(test.Function.Target, module.Import()))
@@ -1670,11 +1671,11 @@ func TestStructMap(t *testing.T) {
 				toType("app.com/web", "*Web"),
 			},
 			Aliases: di.Aliases{
-				toType("app.com/js", "VM"): toType("app.com/js/v8", "*VM"),
+				toType("app.com/js", "VM"): toType("app.com/js/v8", "*V8"),
 			},
 		},
 		Expect: `
-			&web.Web{VM: &v8.VM{}}
+			&web.Web{VM: &v8.V8{}}
 		`,
 		Files: map[string]string{
 			"go.mod":  goMod,
@@ -1700,9 +1701,9 @@ func TestStructMap(t *testing.T) {
 			"js/v8/v8.go": `
 				package v8
 
-				type VM struct {}
+				type V8 struct {}
 
-				func (v *VM) Eval(input string) (string, error) {
+				func (v *V8) Eval(input string) (string, error) {
 					return "", nil
 				}
 			`,
@@ -1720,11 +1721,11 @@ func TestFunctionMap(t *testing.T) {
 				toType("app.com/web", "*Web"),
 			},
 			Aliases: di.Aliases{
-				toType("app.com/js", "VM"): toType("app.com/js/v8", "*VM"),
+				toType("app.com/js", "VM"): toType("app.com/js/v8", "*V8"),
 			},
 		},
 		Expect: `
-			&web.Web{VM: &v8.VM{}}
+			&web.Web{VM: &v8.V8{}}
 		`,
 		Files: map[string]string{
 			"go.mod":  goMod,
@@ -1754,9 +1755,9 @@ func TestFunctionMap(t *testing.T) {
 			"js/v8/v8.go": `
 				package v8
 
-				type VM struct {}
+				type V8 struct {}
 
-				func (v *VM) Eval(input string) (string, error) {
+				func (v *V8) Eval(input string) (string, error) {
 					return "", nil
 				}
 			`,
@@ -1774,11 +1775,11 @@ func TestStructMapNeedsPointer(t *testing.T) {
 				toType("app.com/web", "*Web"),
 			},
 			Aliases: di.Aliases{
-				toType("app.com/js", "VM"): toType("app.com/js/v8", "*VM"),
+				toType("app.com/js", "VM"): toType("app.com/js/v8", "*V8"),
 			},
 		},
 		Expect: `
-			&web.Web{VM: &v8.VM{}}
+			&web.Web{VM: &v8.V8{}}
 		`,
 		Files: map[string]string{
 			"go.mod":  goMod,
@@ -1804,13 +1805,13 @@ func TestStructMapNeedsPointer(t *testing.T) {
 			"js/v8/v8.go": `
 				package v8
 
-				func New() VM {
-					return VM{}
+				func New() V8 {
+					return V8{}
 				}
 
-				type VM struct {}
+				type V8 struct {}
 
-				func (v *VM) Eval(input string) (string, error) {
+				func (v *V8) Eval(input string) (string, error) {
 					return "", nil
 				}
 			`,
@@ -1828,11 +1829,11 @@ func TestFunctionMapNeedsPointer(t *testing.T) {
 				toType("app.com/web", "*Web"),
 			},
 			Aliases: di.Aliases{
-				toType("app.com/js", "VM"): toType("app.com/js/v8", "*VM"),
+				toType("app.com/js", "VM"): toType("app.com/js/v8", "*V8"),
 			},
 		},
 		Expect: `
-			&web.Web{VM: &v8.VM{}}
+			&web.Web{VM: &v8.V8{}}
 		`,
 		Files: map[string]string{
 			"go.mod":  goMod,
@@ -1862,13 +1863,13 @@ func TestFunctionMapNeedsPointer(t *testing.T) {
 			"js/v8/v8.go": `
 				package v8
 
-				func New() VM {
-					return VM{}
+				func New() V8 {
+					return V8{}
 				}
 
-				type VM struct {}
+				type V8 struct {}
 
-				func (v *VM) Eval(input string) (string, error) {
+				func (v *V8) Eval(input string) (string, error) {
 					return "", nil
 				}
 			`,

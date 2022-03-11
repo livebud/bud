@@ -33,21 +33,21 @@ func run(ctx context.Context, args ...string) error {
 }
 
 func Load() (*Program, error) {
+	{{- with $variable := $.Provider.Variable "gitlab.com/mnm/bud/pkg/gomod.*Module" }}
 	dir, err := dirname()
 	if err != nil {
 		return nil, err
 	}
-	module, err := gomod.Find(dir)
+	{{ $variable }}, err := gomod.Find(dir)
 	if err != nil {
 		return nil, err
 	}
-	app, err := loadApp(module)
+	{{- end }}
+	cli, err := {{ $.Provider.Name }}({{ $.Provider.Variables "gitlab.com/mnm/bud/pkg/gomod.*Module" }})
 	if err != nil {
 		return nil, err
 	}
-	return &Program{
-		app: app,
-	}, nil
+	return &Program{cli}, nil
 }
 
 // dirname gets the directory of this file
@@ -60,11 +60,11 @@ func dirname() (string, error) {
 }
 
 type Program struct {
-	app *process.App
+	cli *command.CLI
 }
 
 func (p *Program) Run(ctx context.Context, args ...string) error {
-	return p.app.Parse(ctx, args...)
+	return p.cli.Parse(ctx, args...)
 }
 
 {{ $.Provider.Function }}

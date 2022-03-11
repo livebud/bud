@@ -11,12 +11,34 @@ import (
 // Provider is the result of generating. Provider can generate functions or
 // files or be used for it's template variables.
 type Provider struct {
-	Name      string            // Name of the function
-	Target    string            // Target import path
-	Imports   []*imports.Import // Imports needed
-	Externals []*External       // External variables
-	Code      string            // Body of the generated code
-	Results   []*Variable       // Return variables
+	Name        string            // Name of the function
+	Target      string            // Target import path
+	Imports     []*imports.Import // Imports needed
+	Externals   []*External       // External variables
+	Code        string            // Body of the generated code
+	Results     []*Variable       // Return variables
+	externalMap map[string]string // External map for faster lookup
+}
+
+// Variable returns the variable name of an external
+// The importType key is importPath.dataType
+func (p *Provider) Variable(importType string) string {
+	return p.externalMap[importType]
+}
+
+// Variables returns a list of external variable names
+// The importType key is importPath.dataType
+func (p *Provider) Variables(importTypes ...string) (vars varList) {
+	for _, it := range importTypes {
+		vars = append(vars, p.externalMap[it])
+	}
+	return vars
+}
+
+type varList []string
+
+func (vl varList) String() string {
+	return strings.Join(vl, ", ")
 }
 
 // Function wraps the body code in a function
@@ -43,14 +65,14 @@ func (p *Provider) Function() string {
 // Sort the variables by name so the order is always consistent.
 func sortByName(externals []*External) []*External {
 	sort.Slice(externals, func(i, j int) bool {
-		return externals[i].Name < externals[j].Name
+		return externals[i].Variable.Name < externals[j].Variable.Name
 	})
 	return externals
 }
 
 func (p *Provider) Params() (params Params) {
 	for _, external := range sortByName(p.Externals) {
-		params = append(params, external.Name+" "+external.Type)
+		params = append(params, external.Variable.Name+" "+external.FullType)
 	}
 	return params
 }

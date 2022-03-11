@@ -54,12 +54,13 @@ func (n *Node) Generate(fnName, target string) *Provider {
 	}
 	// Create the provider
 	return &Provider{
-		Name:      fnName,
-		Target:    target,
-		Imports:   g.Imports.List(),
-		Externals: g.Externals,
-		Code:      g.Code.String(),
-		Results:   outputs,
+		Name:        fnName,
+		Target:      target,
+		Imports:     g.Imports.List(),
+		Externals:   g.Externals,
+		Code:        g.Code.String(),
+		Results:     outputs,
+		externalMap: externalMap(g.Externals),
 	}
 }
 
@@ -100,12 +101,14 @@ func (g *generator) External(n *Node) *External {
 	importPath := n.Import
 	dataType := n.Type
 	ex := &External{
-		Key:     toTypeName(dataType),
-		Hoisted: n.Declaration != nil,
+		Key:      toTypeName(dataType),
+		Hoisted:  n.Declaration != nil,
+		FullType: g.DataType(importPath, dataType),
 		Variable: &Variable{
 			Import: importPath,
 			Name:   g.Variable(importPath, dataType),
-			Type:   g.DataType(importPath, dataType),
+			Type:   dataType,
+			Kind:   0, // Unknown kind
 		},
 	}
 	g.Externals = append(g.Externals, ex)
@@ -241,4 +244,13 @@ func toTypeName(dataType string) string {
 	parts := strings.SplitN(dataType, ".", 2)
 	last := parts[len(parts)-1]
 	return strings.TrimLeft(last, "[]*")
+}
+
+// Turn the results into a map for faster provider lookup
+func externalMap(exts []*External) map[string]string {
+	m := make(map[string]string, len(exts))
+	for _, ext := range exts {
+		m[ext.Variable.Import+"."+ext.Variable.Type] = ext.Variable.Name
+	}
+	return m
 }
