@@ -320,6 +320,7 @@ func (c *runCommand2) run(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
+	// cliCompiler := cli.New(module)
 	// Run the expander
 	expander, err := expand.Load(ctx, module.Directory())
 	if err != nil {

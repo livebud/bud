@@ -2,10 +2,10 @@
   export let props = ""
 </script>
 
-<h1>{props}!</h1>
+<h1>{props}!!!!!</h1>
 
 <style>
   h1 {
-    background: blue;
+    background: yellow;
   }
 </style>
