@@ -11,41 +11,40 @@ import (
 
 type State struct {
 	Imports []*imports.Import
-	Command *Cmd
+	Command *Command
 }
 
 // Flatten out the commands, intentionally ignoring the root command
 // because that is custom generated.
-func (s *State) Commands() []*Cmd {
+func (s *State) Commands() []*Command {
 	return flatten(s.Command.Subs)
 }
 
-type Cmd struct {
-	Parent   *Cmd
+type Command struct {
+	Parents  []string
 	Import   *imports.Import
 	Name     string
+	Slug     string
 	Help     string
 	Flags    []*Flag
 	Args     []*Arg
-	Subs     []*Cmd
+	Subs     []*Command
+	Deps     []*Dep
 	Context  bool
 	Runnable bool
 }
 
-func (c *Cmd) Pascal() string {
+func (c *Command) Pascal() string {
 	return gotext.Pascal(c.Name)
 }
 
-func (c *Cmd) Slug() string {
-	return text.Slug(c.Name)
-}
-
-func (c *Cmd) Full() Full {
+func (c *Command) Full() Full {
 	// Make a copy
-	if c.Parent == nil {
-		return Full(c.Name)
+	parents := make([]string, len(c.Parents))
+	for i, parent := range c.Parents {
+		parents[i] = parent
 	}
-	return Full(strings.TrimSpace(string(c.Parent.Full()) + " " + c.Name))
+	return Full(strings.Join(append(parents, c.Name), " "))
 }
 
 type Full string
@@ -54,17 +53,12 @@ func (f Full) Pascal() string {
 	return gotext.Pascal(string(f))
 }
 
-func (f Full) Camel() string {
-	return gotext.Camel(string(f))
-}
-
 type Flag struct {
-	Name     string
-	Help     string
-	Type     string
-	Default  *string
-	Optional bool
-	Short    byte
+	Name    string
+	Help    string
+	Type    string
+	Default string
+	Short   byte
 }
 
 func (f *Flag) Pascal() string {
@@ -80,9 +74,10 @@ func (f *Flag) Method() (string, error) {
 }
 
 type Arg struct {
-	Name     string
-	Type     string
-	Optional bool
+	Name    string
+	Help    string
+	Type    string
+	Default string
 }
 
 func (a *Arg) Pascal() string {
@@ -113,17 +108,13 @@ func methodName(dataType string) (string, error) {
 		return "Bool", nil
 	case "string":
 		return "String", nil
-	case "...string":
-		return "Strings", nil
-	case "int":
-		return "Int", nil
 	default:
 		return "", fmt.Errorf("command: unhandled type for method %q", dataType)
 	}
 }
 
 // Flatten out the commands
-func flatten(commands []*Cmd) (results []*Cmd) {
+func flatten(commands []*Command) (results []*Command) {
 	for _, cmd := range commands {
 		results = append(results, cmd)
 		results = append(results, flatten(cmd.Subs)...)

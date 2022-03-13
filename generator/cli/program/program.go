@@ -1,15 +1,16 @@
 package program
 
 import (
+	"context"
 	_ "embed"
+	"errors"
 	"fmt"
 
-	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/pkg/buddy"
+	"gitlab.com/mnm/bud/package/overlay"
 	"gitlab.com/mnm/bud/pkg/di"
-	"gitlab.com/mnm/bud/pkg/gen"
+	"gitlab.com/mnm/bud/pkg/gomod"
 )
 
 //go:embed program.gotext
@@ -17,68 +18,72 @@ var template string
 
 var generator = gotemplate.MustParse("program.gotext", template)
 
-func New(kit buddy.Kit) *Generator {
-	return &Generator{kit}
+var ErrCantWire = errors.New(`program: unable to wire`)
+
+// State of the program code
+type State struct {
+	Imports  []*imports.Import
+	Provider *di.Provider
 }
 
-type Generator struct {
-	kit buddy.Kit
+// Generate the program
+func Generate(state *State) ([]byte, error) {
+	return generator.Generate(state)
 }
 
-func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
-	// Load command state
-	state, err := g.Load()
-	if err != nil {
-		return err
-	}
-	// Generate our template
-	code, err := generator.Generate(state)
-	if err != nil {
-		return err
-	}
-	file.Write(code)
-	return nil
+func New(injector *di.Injector, module *gomod.Module) *Program {
+	return &Program{injector, module}
 }
 
-func (g *Generator) Load() (*State, error) {
-	loader := &loader{Generator: g, imports: imports.New()}
-	return loader.Load()
+type Program struct {
+	injector *di.Injector
+	module   *gomod.Module
 }
 
-type loader struct {
-	bail.Struct
-	*Generator
-	imports *imports.Set
-}
-
-func (l *loader) Load() (state *State, err error) {
-	defer l.Recover(&err)
-	state = new(State)
-	// Add imports
-	l.imports.AddStd("errors", "context", "path/filepath", "runtime")
-	l.imports.AddNamed("console", "gitlab.com/mnm/bud/pkg/log/console")
-	l.imports.AddNamed("buddy", "gitlab.com/mnm/bud/pkg/buddy")
-	// Inject the provider
-	state.Provider, err = l.kit.Wire(&di.Function{
+func (p *Program) Parse(ctx context.Context) (*State, error) {
+	// Default  imports
+	imports := imports.New()
+	imports.AddStd("errors", "context", "path/filepath", "runtime")
+	imports.AddNamed("console", "gitlab.com/mnm/bud/pkg/log/console")
+	// imports.AddNamed("gomod", "gitlab.com/mnm/bud/pkg/gomod")
+	// imports.AddNamed("trace", "gitlab.com/mnm/bud/package/trace")
+	// Write up the dependencies
+	provider, err := p.injector.Wire(&di.Function{
 		Name:   "loadCLI",
-		Target: l.kit.ImportPath("bud/.cli/program"),
+		Target: p.module.Import("bud/.cli/program"),
 		Params: []di.Dependency{
-			di.ToType("gitlab.com/mnm/bud/pkg/buddy", "Kit"),
+			di.ToType("gitlab.com/mnm/bud/pkg/gomod", "*Module"),
 		},
 		Results: []di.Dependency{
-			di.ToType(l.kit.ImportPath("bud/.cli/command"), "*CLI"),
+			di.ToType(p.module.Import("bud/.cli/command"), "*CLI"),
 			&di.Error{},
 		},
 	})
 	if err != nil {
-		l.Bail(fmt.Errorf("program unable to wire dependencies > %w", err))
-		return
+		// Don't wrap on purpose, this error gets swallowed up too easily
+		return nil, fmt.Errorf("%w > %s", ErrCantWire, err)
 	}
-	// Add the imports we find
-	for _, im := range state.Provider.Imports {
-		l.imports.AddNamed(im.Name, im.Path)
+	// Add additional imports that we brought in
+	for _, im := range provider.Imports {
+		imports.AddNamed(im.Name, im.Path)
 	}
-	// Return a list of imports
-	state.Imports = l.imports.List()
-	return state, nil
+	return &State{
+		Imports:  imports.List(),
+		Provider: provider,
+	}, nil
+}
+
+func (p *Program) GenerateFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
+	state, err := p.Parse(ctx)
+	if err != nil {
+		return err
+	}
+	// Generate code from the state
+	code, err := Generate(state)
+	if err != nil {
+		return err
+	}
+	// Write to the file
+	file.Data = code
+	return nil
 }

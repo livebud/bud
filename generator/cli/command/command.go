@@ -1,13 +1,16 @@
 package command
 
 import (
+	"context"
 	_ "embed"
+	"fmt"
+	"io/fs"
 
-	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/pkg/buddy"
-	"gitlab.com/mnm/bud/pkg/gen"
+	"gitlab.com/mnm/bud/package/overlay"
+	"gitlab.com/mnm/bud/pkg/gomod"
+	goparse "gitlab.com/mnm/bud/pkg/parser"
 )
 
 //go:embed command.gotext
@@ -15,45 +18,49 @@ var template string
 
 var generator = gotemplate.MustParse("command.gotext", template)
 
-func New(kit buddy.Kit) *Generator {
-	return &Generator{kit}
+func Generate(state *State) ([]byte, error) {
+	if state.Command == nil {
+		return nil, fmt.Errorf("command: generator must have a root command")
+	}
+	return generator.Generate(state)
 }
 
-type Generator struct {
-	kit buddy.Kit
+func New(fs fs.FS, module *gomod.Module, parser *goparse.Parser) *Command {
+	return &Command{fs, module, parser}
 }
 
-func (g *Generator) GenerateFile(f gen.F, file *gen.File) error {
-	// Load command state
-	state, err := g.Load()
+type Command struct {
+	fs     fs.FS
+	module *gomod.Module
+	parser *goparse.Parser
+}
+
+func (c *Command) Parse(ctx context.Context) (*State, error) {
+	return (&parser{
+		fs:      c.fs,
+		module:  c.module,
+		parser:  c.parser,
+		imports: imports.New(),
+	}).Parse(ctx)
+}
+
+func (c *Command) Compile(ctx context.Context) ([]byte, error) {
+	// Parse project commands into state
+	state, err := c.Parse(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// TODO: Add in the core commands or a default command
+
+	// Generate code from the state
+	return Generate(state)
+}
+
+func (c *Command) GenerateFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
+	code, err := c.Compile(ctx)
 	if err != nil {
 		return err
 	}
-	// Generate our template
-	code, err := generator.Generate(state)
-	if err != nil {
-		return err
-	}
-	file.Write(code)
+	file.Data = code
 	return nil
-}
-
-func (g *Generator) Load() (*State, error) {
-	loader := &loader{Generator: g, imports: imports.New()}
-	return loader.Load()
-}
-
-type loader struct {
-	bail.Struct
-	*Generator
-	imports *imports.Set
-}
-
-func (l *loader) Load() (state *State, err error) {
-	defer l.Recover(&err)
-	state = new(State)
-	l.imports.AddNamed("buddy", "gitlab.com/mnm/bud/pkg/buddy")
-	l.imports.AddNamed("generator", l.kit.ImportPath("bud/.cli/generator"))
-	state.Imports = l.imports.List()
-	return state, nil
 }

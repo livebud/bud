@@ -9,8 +9,8 @@ import (
 )
 {{- end }}
 
-func Run(ctx context.Context, args ...string) int {
-	if err := run(ctx, args...); err != nil {
+func Run(args ...string) int {
+	if err := run(args...); err != nil {
 		if errors.Is(err, context.Canceled) {
 			// Unfortunately interrupts like SIGINT trigger a non-zero exit code,
 			// regardless of whether you do os.Exit(0) or not. We're going to use exit
@@ -24,30 +24,20 @@ func Run(ctx context.Context, args ...string) int {
 	return 0
 }
 
-func run(ctx context.Context, args ...string) error {
-	program, err := Load()
+func run(args ...string) error {
+	dir, err := dirname()
 	if err != nil {
 		return err
 	}
-	return program.Run(ctx, args...)
-}
-
-func Load() (*Program, error) {
-	{{- with $variable := $.Provider.Variable "gitlab.com/mnm/bud/pkg/gomod.*Module" }}
-	dir, err := dirname()
+	bd, err := buddy.Load(dir)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	{{ $variable }}, err := gomod.Find(dir)
+	cli, err := loadCLI(bd)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	{{- end }}
-	cli, err := {{ $.Provider.Name }}({{ $.Provider.Variables "gitlab.com/mnm/bud/pkg/gomod.*Module" }})
-	if err != nil {
-		return nil, err
-	}
-	return &Program{cli}, nil
+	return cli.Parse(args...)
 }
 
 // dirname gets the directory of this file
@@ -57,14 +47,6 @@ func dirname() (string, error) {
 		return "", errors.New("unable to get the current filename")
 	}
 	return filepath.Dir(filename), nil
-}
-
-type Program struct {
-	cli *command.CLI
-}
-
-func (p *Program) Run(ctx context.Context, args ...string) error {
-	return p.cli.Parse(ctx, args...)
 }
 
 {{ $.Provider.Function }}

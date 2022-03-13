@@ -35,7 +35,6 @@ import (
 
 	"gitlab.com/mnm/bud/pkg/gomod"
 
-	"gitlab.com/mnm/bud/package/command/expand"
 	"gitlab.com/mnm/bud/package/commander"
 	"gitlab.com/mnm/bud/package/trace"
 
@@ -62,16 +61,6 @@ func do() error {
 
 	{ // $ bud run
 		cmd := &runCommand{bud: bud}
-		cli := cli.Command("run2", "run the development server")
-		cli.Flag("embed", "embed the assets").Bool(&bud.Embed).Default(false)
-		cli.Flag("hot", "hot reload the frontend").Bool(&bud.Hot).Default(true)
-		cli.Flag("minify", "minify the assets").Bool(&bud.Minify).Default(false)
-		cli.Flag("port", "port").String(&cmd.Port).Default("3000")
-		cli.Run(cmd.Run)
-	}
-
-	{ // $ bud run
-		cmd := &runCommand2{bud: bud}
 		cli := cli.Command("run", "run the development server")
 		cli.Flag("embed", "embed the assets").Bool(&bud.Embed).Default(false)
 		cli.Flag("hot", "hot reload the frontend").Bool(&bud.Hot).Default(true)
@@ -79,6 +68,16 @@ func do() error {
 		cli.Flag("port", "port").String(&cmd.Port).Default("3000")
 		cli.Run(cmd.Run)
 	}
+
+	// { // $ bud run
+	// 	cmd := &runCommand2{bud: bud}
+	// 	cli := cli.Command("run", "run the development server")
+	// 	cli.Flag("embed", "embed the assets").Bool(&bud.Embed).Default(false)
+	// 	cli.Flag("hot", "hot reload the frontend").Bool(&bud.Hot).Default(true)
+	// 	cli.Flag("minify", "minify the assets").Bool(&bud.Minify).Default(false)
+	// 	cli.Flag("port", "port").String(&cmd.Port).Default("3000")
+	// 	cli.Run(cmd.Run)
+	// }
 
 	{ // $ bud build
 		cmd := &buildCommand{bud: bud}
@@ -291,114 +290,114 @@ func (c *runCommand) Run(ctx context.Context) (err error) {
 	return nil
 }
 
-type runCommand2 struct {
-	bud  *bud
-	Port string
-}
+// type runCommand2 struct {
+// 	bud  *bud
+// 	Port string
+// }
 
-func (c *runCommand2) Run(ctx context.Context) (err error) {
-	// Initialize tracing
-	ctx, shutdown, err := c.bud.Tracer(ctx)
-	if err != nil {
-		return err
-	}
-	defer shutdown(&err)
-	// Run the command
-	return c.run(ctx)
-}
+// func (c *runCommand2) Run(ctx context.Context) (err error) {
+// 	// Initialize tracing
+// 	ctx, shutdown, err := c.bud.Tracer(ctx)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer shutdown(&err)
+// 	// Run the command
+// 	return c.run(ctx)
+// }
 
-func (c *runCommand2) run(ctx context.Context) (err error) {
-	ctx, span := trace.Start(ctx, "bud run")
-	defer span.End(&err)
-	// Start listening on the port
-	listener, err := c.startListener(ctx, c.Port)
-	if err != nil {
-		return err
-	}
-	// Find go.mod
-	module, err := c.findModule(ctx, c.bud.Chdir)
-	if err != nil {
-		return err
-	}
-	// cliCompiler := cli.New(module)
-	// Run the expander
-	expander, err := expand.Load(ctx, module.Directory())
-	if err != nil {
-		return err
-	}
-	if err := expander.Run(ctx); err != nil {
-		return err
-	}
-	// Run the project CLI
-	if err := c.runCLI(ctx, module, listener); err != nil {
-		return err
-	}
-	return nil
-}
+// func (c *runCommand2) run(ctx context.Context) (err error) {
+// 	ctx, span := trace.Start(ctx, "bud run")
+// 	defer span.End(&err)
+// 	// Start listening on the port
+// 	listener, err := c.startListener(ctx, c.Port)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	// Find go.mod
+// 	module, err := c.findModule(ctx, c.bud.Chdir)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	// cliCompiler := cli.New(module)
+// 	// Run the expander
+// 	expander, err := expand.Load(ctx, module.Directory())
+// 	if err != nil {
+// 		return err
+// 	}
+// 	if err := expander.Run(ctx); err != nil {
+// 		return err
+// 	}
+// 	// Run the project CLI
+// 	if err := c.runCLI(ctx, module, listener); err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
-func (c *runCommand2) startListener(ctx context.Context, addr string) (l net.Listener, err error) {
-	_, span := trace.Start(ctx, "started listening", "addr", addr)
-	defer span.End(&err)
-	listener, err := socket.Load(addr)
-	if err != nil {
-		return nil, err
-	}
-	host, port, err := net.SplitHostPort(listener.Addr().String())
-	if err != nil {
-		return nil, err
-	}
-	// https://serverfault.com/a/444557
-	if host == "::" {
-		host = "0.0.0.0"
-	}
-	console.Info("Listening on http://" + host + ":" + port)
-	return listener, nil
-}
+// func (c *runCommand2) startListener(ctx context.Context, addr string) (l net.Listener, err error) {
+// 	_, span := trace.Start(ctx, "started listening", "addr", addr)
+// 	defer span.End(&err)
+// 	listener, err := socket.Load(addr)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	host, port, err := net.SplitHostPort(listener.Addr().String())
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	// https://serverfault.com/a/444557
+// 	if host == "::" {
+// 		host = "0.0.0.0"
+// 	}
+// 	console.Info("Listening on http://" + host + ":" + port)
+// 	return listener, nil
+// }
 
-func (c *runCommand2) findModule(ctx context.Context, dir string) (mod *gomod.Module, err error) {
-	_, span := trace.Start(ctx, "find go.mod", "dir", dir)
-	defer span.End(&err)
-	// Run find go.mod
-	module, err := gomod.Find(c.bud.Chdir)
-	if err != nil {
-		return nil, err
-	}
-	return module, nil
-}
+// func (c *runCommand2) findModule(ctx context.Context, dir string) (mod *gomod.Module, err error) {
+// 	_, span := trace.Start(ctx, "find go.mod", "dir", dir)
+// 	defer span.End(&err)
+// 	// Run find go.mod
+// 	module, err := gomod.Find(c.bud.Chdir)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return module, nil
+// }
 
-func (c *runCommand2) encodeTrace(ctx context.Context) (data []byte, err error) {
-	_, span := trace.Start(ctx, "encode trace")
-	defer span.End(&err)
-	return trace.Encode(ctx)
-}
+// func (c *runCommand2) encodeTrace(ctx context.Context) (data []byte, err error) {
+// 	_, span := trace.Start(ctx, "encode trace")
+// 	defer span.End(&err)
+// 	return trace.Encode(ctx)
+// }
 
-// Run the CLI
-func (c *runCommand2) runCLI(ctx context.Context, module *gomod.Module, listener net.Listener) (err error) {
-	ctx, span := trace.Start(ctx, "run cli process")
-	defer span.End(&err)
-	// Pass the socket through
-	files, env, err := socket.Files(listener)
-	if err != nil {
-		return err
-	}
-	// Encode the trace
-	traceData, err := c.encodeTrace(ctx)
-	if err != nil {
-		return err
-	}
-	// Run the CLI
-	cmd := exec.CommandContext(ctx, filepath.Join("bud", "cli"), "run")
-	cmd.Env = append(os.Environ(), string(env), "TRACE_DATA="+string(traceData))
-	cmd.ExtraFiles = append(cmd.ExtraFiles, files...)
-	cmd.Dir = module.Directory()
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err = cmd.Run()
-	if err != nil {
-		return err
-	}
-	return nil
-}
+// // Run the CLI
+// func (c *runCommand2) runCLI(ctx context.Context, module *gomod.Module, listener net.Listener) (err error) {
+// 	ctx, span := trace.Start(ctx, "run cli process")
+// 	defer span.End(&err)
+// 	// Pass the socket through
+// 	files, env, err := socket.Files(listener)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	// Encode the trace
+// 	traceData, err := c.encodeTrace(ctx)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	// Run the CLI
+// 	cmd := exec.CommandContext(ctx, filepath.Join("bud", "cli"), "run")
+// 	cmd.Env = append(os.Environ(), string(env), "TRACE_DATA="+string(traceData))
+// 	cmd.ExtraFiles = append(cmd.ExtraFiles, files...)
+// 	cmd.Dir = module.Directory()
+// 	cmd.Stdout = os.Stdout
+// 	cmd.Stderr = os.Stderr
+// 	err = cmd.Run()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return nil
+// }
 
 type buildCommand struct {
 	bud *bud

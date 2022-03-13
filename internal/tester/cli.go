@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"gitlab.com/mnm/bud/framework2/cli"
+	"gitlab.com/mnm/bud/generator/cli"
 	"gitlab.com/mnm/bud/internal/testdir"
 	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/pkg/socket"

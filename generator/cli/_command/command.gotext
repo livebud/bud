@@ -1,0 +1,20 @@
+package command
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+type CLI struct {
+	Kit buddy.Kit
+	Generator *generator.Generator
+}
+
+func (c *CLI) Parse(args ...string) error {
+	println(c.Kit.ImportPath())
+	panic("Parse not implemented yet")
+}
