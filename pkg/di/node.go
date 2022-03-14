@@ -31,12 +31,12 @@ func (n *Node) ID() string {
 }
 
 // Build a provider for the target import path
-func (n *Node) Generate(fnName, target string) *Provider {
+func (n *Node) Generate(imports *imports.Set, fnName, target string) *Provider {
 	// Build context
 	g := &generator{
 		Seen:    map[string][]*Variable{},
 		Code:    new(strings.Builder),
-		Imports: imports.New(),
+		Imports: imports,
 		Target:  target,
 	}
 	// Wire everything up!

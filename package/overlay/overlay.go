@@ -3,6 +3,8 @@ package overlay
 import (
 	"context"
 
+	"gitlab.com/mnm/bud/internal/pubsub"
+
 	"gitlab.com/mnm/bud/internal/fscache"
 
 	"gitlab.com/mnm/bud/internal/dsync"
@@ -26,7 +28,8 @@ func Load(module *gomod.Module) (*FileSystem, error) {
 	merged := merged.Merge(cfs, pluginFS)
 	dag := dag.New()
 	cached := fscache.Wrap(merged)
-	return &FileSystem{cfs, dag, cached, module}, nil
+	ps := pubsub.New()
+	return &FileSystem{cfs, dag, cached, module, ps}, nil
 }
 
 type F interface {
@@ -39,6 +42,7 @@ type FileSystem struct {
 	dag    *dag.Graph
 	fsys   fs.FS
 	module *gomod.Module
+	ps     pubsub.Client
 }
 
 func (f *FileSystem) Link(from, to string) {

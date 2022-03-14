@@ -13,6 +13,7 @@ import (
 	"github.com/lithammer/dedent"
 	"github.com/matryer/is"
 	"github.com/matthewmueller/diff"
+	"gitlab.com/mnm/bud/internal/imports"
 	"gitlab.com/mnm/bud/pkg/di"
 	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/pkg/modcache"
@@ -83,9 +84,8 @@ func runTest(t testing.TB, test Test) {
 		is.Equal(test.Expect, err.Error())
 		return
 	}
-	provider := node.Generate(test.Function.Name, test.Function.Target)
+	provider := node.Generate(imports.New(), test.Function.Name, test.Function.Target)
 	code := provider.File()
-	// fmt.Println(code)
 	// TODO: provide a module method for doing this, module.ResolveDirectory
 	// also stats the final dir, which doesn't exist yet.
 	targetDir := module.Directory(strings.TrimPrefix(test.Function.Target, module.Import()))
@@ -2176,6 +2176,46 @@ func TestHoistEmpty(t *testing.T) {
 	})
 }
 
-// TODO: consider renaming Target to Import
-// TODO: consider moving Hoist outside of Function
-// TODO: consider transitioning to a builder pattern input
+func TestSkipMethods(t *testing.T) {
+	runTest(t, Test{
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []di.Dependency{},
+			Results: []di.Dependency{
+				toType("app.com/parser", "*Parser"),
+			},
+		},
+		Expect: `
+			&parser.Parser{message: "new"}
+		`,
+		Files: map[string]string{
+			"go.mod":  goMod,
+			"main.go": mainGo,
+			"parser/parser.go": `
+				package parser
+
+				type Package struct {}
+
+				func (p *Package) Parser() *Parser {
+					return &Parser{"package"}
+				}
+
+				func New() *Parser {
+					return &Parser{"new"}
+				}
+
+				type Parser struct {
+					message string
+				}
+
+			`,
+		},
+	})
+}
+
+// TODO: figure out how to test imports as inputs
+
+// IDEA: consider renaming Target to Import
+// IDEA: consider moving Hoist outside of Function
+// IDEA: consider transitioning to a builder pattern input

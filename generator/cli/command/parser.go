@@ -31,6 +31,20 @@ func (p *parser) Parse(ctx context.Context) (state *State, err error) {
 	defer p.Recover2(&err, "command: unable to parse")
 	// Default imports
 	p.imports.AddStd("context")
+	p.imports.AddNamed("commander", "gitlab.com/mnm/bud/package/commander")
+	p.imports.AddNamed("project", "gitlab.com/mnm/bud/runtime/project")
+	p.imports.AddNamed("run", "gitlab.com/mnm/bud/runtime/project/run")
+	p.imports.AddNamed("build", "gitlab.com/mnm/bud/runtime/project/build")
+	p.imports.AddNamed("generator", p.module.Import("bud/.cli/generator"))
+	state = new(State)
+	state.Imports = p.imports.List()
+	return state, nil
+}
+
+func (p *parser) Parse2(ctx context.Context) (state *State, err error) {
+	defer p.Recover2(&err, "command: unable to parse")
+	// Default imports
+	p.imports.AddStd("context")
 	state = new(State)
 	state.Command = p.loadCommand2(nil, "command", "")
 	state.Imports = p.imports.List()

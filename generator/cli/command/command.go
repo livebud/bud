@@ -2,28 +2,13 @@ package command
 
 import (
 	"context"
-	_ "embed"
-	"fmt"
 	"io/fs"
 
-	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
 	"gitlab.com/mnm/bud/package/overlay"
 	"gitlab.com/mnm/bud/pkg/gomod"
 	goparse "gitlab.com/mnm/bud/pkg/parser"
 )
-
-//go:embed command.gotext
-var template string
-
-var generator = gotemplate.MustParse("command.gotext", template)
-
-func Generate(state *State) ([]byte, error) {
-	if state.Command == nil {
-		return nil, fmt.Errorf("command: generator must have a root command")
-	}
-	return generator.Generate(state)
-}
 
 func New(fs fs.FS, module *gomod.Module, parser *goparse.Parser) *Command {
 	return &Command{fs, module, parser}

@@ -5,17 +5,17 @@ import (
 	"net/http"
 	"time"
 
-	"gitlab.com/mnm/bud/pkg/gen"
+	"gitlab.com/mnm/bud/package/overlay"
 )
 
 var hotPath = "/bud/hot"
 
-func New(bf gen.FS) *Server {
-	return &Server{bf}
+func New(fsys *overlay.FileSystem) *Server {
+	return &Server{fsys}
 }
 
 type Server struct {
-	bf gen.FS
+	fsys *overlay.FileSystem
 }
 
 // Middleware that handles refreshing the frontend
@@ -44,12 +44,7 @@ func (s *Server) Middleware(next http.Handler) http.Handler {
 			http.Error(w, err.Error(), 500)
 			return
 		}
-		sub, err := s.bf.Subscribe(pagePath[1:])
-		if err != nil {
-			err := fmt.Errorf("hot: unable to subscribe to updates: %w", err)
-			http.Error(w, err.Error(), 500)
-			return
-		}
+		sub := s.fsys.Subscribe(pagePath[1:])
 		defer sub.Close()
 		// fmt.Println("subscribed to", pagePath[1:])
 

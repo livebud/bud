@@ -28,6 +28,7 @@ type CLI struct {
 }
 
 func (*CLI) Parse(ctx context.Context, args ...string) error {
+	panic("next step... project cli parsing")
 	return nil
 }
 

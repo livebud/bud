@@ -13,3 +13,5 @@ type FileGenerator interface {
 type File struct {
 	*conjure.File
 }
+
+type Embed = conjure.Embed

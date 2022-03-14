@@ -14,6 +14,7 @@ require (
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/evanw/esbuild v0.14.11 // indirect
+	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/gedex/inflector v0.0.0-20170307190818-16278e9db813 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/jackc/puddle v1.1.4 // indirect

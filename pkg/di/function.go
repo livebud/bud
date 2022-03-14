@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"gitlab.com/mnm/bud/internal/gois"
+	"gitlab.com/mnm/bud/internal/imports"
 	"gitlab.com/mnm/bud/pkg/parser"
 )
 
@@ -13,6 +14,8 @@ import (
 type Function struct {
 	// Name of the function to generate
 	Name string
+	// Imports to pass through
+	Imports *imports.Set
 	// Params are the external parameters that are passed in
 	Params []Dependency
 	// Results are the dependencies that need to be loaded
@@ -62,7 +65,7 @@ func (fn *Function) Generate(g Generator, ins []*Variable) (outs []*Variable) {
 //   func ...(...) (Web, error)
 //
 func tryFunction(fn *parser.Function, importPath, dataType string) (*function, error) {
-	if fn.Private() {
+	if fn.Private() || fn.Receiver() != nil {
 		return nil, ErrNoMatch
 	}
 	results := fn.Results()

@@ -2,41 +2,17 @@ package main
 
 import (
 	"context"
-	"encoding/gob"
-	"errors"
-	"fmt"
-	"io"
-	"io/fs"
-	"io/ioutil"
-	"net"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
-	"time"
 
-	"gitlab.com/mnm/bud/pkg/socket"
-
-	"gitlab.com/mnm/bud/internal/dsync"
-	"gitlab.com/mnm/bud/pkg/vfs"
-
-	"gitlab.com/mnm/bud/pkg/budfs"
-	"gitlab.com/mnm/bud/pkg/gen"
-
-	"github.com/mattn/go-isatty"
-	"gitlab.com/mnm/bud/generator/generate"
-	generatorGenerator "gitlab.com/mnm/bud/generator/generator"
-	"gitlab.com/mnm/bud/internal/gitignore"
-	"gitlab.com/mnm/bud/internal/gobin"
-	"gitlab.com/mnm/bud/pkg/di"
-	"gitlab.com/mnm/bud/pkg/generator"
-	v8 "gitlab.com/mnm/bud/pkg/js/v8"
-	"gitlab.com/mnm/bud/pkg/parser"
-
-	"gitlab.com/mnm/bud/pkg/gomod"
+	"gitlab.com/mnm/bud/internal/bud"
+	"gitlab.com/mnm/bud/internal/bud/build"
+	"gitlab.com/mnm/bud/internal/bud/run"
+	"gitlab.com/mnm/bud/internal/bud/tool/di"
+	v8 "gitlab.com/mnm/bud/internal/bud/tool/v8"
+	v8client "gitlab.com/mnm/bud/internal/bud/tool/v8/client"
 
 	"gitlab.com/mnm/bud/package/commander"
-	"gitlab.com/mnm/bud/package/trace"
 
 	"gitlab.com/mnm/bud/pkg/log/console"
 )
@@ -52,15 +28,15 @@ func main() {
 
 func do() error {
 	// $ bud
-	bud := new(bud)
+	bud := new(bud.Command)
 	cli := commander.New("bud")
-	cli.Flag("chdir", "Change the working directory").Short('C').String(&bud.Chdir).Default(".")
+	cli.Flag("chdir", "Change the working directory").Short('C').String(&bud.Dir).Default(".")
 	cli.Flag("trace", "Enable tracing").Short('t').Bool(&bud.Trace).Default(false)
 	cli.Args("args").Strings(&bud.Args)
 	cli.Run(bud.Run)
 
 	{ // $ bud run
-		cmd := &runCommand{bud: bud}
+		cmd := &run.Command{Bud: bud}
 		cli := cli.Command("run", "run the development server")
 		cli.Flag("embed", "embed the assets").Bool(&bud.Embed).Default(false)
 		cli.Flag("hot", "hot reload the frontend").Bool(&bud.Hot).Default(true)
@@ -69,18 +45,8 @@ func do() error {
 		cli.Run(cmd.Run)
 	}
 
-	// { // $ bud run
-	// 	cmd := &runCommand2{bud: bud}
-	// 	cli := cli.Command("run", "run the development server")
-	// 	cli.Flag("embed", "embed the assets").Bool(&bud.Embed).Default(false)
-	// 	cli.Flag("hot", "hot reload the frontend").Bool(&bud.Hot).Default(true)
-	// 	cli.Flag("minify", "minify the assets").Bool(&bud.Minify).Default(false)
-	// 	cli.Flag("port", "port").String(&cmd.Port).Default("3000")
-	// 	cli.Run(cmd.Run)
-	// }
-
 	{ // $ bud build
-		cmd := &buildCommand{bud: bud}
+		cmd := &build.Command{Bud: bud}
 		cli := cli.Command("build", "build the production server")
 		cli.Flag("embed", "embed the assets").Bool(&bud.Embed).Default(true)
 		cli.Flag("hot", "hot reload the frontend").Bool(&bud.Hot).Default(false)
@@ -92,7 +58,7 @@ func do() error {
 		cli := cli.Command("tool", "extra tools")
 
 		{ // $ bud tool di
-			cmd := &diCommand{bud: bud}
+			cmd := &di.Command{Bud: bud}
 			cli := cli.Command("di", "dependency injection generator")
 			cli.Flag("dependency", "generate dependency provider").Short('d').Strings(&cmd.Dependencies)
 			cli.Flag("external", "mark dependency as external").Short('e').Strings(&cmd.Externals).Optional()
@@ -104,12 +70,12 @@ func do() error {
 		}
 
 		{ // $ bud tool v8
-			cmd := &v8Command{bud: bud}
+			cmd := &v8.Command{Bud: bud}
 			cli := cli.Command("v8", "Execute Javascript with V8 from stdin")
 			cli.Run(cmd.Run)
 
 			{ // $ bud tool v8 client
-				cmd := &v8ClientCommand{bud: bud}
+				cmd := &v8client.Command{Bud: bud}
 				cli := cli.Command("client", "V8 client used during development")
 				cli.Run(cmd.Run)
 			}
@@ -117,478 +83,6 @@ func do() error {
 	}
 	ctx := context.Background()
 	return cli.Parse(ctx, os.Args[1:])
-}
-
-type bud struct {
-	Trace  bool
-	Chdir  string
-	Embed  bool
-	Hot    bool
-	Minify bool
-	Args   []string
-}
-
-func (c *bud) Tracer(ctx context.Context) (context.Context, func(*error), error) {
-	tracer, ctx, err := trace.Serve(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-	shutdown := func(outerError *error) {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		trace, err := tracer.Print(ctx)
-		if err != nil {
-			*outerError = err
-			return
-		}
-		fmt.Fprintf(os.Stderr, "\n%s", trace)
-		if err := tracer.Shutdown(ctx); err != nil {
-			*outerError = err
-			return
-		}
-	}
-	return ctx, shutdown, nil
-}
-
-func (c *bud) Build(ctx context.Context, dir string) (string, error) {
-	generator, err := generator.Load(dir)
-	if err != nil {
-		return "", err
-	}
-	if err := generator.Generate(ctx); err != nil {
-		return "", err
-	}
-	mainPath := filepath.Join(dir, "bud", "main.go")
-	// Check to see if we generated a main.go
-	if _, err := os.Stat(mainPath); err != nil {
-		return "", err
-	}
-	cacheDir, err := os.UserCacheDir()
-	if err != nil {
-		return "", err
-	}
-	// Building over an existing binary is faster for some reason, so we'll use
-	// the cache directory for a consistent place to output builds
-	binPath := filepath.Join(cacheDir, filepath.ToSlash(generator.Module().Import()), "bud", "main")
-	if err := gobin.Build(ctx, dir, mainPath, binPath); err != nil {
-		return "", err
-	}
-	return binPath, nil
-}
-
-// Run a custom command
-func (c *bud) Run(ctx context.Context) error {
-	// Find the project directory
-	dir, err := gomod.Absolute(c.Chdir)
-	if err != nil {
-		return err
-	}
-	// Generate the code
-	binPath, err := c.Build(ctx, dir)
-	if err != nil {
-		if !errors.Is(err, fs.ErrNotExist) {
-			return err
-		}
-		return fmt.Errorf("unknown command %q", c.Args)
-	}
-	// Run the built binary
-	cmd := exec.Command(binPath, c.Args...)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	err = cmd.Run()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-type runCommand struct {
-	bud  *bud
-	Port string
-}
-
-func (c *runCommand) Run(ctx context.Context) (err error) {
-	// Start listening on the port
-	listener, err := socket.Load(c.Port)
-	if err != nil {
-		return err
-	}
-	host, port, err := net.SplitHostPort(listener.Addr().String())
-	if err != nil {
-		return err
-	}
-	// https://serverfault.com/a/444557
-	if host == "::" {
-		host = "0.0.0.0"
-	}
-	console.Info("Listening on http://" + host + ":" + port)
-	// Find go.mod
-	module, err := gomod.Find(c.bud.Chdir)
-	if err != nil {
-		return err
-	}
-	bfs, err := budfs.Load(module)
-	if err != nil {
-		return err
-	}
-	bfs.Entry("bud/generator/generator.go", gen.FileGenerator(&generatorGenerator.Generator{
-		BFS:    bfs,
-		Module: module,
-		Embed:  c.bud.Embed,
-		Hot:    c.bud.Hot,
-		Minify: c.bud.Minify,
-	}))
-	parser := parser.New(bfs, module)
-	injector := di.New(bfs, module, parser)
-	bfs.Entry("bud/generate/main.go", gen.FileGenerator(&generate.Generator{
-		BFS:      bfs,
-		Injector: injector,
-		Module:   module,
-		Embed:    c.bud.Embed,
-		Hot:      c.bud.Hot,
-		Minify:   c.bud.Minify,
-	}))
-	appFS := vfs.OS(module.Directory())
-	skipOption := dsync.WithSkip(
-		gitignore.FromFS(appFS),
-		// Keep bud/main around to improve build caching
-		func(name string, isDir bool) bool {
-			return !isDir && name == "bud/main"
-		},
-	)
-	if err := dsync.Dir(vfs.SingleFlight(bfs), "bud", appFS, "bud", skipOption); err != nil {
-		return err
-	}
-	mainPath := filepath.Join(module.Directory(), "bud", "generate", "main.go")
-	// Check to see if we generated a main.go
-	if _, err := os.Stat(mainPath); err != nil {
-		return err
-	}
-	// Building over an existing binary is faster for some reason, so we'll use
-	// the cache directory for a consistent place to output builds
-	binPath := filepath.Join(module.Directory(), "bud", "generate", "main")
-	if err := gobin.Build(ctx, module.Directory(), mainPath, binPath); err != nil {
-		return err
-	}
-	// Pass the socket through
-	files, env, err := socket.Files(listener)
-	if err != nil {
-		return err
-	}
-	// Run the generator
-	cmd := exec.CommandContext(ctx, binPath)
-	cmd.Env = append(os.Environ(), string(env))
-	cmd.ExtraFiles = files
-	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Dir = module.Directory()
-	err = cmd.Run()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// type runCommand2 struct {
-// 	bud  *bud
-// 	Port string
-// }
-
-// func (c *runCommand2) Run(ctx context.Context) (err error) {
-// 	// Initialize tracing
-// 	ctx, shutdown, err := c.bud.Tracer(ctx)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer shutdown(&err)
-// 	// Run the command
-// 	return c.run(ctx)
-// }
-
-// func (c *runCommand2) run(ctx context.Context) (err error) {
-// 	ctx, span := trace.Start(ctx, "bud run")
-// 	defer span.End(&err)
-// 	// Start listening on the port
-// 	listener, err := c.startListener(ctx, c.Port)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	// Find go.mod
-// 	module, err := c.findModule(ctx, c.bud.Chdir)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	// cliCompiler := cli.New(module)
-// 	// Run the expander
-// 	expander, err := expand.Load(ctx, module.Directory())
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if err := expander.Run(ctx); err != nil {
-// 		return err
-// 	}
-// 	// Run the project CLI
-// 	if err := c.runCLI(ctx, module, listener); err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
-
-// func (c *runCommand2) startListener(ctx context.Context, addr string) (l net.Listener, err error) {
-// 	_, span := trace.Start(ctx, "started listening", "addr", addr)
-// 	defer span.End(&err)
-// 	listener, err := socket.Load(addr)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	host, port, err := net.SplitHostPort(listener.Addr().String())
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	// https://serverfault.com/a/444557
-// 	if host == "::" {
-// 		host = "0.0.0.0"
-// 	}
-// 	console.Info("Listening on http://" + host + ":" + port)
-// 	return listener, nil
-// }
-
-// func (c *runCommand2) findModule(ctx context.Context, dir string) (mod *gomod.Module, err error) {
-// 	_, span := trace.Start(ctx, "find go.mod", "dir", dir)
-// 	defer span.End(&err)
-// 	// Run find go.mod
-// 	module, err := gomod.Find(c.bud.Chdir)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return module, nil
-// }
-
-// func (c *runCommand2) encodeTrace(ctx context.Context) (data []byte, err error) {
-// 	_, span := trace.Start(ctx, "encode trace")
-// 	defer span.End(&err)
-// 	return trace.Encode(ctx)
-// }
-
-// // Run the CLI
-// func (c *runCommand2) runCLI(ctx context.Context, module *gomod.Module, listener net.Listener) (err error) {
-// 	ctx, span := trace.Start(ctx, "run cli process")
-// 	defer span.End(&err)
-// 	// Pass the socket through
-// 	files, env, err := socket.Files(listener)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	// Encode the trace
-// 	traceData, err := c.encodeTrace(ctx)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	// Run the CLI
-// 	cmd := exec.CommandContext(ctx, filepath.Join("bud", "cli"), "run")
-// 	cmd.Env = append(os.Environ(), string(env), "TRACE_DATA="+string(traceData))
-// 	cmd.ExtraFiles = append(cmd.ExtraFiles, files...)
-// 	cmd.Dir = module.Directory()
-// 	cmd.Stdout = os.Stdout
-// 	cmd.Stderr = os.Stderr
-// 	err = cmd.Run()
-// 	if err != nil {
-// 		return err
-// 	}
-// 	return nil
-// }
-
-type buildCommand struct {
-	bud *bud
-}
-
-func (c *buildCommand) Run(ctx context.Context) (err error) {
-	ctx, shutdown, err := c.bud.Tracer(ctx)
-	if err != nil {
-		return err
-	}
-	defer shutdown(&err)
-	_, span := trace.Start(ctx, "bud build")
-	defer span.End(&err)
-	// Find the project directory
-	dir, err := gomod.Absolute(c.bud.Chdir)
-	if err != nil {
-		return err
-	}
-	// Build the code
-	if _, err := c.bud.Build(ctx, dir); err != nil {
-		return err
-	}
-	return nil
-}
-
-type diCommand struct {
-	bud          *bud
-	Target       string
-	Map          map[string]string
-	Dependencies []string
-	Externals    []string
-	Hoist        bool
-	Verbose      bool
-}
-
-func (c *diCommand) Run(ctx context.Context) error {
-	module, err := gomod.Find(c.bud.Chdir)
-	if err != nil {
-		return err
-	}
-	// TODO: should budfs be empty or fully-loaded with generators?
-	bfs, err := budfs.Load(module)
-	if err != nil {
-		return err
-	}
-	parser := parser.New(bfs, module)
-	fn := &di.Function{
-		Hoist: c.Hoist,
-	}
-	fn.Target, err = c.toImportPath(module, c.Target)
-	if err != nil {
-		return err
-	}
-	// Add the type mapping
-	for from, to := range c.Map {
-		fromDep, err := c.toDependency(module, from)
-		if err != nil {
-			return err
-		}
-		toDep, err := c.toDependency(module, to)
-		if err != nil {
-			return err
-		}
-		fn.Aliases[fromDep] = toDep
-	}
-	// Add the dependencies
-	for _, dependency := range c.Dependencies {
-		dep, err := c.toDependency(module, dependency)
-		if err != nil {
-			return err
-		}
-		fn.Results = append(fn.Results, dep)
-	}
-	// Add the externals
-	for _, external := range c.Externals {
-		ext, err := c.toDependency(module, external)
-		if err != nil {
-			return err
-		}
-		fn.Params = append(fn.Params, ext)
-	}
-	injector := di.New(bfs, module, parser)
-	node, err := injector.Load(fn)
-	if err != nil {
-		return err
-	}
-	if c.Verbose {
-		fmt.Println(node.Print())
-	}
-	provider := node.Generate("Load", fn.Target)
-	fmt.Fprintln(os.Stdout, provider.File())
-	return nil
-}
-
-// This should handle both stdlib (e.g. "net/http"), directories (e.g. "web"),
-// and dependencies
-func (c *diCommand) toImportPath(module *gomod.Module, importPath string) (string, error) {
-	importPath = strings.Trim(importPath, "\"")
-	maybeDir := module.Directory(importPath)
-	if _, err := os.Stat(maybeDir); err == nil {
-		importPath, err = module.ResolveImport(maybeDir)
-		if err != nil {
-			return "", fmt.Errorf("di: unable to resolve import %s because %+s", importPath, err)
-		}
-	}
-	return importPath, nil
-}
-
-func (c *diCommand) toDependency(module *gomod.Module, dependency string) (di.Dependency, error) {
-	i := strings.LastIndex(dependency, ".")
-	if i < 0 {
-		return nil, fmt.Errorf("di: external must have form '<import>.<type>'. got %q ", dependency)
-	}
-	importPath, err := c.toImportPath(module, dependency[0:i])
-	if err != nil {
-		return nil, err
-	}
-	dataType := dependency[i+1:]
-	// Create the dependency
-	return &di.Type{
-		Import: importPath,
-		Type:   dataType,
-	}, nil
-}
-
-type v8Command struct {
-	bud *bud
-}
-
-func (c *v8Command) Run(ctx context.Context) error {
-	script, err := c.getScript()
-	if err != nil {
-		return err
-	}
-	vm := v8.New()
-	result, err := vm.Eval("script.js", script)
-	if err != nil {
-		return err
-	}
-	fmt.Fprintln(os.Stdout, result)
-	return nil
-}
-
-func (c *v8Command) getScript() (string, error) {
-	code, err := ioutil.ReadAll(stdin())
-	if err != nil {
-		return "", err
-	}
-	script := string(code)
-	if script == "" {
-		return "", errors.New("missing script to evaluate")
-	}
-	return script, nil
-}
-
-type v8ClientCommand struct {
-	bud *bud
-}
-
-func (c *v8ClientCommand) Run(ctx context.Context) error {
-	vm := v8.New()
-	dec := gob.NewDecoder(os.Stdin)
-	enc := gob.NewEncoder(os.Stdout)
-	for {
-		var expr string
-		if err := dec.Decode(&expr); err != nil {
-			if errors.Is(err, io.EOF) {
-				return nil
-			}
-			return err
-		}
-		result, err := vm.Eval("<stdin>", string(expr))
-		if err != nil {
-			return err
-		}
-		if err := enc.Encode(result); err != nil {
-			return err
-		}
-	}
-}
-
-// input from stdin or empty object by default.
-func stdin() io.Reader {
-	if isatty.IsTerminal(os.Stdin.Fd()) {
-		return strings.NewReader("")
-	}
-	return os.Stdin
-}
-
-func toType(importPath, dataType string) *di.Type {
-	return &di.Type{Import: importPath, Type: dataType}
 }
 
 func isExitStatus(err error) bool {

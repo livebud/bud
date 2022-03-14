@@ -1,0 +1,70 @@
+package program
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+func Run(ctx context.Context, args ...string) int {
+	if err := run(ctx, args...); err != nil {
+		if errors.Is(err, context.Canceled) {
+			// Unfortunately interrupts like SIGINT trigger a non-zero exit code,
+			// regardless of whether you do os.Exit(0) or not. We're going to use exit
+			// code 3 to distinguish between non-zero exit codes so "bud run" can know
+			// that we exited cleanly on an interrupt.
+			return 3
+		}
+		console.Error(err.Error())
+		return 1
+	}
+	return 0
+}
+
+func run(ctx context.Context, args ...string) error {
+	program, err := Load()
+	if err != nil {
+		return err
+	}
+	return program.Run(ctx, args...)
+}
+
+func Load() (*Program, error) {
+	{{- with $variable := $.Provider.Variable "gitlab.com/mnm/bud/pkg/gomod.*Module" }}
+	dir, err := dirname()
+	if err != nil {
+		return nil, err
+	}
+	{{ $variable }}, err := gomod.Find(dir)
+	if err != nil {
+		return nil, err
+	}
+	{{- end }}
+	cli, err := {{ $.Provider.Name }}({{ $.Provider.Variables "gitlab.com/mnm/bud/pkg/gomod.*Module" }})
+	if err != nil {
+		return nil, err
+	}
+	return &Program{cli}, nil
+}
+
+// dirname gets the directory of this file
+func dirname() (string, error) {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		return "", errors.New("unable to get the current filename")
+	}
+	return filepath.Dir(filename), nil
+}
+
+type Program struct {
+	cli *command.CLI
+}
+
+func (p *Program) Run(ctx context.Context, args ...string) error {
+	return p.cli.Parse(ctx, args...)
+}
+
+{{ $.Provider.Function }}

@@ -45,14 +45,19 @@ func (p *Program) Parse(ctx context.Context) (*State, error) {
 	imports := imports.New()
 	imports.AddStd("errors", "context", "path/filepath", "runtime")
 	imports.AddNamed("console", "gitlab.com/mnm/bud/pkg/log/console")
+	imports.AddNamed("command", p.module.Import("bud/.cli/command"))
 	// imports.AddNamed("gomod", "gitlab.com/mnm/bud/pkg/gomod")
 	// imports.AddNamed("trace", "gitlab.com/mnm/bud/package/trace")
 	// Write up the dependencies
 	provider, err := p.injector.Wire(&di.Function{
-		Name:   "loadCLI",
-		Target: p.module.Import("bud/.cli/program"),
+		Name:    "loadCLI",
+		Imports: imports,
+		Target:  p.module.Import("bud/.cli/program"),
 		Params: []di.Dependency{
 			di.ToType("gitlab.com/mnm/bud/pkg/gomod", "*Module"),
+		},
+		Aliases: di.Aliases{
+			di.ToType("io/fs", "FS"): di.ToType("gitlab.com/mnm/bud/package/overlay", "*FileSystem"),
 		},
 		Results: []di.Dependency{
 			di.ToType(p.module.Import("bud/.cli/command"), "*CLI"),

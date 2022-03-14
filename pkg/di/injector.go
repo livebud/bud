@@ -3,6 +3,7 @@ package di
 import (
 	"io/fs"
 
+	"gitlab.com/mnm/bud/internal/imports"
 	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/pkg/parser"
 )
@@ -108,7 +109,10 @@ func (i *Injector) Wire(fn *Function) (*Provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	return node.Generate(fn.Name, fn.Target), nil
+	if fn.Imports == nil {
+		fn.Imports = imports.New()
+	}
+	return node.Generate(fn.Imports, fn.Name, fn.Target), nil
 }
 
 // GenerateFile generates a provider function into string
