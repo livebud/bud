@@ -45,8 +45,8 @@ func Hash(fsys fs.FS) (string, error) {
 		}
 		mapfs[path] = &fstest.MapFile{
 			Mode:    info.Mode(),
-			Sys:     info.Sys(),
 			ModTime: time.Time{}, // ModTime does not affect snapshot
+			Sys:     nil,         // Sys can't be serialized
 		}
 		if de.IsDir() {
 			return nil

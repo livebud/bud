@@ -156,7 +156,7 @@ func (l *loader) loadAction(controller *Controller, method *parser.Function) *Ac
 	action.Short = text.Lower(gotext.Short(action.Name))
 	action.Route = l.loadActionRoute(controller.Route, action.Name)
 	action.Key = l.loadActionKey(controller.Path, action.Name)
-	// action.View = l.loadView(controller.Path, action.Key, action.Route)
+	action.View = l.loadView(controller.Path, action.Key, action.Route)
 	action.Method = l.loadActionMethod(action.Name)
 	action.Params = l.loadActionParams(method.Params())
 	action.Input = l.loadActionInput(action.Params)

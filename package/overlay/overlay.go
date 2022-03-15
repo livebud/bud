@@ -58,7 +58,11 @@ func (f *FileSystem) OpenContext(ctx context.Context, name string) (fs.File, err
 
 var _ fs.FS = (*FileSystem)(nil)
 
-type GenerateFile = func(ctx context.Context, fsys F, file *File) error
+type GenerateFile func(ctx context.Context, fsys F, file *File) error
+
+func (fn GenerateFile) GenerateFile(ctx context.Context, fsys F, file *File) error {
+	return fn(ctx, fsys, file)
+}
 
 func (f *FileSystem) GenerateFile(path string, fn func(ctx context.Context, fsys F, file *File) error) {
 	f.cfs.GenerateFile(path, func(ctx context.Context, file *conjure.File) error {
@@ -70,7 +74,11 @@ func (f *FileSystem) FileGenerator(path string, generator FileGenerator) {
 	f.GenerateFile(path, generator.GenerateFile)
 }
 
-type GenerateDir = func(ctx context.Context, fsys F, dir *Dir) error
+type GenerateDir func(ctx context.Context, fsys F, dir *Dir) error
+
+func (fn GenerateDir) GenerateDir(ctx context.Context, fsys F, dir *Dir) error {
+	return fn(ctx, fsys, dir)
+}
 
 func (f *FileSystem) GenerateDir(path string, fn func(ctx context.Context, fsys F, dir *Dir) error) {
 	f.cfs.GenerateDir(path, func(ctx context.Context, dir *conjure.Dir) error {
@@ -80,6 +88,16 @@ func (f *FileSystem) GenerateDir(path string, fn func(ctx context.Context, fsys 
 
 func (f *FileSystem) DirGenerator(path string, generator DirGenerator) {
 	f.GenerateDir(path, generator.GenerateDir)
+}
+
+func (f *FileSystem) ServeFile(path string, fn func(ctx context.Context, fsys F, file *File) error) {
+	f.cfs.ServeFile(path, func(ctx context.Context, file *conjure.File) error {
+		return fn(ctx, f, &File{file})
+	})
+}
+
+func (f *FileSystem) FileServer(path string, server FileServer) {
+	f.ServeFile(path, server.ServeFile)
 }
 
 // Sync the overlay to the filesystem

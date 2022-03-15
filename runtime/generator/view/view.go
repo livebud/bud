@@ -33,7 +33,7 @@ func (g *Generator) GenerateFile(ctx context.Context, _ overlay.F, file *overlay
 	}
 	imports := imports.New()
 	imports.AddNamed("transform", g.Module.Import("bud/.app/transform"))
-	imports.AddNamed("gen", "gitlab.com/mnm/bud/pkg/gen")
+	imports.AddNamed("overlay", "gitlab.com/mnm/bud/package/overlay")
 	imports.AddNamed("mod", "gitlab.com/mnm/bud/pkg/gomod")
 	imports.AddNamed("js", "gitlab.com/mnm/bud/pkg/js")
 	imports.AddNamed("view", "gitlab.com/mnm/bud/runtime/view")

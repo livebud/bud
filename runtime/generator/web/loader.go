@@ -58,10 +58,10 @@ func (l *loader) Load() (state *State, err error) {
 		state.HasPublic = true
 		l.imports.AddNamed("public", l.module.Import("bud/.app/public"))
 	}
-	// if l.exist["bud/.app/view/view.go"] {
-	// 	state.HasView = true
-	// 	l.imports.AddNamed("view", l.module.Import("bud/.app/view"))
-	// }
+	if l.exist["bud/.app/view/view.go"] {
+		state.HasView = true
+		l.imports.AddNamed("view", l.module.Import("bud/.app/view"))
+	}
 	// Load the conditionals
 	state.HasHot = ldflag.Hot()
 	if l.exist["bud/.app/action/action.go"] {

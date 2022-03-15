@@ -2,6 +2,7 @@ package dom
 
 import (
 	"bytes"
+	"context"
 	_ "embed"
 	"fmt"
 	"io/fs"
@@ -9,10 +10,12 @@ import (
 	"regexp"
 	"strings"
 
+	"gitlab.com/mnm/bud/package/overlay"
+
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"gitlab.com/mnm/bud/internal/entrypoint"
 	"gitlab.com/mnm/bud/internal/gotemplate"
-	"gitlab.com/mnm/bud/pkg/gen"
+	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/runtime/transform"
 )
 
@@ -22,18 +25,18 @@ var template string
 // generator
 var generator = gotemplate.MustParse("dom.gotext", template)
 
-func Runner(dirfs fs.FS, rootDir string, transformer *transform.Transformer) gen.Generator {
+func Runner(fsys fs.FS, module *gomod.Module, transformer *transform.Transformer) overlay.FileServer {
 	plugins := append([]esbuild.Plugin{
-		domPlugin(dirfs, rootDir),
+		domPlugin(fsys, module),
 		domExternalizePlugin(),
 	}, transformer.Browser.Plugins()...)
-	return gen.ServeFile(func(f gen.F, file *gen.File) error {
+	return overlay.ServeFile(func(ctx context.Context, f overlay.F, file *overlay.File) error {
 		// If the name starts with node_modules, trim it to allow esbuild to do
 		// the resolving. e.g. node_modules/livebud => livebud
 		entryPoint := trimEntrypoint(file.Path())
 		result := esbuild.Build(esbuild.BuildOptions{
 			EntryPoints:   []string{entryPoint},
-			AbsWorkingDir: rootDir,
+			AbsWorkingDir: module.Directory(),
 			Format:        esbuild.FormatESModule,
 			Platform:      esbuild.PlatformBrowser,
 			// Add "import" condition to support svelte/internal
@@ -57,24 +60,24 @@ func Runner(dirfs fs.FS, rootDir string, transformer *transform.Transformer) gen
 		code := result.OutputFiles[0].Contents
 		// Replace require statements and updates the path on imports
 		code = replaceDependencyPaths(code)
-		file.Write(code)
+		file.Data = code
 		source := strings.TrimPrefix(file.Path(), "bud/")
-		file.Watch(source, gen.WriteEvent)
+		file.Link(source)
 		return nil
 	})
 }
 
-func NodeModules(rootDir string) gen.Generator {
+func NodeModules(module *gomod.Module) overlay.FileServer {
 	plugins := []esbuild.Plugin{
 		domExternalizePlugin(),
 	}
-	return gen.ServeFile(func(f gen.F, file *gen.File) error {
+	return overlay.ServeFile(func(ctx context.Context, f overlay.F, file *overlay.File) error {
 		// If the name starts with node_modules, trim it to allow esbuild to do
 		// the resolving. e.g. node_modules/timeago.js => timeago.js
 		entryPoint := trimEntrypoint(file.Path())
 		result := esbuild.Build(esbuild.BuildOptions{
 			EntryPoints:   []string{entryPoint},
-			AbsWorkingDir: rootDir,
+			AbsWorkingDir: module.Directory(),
 			Format:        esbuild.FormatESModule,
 			Platform:      esbuild.PlatformBrowser,
 			// Add "import" condition to support svelte/internal
@@ -98,20 +101,20 @@ func NodeModules(rootDir string) gen.Generator {
 		content := result.OutputFiles[0].Contents
 		// Replace require statements and updates the path on imports
 		code := replaceDependencyPaths(content)
-		file.Write(code)
+		file.Data = code
 		source := strings.TrimPrefix(file.Path(), "bud/")
 		// fmt.Println("linked", file.Path(), "->", source)
-		file.Watch(source, gen.WriteEvent)
+		file.Link(source)
 		return nil
 	})
 }
 
-func Builder(dirfs fs.FS, rootDir string, transformer *transform.Transformer) gen.Generator {
+func Builder(fsys fs.FS, module *gomod.Module, transformer *transform.Transformer) overlay.DirGenerator {
 	plugins := append([]esbuild.Plugin{
-		domPlugin(dirfs, rootDir),
+		domPlugin(fsys, module),
 	}, transformer.Browser.Plugins()...)
-	return gen.GenerateDir(func(f gen.F, dir *gen.Dir) error {
-		views, err := entrypoint.List(dirfs)
+	return overlay.GenerateDir(func(ctx context.Context, f overlay.F, dir *overlay.Dir) error {
+		views, err := entrypoint.List(fsys)
 		if err != nil {
 			return err
 		}
@@ -130,7 +133,7 @@ func Builder(dirfs fs.FS, rootDir string, transformer *transform.Transformer) ge
 		result := esbuild.Build(esbuild.BuildOptions{
 			EntryPointsAdvanced: entries,
 			Outdir:              "/",
-			AbsWorkingDir:       rootDir,
+			AbsWorkingDir:       module.Directory(),
 			ChunkNames:          "[name]-[hash]",
 			Format:              esbuild.FormatESModule,
 			Platform:            esbuild.PlatformBrowser,
@@ -160,10 +163,10 @@ func Builder(dirfs fs.FS, rootDir string, transformer *transform.Transformer) ge
 			if isEntry(outPath) {
 				outPath = strings.TrimSuffix(outPath, ".js")
 			}
-			dir.Entry(outPath, gen.GenerateFile(func(f gen.F, file *gen.File) error {
-				file.Write(outFile.Contents)
+			dir.GenerateFile(outPath, func(ctx context.Context, f overlay.F, file *overlay.File) error {
+				file.Data = outFile.Contents
 				return nil
-			}))
+			})
 		}
 		return nil
 	})
@@ -201,7 +204,7 @@ func trimEntrypoint(path string) string {
 }
 
 // Build the bud/view/$page.{jsx,svelte} client-side entrypoint
-func domPlugin(fsys fs.FS, dir string) esbuild.Plugin {
+func domPlugin(fsys fs.FS, module *gomod.Module) esbuild.Plugin {
 	return esbuild.Plugin{
 		Name: "dom",
 		Setup: func(epb esbuild.PluginBuild) {
@@ -220,7 +223,7 @@ func domPlugin(fsys fs.FS, dir string) esbuild.Plugin {
 					return result, err
 				}
 				contents := string(code)
-				result.ResolveDir = dir
+				result.ResolveDir = module.Directory()
 				result.Contents = &contents
 				result.Loader = esbuild.LoaderJS
 				return result, nil

@@ -13,23 +13,23 @@ import (
 {{- end }}
 
 // New is called like this when calling bud run
-func New(genfs gen.FS, module *mod.Module, vm js.VM, transformer *transform.Transformer) *Server {
-	return view.Live(module, genfs, vm, transformer)
+func New(module *mod.Module, overlay *overlay.FileSystem, vm js.VM, transformer *transform.Transformer) *Server {
+	return view.Live(module, overlay, vm, transformer)
 }
 
 // New_ is swapped in when generating with bud build
-func New_(genfs gen.FS, module *mod.Module, vm js.VM) *Server {
-	genfs.Add(map[string]gen.Generator{
-		// "bud/view/_ssr.js": &bfs.Embed{
-		// 	  Data:    []byte(`...`),
-		// 	  ModTime: time.New(),
-		// },
-		// "bud/view/_index.svelte": &bfs.Embed{
-		// 	  Data:    []byte(`...`),
-		// 	  ModTime: time.New(),
-		// },
-	})
-	return view.Static(genfs, vm)
+func New_(module *mod.Module, overlay *overlay.FileSystem, vm js.VM) *Server {
+	// genfs.Add(map[string]gen.Generator{
+	// "bud/view/_ssr.js": &bfs.Embed{
+	// 	  Data:    []byte(`...`),
+	// 	  ModTime: time.New(),
+	// },
+	// "bud/view/_index.svelte": &bfs.Embed{
+	// 	  Data:    []byte(`...`),
+	// 	  ModTime: time.New(),
+	// },
+	// })
+	return view.Static(overlay, vm)
 }
 
 type Map = view.Map

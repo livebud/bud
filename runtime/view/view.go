@@ -8,7 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/mnm/bud/pkg/gen"
+	"gitlab.com/mnm/bud/package/overlay"
+
 	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/pkg/js"
 	"gitlab.com/mnm/bud/runtime/transform"
@@ -36,8 +37,8 @@ type Renderer interface {
 	Render(path string, props interface{}) (*Response, error)
 }
 
-func New(bf gen.FS, vm js.VM) *Server {
-	return &Server{fs: bf, hfs: http.FS(bf), vm: vm}
+func New(fsys fs.FS, vm js.VM) *Server {
+	return &Server{fsys, http.FS(fsys), vm}
 }
 
 func Test(t testing.TB) *Server {
@@ -45,25 +46,22 @@ func Test(t testing.TB) *Server {
 }
 
 // Live server serves view files on the fly. Used during development.
-func Live(module *gomod.Module, genfs gen.FS, vm js.VM, transformer *transform.Transformer) *Server {
-	dir := module.Directory()
-	genfs.Add(map[string]gen.Generator{
-		"bud/view":         dom.Runner(genfs, dir, transformer),
-		"bud/node_modules": dom.NodeModules(dir),
-		"bud/view/_ssr.js": ssr.Generator(genfs, dir, transformer),
-	})
-	return &Server{fs: genfs, hfs: http.FS(genfs), vm: vm}
+func Live(module *gomod.Module, overlay *overlay.FileSystem, vm js.VM, transformer *transform.Transformer) *Server {
+	overlay.FileServer("bud/view", dom.Runner(overlay, module, transformer))
+	overlay.FileServer("bud/node_modules", dom.NodeModules(module))
+	overlay.FileGenerator("bud/view/_ssr.js", ssr.Generator(overlay, module, transformer))
+	return &Server{overlay, http.FS(overlay), vm}
 }
 
 // Static server serves the same files every time. Used during production.
-func Static(genfs gen.FS, vm js.VM) *Server {
-	return &Server{fs: genfs, hfs: http.FS(genfs), vm: vm}
+func Static(fsys fs.FS, vm js.VM) *Server {
+	return &Server{fsys, http.FS(fsys), vm}
 }
 
 type Server struct {
-	fs  fs.FS
-	hfs http.FileSystem
-	vm  js.VM
+	fsys fs.FS
+	hfs  http.FileSystem
+	vm   js.VM
 }
 
 // Map is a convenience function for the common case of passing a map of props
@@ -92,7 +90,7 @@ func (s *Server) Render(path string, props interface{}) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	script, err := fs.ReadFile(s.fs, "bud/view/_ssr.js")
+	script, err := fs.ReadFile(s.fsys, "bud/view/_ssr.js")
 	if err != nil {
 		return nil, err
 	}

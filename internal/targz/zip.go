@@ -30,8 +30,8 @@ func Zip(fsys fs.FS) ([]byte, error) {
 		if err = tw.WriteHeader(header); err != nil {
 			return err
 		}
-		// Don't try reading from directories
-		if de.IsDir() {
+		// Don't try reading from directories or symlinks
+		if de.IsDir() || fi.Mode()&fs.ModeSymlink != 0 {
 			return nil
 		}
 		file, err := fsys.Open(path)

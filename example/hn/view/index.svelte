@@ -6,9 +6,9 @@
   }
 </script>
 
-<!-- <svelte:head>
+<svelte:head>
   <link rel="stylesheet" href="/tailwind/preflight.css" />
-</svelte:head> -->
+</svelte:head>
 
 <main>
   <Header />

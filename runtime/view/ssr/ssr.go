@@ -1,6 +1,7 @@
 package ssr
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"os"
@@ -12,21 +13,23 @@ import (
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"gitlab.com/mnm/bud/internal/entrypoint"
 	"gitlab.com/mnm/bud/internal/gotemplate"
-	"gitlab.com/mnm/bud/pkg/gen"
+	"gitlab.com/mnm/bud/package/overlay"
+	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/runtime/transform"
 )
 
-func Generator(osfs fs.FS, dir string, transformer *transform.Transformer) gen.Generator {
+func Generator(fsys fs.FS, module *gomod.Module, transformer *transform.Transformer) overlay.FileGenerator {
+	dir := module.Directory()
 	plugins := append([]esbuild.Plugin{
-		ssrPlugin(osfs, dir),
-		ssrRuntimePlugin(osfs, dir),
-		jsxPlugin(osfs, dir),
-		jsxRuntimePlugin(osfs, dir),
-		jsxTransformPlugin(osfs, dir),
-		sveltePlugin(osfs, dir),
-		svelteRuntimePlugin(osfs, dir),
+		ssrPlugin(fsys, dir),
+		ssrRuntimePlugin(fsys, dir),
+		jsxPlugin(fsys, dir),
+		jsxRuntimePlugin(fsys, dir),
+		jsxTransformPlugin(fsys, dir),
+		sveltePlugin(fsys, dir),
+		svelteRuntimePlugin(fsys, dir),
 	}, transformer.Node.Plugins()...)
-	return gen.GenerateFile(func(_ gen.F, file *gen.File) error {
+	return overlay.GenerateFile(func(ctx context.Context, _ overlay.F, file *overlay.File) error {
 		result := esbuild.Build(esbuild.BuildOptions{
 			EntryPointsAdvanced: []esbuild.EntryPoint{
 				{
@@ -62,8 +65,8 @@ func Generator(osfs fs.FS, dir string, transformer *transform.Transformer) gen.G
 		// }
 		// TODO: remove WriteEvent and externalize actual file contents so we only
 		// need to watch directory changes.
-		file.Watch("bud/view/**/*.{svelte,jsx}", gen.CreateEvent|gen.RemoveEvent|gen.WriteEvent)
-		file.Write(result.OutputFiles[0].Contents)
+		// file.Watch("bud/view/**/*.{svelte,jsx}", gen.CreateEvent|gen.RemoveEvent|gen.WriteEvent)
+		file.Data = result.OutputFiles[0].Contents
 		return nil
 	})
 }

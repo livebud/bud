@@ -1,14 +1,18 @@
 package testdir
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"io/fs"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing/fstest"
 	"time"
 
@@ -100,12 +104,16 @@ func (d *Dir) mapfs() (fstest.MapFS, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Replace bud
-	budModule, err := gomod.Find(".")
+	currentDir, err := dirname()
 	if err != nil {
 		return nil, err
 	}
-	modFile.AddReplace("gitlab.com/mnm/bud", "", budModule.Directory(), "")
+	// Replace bud
+	budDir, err := gomod.Absolute(currentDir)
+	if err != nil {
+		return nil, err
+	}
+	modFile.AddReplace("gitlab.com/mnm/bud", "", budDir, "")
 	// Merge the go modules in
 	if len(d.Modules) > 0 {
 		fsys, err := modcache.WriteFS(d.Modules)
@@ -135,8 +143,30 @@ func (d *Dir) mapfs() (fstest.MapFS, error) {
 			Dependencies: map[string]string{},
 		}
 		for name, version := range d.NodeModules {
+			if name == "livebud" && version == "*" {
+				tarPath, err := packLiveBud(budDir)
+				if err != nil {
+					return nil, err
+				}
+				stat, err := os.Stat(tarPath)
+				if err != nil {
+					return nil, err
+				}
+				data, err := os.ReadFile(tarPath)
+				if err != nil {
+					return nil, err
+				}
+				mapfs[".npm/livebud.tgz"] = &fstest.MapFile{
+					Data:    data,
+					ModTime: stat.ModTime(),
+					Mode:    stat.Mode(),
+					Sys:     stat.Sys,
+				}
+				continue
+			}
 			nodePackage.Dependencies[name] = version
 		}
+		// Marshal into a package.json file
 		pkg, err := json.MarshalIndent(nodePackage, "", "  ")
 		if err != nil {
 			return nil, err
@@ -215,7 +245,6 @@ func (d *Dir) Write(dir string, options ...Option) error {
 	}
 
 	eg, ctx := errgroup.WithContext(context.Background())
-
 	// Download modules that aren't in the module cache
 	if _, ok := fsys["go.mod"]; ok {
 		cmd := exec.CommandContext(ctx, "go", "mod", "download", "-modcacherw")
@@ -239,7 +268,6 @@ func (d *Dir) Write(dir string, options ...Option) error {
 		cmd := exec.CommandContext(ctx, "npm", "install", "--loglevel=error")
 		cmd.Dir = dir
 		cmd.Stderr = os.Stderr
-		// cmd.Stdout = os.Stdout
 		cmd.Env = []string{
 			"HOME=" + os.Getenv("HOME"),
 			"PATH=" + os.Getenv("PATH"),
@@ -247,6 +275,20 @@ func (d *Dir) Write(dir string, options ...Option) error {
 		}
 		eg.Go(cmd.Run)
 	}
+
+	// Copy livebud.tgz into node_modules and install any dependencies
+	if _, ok := fsys[".npm/livebud.tgz"]; ok {
+		cmd := exec.CommandContext(ctx, "npm", "install", "--loglevel=error", ".npm/livebud.tgz")
+		cmd.Dir = dir
+		cmd.Stderr = os.Stderr
+		cmd.Env = []string{
+			"HOME=" + os.Getenv("HOME"),
+			"PATH=" + os.Getenv("PATH"),
+			"NO_COLOR=1",
+		}
+		eg.Go(cmd.Run)
+	}
+
 	// Wait for both commands to finish
 	if err := eg.Wait(); err != nil {
 		return err
@@ -278,4 +320,36 @@ func ModCache(dir string) *modcache.Cache {
 		return modcache.Default()
 	}
 	return modcache.New(modDir)
+}
+
+func packLiveBud(budDir string) (string, error) {
+	liveBudDir := filepath.Join(budDir, "livebud")
+	tmpDir, err := ioutil.TempDir("", "testdir-livebud-*")
+	if err != nil {
+		return "", err
+	}
+	cmd := exec.Command("npm", "pack", liveBudDir, "--loglevel=error")
+	cmd.Dir = tmpDir
+	cmd.Stderr = os.Stderr
+	tarName := new(bytes.Buffer)
+	cmd.Stdout = tarName
+	cmd.Env = []string{
+		"HOME=" + os.Getenv("HOME"),
+		"PATH=" + os.Getenv("PATH"),
+		"NO_COLOR=1",
+	}
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+	tarPath := filepath.Join(tmpDir, strings.TrimSpace(tarName.String()))
+	return tarPath, nil
+}
+
+// dirname gets the directory of this file
+func dirname() (string, error) {
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		return "", errors.New("unable to get the current filename")
+	}
+	return filepath.Dir(filename), nil
 }

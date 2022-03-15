@@ -5,18 +5,16 @@ import (
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/npm"
-	"gitlab.com/mnm/bud/pkg/gen"
+	"gitlab.com/mnm/bud/internal/testdir"
+	"gitlab.com/mnm/bud/package/overlay"
+	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/pkg/js"
 	v8 "gitlab.com/mnm/bud/pkg/js/v8"
 	"gitlab.com/mnm/bud/pkg/svelte"
-	"gitlab.com/mnm/bud/pkg/vfs"
 	"gitlab.com/mnm/bud/runtime/transform"
 	"gitlab.com/mnm/bud/runtime/view"
 	"gitlab.com/mnm/bud/runtime/view/ssr"
@@ -24,36 +22,21 @@ import (
 
 func TestSvelteHello(t *testing.T) {
 	is := is.New(t)
-	cwd, err := os.Getwd()
-	is.NoErr(err)
-	dir := filepath.Join(cwd, "_tmp")
-	is.NoErr(os.RemoveAll(dir))
-	defer func() {
-		if !t.Failed() {
-			is.NoErr(os.RemoveAll(dir))
-		}
-	}()
+	dir := t.TempDir()
+	td := testdir.New()
+	td.Files["view/index.svelte"] = `<h1>hi world</h1>`
+	td.NodeModules["svelte"] = "3.46.4"
+	is.NoErr(td.Write(dir))
 	vm := v8.New()
-	memfs := vfs.Memory{
-		"view/index.svelte": &vfs.File{
-			Data: []byte(`<h1>hi world</h1>`),
-		},
-	}
-	is.NoErr(vfs.WriteAll(".", dir, memfs))
-	dirfs := os.DirFS(dir)
 	svelteCompiler := svelte.New(vm)
-	transformer := transform.MustLoad(
-		svelte.NewTransformable(svelteCompiler),
-	)
-	bf := gen.New(vfs.GitIgnore(dirfs))
-	bf.Add(map[string]gen.Generator{
-		"bud/view/_ssr.js": ssr.Generator(bf, dir, transformer),
-	})
-	// Install svelte
-	err = npm.Install(dir, "svelte@3.42.3")
+	transformer := transform.MustLoad(svelte.NewTransformable(svelteCompiler))
+	module, err := gomod.Find(dir)
 	is.NoErr(err)
+	overlay, err := overlay.Load(module)
+	is.NoErr(err)
+	overlay.FileGenerator("bud/view/_ssr.js", ssr.Generator(overlay, module, transformer))
 	// Read the wrapped version of index.svelte with node_modules rewritten
-	code, err := fs.ReadFile(bf, "bud/view/_ssr.js")
+	code, err := fs.ReadFile(overlay, "bud/view/_ssr.js")
 	is.NoErr(err)
 	is.True(strings.Contains(string(code), `create_ssr_component(`))
 	is.True(strings.Contains(string(code), `<h1>hi world</h1>`))
@@ -74,53 +57,38 @@ func TestSvelteHello(t *testing.T) {
 
 func TestSvelteAwait(t *testing.T) {
 	is := is.New(t)
-	cwd, err := os.Getwd()
-	is.NoErr(err)
-	dir := filepath.Join(cwd, "_tmp")
-	is.NoErr(os.RemoveAll(dir))
-	defer func() {
-		if !t.Failed() {
-			is.NoErr(os.RemoveAll(dir))
-		}
-	}()
-	vm := v8.New()
+	dir := t.TempDir()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "text/plain")
 		w.Write([]byte("all good"))
 	}))
 	defer server.Close()
-	memfs := vfs.Memory{
-		"view/index.svelte": &vfs.File{
-			Data: []byte(`
-			<script>
-				let promise = fetch("` + server.URL + `").then(res => res.text())
-			</script>
+	td := testdir.New()
+	td.Files["view/index.svelte"] = `
+		<script>
+			let promise = fetch("` + server.URL + `").then(res => res.text())
+		</script>
 
-			<div>
-				{#await promise}
-					Loading...
-				{:then value}
-					response: {value}
-				{/await}
-			</div>
-			`),
-		},
-	}
-	is.NoErr(vfs.WriteAll(".", dir, memfs))
-	dirfs := os.DirFS(dir)
+		<div>
+			{#await promise}
+				Loading...
+			{:then value}
+				response: {value}
+			{/await}
+		</div>
+	`
+	td.NodeModules["svelte"] = "3.46.4"
+	is.NoErr(td.Write(dir))
+	vm := v8.New()
 	svelteCompiler := svelte.New(vm)
-	transformer := transform.MustLoad(
-		svelte.NewTransformable(svelteCompiler),
-	)
-	bf := gen.New(vfs.GitIgnore(dirfs))
-	bf.Add(map[string]gen.Generator{
-		"bud/view/_ssr.js": ssr.Generator(bf, dir, transformer),
-	})
-	// Install svelte
-	err = npm.Install(dir, "svelte@3.42.3")
+	transformer := transform.MustLoad(svelte.NewTransformable(svelteCompiler))
+	module, err := gomod.Find(dir)
 	is.NoErr(err)
+	overlay, err := overlay.Load(module)
+	is.NoErr(err)
+	overlay.FileGenerator("bud/view/_ssr.js", ssr.Generator(overlay, module, transformer))
 	// Read the wrapped version of index.svelte with node_modules rewritten
-	code, err := fs.ReadFile(bf, "bud/view/_ssr.js")
+	code, err := fs.ReadFile(overlay, "bud/view/_ssr.js")
 	is.NoErr(err)
 	result, err := vm.Eval("render.js", string(code)+`; bud.render("/", {})`)
 	is.NoErr(err)
@@ -154,81 +122,56 @@ func render(vm js.VM, code, path string, props interface{}) (*view.Response, err
 
 func TestSvelteProps(t *testing.T) {
 	is := is.New(t)
-	cwd, err := os.Getwd()
-	is.NoErr(err)
-	dir := filepath.Join(cwd, "_tmp")
-	is.NoErr(os.RemoveAll(dir))
-	defer func() {
-		if !t.Failed() {
-			is.NoErr(os.RemoveAll(dir))
-		}
-	}()
-	memfs := vfs.Memory{
-		"view/index.svelte": &vfs.File{
-			Data: []byte(`
-				<script>
-					export let props
-				</script>
-				<h1>{@html JSON.stringify(props)}</h1>
-			`),
-		},
-		"view/show.svelte": &vfs.File{
-			Data: []byte(`
-				<script>
-					export let props
-				</script>
-				<h2>{@html JSON.stringify(props)}</h2>
-			`),
-		},
-		"view/users/index.svelte": &vfs.File{
-			Data: []byte(`
-				<script>
-					export let props
-				</script>
-				<h3>{@html JSON.stringify(props)}</h3>
-			`),
-		},
-		"view/users/show.svelte": &vfs.File{
-			Data: []byte(`
-				<script>
-					export let props
-				</script>
-				<h4>{@html JSON.stringify(props)}</h4>
-			`),
-		},
-		"view/posts/comments/index.svelte": &vfs.File{
-			Data: []byte(`
-				<script>
-					export let props
-				</script>
-				<h5>{@html JSON.stringify(props)}</h5>
-			`),
-		},
-		"view/posts/comments/show.svelte": &vfs.File{
-			Data: []byte(`
-				<script>
-					export let props
-				</script>
-				<h6>{@html JSON.stringify(props)}</h6>
-			`),
-		},
-	}
-	is.NoErr(vfs.WriteAll(".", dir, memfs))
-	dirfs := os.DirFS(dir)
+	dir := t.TempDir()
+	td := testdir.New()
+	td.Files["view/index.svelte"] = `
+		<script>
+			export let props
+		</script>
+		<h1>{@html JSON.stringify(props)}</h1>
+	`
+	td.Files["view/show.svelte"] = `
+		<script>
+			export let props
+		</script>
+		<h2>{@html JSON.stringify(props)}</h2>
+	`
+	td.Files["view/users/index.svelte"] = `
+		<script>
+			export let props
+		</script>
+		<h3>{@html JSON.stringify(props)}</h3>
+	`
+	td.Files["view/users/show.svelte"] = `
+		<script>
+			export let props
+		</script>
+		<h4>{@html JSON.stringify(props)}</h4>
+	`
+	td.Files["view/posts/comments/index.svelte"] = `
+		<script>
+			export let props
+		</script>
+		<h5>{@html JSON.stringify(props)}</h5>
+	`
+	td.Files["view/posts/comments/show.svelte"] = `
+		<script>
+			export let props
+		</script>
+		<h6>{@html JSON.stringify(props)}</h6>
+	`
+	td.NodeModules["svelte"] = "3.46.4"
+	is.NoErr(td.Write(dir))
 	vm := v8.New()
 	svelteCompiler := svelte.New(vm)
-	transformer := transform.MustLoad(
-		svelte.NewTransformable(svelteCompiler),
-	)
-	bf := gen.New(vfs.GitIgnore(dirfs))
-	bf.Add(map[string]gen.Generator{
-		"bud/view/_ssr.js": ssr.Generator(bf, dir, transformer),
-	})
-	// Install svelte
-	err = npm.Install(dir, "svelte@3.42.3")
+	transformer := transform.MustLoad(svelte.NewTransformable(svelteCompiler))
+	module, err := gomod.Find(dir)
 	is.NoErr(err)
+	overlay, err := overlay.Load(module)
+	is.NoErr(err)
+	overlay.FileGenerator("bud/view/_ssr.js", ssr.Generator(overlay, module, transformer))
 	// Read the wrapped version of index.svelte with node_modules rewritten
-	code, err := fs.ReadFile(bf, "bud/view/_ssr.js")
+	code, err := fs.ReadFile(overlay, "bud/view/_ssr.js")
 	is.NoErr(err)
 	// index
 	type User struct {
@@ -293,64 +236,45 @@ func TestSvelteProps(t *testing.T) {
 
 func TestSvelteLocalImports(t *testing.T) {
 	is := is.New(t)
-	cwd, err := os.Getwd()
-	is.NoErr(err)
-	dir := filepath.Join(cwd, "_tmp")
-	is.NoErr(os.RemoveAll(dir))
-	defer func() {
-		if !t.Failed() {
-			is.NoErr(os.RemoveAll(dir))
-		}
-	}()
-	memfs := vfs.Memory{
-		"view/Comment.svelte": &vfs.File{
-			Data: []byte(`
-				<script>
-					export let comment = {}
-				</script>
-				<h2>{comment.message}</h2>
-			`),
-		},
-		"view/Story.svelte": &vfs.File{
-			Data: []byte(`
-				<script>
-					export let story = {}
-				</script>
-				<h1>{story.title}</h1>
-			`),
-		},
-		"view/show.svelte": &vfs.File{
-			Data: []byte(`
-				<script>
-					import Story from "./Story.svelte"
-					import Comment from "./Comment.svelte"
-					export let props = {
-							comments: []
-					}
-				</script>
-				<Story story={props} />
-				{#each props.comments as comment}
-					<Comment {comment} />
-				{/each}
-			`),
-		},
-	}
-	is.NoErr(vfs.WriteAll(".", dir, memfs))
-	dirfs := os.DirFS(dir)
+	dir := t.TempDir()
+	td := testdir.New()
+	td.Files["view/Comment.svelte"] = `
+		<script>
+			export let comment = {}
+		</script>
+		<h2>{comment.message}</h2>
+	`
+	td.Files["view/Story.svelte"] = `
+		<script>
+			export let story = {}
+		</script>
+		<h1>{story.title}</h1>
+	`
+	td.Files["view/show.svelte"] = `
+		<script>
+			import Story from "./Story.svelte"
+			import Comment from "./Comment.svelte"
+			export let props = {
+					comments: []
+			}
+		</script>
+		<Story story={props} />
+		{#each props.comments as comment}
+			<Comment {comment} />
+		{/each}
+	`
+	td.NodeModules["svelte"] = "3.46.4"
+	is.NoErr(td.Write(dir))
 	vm := v8.New()
 	svelteCompiler := svelte.New(vm)
-	transformer := transform.MustLoad(
-		svelte.NewTransformable(svelteCompiler),
-	)
-	bf := gen.New(vfs.GitIgnore(dirfs))
-	bf.Add(map[string]gen.Generator{
-		"bud/view/_ssr.js": ssr.Generator(bf, dir, transformer),
-	})
-	// Install svelte
-	err = npm.Install(dir, "svelte@3.42.3")
+	transformer := transform.MustLoad(svelte.NewTransformable(svelteCompiler))
+	module, err := gomod.Find(dir)
 	is.NoErr(err)
+	overlay, err := overlay.Load(module)
+	is.NoErr(err)
+	overlay.FileGenerator("bud/view/_ssr.js", ssr.Generator(overlay, module, transformer))
 	// Read the wrapped version of index.svelte with node_modules rewritten
-	code, err := fs.ReadFile(bf, "bud/view/_ssr.js")
+	code, err := fs.ReadFile(overlay, "bud/view/_ssr.js")
 	is.NoErr(err)
 	type Comment struct {
 		Message string `json:"message"`

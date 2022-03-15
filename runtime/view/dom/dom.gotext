@@ -37,6 +37,6 @@ export default mount({
   {{- end }}
   target: document.getElementById("bud_target"),
   {{- if $.Hot }}
-  hot: new Hot("http://0.0.0.0:35729/?{{$.Query}}", components),
+  // hot: new Hot("http://0.0.0.0:35729/?{{$.Query}}", components),
   {{- end }}
 })

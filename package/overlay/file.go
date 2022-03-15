@@ -14,4 +14,9 @@ type File struct {
 	*conjure.File
 }
 
+// Link a path
+func (f *File) Link(path string) {
+
+}
+
 type Embed = conjure.Embed

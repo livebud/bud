@@ -30,13 +30,16 @@ func TestDir(t *testing.T) {
 	td.Files["action/action.go"] = `package action`
 	td.BFiles["public/favicon.ico"] = []byte{0x00}
 	td.NodeModules["svelte"] = `3.46.4`
+	td.NodeModules["livebud"] = "*"
 	dir := t.TempDir()
 	err := td.Write(dir, testdir.WithBackup(false))
 	is.NoErr(err)
 	err = exists(os.DirFS(dir),
 		"action/action.go",
 		".mod/gitlab.com/mnm/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
+		".npm/livebud.tgz",
 		"node_modules/svelte/package.json",
+		"node_modules/livebud/package.json",
 		"package.json",
 		"go.mod",
 	)
