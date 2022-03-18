@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"gitlab.com/mnm/bud/internal/bud"
+	"gitlab.com/mnm/bud/internal/command"
 	"gitlab.com/mnm/bud/internal/imports"
 	"gitlab.com/mnm/bud/package/overlay"
 	"gitlab.com/mnm/bud/pkg/di"
@@ -15,7 +15,7 @@ import (
 )
 
 type Command struct {
-	Bud          *bud.Command
+	Bud          *command.Bud
 	Target       string
 	Map          map[string]string
 	Dependencies []string

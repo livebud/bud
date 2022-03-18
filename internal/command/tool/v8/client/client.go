@@ -7,12 +7,12 @@ import (
 	"io"
 	"os"
 
-	"gitlab.com/mnm/bud/internal/bud"
+	"gitlab.com/mnm/bud/internal/command"
 	v8 "gitlab.com/mnm/bud/pkg/js/v8"
 )
 
 type Command struct {
-	Bud *bud.Command
+	Bud *command.Bud
 }
 
 func (c *Command) Run(ctx context.Context) error {

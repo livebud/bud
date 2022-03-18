@@ -5,13 +5,13 @@ import (
 	"net"
 
 	"gitlab.com/mnm/bud/internal/bud"
-	"gitlab.com/mnm/bud/pkg/gomod"
+	"gitlab.com/mnm/bud/internal/command"
 	"gitlab.com/mnm/bud/pkg/log/console"
 	"gitlab.com/mnm/bud/pkg/socket"
 )
 
 type Command struct {
-	Bud  *bud.Command
+	Bud  *command.Bud
 	Port string
 }
 
@@ -20,6 +20,11 @@ type Command struct {
 // }
 
 func (c *Command) Run(ctx context.Context) error {
+	ctx, shutdown, err := c.Bud.Tracer(ctx)
+	if err != nil {
+		return err
+	}
+	defer shutdown(&err)
 	// Start listening on the port
 	listener, err := socket.Load(c.Port)
 	if err != nil {
@@ -35,17 +40,18 @@ func (c *Command) Run(ctx context.Context) error {
 		host = "0.0.0.0"
 	}
 	console.Info("Listening on http://" + host + ":" + port)
-	// Find go.mod
-	module, err := gomod.Find(c.Bud.Dir)
+	// Load the compiler
+	compiler, err := bud.Find(c.Bud.Dir)
 	if err != nil {
 		return err
 	}
-	// Compile the project CLI
-	cli, err := c.Bud.Compile(ctx, module)
+	// Compiler the project CLI
+	project, err := compiler.Compile(ctx, c.Bud.Flag)
 	if err != nil {
 		return err
 	}
-	if err := cli.Run(ctx, listener); err != nil {
+	// Run the project
+	if err := project.Run(ctx, listener); err != nil {
 		return err
 	}
 	return nil

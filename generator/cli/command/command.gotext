@@ -9,88 +9,37 @@ import (
 )
 {{- end }}
 
-func New(
-	{{- range $cmd := $.Commands }}
-	{{ $cmd.Full.Camel }}Command *{{ $cmd.Import.Name }}.Command,
-	{{- end }}
-) *CLI {
-	return &CLI{
-		{{- range $cmd := $.Commands }}
-		{{ $cmd.Full.Camel }}Command,
-		{{- end }}
-	}
+func New(fsys *generator.FileSystem) *CLI {
+	return &CLI{fsys}
 }
 
 type CLI struct {
-	{{- range $cmd := $.Commands }}
-	{{ $cmd.Full.Camel }}Command *{{ $cmd.Import.Name }}.Command
-	{{- end }}
-}
-
-func (*CLI) Parse(ctx context.Context, args ...string) error {
-	panic("next step... project cli parsing")
-	return nil
-}
-
-{{/*
-package command
-
-import (
-	context "context"
-
-	"app.com/command/migrate"
-
-	"gitlab.com/mnm/bud/package/commander"
-)
-
-func New(
-	migrate *migrate.Command,
-) *CLI {
-	return &CLI{migrate}
-}
-
-type CLI struct {
-	migrate *migrate.Command
+	fsys *generator.FileSystem
 }
 
 func (c *CLI) Parse(ctx context.Context, args ...string) error {
+	project := &project.Command{FS: c.fsys}
 	cli := commander.New("cli")
+	cli.Flag("chdir", "Change the working directory").Short('C').String(&project.Dir).Default(".")
 
-	// migrate
-	migrateCmd := cli.Command("migrate", "")
+	{ // cli run
+		cmd := &run.Command{Project: project}
+		cli := cli.Command("run", "run command")
+		cli.Flag("embed", "embed assets").Bool(&cmd.Embed).Default(false)
+		cli.Flag("hot", "hot reload").Bool(&cmd.Hot).Default(true)
+		cli.Flag("minify", "minify assets").Bool(&cmd.Minify).Default(false)
+		cli.Flag("port", "port to listen to").String(&cmd.Port).Default(":3000")
+		cli.Run(cmd.Run)
+	}
 
-	// migrate new
-	migrateNew := &migrateNew{cmd: c.migrate}
-	migrateNewCmd := migrateCmd.Command("new", "")
-	migrateNewCmd.Flag("table", "migration table").String(&migrateNew.flags.Table).Default("migrate")
-	migrateNewCmd.Arg("name").String(&migrateNew.args.Name).Optional()
-	migrateNewCmd.Run(migrateNew.Run)
-
-	// migrate up
-	migrateUp := new(migrateUp)
-	migrateUpCmd := migrateCmd.Command("up", "")
-	migrateUpCmd.Run(migrateUp.Run)
+	{ // cli build
+		cmd := &build.Command{Project: project}
+		cli := cli.Command("build", "build command")
+		cli.Flag("embed", "embed assets").Bool(&cmd.Embed).Default(false)
+		cli.Flag("hot", "hot reload").Bool(&cmd.Hot).Default(true)
+		cli.Flag("minify", "minify assets").Bool(&cmd.Minify).Default(false)
+		cli.Run(cmd.Run)
+	}
 
 	return cli.Parse(ctx, args)
 }
-
-// func (c *CLI) migrateNew()
-
-type migrateNew struct {
-	cmd   *migrate.Command
-	flags migrate.NewFlag
-	args  struct {
-		Name string
-	}
-}
-
-func (c *migrateNew) Run(ctx context.Context) error {
-	return c.cmd.New(ctx, &c.flags, &c.args.Name)
-}
-
-type migrateUp struct {
-}
-
-func (*migrateUp) Run(ctx context.Context) error {
-	return nil
-} */}}

@@ -5,12 +5,12 @@ import (
 	"os"
 	"strings"
 
-	"gitlab.com/mnm/bud/internal/bud"
-	"gitlab.com/mnm/bud/internal/bud/build"
-	"gitlab.com/mnm/bud/internal/bud/run"
-	"gitlab.com/mnm/bud/internal/bud/tool/di"
-	v8 "gitlab.com/mnm/bud/internal/bud/tool/v8"
-	v8client "gitlab.com/mnm/bud/internal/bud/tool/v8/client"
+	"gitlab.com/mnm/bud/internal/command"
+	"gitlab.com/mnm/bud/internal/command/build"
+	"gitlab.com/mnm/bud/internal/command/run"
+	"gitlab.com/mnm/bud/internal/command/tool/di"
+	v8 "gitlab.com/mnm/bud/internal/command/tool/v8"
+	v8client "gitlab.com/mnm/bud/internal/command/tool/v8/client"
 
 	"gitlab.com/mnm/bud/package/commander"
 
@@ -28,7 +28,7 @@ func main() {
 
 func do() error {
 	// $ bud
-	bud := new(bud.Command)
+	bud := new(command.Bud)
 	cli := commander.New("bud")
 	cli.Flag("chdir", "Change the working directory").Short('C').String(&bud.Dir).Default(".")
 	cli.Flag("trace", "Enable tracing").Short('t').Bool(&bud.Trace).Default(false)
@@ -38,9 +38,9 @@ func do() error {
 	{ // $ bud run
 		cmd := &run.Command{Bud: bud}
 		cli := cli.Command("run", "run the development server")
-		cli.Flag("embed", "embed the assets").Bool(&bud.Embed).Default(false)
-		cli.Flag("hot", "hot reload the frontend").Bool(&bud.Hot).Default(true)
-		cli.Flag("minify", "minify the assets").Bool(&bud.Minify).Default(false)
+		cli.Flag("embed", "embed the assets").Bool(&bud.Flag.Embed).Default(false)
+		cli.Flag("hot", "hot reload the frontend").Bool(&bud.Flag.Hot).Default(true)
+		cli.Flag("minify", "minify the assets").Bool(&bud.Flag.Minify).Default(false)
 		cli.Flag("port", "port").String(&cmd.Port).Default("3000")
 		cli.Run(cmd.Run)
 	}
@@ -48,9 +48,9 @@ func do() error {
 	{ // $ bud build
 		cmd := &build.Command{Bud: bud}
 		cli := cli.Command("build", "build the production server")
-		cli.Flag("embed", "embed the assets").Bool(&bud.Embed).Default(true)
-		cli.Flag("hot", "hot reload the frontend").Bool(&bud.Hot).Default(false)
-		cli.Flag("minify", "minify the assets").Bool(&bud.Minify).Default(true)
+		cli.Flag("embed", "embed the assets").Bool(&bud.Flag.Embed).Default(true)
+		cli.Flag("hot", "hot reload the frontend").Bool(&bud.Flag.Hot).Default(false)
+		cli.Flag("minify", "minify the assets").Bool(&bud.Flag.Minify).Default(true)
 		cli.Run(cmd.Run)
 	}
 

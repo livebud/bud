@@ -6,7 +6,7 @@ import (
 	"gitlab.com/mnm/bud/internal/gotemplate"
 )
 
-//go:embed command2.gotext
+//go:embed command.gotext
 var template string
 
 var generator = gotemplate.MustParse("command.gotext", template)

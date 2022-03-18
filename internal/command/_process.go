@@ -1,4 +1,4 @@
-package bud
+package command
 
 import (
 	"net"

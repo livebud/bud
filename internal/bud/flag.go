@@ -11,7 +11,7 @@ type Flag struct {
 	Minify bool
 }
 
-func (f *Flag) Args() []string {
+func (f *Flag) List() []string {
 	return []string{
 		"--embed=" + strconv.FormatBool(f.Embed),
 		"--hot=" + strconv.FormatBool(f.Hot),
@@ -20,5 +20,5 @@ func (f *Flag) Args() []string {
 }
 
 func (f *Flag) String() string {
-	return strings.Join(f.Args(), " ")
+	return strings.Join(f.List(), " ")
 }
