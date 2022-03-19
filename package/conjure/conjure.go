@@ -32,6 +32,20 @@ func (f *FileSystem) FileGenerator(path string, generator FileGenerator) {
 	f.GenerateFile(path, generator.GenerateFile)
 }
 
+// type Map map[string]Generator
+
+// func (m Map) Generator(f *FileSystem) {
+// 	for key, value := range m {
+// 		value.Generate()
+// 	}
+// }
+
+// type GenerateDir func(ctx context.Context, d *Dir) error
+
+// func (fn GenerateDir) Generator(f *FileSystem, path string) {
+// 	f.GenerateDir(path, fn)
+// }
+
 func (f *FileSystem) GenerateDir(path string, fn func(ctx context.Context, d *Dir) error) {
 	f.filler[path] = &fstest.MapFile{Mode: fs.ModeDir}
 	f.radix.Set(path, &dirg{

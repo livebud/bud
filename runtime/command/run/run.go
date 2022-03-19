@@ -8,7 +8,7 @@ import (
 )
 
 type Command struct {
-	Project *project.Command
+	Project *project.Compiler
 	Embed   bool
 	Hot     bool
 	Minify  bool

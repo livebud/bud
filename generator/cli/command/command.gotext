@@ -9,18 +9,18 @@ import (
 )
 {{- end }}
 
-func New(fsys *generator.FileSystem) *CLI {
-	return &CLI{fsys}
+func New(fsys generator.FS, module *gomod.Module) *CLI {
+	return &CLI{fsys, module}
 }
 
 type CLI struct {
-	fsys *generator.FileSystem
+	fsys generator.FS
+	module *gomod.Module
 }
 
 func (c *CLI) Parse(ctx context.Context, args ...string) error {
-	project := &project.Command{FS: c.fsys}
+	project := project.New(c.fsys, c.module)
 	cli := commander.New("cli")
-	cli.Flag("chdir", "Change the working directory").Short('C').String(&project.Dir).Default(".")
 
 	{ // cli run
 		cmd := &run.Command{Project: project}

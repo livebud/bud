@@ -6,12 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"io/fs"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -23,47 +22,76 @@ import (
 	"gitlab.com/mnm/bud/internal/bud"
 	"gitlab.com/mnm/bud/internal/testdir"
 	"gitlab.com/mnm/bud/pkg/gomod"
+	"gitlab.com/mnm/bud/pkg/modcache"
 	"gitlab.com/mnm/bud/pkg/socket"
 )
 
-func Find(dir string) (*Compiler, error) {
-	module, err := gomod.Find(dir)
-	if err != nil {
-		return nil, err
+func New(dir string) *Compiler {
+	return &Compiler{
+		dir: dir,
+		Flag: bud.Flag{
+			Embed:  false,
+			Minify: false,
+			Hot:    true,
+		},
+		Files:       map[string]string{},
+		BFiles:      map[string][]byte{},
+		Modules:     modcache.Modules{},
+		NodeModules: map[string]string{},
 	}
-	compiler := bud.New(module)
-	if err != nil {
-		return nil, err
-	}
-	flag := bud.Flag{
-		Embed:  false,
-		Minify: false,
-		Hot:    true,
-	}
-	return &Compiler{compiler, flag, module}, nil
 }
 
 type Compiler struct {
-	compiler *bud.Compiler
-	Flag     bud.Flag
-	module   *gomod.Module
+	dir         string
+	Flag        bud.Flag
+	Files       map[string]string // String files (convenient)
+	BFiles      map[string][]byte // Byte files (for images and binaries)
+	Modules     modcache.Modules  // name@version[path[data]]
+	NodeModules map[string]string // name[version]
 }
 
 func (c *Compiler) Compile(ctx context.Context) (p *Project, err error) {
-	project, err := c.compiler.Compile(ctx, c.Flag)
+	// Setup directory
+	td := testdir.New()
+	td.Files = c.Files
+	td.BFiles = c.BFiles
+	td.Modules = c.Modules
+	td.NodeModules = c.NodeModules
+	if err := td.Write(c.dir); err != nil {
+		return nil, err
+	}
+	// Find go.mod
+	module, err := gomod.Find(c.dir)
 	if err != nil {
 		return nil, err
 	}
+	// Compile the project
+	compiler := bud.New(module)
+	project, err := compiler.Compile(ctx, c.Flag)
+	if err != nil {
+		return nil, err
+	}
+	// Setup the default project environment
 	project.Env["GOCACHE"] = os.Getenv("GOCACHE")
-	project.Env["GOMODCACHE"] = testdir.ModCache(c.module.Directory()).Directory()
+	project.Env["GOMODCACHE"] = testdir.ModCache(module.Directory()).Directory()
 	project.Env["NO_COLOR"] = "1"
 	// TODO: remove once we can write a sum file to the modcache
 	project.Env["GOPRIVATE"] = "*"
-	return &Project{project}, nil
+	return &Project{module, project}, nil
 }
 
 type Project struct {
+	module  *gomod.Module
 	project *bud.Project
+}
+
+func (p *Project) Exists(paths ...string) error {
+	for _, path := range paths {
+		if _, err := fs.Stat(p.module, path); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (p *Project) Execute(ctx context.Context, args ...string) (stdout Stdio, stderr Stdio, err error) {
@@ -78,47 +106,98 @@ func (p *Project) Execute(ctx context.Context, args ...string) (stdout Stdio, st
 	return Stdio(sout.String()), Stdio(serr.String()), nil
 }
 
-func (p *Project) Run(ctx context.Context) (*Server, error) {
-	// Since we're starting the web server, initialize a unix domain socket
-	// to listen and pass that socket to the application process
-	// Start the unix domain socket
-	name, err := ioutil.TempDir("", "bud-testapp-*")
+func (p *Project) Build(ctx context.Context) (*App, error) {
+	app, err := p.project.Build(ctx)
 	if err != nil {
 		return nil, err
 	}
-	socketPath := filepath.Join(name, "tmp.sock")
-	// Heads up: If you see the `bind: invalid argument` error, there's a chance
-	// the path is too long. 103 characters appears to be the limit on OSX,
-	// https://github.com/golang/go/issues/6895.
-	if len(socketPath) > 103 {
-		return nil, fmt.Errorf("socket name is too long")
+	return &App{
+		module: p.module,
+		app:    app,
+	}, nil
+}
+
+type App struct {
+	module *gomod.Module
+	app    *bud.App
+}
+
+func (a *App) Exists(paths ...string) error {
+	for _, path := range paths {
+		if _, err := fs.Stat(a.module, path); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func getSocketPath() (string, error) {
+	tmpdir, err := os.MkdirTemp("", "budtest-*")
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(tmpdir, "unix.sock"), nil
+}
+
+func httpClient(socketPath string) (*http.Client, error) {
+	transport, err := socket.Transport(socketPath)
+	if err != nil {
+		return nil, err
+	}
+	return &http.Client{
+		Timeout:   10 * time.Second,
+		Transport: transport,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}, nil
+}
+
+func (a *App) Start(ctx context.Context) (*Server, error) {
+	socketPath, err := getSocketPath()
+	if err != nil {
+		return nil, err
 	}
 	listener, err := socket.Listen(socketPath)
 	if err != nil {
 		return nil, err
 	}
-	transport, err := socket.Transport(socketPath)
+	client, err := httpClient(socketPath)
 	if err != nil {
 		return nil, err
 	}
-	cmd, err := p.project.Runner(ctx, listener)
+	process, err := a.app.Start(ctx, listener)
 	if err != nil {
-		return nil, err
-	}
-	// Start the webserver
-	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
 	return &Server{
-		cmd: cmd,
-		ln:  listener,
-		client: &http.Client{
-			Timeout:   10 * time.Second,
-			Transport: transport,
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				return http.ErrUseLastResponse
-			},
-		},
+		process:  process,
+		listener: listener,
+		client:   client,
+	}, nil
+}
+
+func (p *Project) Run(ctx context.Context) (*Server, error) {
+	socketPath, err := getSocketPath()
+	if err != nil {
+		return nil, err
+	}
+	listener, err := socket.Listen(socketPath)
+	if err != nil {
+		return nil, err
+	}
+	client, err := httpClient(socketPath)
+	if err != nil {
+		return nil, err
+	}
+	process, err := p.project.Run(ctx, listener)
+	if err != nil {
+		return nil, err
+	}
+	return &Server{
+		process:  process,
+		listener: listener,
+		client:   client,
 	}, nil
 }
 
@@ -143,22 +222,16 @@ func (s Stdio) String() string {
 }
 
 type Server struct {
-	cmd    *exec.Cmd
-	ln     net.Listener
-	client *http.Client
+	process  *bud.Process
+	listener net.Listener
+	client   *http.Client
 }
 
 func (s *Server) Close() error {
-	p := s.cmd.Process
-	if p != nil {
-		if err := p.Signal(os.Interrupt); err != nil {
-			p.Kill()
-		}
-	}
-	if err := s.cmd.Wait(); err != nil {
+	if err := s.process.Close(); err != nil {
 		return err
 	}
-	if err := s.ln.Close(); err != nil {
+	if err := s.listener.Close(); err != nil {
 		return err
 	}
 	return nil
@@ -169,28 +242,7 @@ func isExitStatus(err error) bool {
 }
 
 func (s *Server) Restart() error {
-	p := s.cmd.Process
-	if p != nil {
-		if err := p.Signal(os.Interrupt); err != nil {
-			p.Kill()
-		}
-	}
-	if err := s.cmd.Wait(); err != nil {
-		if !isExitStatus(err) {
-			return err
-		}
-	}
-	cmd := exec.Command(s.cmd.Path, s.cmd.Args...)
-	cmd.Env = s.cmd.Env
-	cmd.Stdout = s.cmd.Stdout
-	cmd.Stderr = s.cmd.Stderr
-	cmd.Stdin = s.cmd.Stdin
-	cmd.ExtraFiles = s.cmd.ExtraFiles
-	cmd.Dir = s.cmd.Dir
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-	return nil
+	return s.process.Restart()
 }
 
 func (s *Server) Request(req *http.Request) (*Response, error) {

@@ -18,8 +18,8 @@ type Project struct {
 	Stderr io.Writer
 }
 
-func (p *Project) args(command ...string) []string {
-	return append(command, p.Flag.List()...)
+func (p *Project) args(args ...string) []string {
+	return append(args, p.Flag.List()...)
 }
 
 func (p *Project) command(ctx context.Context, args ...string) *exec.Cmd {
@@ -49,12 +49,17 @@ func (p *Project) Builder(ctx context.Context) *exec.Cmd {
 	return p.command(ctx, p.args("build")...)
 }
 
-func (p *Project) Build(ctx context.Context) error {
+func (p *Project) Build(ctx context.Context) (*App, error) {
 	cmd := p.Builder(ctx)
 	if err := cmd.Run(); err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return &App{
+		Module: p.Module,
+		Env:    p.Env.List(),
+		Stderr: p.Stderr,
+		Stdout: p.Stdout,
+	}, nil
 }
 
 func (p *Project) Runner(ctx context.Context, listener net.Listener) (*exec.Cmd, error) {
@@ -65,16 +70,17 @@ func (p *Project) Runner(ctx context.Context, listener net.Listener) (*exec.Cmd,
 	}
 	cmd := p.command(ctx, p.args("run")...)
 	cmd.Env = append(p.Env.List(), string(env))
-	cmd.Stdout = p.Stdout
-	cmd.Stderr = p.Stderr
 	cmd.ExtraFiles = append(cmd.ExtraFiles, files...)
 	return cmd, nil
 }
 
-func (p *Project) Run(ctx context.Context, listener net.Listener) error {
+func (p *Project) Run(ctx context.Context, listener net.Listener) (*Process, error) {
 	cmd, err := p.Runner(ctx, listener)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return cmd.Run()
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+	return &Process{cmd}, nil
 }

@@ -8,6 +8,7 @@ import (
 	"gitlab.com/mnm/bud/generator/cli/generator"
 	"gitlab.com/mnm/bud/generator/cli/mainfile"
 	"gitlab.com/mnm/bud/generator/cli/program"
+	"gitlab.com/mnm/bud/internal/dsync"
 	"gitlab.com/mnm/bud/internal/gobin"
 	"gitlab.com/mnm/bud/package/overlay"
 	"gitlab.com/mnm/bud/package/trace"
@@ -32,13 +33,6 @@ type Compiler struct {
 	module *gomod.Module
 }
 
-// Load the module
-func (c *Compiler) findModule(ctx context.Context, dir string) (module *gomod.Module, err error) {
-	_, span := trace.Start(ctx, "find the module")
-	defer span.End(&err)
-	return module.Find(dir)
-}
-
 // Load the overlay
 func (c *Compiler) loadOverlay(ctx context.Context, module *gomod.Module) (fsys *overlay.FileSystem, err error) {
 	_, span := trace.Start(ctx, "load the overlay")
@@ -50,8 +44,7 @@ func (c *Compiler) loadOverlay(ctx context.Context, module *gomod.Module) (fsys 
 func (c *Compiler) sync(ctx context.Context, overlay *overlay.FileSystem) (err error) {
 	_, span := trace.Start(ctx, "sync cli", "dir", "bud/.cli")
 	defer span.End(&err)
-	err = overlay.Sync("bud/.cli")
-	return err
+	return dsync.Dir(overlay, "bud/.cli", c.module.DirFS("bud/.cli"), ".")
 }
 
 // Build the CLI

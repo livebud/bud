@@ -19,15 +19,16 @@ func New(
 	action *action.Generator,
 	view *view.Generator,
 	transform *transform.Generator,
-) *FileSystem {
+) FS {
 	overlay.FileGenerator("bud/.app/main.go", main)
 	overlay.FileGenerator("bud/.app/program/program.go", program)
 	overlay.FileGenerator("bud/.app/command/command.go", command)
 	overlay.FileGenerator("bud/.app/web/web.go", web)
+	overlay.FileGenerator("bud/.app/public/public.go", public)
 	overlay.FileGenerator("bud/.app/action/action.go", action)
 	overlay.FileGenerator("bud/.app/view/view.go", view)
 	overlay.FileGenerator("bud/.app/transform/transform.go", transform)
 	return overlay
 }
 
-type FileSystem = overlay.FileSystem
+type FS = fs.FS

@@ -31,8 +31,10 @@ func (c *Command) Run(ctx context.Context) error {
 		return err
 	}
 	// Build the project
-	if err := project.Build(ctx); err != nil {
+	app, err := project.Build(ctx)
+	if err != nil {
 		return err
 	}
+	_ = app
 	return nil
 }

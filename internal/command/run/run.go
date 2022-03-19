@@ -51,8 +51,9 @@ func (c *Command) Run(ctx context.Context) error {
 		return err
 	}
 	// Run the project
-	if err := project.Run(ctx, listener); err != nil {
+	process, err := project.Run(ctx, listener)
+	if err != nil {
 		return err
 	}
-	return nil
+	return process.Wait()
 }

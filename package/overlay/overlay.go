@@ -7,8 +7,6 @@ import (
 
 	"gitlab.com/mnm/bud/internal/fscache"
 
-	"gitlab.com/mnm/bud/internal/dsync"
-
 	"gitlab.com/mnm/bud/internal/dag"
 	"gitlab.com/mnm/bud/package/fs"
 	"gitlab.com/mnm/bud/package/merged"
@@ -101,6 +99,6 @@ func (f *FileSystem) FileServer(path string, server FileServer) {
 }
 
 // Sync the overlay to the filesystem
-func (f *FileSystem) Sync(dir string) error {
-	return dsync.Dir(f.fsys, dir, f.module.DirFS(dir), ".")
-}
+// func (f *FileSystem) Sync(dir string) error {
+// 	return dsync.Dir(f.fsys, dir, f.module.DirFS(dir), ".")
+// }

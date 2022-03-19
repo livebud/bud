@@ -32,9 +32,11 @@ func (p *parser) Parse(ctx context.Context) (state *State, err error) {
 	// Default imports
 	p.imports.AddStd("context")
 	p.imports.AddNamed("commander", "gitlab.com/mnm/bud/package/commander")
+	// p.imports.AddNamed("command", "gitlab.com/mnm/bud/runtime/command")
+	p.imports.AddNamed("gomod", "gitlab.com/mnm/bud/pkg/gomod")
 	p.imports.AddNamed("project", "gitlab.com/mnm/bud/runtime/project")
-	p.imports.AddNamed("run", "gitlab.com/mnm/bud/runtime/project/run")
-	p.imports.AddNamed("build", "gitlab.com/mnm/bud/runtime/project/build")
+	p.imports.AddNamed("run", "gitlab.com/mnm/bud/runtime/command/run")
+	p.imports.AddNamed("build", "gitlab.com/mnm/bud/runtime/command/build")
 	p.imports.AddNamed("generator", p.module.Import("bud/.cli/generator"))
 	state = new(State)
 	state.Imports = p.imports.List()
