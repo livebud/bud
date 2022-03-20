@@ -82,6 +82,8 @@ func SplitPathVersion(pathVersion string) (path, version string, err error) {
 	return path, version, nil
 }
 
+var zeroTime time.Time
+
 func writeModuleFS(mapfs fstest.MapFS, pv string, files map[string]string) error {
 	modulePath, moduleVersion, err := SplitPathVersion(pv)
 	if err != nil {
@@ -121,33 +123,36 @@ func writeModuleFS(mapfs fstest.MapFS, pv string, files map[string]string) error
 	// Write the zip hash
 	mapfs[extlessPath+".ziphash"] = &fstest.MapFile{
 		Data:    []byte(hash),
-		ModTime: time.Now(),
+		ModTime: zeroTime,
 		Mode:    0644,
 	}
 	// Write the info file
-	infoFile := fmt.Sprintf(`{"Version":%q,"Time":%q}`, moduleVersion, time.Now().Format(time.RFC3339))
+	// We use zero-time because it doesn't seem to affect module download
+	// functionality and allows us to have consistent hashes for downloaded
+	// modules
+	infoFile := fmt.Sprintf(`{"Version":%q,"Time":%q}`, moduleVersion, zeroTime.Format(time.RFC3339))
 	mapfs[extlessPath+".info"] = &fstest.MapFile{
 		Data:    []byte(infoFile),
-		ModTime: time.Now(),
+		ModTime: zeroTime,
 		Mode:    0644,
 	}
 	// Write the .mod
 	mapfs[extlessPath+".mod"] = &fstest.MapFile{
 		Data:    []byte(goMod),
-		ModTime: time.Now(),
+		ModTime: zeroTime,
 		Mode:    0644,
 	}
 	// Write the zip
 	mapfs[extlessPath+".zip"] = &fstest.MapFile{
 		Data:    zipData.Bytes(),
-		ModTime: time.Now(),
+		ModTime: zeroTime,
 		Mode:    0644,
 	}
 	// Write all the files
 	for path, data := range files {
 		mapfs[filepath.Join(pv, path)] = &fstest.MapFile{
 			Data:    []byte(data),
-			ModTime: time.Now(),
+			ModTime: zeroTime,
 			Mode:    0644,
 		}
 	}
@@ -288,7 +293,7 @@ func (z *zipEntry) Lstat() (os.FileInfo, error) {
 		data:    []byte(z.data),
 		size:    int64(len(z.data)),
 		mode:    fs.FileMode(0644),
-		modTime: time.Now(),
+		modTime: zeroTime,
 	}, nil
 }
 

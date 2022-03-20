@@ -15,11 +15,7 @@ import (
 )
 
 func cachePath(key string) (string, error) {
-	cacheDir, err := os.UserCacheDir()
-	if err != nil {
-		return "", err
-	}
-	dir := filepath.Join(cacheDir, "bud", "snapshot")
+	dir := filepath.Join(os.TempDir(), "bud", "snapshot")
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", err
 	}

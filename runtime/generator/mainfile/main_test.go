@@ -1,27 +1,23 @@
 package mainfile_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/fscache"
-	"gitlab.com/mnm/bud/internal/test"
+	"gitlab.com/mnm/bud/internal/budtest"
 )
 
+// TODO: We should always generate a main, even if empty dir
 func TestEmpty(t *testing.T) {
+	t.SkipNow()
 	is := is.New(t)
-	generator := test.Generator(t)
-	fsCache := fscache.New()
-	app, err := generator.Generate(fsCache)
+	ctx := context.Background()
+	dir := t.TempDir()
+	bud := budtest.New(dir)
+	project, err := bud.Compile(ctx)
 	is.NoErr(err)
-	is.True(!app.Exists("bud/main.go"))
-}
-
-func TestGoMod(t *testing.T) {
-	is := is.New(t)
-	generator := test.Generator(t)
-	fsCache := fscache.New()
-	app, err := generator.Generate(fsCache)
+	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.True(!app.Exists("bud/main.go"))
+	is.NoErr(app.Exists("bud/.app/main.go"))
 }

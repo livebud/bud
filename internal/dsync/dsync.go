@@ -20,8 +20,8 @@ type option struct {
 type Option func(o *option)
 
 // Provide a skip function
-// Note: try to skip as high up in the tree as possible.
 //
+// Note: try to skip as high up in the tree as possible.
 // E.g. if the source filesystem doesn't have bud, it will
 // delete bud, even if you're skipping bud/generate.
 func WithSkip(skips ...skipFunc) Option {

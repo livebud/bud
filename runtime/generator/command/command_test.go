@@ -1,11 +1,11 @@
 package command_test
 
 import (
+	"context"
 	"strings"
 	"testing"
 
-	"gitlab.com/mnm/bud/internal/fscache"
-	"gitlab.com/mnm/bud/internal/test"
+	"gitlab.com/mnm/bud/internal/budtest"
 
 	"github.com/lithammer/dedent"
 	"github.com/matryer/is"
@@ -22,17 +22,22 @@ func isEqual(t testing.TB, actual, expect string) {
 
 func TestEmpty(t *testing.T) {
 	is := is.New(t)
-	generator := test.Generator(t)
-	fsCache := fscache.New()
-	app, err := generator.Generate(fsCache)
+	ctx := context.Background()
+	dir := t.TempDir()
+	bud := budtest.New(dir)
+	project, err := bud.Compile(ctx)
 	is.NoErr(err)
-	is.True(!app.Exists("bud/command/command.go"))
+	app, err := project.Build(ctx)
+	is.Equal(err.Error(), `exit status 1`)
+	is.Equal(app, nil)
 }
 
 func TestCommand(t *testing.T) {
 	is := is.New(t)
-	generator := test.Generator(t)
-	generator.Files["internal/hn/hn.go"] = []byte(`
+	ctx := context.Background()
+	dir := t.TempDir()
+	bud := budtest.New(dir)
+	bud.Files["internal/hn/hn.go"] = `
 		package hn
 
 		func New() *Client {
@@ -46,8 +51,8 @@ func TestCommand(t *testing.T) {
 		func (c *Client) String() string {
 			return c.base
 		}
-	`)
-	generator.Files["command/deploy/deploy.go"] = []byte(`
+	`
+	bud.Files["command/deploy/deploy.go"] = `
 		package deploy
 
 		import (
@@ -67,12 +72,16 @@ func TestCommand(t *testing.T) {
 			fmt.Println(c.HN, c.AccessKey, c.SecretKey)
 			return nil
 		}
-	`)
-	fsCache := fscache.New()
-	app, err := generator.Generate(fsCache)
+	`
+	project, err := bud.Compile(ctx)
 	is.NoErr(err)
-	is.True(app.Exists("bud/main.go"))
-	isEqual(t, app.Run("-h"), `
+	app, err := project.Build(ctx)
+	is.NoErr(err)
+	is.NoErr(app.Exists("bud/app"))
+	stdout, stderr, err := app.Execute(ctx, "-h")
+	is.NoErr(err)
+	is.NoErr(stderr.Expect(""))
+	isEqual(t, stdout.String(), `
 		Usage:
 		  app [command]
 
@@ -83,8 +92,10 @@ func TestCommand(t *testing.T) {
 
 func TestNested(t *testing.T) {
 	is := is.New(t)
-	generator := test.Generator(t)
-	generator.Files["command/deploy/deploy.go"] = []byte(`
+	ctx := context.Background()
+	dir := t.TempDir()
+	bud := budtest.New(dir)
+	bud.Files["command/deploy/deploy.go"] = `
 		package deploy
 
 		import (
@@ -104,8 +115,8 @@ func TestNested(t *testing.T) {
 			fmt.Println(c.Router, c.AccessKey, c.SecretKey)
 			return nil
 		}
-	`)
-	generator.Files["command/new/new.go"] = []byte(`
+	`
+	bud.Files["command/new/new.go"] = `
 		package new
 
 		import (
@@ -124,8 +135,8 @@ func TestNested(t *testing.T) {
 			fmt.Println("creating new", c.DryRun)
 			return nil
 		}
-	`)
-	generator.Files["command/new/view/view.go"] = []byte(`
+	`
+	bud.Files["command/new/view/view.go"] = `
 		package view
 
 		import (
@@ -142,12 +153,16 @@ func TestNested(t *testing.T) {
 			fmt.Println("creating new view", c.Name, c.WithTest)
 			return nil
 		}
-	`)
-	fsCache := fscache.New()
-	app, err := generator.Generate(fsCache)
+	`
+	project, err := bud.Compile(ctx)
 	is.NoErr(err)
-	is.True(app.Exists("bud/main.go"))
-	isEqual(t, app.Run("-h"), `
+	app, err := project.Build(ctx)
+	is.NoErr(err)
+	is.NoErr(app.Exists("bud/app"))
+	stdout, stderr, err := app.Execute(ctx, "-h")
+	is.NoErr(err)
+	is.NoErr(stderr.Expect(""))
+	isEqual(t, stdout.String(), `
 		Usage:
 		  app [command]
 
@@ -155,7 +170,10 @@ func TestNested(t *testing.T) {
 		  deploy
 		  new
 	`)
-	isEqual(t, app.Run("new", "-h"), `
+	stdout, stderr, err = app.Execute(ctx, "new", "-h")
+	is.NoErr(err)
+	is.NoErr(stderr.Expect(""))
+	isEqual(t, stdout.String(), `
 		Usage:
 		  new [flags] [command]
 
@@ -165,7 +183,10 @@ func TestNested(t *testing.T) {
 		Commands:
 		  view
 	`)
-	isEqual(t, app.Run("new", "view", "-h"), `
+	stdout, stderr, err = app.Execute(ctx, "new", "view", "-h")
+	is.NoErr(err)
+	is.NoErr(stderr.Expect(""))
+	isEqual(t, stdout.String(), `
 		Usage:
 		  view [flags] <name>
 

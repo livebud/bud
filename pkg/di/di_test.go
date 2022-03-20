@@ -25,9 +25,8 @@ func redent(s string) string {
 	return strings.TrimSpace(dedent.Dedent(s)) + "\n"
 }
 
-func goRun(cacheDir, appDir string) (string, error) {
-	ctx := context.Background()
-	cmd := exec.CommandContext(ctx, "go", "run", "-mod=mod", "main.go")
+func goRun(ctx context.Context, cacheDir, appDir string) (string, error) {
+	cmd := exec.CommandContext(ctx, "go", "run", "-mod", "mod", "main.go")
 	cmd.Env = append(os.Environ(), "GOMODCACHE="+cacheDir, "GOPRIVATE=*")
 	stdout := new(bytes.Buffer)
 	cmd.Stdout = stdout
@@ -51,6 +50,7 @@ type Test struct {
 func runTest(t testing.TB, test Test) {
 	t.Helper()
 	is := is.New(t)
+	ctx := context.Background()
 	appDir := t.TempDir()
 	appFS := os.DirFS(appDir)
 	modCache := modcache.Default()
@@ -94,12 +94,14 @@ func runTest(t testing.TB, test Test) {
 	outPath := filepath.Join(targetDir, "di.go")
 	err = ioutil.WriteFile(outPath, []byte(code), 0644)
 	is.NoErr(err)
-	stdout, err := goRun(modCache.Directory(), appDir)
+	stdout, err := goRun(ctx, modCache.Directory(), appDir)
 	is.NoErr(err)
 	diff.TestString(t, redent(test.Expect), stdout)
 }
 
 const goMod = `module app.com
+
+go 1.17
 
 require (
   github.com/hexops/valast v1.4.1

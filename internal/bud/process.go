@@ -43,7 +43,8 @@ func (p *Process) Restart() error {
 			return err
 		}
 	}
-	cmd := exec.Command(p.cmd.Path, p.cmd.Args...)
+	// Re-run the command again. cmd.Args[0] is the path, so we skip that.
+	cmd := exec.Command(p.cmd.Path, p.cmd.Args[1:]...)
 	cmd.Env = p.cmd.Env
 	cmd.Stdout = p.cmd.Stdout
 	cmd.Stderr = p.cmd.Stderr
@@ -53,5 +54,7 @@ func (p *Process) Restart() error {
 	if err := cmd.Start(); err != nil {
 		return err
 	}
+	// Point to the new command
+	p.cmd = cmd
 	return nil
 }

@@ -17,11 +17,10 @@ func TestHelp(t *testing.T) {
 	is.NoErr(err)
 	stdout, stderr, err := project.Execute(ctx, "-h")
 	is.NoErr(err)
-	is.NoErr(stdout.Contains("Usage:"))      // Should contain Usage
-	is.NoErr(stdout.Contains("-C, --chdir")) // Should contain chdir
-	is.NoErr(stdout.Contains("build"))       // Should contain build
-	is.NoErr(stdout.Contains("run"))         // Should contain run
-	is.NoErr(stderr.Expect(""))              // Should be empty
+	is.NoErr(stdout.Contains("Usage:")) // Should contain Usage
+	is.NoErr(stdout.Contains("build"))  // Should contain build
+	is.NoErr(stdout.Contains("run"))    // Should contain run
+	is.NoErr(stderr.Expect(""))         // Should be empty
 }
 
 func TestCommandMigrate(t *testing.T) {

@@ -2,14 +2,16 @@ package bud
 
 import (
 	"context"
+	"io"
+	"io/fs"
 	"os"
+	"os/exec"
 
 	"gitlab.com/mnm/bud/generator/cli/command"
 	"gitlab.com/mnm/bud/generator/cli/generator"
 	"gitlab.com/mnm/bud/generator/cli/mainfile"
 	"gitlab.com/mnm/bud/generator/cli/program"
 	"gitlab.com/mnm/bud/internal/dsync"
-	"gitlab.com/mnm/bud/internal/gobin"
 	"gitlab.com/mnm/bud/package/overlay"
 	"gitlab.com/mnm/bud/package/trace"
 	"gitlab.com/mnm/bud/pkg/di"
@@ -17,20 +19,43 @@ import (
 	"gitlab.com/mnm/bud/pkg/parser"
 )
 
+func defaultEnv(module *gomod.Module) Env {
+	return Env{
+		"HOME":       os.Getenv("HOME"),
+		"PATH":       os.Getenv("PATH"),
+		"GOPATH":     os.Getenv("GOPATH"),
+		"GOMODCACHE": module.ModCache(),
+	}
+}
+
 func Find(dir string) (*Compiler, error) {
 	module, err := gomod.Find(dir)
 	if err != nil {
 		return nil, err
 	}
-	return &Compiler{module}, nil
+	return &Compiler{
+		module: module,
+		Env:    defaultEnv(module),
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+	}, nil
 }
 
 func New(module *gomod.Module) *Compiler {
-	return &Compiler{module}
+	return &Compiler{
+		module: module,
+		Env:    defaultEnv(module),
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+	}
 }
 
 type Compiler struct {
-	module *gomod.Module
+	module     *gomod.Module
+	Env        Env
+	Stdout     io.Writer
+	Stderr     io.Writer
+	ModCacheRW bool
 }
 
 // Load the overlay
@@ -51,7 +76,30 @@ func (c *Compiler) sync(ctx context.Context, overlay *overlay.FileSystem) (err e
 func (c *Compiler) goBuild(ctx context.Context, module *gomod.Module) (err error) {
 	_, span := trace.Start(ctx, "build cli", "from", "bud/.cli/main.go", "to", "bud/cli")
 	defer span.End(&err)
-	return gobin.Build(ctx, module.Directory(), "bud/.cli/main.go", "bud/cli")
+	// Ensure that main.go exists
+	if _, err := fs.Stat(c.module, "bud/.cli/main.go"); err != nil {
+		return err
+	}
+	// Compile the args
+	args := []string{
+		"build",
+		"-mod=mod",
+		"-o=bud/cli",
+	}
+	if c.ModCacheRW {
+		args = append(args, "-modcacherw")
+	}
+	args = append(args, "bud/.cli/main.go")
+	// Run go build
+	cmd := exec.CommandContext(ctx, "go", args...)
+	cmd.Env = c.Env.List()
+	cmd.Stdout = c.Stdout
+	cmd.Stderr = c.Stderr
+	cmd.Dir = module.Directory()
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *Compiler) Compile(ctx context.Context, flag Flag) (p *Project, err error) {
@@ -82,12 +130,8 @@ func (c *Compiler) Compile(ctx context.Context, flag Flag) (p *Project, err erro
 	return &Project{
 		Module: c.module,
 		Flag:   flag,
-		Env: map[string]string{
-			"HOME":   os.Getenv("HOME"),
-			"PATH":   os.Getenv("PATH"),
-			"GOPATH": os.Getenv("GOPATH"),
-		},
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
+		Env:    c.Env,
+		Stdout: c.Stdout,
+		Stderr: c.Stderr,
 	}, nil
 }

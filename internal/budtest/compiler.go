@@ -38,6 +38,16 @@ func New(dir string) *Compiler {
 		BFiles:      map[string][]byte{},
 		Modules:     modcache.Modules{},
 		NodeModules: map[string]string{},
+		Env: bud.Env{
+			"HOME":       os.Getenv("HOME"),
+			"PATH":       os.Getenv("PATH"),
+			"GOPATH":     os.Getenv("GOPATH"),
+			"GOCACHE":    os.Getenv("GOCACHE"),
+			"GOMODCACHE": modcache.Default().Directory(),
+			"NO_COLOR":   "1",
+			// TODO: remove once we can write a sum file to the modcache
+			"GOPRIVATE": "*",
+		},
 	}
 }
 
@@ -48,41 +58,70 @@ type Compiler struct {
 	BFiles      map[string][]byte // Byte files (for images and binaries)
 	Modules     modcache.Modules  // name@version[path[data]]
 	NodeModules map[string]string // name[version]
+	Env         bud.Env
 }
 
 func (c *Compiler) Compile(ctx context.Context) (p *Project, err error) {
+	dir, err := filepath.Abs(c.dir)
+	if err != nil {
+		return nil, err
+	}
 	// Setup directory
 	td := testdir.New()
 	td.Files = c.Files
 	td.BFiles = c.BFiles
 	td.Modules = c.Modules
 	td.NodeModules = c.NodeModules
-	if err := td.Write(c.dir); err != nil {
+	if err := td.Write(dir); err != nil {
 		return nil, err
 	}
+	// Get the modCache
+	modCache := testdir.ModCache(dir)
+	c.Env["GOMODCACHE"] = modCache.Directory()
 	// Find go.mod
-	module, err := gomod.Find(c.dir)
+	module, err := gomod.Find(dir, gomod.WithModCache(modCache))
 	if err != nil {
 		return nil, err
 	}
 	// Compile the project
 	compiler := bud.New(module)
+	compiler.Env = c.Env
+	compiler.ModCacheRW = true
 	project, err := compiler.Compile(ctx, c.Flag)
 	if err != nil {
 		return nil, err
 	}
-	// Setup the default project environment
-	project.Env["GOCACHE"] = os.Getenv("GOCACHE")
-	project.Env["GOMODCACHE"] = testdir.ModCache(module.Directory()).Directory()
-	project.Env["NO_COLOR"] = "1"
-	// TODO: remove once we can write a sum file to the modcache
-	project.Env["GOPRIVATE"] = "*"
-	return &Project{module, project}, nil
+	return &Project{
+		module:      module,
+		project:     project,
+		Files:       c.Files,
+		BFiles:      c.BFiles,
+		Modules:     c.Modules,
+		NodeModules: c.NodeModules,
+	}, nil
 }
 
 type Project struct {
 	module  *gomod.Module
 	project *bud.Project
+
+	// Used to adjust files over time
+	Files       map[string]string // String files (convenient)
+	BFiles      map[string][]byte // Byte files (for images and binaries)
+	Modules     modcache.Modules  // name@version[path[data]]
+	NodeModules map[string]string // name[version]
+}
+
+// Rewrite files
+func (p *Project) Rewrite() error {
+	td := testdir.New()
+	td.Files = p.Files
+	td.BFiles = p.BFiles
+	td.Modules = p.Modules
+	td.NodeModules = p.NodeModules
+	return td.Write(p.module.Directory(), testdir.WithBackup(false), testdir.WithSkip(func(name string, isDir bool) bool {
+		return isDir && name == "bud"
+	}))
 }
 
 func (p *Project) Exists(paths ...string) error {
@@ -98,8 +137,8 @@ func (p *Project) Execute(ctx context.Context, args ...string) (stdout Stdio, st
 	cmd := p.project.Executor(ctx, args...)
 	sout := new(bytes.Buffer)
 	serr := new(bytes.Buffer)
-	cmd.Stdout = sout
-	cmd.Stderr = serr
+	cmd.Stdout = io.MultiWriter(os.Stdout, sout)
+	cmd.Stderr = io.MultiWriter(os.Stderr, serr)
 	if err := cmd.Run(); err != nil {
 		return "", "", err
 	}
@@ -117,6 +156,30 @@ func (p *Project) Build(ctx context.Context) (*App, error) {
 	}, nil
 }
 
+func (p *Project) Run(ctx context.Context) (*Server, error) {
+	socketPath, err := getSocketPath()
+	if err != nil {
+		return nil, err
+	}
+	listener, err := socket.Listen(socketPath)
+	if err != nil {
+		return nil, err
+	}
+	client, err := httpClient(socketPath)
+	if err != nil {
+		return nil, err
+	}
+	process, err := p.project.Run(ctx, listener)
+	if err != nil {
+		return nil, err
+	}
+	return &Server{
+		process:  process,
+		listener: listener,
+		client:   client,
+	}, nil
+}
+
 type App struct {
 	module *gomod.Module
 	app    *bud.App
@@ -129,6 +192,29 @@ func (a *App) Exists(paths ...string) error {
 		}
 	}
 	return nil
+}
+
+func (a *App) NotExists(paths ...string) error {
+	for _, path := range paths {
+		if _, err := fs.Stat(a.module, path); nil == err {
+			return fmt.Errorf("%q should not exist", path)
+		} else if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+	}
+	return nil
+}
+
+func (a *App) Execute(ctx context.Context, args ...string) (stdout Stdio, stderr Stdio, err error) {
+	cmd := a.app.Executor(ctx, args...)
+	sout := new(bytes.Buffer)
+	serr := new(bytes.Buffer)
+	cmd.Stdout = io.MultiWriter(os.Stdout, sout)
+	cmd.Stderr = io.MultiWriter(os.Stderr, serr)
+	if err := cmd.Run(); err != nil {
+		return "", "", err
+	}
+	return Stdio(sout.String()), Stdio(serr.String()), nil
 }
 
 func getSocketPath() (string, error) {
@@ -167,30 +253,6 @@ func (a *App) Start(ctx context.Context) (*Server, error) {
 		return nil, err
 	}
 	process, err := a.app.Start(ctx, listener)
-	if err != nil {
-		return nil, err
-	}
-	return &Server{
-		process:  process,
-		listener: listener,
-		client:   client,
-	}, nil
-}
-
-func (p *Project) Run(ctx context.Context) (*Server, error) {
-	socketPath, err := getSocketPath()
-	if err != nil {
-		return nil, err
-	}
-	listener, err := socket.Listen(socketPath)
-	if err != nil {
-		return nil, err
-	}
-	client, err := httpClient(socketPath)
-	if err != nil {
-		return nil, err
-	}
-	process, err := p.project.Run(ctx, listener)
 	if err != nil {
 		return nil, err
 	}
@@ -388,14 +450,21 @@ func diffString(expect, actual string) error {
 	if expect == actual {
 		return nil
 	}
-	return errors.New(diff.String(expect, actual))
+	s := new(strings.Builder)
+	s.WriteString("\n\x1b[4mExpected\x1b[0m:\n")
+	s.WriteString(expect)
+	s.WriteString("\n\n")
+	s.WriteString("\x1b[4mActual\x1b[0m: \n")
+	s.WriteString(actual)
+	s.WriteString("\n\n")
+	s.WriteString("\x1b[4mDifference\x1b[0m: \n")
+	s.WriteString(diff.String(expect, actual))
+	s.WriteString("\n")
+	return errors.New(s.String())
 }
 
 func diffHTTP(expect, actual string) error {
 	expect = strings.TrimSpace(dedent.Dedent(expect))
 	actual = strings.ReplaceAll(strings.TrimSpace(dedent.Dedent(actual)), "\r\n", "\n")
-	if expect == actual {
-		return nil
-	}
-	return errors.New(diff.String(expect, actual))
+	return diffString(expect, actual)
 }

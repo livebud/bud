@@ -195,11 +195,18 @@ type Option func(o *option)
 
 type option struct {
 	backup bool
+	skips  []func(name string, isDir bool) (skip bool)
 }
 
 func WithBackup(backup bool) Option {
 	return func(o *option) {
 		o.backup = backup
+	}
+}
+
+func WithSkip(skips ...func(name string, isDir bool) (skip bool)) Option {
+	return func(o *option) {
+		o.skips = skips
 	}
 }
 
@@ -226,12 +233,12 @@ func (d *Dir) Write(dir string, options ...Option) error {
 	if opt.backup {
 		cachedFS, err := snapshot.Restore(hash)
 		if nil == err {
-			return dsync.Dir(cachedFS, ".", vfs.OS(dir), ".")
+			return dsync.Dir(cachedFS, ".", vfs.OS(dir), ".", dsync.WithSkip(opt.skips...))
 		} else if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
 	}
-	if err := dsync.Dir(fsys, ".", vfs.OS(dir), "."); err != nil {
+	if err := dsync.Dir(fsys, ".", vfs.OS(dir), ".", dsync.WithSkip(opt.skips...)); err != nil {
 		return err
 	}
 	// Load the module cache
@@ -247,7 +254,9 @@ func (d *Dir) Write(dir string, options ...Option) error {
 	eg, ctx := errgroup.WithContext(context.Background())
 	// Download modules that aren't in the module cache
 	if _, ok := fsys["go.mod"]; ok {
-		cmd := exec.CommandContext(ctx, "go", "mod", "download", "-modcacherw")
+		// Use "all" to extract cached directories into GOMODCACHE, so there's not
+		// a "go: downloading ..." step during go build.
+		cmd := exec.CommandContext(ctx, "go", "mod", "download", "-modcacherw", "all")
 		cmd.Dir = dir
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
@@ -255,7 +264,6 @@ func (d *Dir) Write(dir string, options ...Option) error {
 			"HOME=" + os.Getenv("HOME"),
 			"PATH=" + os.Getenv("PATH"),
 			"GOPATH=" + os.Getenv("GOPATH"),
-			"GOCACHE=" + os.Getenv("GOCACHE"),
 			"GOMODCACHE=" + modCacheDir,
 			"NO_COLOR=1",
 			// TODO: remove once we can write a sum file to the modcache

@@ -16,6 +16,8 @@ require (
 	github.com/evanw/esbuild v0.14.11 // indirect
 	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/gedex/inflector v0.0.0-20170307190818-16278e9db813 // indirect
+	github.com/go-logr/logr v1.2.2 // indirect
+	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/jackc/puddle v1.1.4 // indirect
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac // indirect
@@ -24,9 +26,13 @@ require (
 	github.com/otiai10/copy v1.7.0 // indirect
 	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/timewasted/go-accept-headers v0.0.0-20130320203746-c78f304b1b09 // indirect
+	github.com/xlab/treeprint v1.1.0 // indirect
 	github.com/yalue/merged_fs v1.1.1 // indirect
 	gitlab.com/mnm/bud-tailwind v0.0.0-20211218025321-2c7485847414 // indirect
 	go.kuoruan.net/v8go-polyfills v0.5.0 // indirect
+	go.opentelemetry.io/otel v1.4.1 // indirect
+	go.opentelemetry.io/otel/sdk v1.4.1 // indirect
+	go.opentelemetry.io/otel/trace v1.4.1 // indirect
 	golang.org/x/mod v0.5.1 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20220310020820-b874c991c1a5 // indirect
