@@ -27,8 +27,10 @@ type State struct {
 }
 
 func (g *Generator) GenerateFile(ctx context.Context, _ overlay.F, file *overlay.File) error {
-	exist := vfs.SomeExist(g.FS, "view")
-	if len(exist) == 0 {
+	exist, err := vfs.SomeExist(g.FS, "view")
+	if err != nil {
+		return err
+	} else if len(exist) == 0 {
 		return fs.ErrNotExist
 	}
 	imports := imports.New()

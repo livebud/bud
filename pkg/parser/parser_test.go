@@ -5,7 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/mnm/bud/pkg/gen"
+	"gitlab.com/mnm/bud/package/conjure"
+	"gitlab.com/mnm/bud/package/merged"
+
 	"gitlab.com/mnm/bud/pkg/modcache"
 	"gitlab.com/mnm/bud/pkg/parser"
 
@@ -209,17 +211,16 @@ func TestGenerate(t *testing.T) {
 		"app.go": []byte("package app\nimport \"mod.test/module\"\nvar a = module.Answer"),
 	})
 	is.NoErr(err)
-	genfs := gen.New(os.DirFS(appDir))
-	genfs.Add(map[string]gen.Generator{
-		"hello/hello.go": gen.GenerateFile(func(f gen.F, file *gen.File) error {
-			file.Write([]byte("package hello\nimport \"mod.test/module\"\ntype A struct { module.Answer }"))
-			return nil
-		}),
+	cfs := conjure.New()
+	merged := merged.Merge(os.DirFS(appDir), cfs)
+	cfs.GenerateFile("hello/hello.go", func(file *conjure.File) error {
+		file.Data = []byte("package hello\nimport \"mod.test/module\"\ntype A struct { module.Answer }")
+		return nil
 	})
 	module, err := gomod.Find(appDir, gomod.WithModCache(modCache))
 	is.NoErr(err)
 	is.Equal(module.Directory(), appDir)
-	p := parser.New(genfs, module)
+	p := parser.New(merged, module)
 	// Parse a virtual package
 	pkg, err := p.Parse("hello")
 	is.NoErr(err)

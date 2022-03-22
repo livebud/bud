@@ -9,7 +9,7 @@ import (
 
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/internal/dsync"
-	"gitlab.com/mnm/bud/pkg/gen"
+	"gitlab.com/mnm/bud/package/conjure"
 	"gitlab.com/mnm/bud/pkg/vfs"
 )
 
@@ -177,18 +177,16 @@ func TestNoDuo(t *testing.T) {
 	is.True(stat.ModTime().Equal(after))
 }
 
-func TestSkipGenerator(t *testing.T) {
+func TestSkipNotExist(t *testing.T) {
 	is := is.New(t)
 	// before := time.Date(2021, 8, 4, 14, 56, 0, 0, time.UTC)
 	after := time.Date(2021, 8, 4, 14, 57, 0, 0, time.UTC)
 	vfs.Now = func() time.Time { return after }
 
 	// starting points
-	sourceFS := gen.New(nil)
-	sourceFS.Add(map[string]gen.Generator{
-		"bud/generate/main.go": gen.GenerateFile(func(f gen.F, file *gen.File) error {
-			return file.Skip()
-		}),
+	sourceFS := conjure.New()
+	sourceFS.GenerateFile("bud/generate/main.go", func(file *conjure.File) error {
+		return fs.ErrNotExist
 	})
 	targetFS := vfs.Memory{}
 
@@ -205,18 +203,16 @@ func TestErrorGenerator(t *testing.T) {
 	vfs.Now = func() time.Time { return after }
 
 	// starting points
-	sourceFS := gen.New(nil)
-	sourceFS.Add(map[string]gen.Generator{
-		"bud/generate/main.go": gen.GenerateFile(func(f gen.F, file *gen.File) error {
-			return errors.New("uh oh")
-		}),
+	sourceFS := conjure.New()
+	sourceFS.GenerateFile("bud/generate/main.go", func(file *conjure.File) error {
+		return errors.New("uh oh")
 	})
 	targetFS := vfs.Memory{}
 
 	// sync
 	err := dsync.Dir(sourceFS, ".", targetFS, ".")
 	is.True(err != nil)
-	is.Equal(err.Error(), "open bud/generate/main.go > uh oh")
+	is.Equal(err.Error(), `conjure: generate "bud/generate/main.go" > uh oh`)
 	is.Equal(len(targetFS), 0)
 }
 

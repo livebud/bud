@@ -8,7 +8,7 @@ import (
 
 	"gitlab.com/mnm/bud/package/overlay"
 	"gitlab.com/mnm/bud/pkg/di"
-	"gitlab.com/mnm/bud/pkg/gen"
+	"gitlab.com/mnm/bud/pkg/vfs"
 
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
@@ -32,7 +32,7 @@ type State struct {
 }
 
 func (p *Program) GenerateFile(ctx context.Context, _ overlay.F, file *overlay.File) error {
-	if err := gen.SkipUnless(p.FS, "bud/.app/command/command.go"); err != nil {
+	if err := vfs.Exist(p.FS, "bud/.app/command/command.go"); err != nil {
 		return err
 	}
 	// Add the imports

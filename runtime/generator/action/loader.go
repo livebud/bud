@@ -23,8 +23,10 @@ import (
 )
 
 func Load(fsys fs.FS, injector *di.Injector, module *gomod.Module, parser *parser.Parser) (*State, error) {
-	exist := vfs.SomeExist(fsys, "action")
-	if len(exist) == 0 {
+	exist, err := vfs.SomeExist(fsys, "action")
+	if err != nil {
+		return nil, err
+	} else if len(exist) == 0 {
 		return nil, fs.ErrNotExist
 	}
 	loader := &loader{

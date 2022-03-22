@@ -17,12 +17,14 @@ import (
 )
 
 func Load(fsys fs.FS, module *gomod.Module, parser *parser.Parser) (*State, error) {
-	exist := vfs.SomeExist(fsys,
+	exist, err := vfs.SomeExist(fsys,
 		"bud/.app/action/action.go",
 		"bud/.app/public/public.go",
 		"bud/.app/view/view.go",
 	)
-	if len(exist) == 0 {
+	if err != nil {
+		return nil, err
+	} else if len(exist) == 0 {
 		return nil, fs.ErrNotExist
 	}
 	loader := &loader{

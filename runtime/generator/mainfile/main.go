@@ -8,8 +8,8 @@ import (
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
 	"gitlab.com/mnm/bud/package/overlay"
-	"gitlab.com/mnm/bud/pkg/gen"
 	"gitlab.com/mnm/bud/pkg/gomod"
+	"gitlab.com/mnm/bud/pkg/vfs"
 )
 
 //go:embed main.gotext
@@ -47,7 +47,7 @@ func Generate(state *State) ([]byte, error) {
 }
 
 func (m *Main) GenerateFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
-	if err := gen.SkipUnless(m.fsys, "bud/.app/program/program.go"); err != nil {
+	if err := vfs.Exist(m.fsys, "bud/.app/program/program.go"); err != nil {
 		return err
 	}
 	state, err := m.Parse(ctx)
