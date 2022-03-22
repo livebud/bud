@@ -43,7 +43,7 @@ type Program struct {
 func (p *Program) Parse(ctx context.Context) (*State, error) {
 	// Default  imports
 	imports := imports.New()
-	imports.AddStd("errors", "context", "path/filepath", "runtime")
+	imports.AddStd("errors", "context")
 	imports.AddNamed("console", "gitlab.com/mnm/bud/pkg/log/console")
 	imports.AddNamed("command", p.module.Import("bud/.cli/command"))
 	// imports.AddNamed("gomod", "gitlab.com/mnm/bud/pkg/gomod")

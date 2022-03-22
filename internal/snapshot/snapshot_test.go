@@ -21,35 +21,36 @@ func TestHash(t *testing.T) {
 	mapfs["main.go"] = &fstest.MapFile{Data: []byte(`package main`)}
 	key, err := snapshot.Hash(mapfs)
 	is.NoErr(err)
-	is.Equal(key, `UPcEYUuxm78`)
+	is.Equal(key, `Fiyf9IKN3Y0`)
 	mapfs["b/c/d.go"] = &fstest.MapFile{Data: []byte("package d"), Mode: 0644, ModTime: modTime}
 	key, err = snapshot.Hash(mapfs)
 	is.NoErr(err)
-	is.Equal(key, `du1Yyvmk_Ks`)
-	mapfs["e"] = &fstest.MapFile{Mode: fs.ModeDir, ModTime: modTime}
+	is.Equal(key, `kdsFZWQqPcc`)
+	// New dir doesn't change anything
+	mapfs["e"] = &fstest.MapFile{Data: []byte(``), Mode: fs.ModeDir, ModTime: modTime}
 	key, err = snapshot.Hash(mapfs)
 	is.NoErr(err)
-	is.Equal(key, `QY1LgL2TFbE`)
+	is.Equal(key, `kdsFZWQqPcc`)
 	// Adjust data
 	mapfs["main.go"] = &fstest.MapFile{Data: []byte(`package main; func main() {}`)}
 	key, err = snapshot.Hash(mapfs)
 	is.NoErr(err)
-	is.Equal(key, `6Y0qe6ntDqs`)
-	// Adjust mode
+	is.Equal(key, `5qEzdxZ33Ws`)
+	// Adjust mode doesn't change anything
 	mapfs["b/c/d.go"] = &fstest.MapFile{Data: []byte("package d"), Mode: 0655, ModTime: modTime}
 	key, err = snapshot.Hash(mapfs)
 	is.NoErr(err)
-	is.Equal(key, `k12v200Bmu4`)
+	is.Equal(key, `5qEzdxZ33Ws`)
 	// Adjust modtime, shouldn't change anything
 	mapfs["b/c/d.go"] = &fstest.MapFile{Data: []byte("package d"), Mode: 0655, ModTime: modTime2}
 	key, err = snapshot.Hash(mapfs)
 	is.NoErr(err)
-	is.Equal(key, `k12v200Bmu4`)
-	// Hash with nothing changing
+	is.Equal(key, `5qEzdxZ33Ws`)
+	// Hash with no changes
 	mapfs["b/c/d.go"] = &fstest.MapFile{Data: []byte("package d"), Mode: 0655, ModTime: modTime2}
 	key, err = snapshot.Hash(mapfs)
 	is.NoErr(err)
-	is.Equal(key, `k12v200Bmu4`)
+	is.Equal(key, `5qEzdxZ33Ws`)
 }
 
 func TestBackupRestore(t *testing.T) {
@@ -60,7 +61,7 @@ func TestBackupRestore(t *testing.T) {
 	}
 	hash, err := snapshot.Hash(original)
 	is.NoErr(err)
-	is.Equal(hash, "SFQ0mar4vsA")
+	is.Equal(hash, "70bbN1HY6Zk")
 	// Backup based on the hash
 	err = snapshot.Backup(hash, current)
 	is.NoErr(err)
@@ -84,7 +85,7 @@ func TestRestoreNotExist(t *testing.T) {
 	}
 	hash, err := snapshot.Hash(original)
 	is.NoErr(err)
-	is.Equal(hash, "wAkDzu4jU2g")
+	is.Equal(hash, "FD4w4ZnukkU")
 	// Restore non-existent
 	fsys, err := snapshot.Restore(hash)
 	is.True(errors.Is(err, fs.ErrNotExist))

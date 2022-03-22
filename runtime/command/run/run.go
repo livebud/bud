@@ -9,14 +9,12 @@ import (
 
 type Command struct {
 	Project *project.Compiler
-	Embed   bool
-	Hot     bool
-	Minify  bool
+	Flag    project.Flag
 	Port    string
 }
 
 func (c *Command) Run(ctx context.Context) error {
-	app, err := c.Project.Compile(ctx)
+	app, err := c.Project.Compile(ctx, &c.Flag)
 	if err != nil {
 		return err
 	}

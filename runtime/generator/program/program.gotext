@@ -34,11 +34,7 @@ func run(ctx context.Context, args ...string) error {
 
 func Load() (*Program, error) {
 	{{- with $variable := $.Provider.Variable "gitlab.com/mnm/bud/pkg/gomod.*Module" }}
-	dir, err := dirname()
-	if err != nil {
-		return nil, err
-	}
-	{{ $variable }}, err := gomod.Find(dir)
+	{{ $variable }}, err := gomod.Find(".")
 	if err != nil {
 		return nil, err
 	}
@@ -48,15 +44,6 @@ func Load() (*Program, error) {
 		return nil, err
 	}
 	return &Program{cli}, nil
-}
-
-// dirname gets the directory of this file
-func dirname() (string, error) {
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		return "", errors.New("unable to get the current filename")
-	}
-	return filepath.Dir(filename), nil
 }
 
 type Program struct {

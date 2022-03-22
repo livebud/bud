@@ -2,16 +2,20 @@ package bud
 
 import (
 	"context"
+	"errors"
 	"io"
 	"io/fs"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"gitlab.com/mnm/bud/generator/cli/command"
 	"gitlab.com/mnm/bud/generator/cli/generator"
 	"gitlab.com/mnm/bud/generator/cli/mainfile"
 	"gitlab.com/mnm/bud/generator/cli/program"
+	"gitlab.com/mnm/bud/internal/dirhash"
 	"gitlab.com/mnm/bud/internal/dsync"
+	"gitlab.com/mnm/bud/internal/gitignore"
 	"gitlab.com/mnm/bud/package/overlay"
 	"gitlab.com/mnm/bud/package/trace"
 	"gitlab.com/mnm/bud/pkg/di"
@@ -25,6 +29,7 @@ func defaultEnv(module *gomod.Module) Env {
 		"PATH":       os.Getenv("PATH"),
 		"GOPATH":     os.Getenv("GOPATH"),
 		"GOMODCACHE": module.ModCache(),
+		"TMPDIR":     os.TempDir(),
 	}
 }
 
@@ -58,6 +63,14 @@ type Compiler struct {
 	ModCacheRW bool
 }
 
+func (c *Compiler) cachePath(module *gomod.Module) (string, error) {
+	hash, err := dirhash.Hash(module, dirhash.WithSkip(gitignore.FromFS(module)))
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(os.TempDir(), "bud-compiler", hash), nil
+}
+
 // Load the overlay
 func (c *Compiler) loadOverlay(ctx context.Context, module *gomod.Module) (fsys *overlay.FileSystem, err error) {
 	_, span := trace.Start(ctx, "load the overlay")
@@ -73,7 +86,7 @@ func (c *Compiler) sync(ctx context.Context, overlay *overlay.FileSystem) (err e
 }
 
 // Build the CLI
-func (c *Compiler) goBuild(ctx context.Context, module *gomod.Module) (err error) {
+func (c *Compiler) goBuild(ctx context.Context, module *gomod.Module, outPath string) (err error) {
 	_, span := trace.Start(ctx, "build cli", "from", "bud/.cli/main.go", "to", "bud/cli")
 	defer span.End(&err)
 	// Ensure that main.go exists
@@ -84,7 +97,7 @@ func (c *Compiler) goBuild(ctx context.Context, module *gomod.Module) (err error
 	args := []string{
 		"build",
 		"-mod=mod",
-		"-o=bud/cli",
+		"-o=" + outPath,
 	}
 	if c.ModCacheRW {
 		args = append(args, "-modcacherw")
@@ -123,11 +136,32 @@ func (c *Compiler) Compile(ctx context.Context, flag Flag) (p *Project, err erro
 	if err := c.sync(ctx, overlay); err != nil {
 		return nil, err
 	}
-	// Build the binary
-	if err := c.goBuild(ctx, c.module); err != nil {
-		return nil, err
+	cachePath := ""
+	cliPath := filepath.Join("bud", "cli")
+	// Cached build
+	if flag.Cache {
+		cachePath, err = c.cachePath(c.module)
+		if err != nil {
+			return nil, err
+		}
+		cliPath = filepath.Join(cachePath, "cli")
+		if _, err := os.Stat(cliPath); errors.Is(err, fs.ErrNotExist) {
+			// Build the binary
+			if err := c.goBuild(ctx, c.module, cliPath); err != nil {
+				return nil, err
+			}
+		} else if err != nil {
+			return nil, err
+		}
+	} else {
+		// Build the binary
+		if err := c.goBuild(ctx, c.module, cliPath); err != nil {
+			return nil, err
+		}
 	}
 	return &Project{
+		Path:   cliPath,
+		Cache:  cachePath,
 		Module: c.module,
 		Flag:   flag,
 		Env:    c.Env,

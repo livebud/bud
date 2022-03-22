@@ -2,9 +2,11 @@ package project
 
 import (
 	"context"
+	"errors"
 	"io"
 	"io/fs"
 	"os"
+	"path/filepath"
 
 	"gitlab.com/mnm/bud/internal/bud"
 	"gitlab.com/mnm/bud/internal/dsync"
@@ -30,7 +32,14 @@ type Compiler struct {
 	Stderr io.Writer
 }
 
-func (c *Compiler) Compile(ctx context.Context) (*bud.App, error) {
+type Flag struct {
+	Embed  bool
+	Hot    bool
+	Minify bool
+	Cache  string
+}
+
+func (c *Compiler) Compile(ctx context.Context, flag *Flag) (*bud.App, error) {
 	if err := dsync.Dir(c.fsys, "bud/.app", c.module.DirFS("bud/.app"), "."); err != nil {
 		return nil, err
 	}
@@ -38,10 +47,23 @@ func (c *Compiler) Compile(ctx context.Context) (*bud.App, error) {
 	if _, err := fs.Stat(c.module, "bud/.app/main.go"); err != nil {
 		return nil, err
 	}
-	if err := gobin.Build(ctx, c.module.Directory(), "bud/.app/main.go", "bud/app"); err != nil {
-		return nil, err
+	appPath := filepath.Join("bud", "app")
+	if flag.Cache != "" {
+		appPath = filepath.Join(flag.Cache, "app")
+		if _, err := os.Stat(appPath); errors.Is(err, fs.ErrNotExist) {
+			if err := gobin.Build(ctx, c.module.Directory(), "bud/.app/main.go", appPath); err != nil {
+				return nil, err
+			}
+		} else if err != nil {
+			return nil, err
+		}
+	} else {
+		if err := gobin.Build(ctx, c.module.Directory(), "bud/.app/main.go", appPath); err != nil {
+			return nil, err
+		}
 	}
 	return &bud.App{
+		Path:   appPath,
 		Module: c.module,
 		Env:    c.Env,
 		Stderr: c.Stderr,

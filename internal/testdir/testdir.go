@@ -210,6 +210,16 @@ func WithSkip(skips ...func(name string, isDir bool) (skip bool)) Option {
 	}
 }
 
+func (d *Dir) Hash() (string, error) {
+	// Map out the filesystem
+	fsys, err := d.mapfs()
+	if err != nil {
+		return "", err
+	}
+	// Compute a hash of the original filesystem
+	return snapshot.Hash(fsys)
+}
+
 // Write testdir into dir
 func (d *Dir) Write(dir string, options ...Option) error {
 	// Load the options

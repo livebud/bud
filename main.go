@@ -8,6 +8,7 @@ import (
 	"gitlab.com/mnm/bud/internal/command"
 	"gitlab.com/mnm/bud/internal/command/build"
 	"gitlab.com/mnm/bud/internal/command/run"
+	"gitlab.com/mnm/bud/internal/command/tool/cache"
 	"gitlab.com/mnm/bud/internal/command/tool/di"
 	v8 "gitlab.com/mnm/bud/internal/command/tool/v8"
 	v8client "gitlab.com/mnm/bud/internal/command/tool/v8/client"
@@ -41,6 +42,7 @@ func do() error {
 		cli.Flag("embed", "embed the assets").Bool(&bud.Flag.Embed).Default(false)
 		cli.Flag("hot", "hot reload the frontend").Bool(&bud.Flag.Hot).Default(true)
 		cli.Flag("minify", "minify the assets").Bool(&bud.Flag.Minify).Default(false)
+		cli.Flag("cache", "use build cache").Bool(&bud.Flag.Cache).Default(true)
 		cli.Flag("port", "port").String(&cmd.Port).Default("3000")
 		cli.Run(cmd.Run)
 	}
@@ -51,6 +53,7 @@ func do() error {
 		cli.Flag("embed", "embed the assets").Bool(&bud.Flag.Embed).Default(true)
 		cli.Flag("hot", "hot reload the frontend").Bool(&bud.Flag.Hot).Default(false)
 		cli.Flag("minify", "minify the assets").Bool(&bud.Flag.Minify).Default(true)
+		cli.Flag("cache", "use build cache").Bool(&bud.Flag.Cache).Default(true)
 		cli.Run(cmd.Run)
 	}
 
@@ -78,6 +81,16 @@ func do() error {
 				cmd := &v8client.Command{Bud: bud}
 				cli := cli.Command("client", "V8 client used during development")
 				cli.Run(cmd.Run)
+			}
+		}
+
+		{ // $ bud tool cache
+			cmd := &cache.Command{}
+			cli := cli.Command("cache", "Manage the build cache")
+
+			{ // $ bud tool cache clean
+				cli := cli.Command("clean", "Clear the cache directory")
+				cli.Run(cmd.Clean)
 			}
 		}
 	}

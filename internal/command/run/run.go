@@ -15,10 +15,6 @@ type Command struct {
 	Port string
 }
 
-// func (c *Command) Start(ctx context.Context) (*Process, error) {
-// 	return nil, nil
-// }
-
 func (c *Command) Run(ctx context.Context) error {
 	ctx, shutdown, err := c.Bud.Tracer(ctx)
 	if err != nil {

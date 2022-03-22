@@ -2,13 +2,11 @@ package snapshot
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"testing/fstest"
-	"time"
 
+	"gitlab.com/mnm/bud/internal/dirhash"
 	"gitlab.com/mnm/bud/internal/targz"
 
 	"github.com/cespare/xxhash"
@@ -30,38 +28,7 @@ func hash(input string) string {
 
 // Hash a filesystem
 func Hash(fsys fs.FS) (string, error) {
-	mapfs := fstest.MapFS{}
-	err := fs.WalkDir(fsys, ".", func(path string, de fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		info, err := de.Info()
-		if err != nil {
-			return err
-		}
-		mapfs[path] = &fstest.MapFile{
-			Mode:    info.Mode(),
-			ModTime: time.Time{}, // ModTime does not affect snapshot
-			Sys:     nil,         // Sys can't be serialized
-		}
-		if de.IsDir() {
-			return nil
-		}
-		data, err := fs.ReadFile(fsys, path)
-		if err != nil {
-			return err
-		}
-		mapfs[path].Data = data
-		return nil
-	})
-	if err != nil {
-		return "", err
-	}
-	buf, err := json.Marshal(mapfs)
-	if err != nil {
-		return "", err
-	}
-	return hash(string(buf)), nil
+	return dirhash.Hash(fsys)
 }
 
 // Backup a filesystem

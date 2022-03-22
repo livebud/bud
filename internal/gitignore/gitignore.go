@@ -13,6 +13,9 @@ func defaultIgnore(path string, isDir bool) bool {
 	if !isDir {
 		return false
 	}
+	if path == "bud" {
+		return true
+	}
 	base := filepath.Base(path)
 	return base == "node_modules" || base == ".git"
 }

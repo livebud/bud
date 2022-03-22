@@ -2,23 +2,26 @@ package bud
 
 import (
 	"strconv"
-	"strings"
 )
 
 type Flag struct {
 	Embed  bool
 	Hot    bool
 	Minify bool
+	Cache  bool
 }
 
-func (f *Flag) List() []string {
-	return []string{
+func (f *Flag) List(cachePath string) []string {
+	args := []string{
 		"--embed=" + strconv.FormatBool(f.Embed),
 		"--hot=" + strconv.FormatBool(f.Hot),
 		"--minify=" + strconv.FormatBool(f.Minify),
 	}
-}
-
-func (f *Flag) String() string {
-	return strings.Join(f.List(), " ")
+	// Add the cache path if the cache is enabled
+	if f.Cache {
+		args = append(args,
+			"--cache="+cachePath,
+		)
+	}
+	return args
 }

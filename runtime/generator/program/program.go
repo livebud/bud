@@ -37,7 +37,7 @@ func (p *Program) GenerateFile(ctx context.Context, _ overlay.F, file *overlay.F
 	}
 	// Add the imports
 	imports := imports.New()
-	imports.AddStd("errors", "context", "runtime", "path/filepath")
+	imports.AddStd("errors", "context")
 	imports.AddNamed("console", "gitlab.com/mnm/bud/pkg/log/console")
 	imports.Add(p.Module.Import("bud/.app/command"))
 	provider, err := p.Injector.Wire(&di.Function{

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"io/fs"
@@ -26,6 +27,8 @@ import (
 	"gitlab.com/mnm/bud/pkg/socket"
 )
 
+var cache = flag.Bool("cache", true, "enable compiler caching")
+
 func New(dir string) *Compiler {
 	return &Compiler{
 		dir: dir,
@@ -33,6 +36,7 @@ func New(dir string) *Compiler {
 			Embed:  false,
 			Minify: false,
 			Hot:    true,
+			Cache:  *cache,
 		},
 		Files:       map[string]string{},
 		BFiles:      map[string][]byte{},
@@ -41,6 +45,7 @@ func New(dir string) *Compiler {
 		Env: bud.Env{
 			"HOME":       os.Getenv("HOME"),
 			"PATH":       os.Getenv("PATH"),
+			"TMPDIR":     os.TempDir(),
 			"GOPATH":     os.Getenv("GOPATH"),
 			"GOCACHE":    os.Getenv("GOCACHE"),
 			"GOMODCACHE": modcache.Default().Directory(),
@@ -59,6 +64,7 @@ type Compiler struct {
 	Modules     modcache.Modules  // name@version[path[data]]
 	NodeModules map[string]string // name[version]
 	Env         bud.Env
+	Cache       bool
 }
 
 func (c *Compiler) Compile(ctx context.Context) (p *Project, err error) {

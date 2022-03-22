@@ -5,12 +5,15 @@ import (
 	"io"
 	"net"
 	"os/exec"
+	"path/filepath"
 
 	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/pkg/socket"
 )
 
 type Project struct {
+	Path   string
+	Cache  string
 	Module *gomod.Module
 	Flag   Flag
 	Env    Env
@@ -19,11 +22,11 @@ type Project struct {
 }
 
 func (p *Project) args(args ...string) []string {
-	return append(args, p.Flag.List()...)
+	return append(args, p.Flag.List(p.Cache)...)
 }
 
 func (p *Project) command(ctx context.Context, args ...string) *exec.Cmd {
-	cmd := exec.CommandContext(ctx, p.Module.Directory("bud", "cli"), args...)
+	cmd := exec.CommandContext(ctx, p.Path, args...)
 	cmd.Dir = p.Module.Directory()
 	cmd.Env = p.Env.List()
 	cmd.Stderr = p.Stderr
@@ -49,12 +52,20 @@ func (p *Project) Builder(ctx context.Context) *exec.Cmd {
 	return p.command(ctx, p.args("build")...)
 }
 
+func (p *Project) appPath() string {
+	if p.Flag.Cache && p.Cache != "" {
+		return filepath.Join(p.Cache, "app")
+	}
+	return filepath.Join("bud", "app")
+}
+
 func (p *Project) Build(ctx context.Context) (*App, error) {
 	cmd := p.Builder(ctx)
 	if err := cmd.Run(); err != nil {
 		return nil, err
 	}
 	return &App{
+		Path:   p.appPath(),
 		Module: p.Module,
 		Env:    p.Env.List(),
 		Stderr: p.Stderr,
