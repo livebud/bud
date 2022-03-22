@@ -1,7 +1,6 @@
 package conjure
 
 import (
-	"context"
 	"io/fs"
 	"time"
 )
@@ -13,7 +12,7 @@ type Embed struct {
 	Sys     interface{}
 }
 
-func (e *Embed) GenerateFile(ctx context.Context, file *File) error {
+func (e *Embed) GenerateFile(file *File) error {
 	file.Data = e.Data
 	file.Mode = e.Mode
 	file.modTime = e.ModTime

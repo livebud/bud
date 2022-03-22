@@ -1,7 +1,6 @@
 package conjure
 
 import (
-	"context"
 	"io/fs"
 	"testing/fstest"
 )
@@ -23,7 +22,7 @@ type FS interface {
 	fs.FS
 }
 
-func (f *FileSystem) GenerateFile(path string, fn func(ctx context.Context, f *File) error) {
+func (f *FileSystem) GenerateFile(path string, fn func(f *File) error) {
 	f.radix.Set(path, &fileGenerator{path, fn})
 	f.filler[path] = &fstest.MapFile{}
 }
@@ -40,13 +39,13 @@ func (f *FileSystem) FileGenerator(path string, generator FileGenerator) {
 // 	}
 // }
 
-// type GenerateDir func(ctx context.Context, d *Dir) error
+// type GenerateDir func(d *Dir) error
 
 // func (fn GenerateDir) Generator(f *FileSystem, path string) {
 // 	f.GenerateDir(path, fn)
 // }
 
-func (f *FileSystem) GenerateDir(path string, fn func(ctx context.Context, d *Dir) error) {
+func (f *FileSystem) GenerateDir(path string, fn func(d *Dir) error) {
 	f.filler[path] = &fstest.MapFile{Mode: fs.ModeDir}
 	f.radix.Set(path, &dirg{
 		path:   path,
@@ -59,7 +58,7 @@ func (f *FileSystem) DirGenerator(path string, generator DirGenerator) {
 	f.GenerateDir(path, generator.GenerateDir)
 }
 
-func (f *FileSystem) ServeFile(path string, fn func(ctx context.Context, f *File) error) {
+func (f *FileSystem) ServeFile(path string, fn func(f *File) error) {
 	f.radix.Set(path, &serverg{
 		path: path,
 		fn:   fn,
@@ -71,10 +70,6 @@ func (f *FileSystem) FileServer(path string, server FileServer) {
 }
 
 func (f *FileSystem) Open(target string) (fs.File, error) {
-	return f.OpenContext(context.Background(), target)
-}
-
-func (f *FileSystem) OpenContext(ctx context.Context, target string) (fs.File, error) {
 	dir := &Dir{
 		gpath:  ".",
 		tpath:  target,
@@ -82,5 +77,5 @@ func (f *FileSystem) OpenContext(ctx context.Context, target string) (fs.File, e
 		filler: f.filler,
 		radix:  f.radix,
 	}
-	return dir.open(ctx, target)
+	return dir.open(target)
 }

@@ -1,12 +1,12 @@
 package pluginfs
 
 import (
-	"context"
 	"path"
 	"strings"
 
+	"io/fs"
+
 	"gitlab.com/mnm/bud/internal/fscache"
-	"gitlab.com/mnm/bud/package/fs"
 	"gitlab.com/mnm/bud/package/merged"
 	"gitlab.com/mnm/bud/pkg/gomod"
 	"golang.org/x/sync/errgroup"
@@ -82,11 +82,6 @@ func (f *FS) Open(name string) (fs.File, error) {
 		return f.merged.Open(name)
 	}
 	return f.cachedOpen(f.opt.fsCache, name)
-}
-
-func (f *FS) OpenContext(ctx context.Context, name string) (fs.File, error) {
-	// TODO: support caching
-	return f.merged.OpenContext(ctx, name)
 }
 
 func (f *FS) cachedOpen(fmap *fscache.Cache, name string) (fs.File, error) {

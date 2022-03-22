@@ -1,14 +1,13 @@
 package merged
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
 	"sort"
 	"time"
 
-	"gitlab.com/mnm/bud/package/fs"
+	"io/fs"
 )
 
 // Merge the filesystems together
@@ -20,12 +19,8 @@ type FS struct {
 	fileSystems []fs.FS
 }
 
-func (f *FS) Open(path string) (fs.File, error) {
-	return f.OpenContext(context.Background(), path)
-}
-
 // Open finds the first path in fileSystems
-func (f *FS) OpenContext(ctx context.Context, path string) (fs.File, error) {
+func (f *FS) Open(path string) (fs.File, error) {
 	if !fs.ValidPath(path) {
 		return nil, &fs.PathError{
 			Op:   "open",
@@ -35,7 +30,7 @@ func (f *FS) OpenContext(ctx context.Context, path string) (fs.File, error) {
 	}
 	var dirs []dir
 	for _, fsys := range f.fileSystems {
-		file, err := fs.Open(ctx, fsys, path)
+		file, err := fsys.Open(path)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
 				continue
@@ -52,7 +47,7 @@ func (f *FS) OpenContext(ctx context.Context, path string) (fs.File, error) {
 		}
 		dirs = append(dirs, dir{file, stat})
 	}
-	return f.mergeDir(ctx, path, dirs)
+	return f.mergeDir(path, dirs)
 }
 
 type dir struct {
@@ -64,7 +59,7 @@ type dir struct {
 // of both files a and b. Both a and b must be directories at the same
 // specified path in m.A and m.B, respectively. Closes files a and b before
 // returning, since they aren't needed by the MergedDirectory pseudo-file.
-func (f *FS) mergeDir(ctx context.Context, path string, dirs []dir) (fs.File, error) {
+func (f *FS) mergeDir(path string, dirs []dir) (fs.File, error) {
 	if len(dirs) == 0 {
 		return nil, &fs.PathError{
 			Op:   "open",

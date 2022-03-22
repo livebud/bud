@@ -1,9 +1,7 @@
 package fscache
 
 import (
-	"context"
-
-	"gitlab.com/mnm/bud/package/fs"
+	"io/fs"
 )
 
 func Wrap(fs fs.FS) *Wrapped {
@@ -16,14 +14,10 @@ type Wrapped struct {
 }
 
 func (w *Wrapped) Open(name string) (fs.File, error) {
-	return w.OpenContext(context.Background(), name)
-}
-
-func (w *Wrapped) OpenContext(ctx context.Context, name string) (fs.File, error) {
 	if w.c.Has(name) {
 		return w.c.Open(name)
 	}
-	file, err := fs.Open(ctx, w.fs, name)
+	file, err := w.fs.Open(name)
 	if err != nil {
 		return nil, err
 	}

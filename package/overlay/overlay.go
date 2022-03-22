@@ -7,8 +7,9 @@ import (
 
 	"gitlab.com/mnm/bud/internal/fscache"
 
+	"io/fs"
+
 	"gitlab.com/mnm/bud/internal/dag"
-	"gitlab.com/mnm/bud/package/fs"
 	"gitlab.com/mnm/bud/package/merged"
 
 	"gitlab.com/mnm/bud/package/conjure"
@@ -31,7 +32,6 @@ func Load(module *gomod.Module) (*FileSystem, error) {
 }
 
 type F interface {
-	fs.OpenFS
 	Link(from, to string)
 }
 
@@ -47,11 +47,7 @@ func (f *FileSystem) Link(from, to string) {
 }
 
 func (f *FileSystem) Open(name string) (fs.File, error) {
-	return f.OpenContext(context.Background(), name)
-}
-
-func (f *FileSystem) OpenContext(ctx context.Context, name string) (fs.File, error) {
-	return fs.Open(ctx, f.fsys, name)
+	return f.fsys.Open(name)
 }
 
 var _ fs.FS = (*FileSystem)(nil)
@@ -63,8 +59,8 @@ func (fn GenerateFile) GenerateFile(ctx context.Context, fsys F, file *File) err
 }
 
 func (f *FileSystem) GenerateFile(path string, fn func(ctx context.Context, fsys F, file *File) error) {
-	f.cfs.GenerateFile(path, func(ctx context.Context, file *conjure.File) error {
-		return fn(ctx, f, &File{File: file})
+	f.cfs.GenerateFile(path, func(file *conjure.File) error {
+		return fn(context.TODO(), f, &File{File: file})
 	})
 }
 
@@ -79,8 +75,8 @@ func (fn GenerateDir) GenerateDir(ctx context.Context, fsys F, dir *Dir) error {
 }
 
 func (f *FileSystem) GenerateDir(path string, fn func(ctx context.Context, fsys F, dir *Dir) error) {
-	f.cfs.GenerateDir(path, func(ctx context.Context, dir *conjure.Dir) error {
-		return fn(ctx, f, &Dir{f, dir})
+	f.cfs.GenerateDir(path, func(dir *conjure.Dir) error {
+		return fn(context.TODO(), f, &Dir{f, dir})
 	})
 }
 
@@ -89,8 +85,8 @@ func (f *FileSystem) DirGenerator(path string, generator DirGenerator) {
 }
 
 func (f *FileSystem) ServeFile(path string, fn func(ctx context.Context, fsys F, file *File) error) {
-	f.cfs.ServeFile(path, func(ctx context.Context, file *conjure.File) error {
-		return fn(ctx, f, &File{file})
+	f.cfs.ServeFile(path, func(file *conjure.File) error {
+		return fn(context.TODO(), f, &File{file})
 	})
 }
 
