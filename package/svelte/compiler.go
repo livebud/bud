@@ -18,8 +18,15 @@ type Input struct {
 	Dev bool
 }
 
-func New(vm js.VM) *Compiler {
-	return &Compiler{vm, ldflag.IsDevelopment()}
+// compiler.js is used to compile .svelte files into JS & CSS
+//go:embed compiler.js
+var compiler string
+
+func Load(vm js.VM) (*Compiler, error) {
+	if err := vm.Script("svelte/compiler.js", compiler); err != nil {
+		return nil, err
+	}
+	return &Compiler{vm, ldflag.IsDevelopment()}, nil
 }
 
 type Compiler struct {
@@ -32,13 +39,9 @@ type SSR struct {
 	CSS string
 }
 
-// compiler.js is used to compile .svelte files into JS & CSS
-//go:embed compiler.js
-var compiler string
-
 // Compile server-rendered code
 func (c *Compiler) SSR(path string, code []byte) (*SSR, error) {
-	expr := fmt.Sprintf(`%s; __svelte__.compile({ "path": %q, "code": %q, "target": "ssr", "dev": %t, "css": false })`, compiler, path, code, c.Dev)
+	expr := fmt.Sprintf(`;__svelte__.compile({ "path": %q, "code": %q, "target": "ssr", "dev": %t, "css": false })`, path, code, c.Dev)
 	result, err := c.VM.Eval(path, expr)
 	if err != nil {
 		return nil, err
@@ -57,9 +60,10 @@ type DOM struct {
 
 // Compile DOM code
 func (c *Compiler) DOM(path string, code []byte) (*DOM, error) {
-	expr := fmt.Sprintf(`%s; __svelte__.compile({ "path": %q, "code": %q, "target": "dom", "dev": %t, "css": true })`, compiler, path, code, c.Dev)
+	expr := fmt.Sprintf(`;__svelte__.compile({ "path": %q, "code": %q, "target": "dom", "dev": %t, "css": true })`, path, code, c.Dev)
 	result, err := c.VM.Eval(path, expr)
 	if err != nil {
+		fmt.Println("Error evaling...", expr, err)
 		return nil, err
 	}
 	out := new(DOM)

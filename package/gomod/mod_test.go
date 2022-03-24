@@ -304,6 +304,7 @@ func TestOpen(t *testing.T) {
 }
 
 func TestFileCacheDir(t *testing.T) {
+	t.SkipNow()
 	is := is.New(t)
 	appDir := t.TempDir()
 	err := vfs.Write(appDir, vfs.Map{

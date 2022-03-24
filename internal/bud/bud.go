@@ -23,14 +23,19 @@ import (
 	"gitlab.com/mnm/bud/package/trace"
 )
 
-func defaultEnv(module *gomod.Module) Env {
+func defaultEnv(module *gomod.Module) (Env, error) {
+	budPath, err := os.Executable()
+	if err != nil {
+		return nil, err
+	}
 	return Env{
 		"HOME":       os.Getenv("HOME"),
 		"PATH":       os.Getenv("PATH"),
 		"GOPATH":     os.Getenv("GOPATH"),
 		"GOMODCACHE": module.ModCache(),
 		"TMPDIR":     os.TempDir(),
-	}
+		"BUD_PATH":   budPath,
+	}, nil
 }
 
 func Find(dir string) (*Compiler, error) {
@@ -38,21 +43,20 @@ func Find(dir string) (*Compiler, error) {
 	if err != nil {
 		return nil, err
 	}
+	return Load(module)
+}
+
+func Load(module *gomod.Module) (*Compiler, error) {
+	env, err := defaultEnv(module)
+	if err != nil {
+		return nil, err
+	}
 	return &Compiler{
 		module: module,
-		Env:    defaultEnv(module),
+		Env:    env,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
 	}, nil
-}
-
-func New(module *gomod.Module) *Compiler {
-	return &Compiler{
-		module: module,
-		Env:    defaultEnv(module),
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
-	}
 }
 
 type Compiler struct {

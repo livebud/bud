@@ -55,7 +55,7 @@ func Rel(sdir, tdir string) func(path string) (string, error) {
 // in the target filesystem
 func Dir(sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string, options ...Option) error {
 	opt := &option{
-		Skip: func(string, bool) bool { return false },
+		Skip: func(name string, isDir bool) bool { return false },
 		rel:  Rel(sdir, tdir),
 	}
 	for _, option := range options {

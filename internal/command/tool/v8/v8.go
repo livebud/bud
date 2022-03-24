@@ -23,7 +23,10 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	vm := v8.New()
+	vm, err := v8.Load()
+	if err != nil {
+		return err
+	}
 	result, err := vm.Eval("script.js", script)
 	if err != nil {
 		return err

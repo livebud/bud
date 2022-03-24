@@ -38,7 +38,7 @@ type Transform struct {
 }
 
 func (g *Generator) GenerateFile(ctx context.Context, _ overlay.F, file *overlay.File) error {
-	views, err := entrypoint.List(g.FS)
+	views, err := entrypoint.List(g.FS, "view")
 	if err != nil {
 		return err
 	} else if len(views) == 0 {

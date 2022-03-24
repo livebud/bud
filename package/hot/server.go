@@ -34,40 +34,18 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	return s.server.Shutdown(ctx)
 }
 
-func (s *Server) Serve(l net.Listener) error {
-	return s.server.Serve(l)
+// Start listening on addr
+func (s *Server) ListenAndServe(addr string) error {
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+	return s.Serve(listener)
 }
 
-// type pubsub struct {
-// 	subs map[string][]func()
-// }
-
-// func (p *pubsub) Subscribe(ctx context.Context, path string, fn func()) {
-// 	p.subs[path] = append(p.subs[path], fn)
-// 	p.subs["*"] = append(p.subs["*"], fn)
-// 	// Wait for the request to finish
-// 	<-ctx.Done()
-// 	// TODO: unsubscribe the subscribers
-// }
-
-// // Publish to reload
-// func (p *pubsub) Publish(path string) {
-// 	if path == "*" {
-// 		for _, fns := range p.subs {
-// 			for _, fn := range fns {
-// 				fn()
-// 			}
-// 		}
-// 		return
-// 	}
-// 	fns, ok := p.subs[path]
-// 	if !ok {
-// 		return
-// 	}
-// 	for _, fn := range fns {
-// 		fn()
-// 	}
-// }
+func (s *Server) Serve(listener net.Listener) error {
+	return s.server.Serve(listener)
+}
 
 func handler(ps pubsub.Subscriber) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

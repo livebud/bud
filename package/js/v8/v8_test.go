@@ -7,25 +7,19 @@ import (
 	v8 "gitlab.com/mnm/bud/package/js/v8"
 )
 
+func TestCompile(t *testing.T) {
+	is := is.New(t)
+	vm, err := v8.Compile("math.js", `const multiply = (a, b) => a * b`)
+	is.NoErr(err)
+	defer vm.Close()
+	value, err := vm.Eval("run.js", "multiply(3, 2)")
+	is.NoErr(err)
+	is.Equal("6", value)
+}
+
 func TestEval(t *testing.T) {
 	is := is.New(t)
 	result, err := v8.Eval("TestEval.js", "2*5")
-	is.NoErr(err)
-	is.Equal("10", result)
-}
-
-func TestScript(t *testing.T) {
-	is := is.New(t)
-	v8 := v8.New()
-	v8.Script("bootstrap.js", `
-		function multiply(x, y) {
-			return x * y
-		}
-	`)
-	result, err := v8.Eval("TestScript.js", "multiply(2, 10)")
-	is.NoErr(err)
-	is.Equal("20", result)
-	result, err = v8.Eval("TestScript.js", "multiply(2, 5)")
 	is.NoErr(err)
 	is.Equal("10", result)
 }

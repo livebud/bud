@@ -44,11 +44,7 @@ func (a *App) Execute(ctx context.Context, args ...string) error {
 	return nil
 }
 
-func (a *App) Run(ctx context.Context) error {
-	cmd := a.command(ctx)
-	return cmd.Run()
-}
-
+// Start the application
 func (a *App) Start(ctx context.Context, listener net.Listener) (*Process, error) {
 	// Pass the socket through
 	files, env, err := socket.Files(listener)
@@ -62,4 +58,13 @@ func (a *App) Start(ctx context.Context, listener net.Listener) (*Process, error
 		return nil, err
 	}
 	return &Process{cmd}, nil
+}
+
+// Run the app and wait for the result
+func (a *App) Run(ctx context.Context, listener net.Listener) error {
+	process, err := a.Start(ctx, listener)
+	if err != nil {
+		return err
+	}
+	return process.Wait()
 }

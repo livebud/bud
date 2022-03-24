@@ -27,8 +27,10 @@ func TestSvelteHello(t *testing.T) {
 	td.Files["view/index.svelte"] = `<h1>hi world</h1>`
 	td.NodeModules["svelte"] = "3.46.4"
 	is.NoErr(td.Write(dir))
-	vm := v8.New()
-	svelteCompiler := svelte.New(vm)
+	vm, err := v8.Load()
+	is.NoErr(err)
+	svelteCompiler, err := svelte.Load(vm)
+	is.NoErr(err)
 	transformer := transform.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
@@ -79,8 +81,10 @@ func TestSvelteAwait(t *testing.T) {
 	`
 	td.NodeModules["svelte"] = "3.46.4"
 	is.NoErr(td.Write(dir))
-	vm := v8.New()
-	svelteCompiler := svelte.New(vm)
+	vm, err := v8.Load()
+	is.NoErr(err)
+	svelteCompiler, err := svelte.Load(vm)
+	is.NoErr(err)
 	transformer := transform.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
@@ -162,8 +166,10 @@ func TestSvelteProps(t *testing.T) {
 	`
 	td.NodeModules["svelte"] = "3.46.4"
 	is.NoErr(td.Write(dir))
-	vm := v8.New()
-	svelteCompiler := svelte.New(vm)
+	vm, err := v8.Load()
+	is.NoErr(err)
+	svelteCompiler, err := svelte.Load(vm)
+	is.NoErr(err)
 	transformer := transform.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
@@ -265,8 +271,10 @@ func TestSvelteLocalImports(t *testing.T) {
 	`
 	td.NodeModules["svelte"] = "3.46.4"
 	is.NoErr(td.Write(dir))
-	vm := v8.New()
-	svelteCompiler := svelte.New(vm)
+	vm, err := v8.Load()
+	is.NoErr(err)
+	svelteCompiler, err := svelte.Load(vm)
+	is.NoErr(err)
 	transformer := transform.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)

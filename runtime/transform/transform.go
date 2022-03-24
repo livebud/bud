@@ -174,7 +174,7 @@ func (t *transformer) Plugins() (plugins []esbuild.Plugin) {
 	for from, to := range t.pathmap {
 		from := from
 		plugins = append(plugins, esbuild.Plugin{
-			Name: strings.TrimPrefix(from, ".") + "_to_" + strings.TrimPrefix(to, "."),
+			Name: "tranform_" + strings.TrimPrefix(from, ".") + "_to_" + strings.TrimPrefix(to, "."),
 			Setup: func(epb esbuild.PluginBuild) {
 				// Load svelte files. Add import if not present
 				epb.OnLoad(esbuild.OnLoadOptions{Filter: `\` + from + `$`}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {

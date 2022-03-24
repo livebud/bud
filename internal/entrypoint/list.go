@@ -14,14 +14,14 @@ import (
 )
 
 // List the views
-func List(fsys fs.FS) ([]*View, error) {
+func List(fsys fs.FS, paths ...string) ([]*View, error) {
 	// Build a tree of reserved views (layout, frames, error)
-	tree, err := buildTree(fsys, ".")
+	tree, err := buildTree(fsys, path.Clean(path.Join(paths...)))
 	if err != nil {
 		return nil, err
 	}
 	// Turn the tree of views into a list of views
-	views, err := listViews(fsys, tree, ".")
+	views, err := listViews(fsys, tree, path.Clean(path.Join(paths...)))
 	if err != nil {
 		return nil, err
 	}

@@ -88,7 +88,7 @@ func ssrPlugin(osfs fs.FS, dir string) esbuild.Plugin {
 				return result, nil
 			})
 			epb.OnLoad(esbuild.OnLoadOptions{Filter: `.*`, Namespace: "ssr"}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
-				views, err := entrypoint.List(osfs)
+				views, err := entrypoint.List(osfs, "view")
 				if err != nil {
 					return result, err
 				}

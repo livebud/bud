@@ -1,12 +1,38 @@
-<div class="bg-orange-400 p-4 flex items-center">
-  <a href="/" class="flex items-center">
-    <img src="https://news.ycombinator.com/y18.gif" alt="Hacker News" />
-    <span class="pl-3 font-mono text-orange-900 text-lg">Hacker News</span>
-  </a>
-
-  <ul class="ml-auto flex items-center">
-    <li class="text-sm font-semibold text-white">New</li>
-    <li class="pl-6 text-sm font-semibold text-white">Ask</li>
-    <li class="pl-6 text-sm font-semibold text-white">Show</li>
-  </ul>
+<div class="list">
+  <img src="https://news.ycombinator.com/y18.gif" alt="Hacker News" />
+  <h1>Hacker News</h1>
+  <div class="links">
+    <a href="/news">News</a>
+    <a href="/ask">Ask</a>
+    <a href="/show">Show</a>
+  </div>
 </div>
+
+<style>
+  .list {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+  }
+
+  img {
+    display: block;
+    height: 20px;
+    width: 18px;
+  }
+
+  h1 {
+    margin-left: 10px;
+    font-weight: 500;
+  }
+
+  .links {
+    margin-left: 10px;
+    display: flex;
+    align-items: center;
+  }
+  .links > a {
+    margin-left: 10px;
+    font-size: 75%;
+  }
+</style>

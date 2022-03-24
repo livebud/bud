@@ -17,7 +17,6 @@ func New(
 	{{- if $.Actions }}
 	controller *action.Controller,
 	{{- end }}
-	hot *hot.Server,
 	{{- if $.HasPublic }}
 	public public.Middleware,
 	{{- end }}
@@ -34,7 +33,6 @@ func New(
 		{{- if $.HasPublic }}
 		public,
 		{{- end }}
-		hot,
 		{{- if $.HasView }}
 		view,
 		{{- end }}

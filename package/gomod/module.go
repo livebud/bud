@@ -62,10 +62,10 @@ func (m *Module) FindIn(fsys fs.FS, importPath string) (*Module, error) {
 
 // Open a file within the module
 func (m *Module) Open(name string) (fs.File, error) {
-	if m.opt.fsCache == nil {
-		return os.Open(filepath.Join(m.dir, name))
-	}
-	return m.cachedOpen(name)
+	return os.Open(filepath.Join(m.dir, name))
+	// if m.opt.fsCache == nil {
+	// }
+	// return m.cachedOpen(name)
 }
 
 func (m *Module) cachedOpen(name string) (fs.File, error) {

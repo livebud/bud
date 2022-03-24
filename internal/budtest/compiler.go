@@ -52,6 +52,9 @@ func New(dir string) *Compiler {
 			"NO_COLOR":   "1",
 			// TODO: remove once we can write a sum file to the modcache
 			"GOPRIVATE": "*",
+			// TODO: set the BUD_PATH, right now we very unexpectedly use
+			// the bud in the $PATH for tests.
+			"BUD_PATH": "",
 		},
 	}
 }
@@ -90,7 +93,10 @@ func (c *Compiler) Compile(ctx context.Context) (p *Project, err error) {
 		return nil, err
 	}
 	// Compile the project
-	compiler := bud.New(module)
+	compiler, err := bud.Load(module)
+	if err != nil {
+		return nil, err
+	}
 	compiler.Env = c.Env
 	compiler.ModCacheRW = true
 	project, err := compiler.Compile(ctx, c.Flag)

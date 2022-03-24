@@ -7,7 +7,7 @@ import (
 )
 
 func FindByPage(fsys fs.FS, page string) (view *View, err error) {
-	views, err := List(fsys)
+	views, err := List(fsys, "view")
 	if err != nil {
 		return nil, err
 	}
@@ -21,7 +21,7 @@ func FindByPage(fsys fs.FS, page string) (view *View, err error) {
 }
 
 func FindByClient(fsys fs.FS, client string) (view *View, err error) {
-	views, err := List(fsys)
+	views, err := List(fsys, "view")
 	if err != nil {
 		return nil, err
 	}

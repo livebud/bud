@@ -10,7 +10,6 @@ import (
 	"github.com/matthewmueller/text"
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/internal/ldflag"
 	"gitlab.com/mnm/bud/package/gomod"
 	"gitlab.com/mnm/bud/package/parser"
 	"gitlab.com/mnm/bud/package/vfs"
@@ -52,7 +51,7 @@ func (l *loader) Load() (state *State, err error) {
 	state = new(State)
 	// Add initial imports
 	l.imports.AddStd("net", "net/http", "context")
-	l.imports.AddNamed("hot", "gitlab.com/mnm/bud/runtime/hot")
+	// l.imports.AddNamed("hot", "gitlab.com/mnm/bud/runtime/hot")
 	l.imports.AddNamed("middleware", "gitlab.com/mnm/bud/package/middleware")
 	l.imports.AddNamed("web", "gitlab.com/mnm/bud/runtime/web")
 	l.imports.AddNamed("router", "gitlab.com/mnm/bud/package/router")
@@ -64,8 +63,7 @@ func (l *loader) Load() (state *State, err error) {
 		state.HasView = true
 		l.imports.AddNamed("view", l.module.Import("bud/.app/view"))
 	}
-	// Load the conditionals
-	state.HasHot = ldflag.Hot()
+	// Load the actions
 	if l.exist["bud/.app/action/action.go"] {
 		l.imports.AddNamed("action", l.module.Import("bud/.app/action"))
 		state.Actions = l.loadControllerActions()

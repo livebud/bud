@@ -21,7 +21,10 @@ import (
 func TestRunner(t *testing.T) {
 	is := is.New(t)
 	dir := t.TempDir()
-	svelteCompiler := svelte.New(v8.New())
+	vm, err := v8.Load()
+	is.NoErr(err)
+	svelteCompiler, err := svelte.Load(vm)
+	is.NoErr(err)
 	transformer := transform.MustLoad(
 		svelte.NewTransformable(svelteCompiler),
 	)
@@ -106,7 +109,10 @@ func TestBuilder(t *testing.T) {
 	td.NodeModules["livebud"] = "*"
 	td.NodeModules["svelte"] = "3.46.4"
 	is.NoErr(td.Write(dir))
-	svelteCompiler := svelte.New(v8.New())
+	vm, err := v8.Load()
+	is.NoErr(err)
+	svelteCompiler, err := svelte.Load(vm)
+	is.NoErr(err)
 	transformer := transform.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)

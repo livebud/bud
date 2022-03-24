@@ -114,7 +114,7 @@ func Builder(fsys fs.FS, module *gomod.Module, transformer *transform.Transforme
 		domPlugin(fsys, module),
 	}, transformer.Browser.Plugins()...)
 	return overlay.GenerateDir(func(ctx context.Context, f overlay.F, dir *overlay.Dir) error {
-		views, err := entrypoint.List(fsys)
+		views, err := entrypoint.List(fsys, "view")
 		if err != nil {
 			return err
 		}
