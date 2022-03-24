@@ -14,30 +14,35 @@ func TestHash(t *testing.T) {
 	fsys := fstest.MapFS{
 		"main.go": &fstest.MapFile{Data: []byte(`package main`)},
 	}
-	hash, err := dirhash.Hash(fsys)
+	h1, err := dirhash.Hash(fsys)
 	is.NoErr(err)
-	is.Equal(hash, "Fiyf9IKN3Y0")
-	hash, err = dirhash.Hash(fsys)
+	is.Equal(len(h1), 11)
+	h2, err := dirhash.Hash(fsys)
 	is.NoErr(err)
-	is.Equal(hash, "Fiyf9IKN3Y0")
+	is.Equal(len(h2), 11)
+	is.True(h1 == h2)
 
 	fsys["main.go"].Data = []byte(`package main2`)
-	hash, err = dirhash.Hash(fsys)
+	h3, err := dirhash.Hash(fsys)
 	is.NoErr(err)
-	is.Equal(hash, "0yqocFBaFWI")
-	hash, err = dirhash.Hash(fsys)
+	is.Equal(len(h3), 11)
+	is.True(h1 != h3)
+	h4, err := dirhash.Hash(fsys)
 	is.NoErr(err)
-	is.Equal(hash, "0yqocFBaFWI")
+	is.Equal(len(h4), 11)
+	is.True(h3 == h4)
 
 	fsys["another.go"] = &fstest.MapFile{Data: []byte(`package main`)}
-	hash, err = dirhash.Hash(fsys)
+	h5, err := dirhash.Hash(fsys)
 	is.NoErr(err)
-	is.Equal(hash, "FD_ugjQCgCs")
+	is.Equal(len(h5), 11)
+	is.True(h4 != h5)
 
 	fsys["something.go"] = &fstest.MapFile{}
-	hash, err = dirhash.Hash(fsys)
+	h6, err := dirhash.Hash(fsys)
 	is.NoErr(err)
-	is.Equal(hash, "_9y2svTYSsc")
+	is.Equal(len(h6), 11)
+	is.True(h5 != h6)
 }
 
 func TestSkip(t *testing.T) {
@@ -45,22 +50,21 @@ func TestSkip(t *testing.T) {
 	fsys := fstest.MapFS{
 		"main.go": &fstest.MapFile{Data: []byte(`package main`)},
 	}
-	hash, err := dirhash.Hash(fsys)
+	h1, err := dirhash.Hash(fsys)
 	is.NoErr(err)
-	is.Equal(hash, "Fiyf9IKN3Y0")
 
 	fsys["node_modules/svelte/index.js"] = &fstest.MapFile{Data: []byte(`export default svelte`)}
-	hash, err = dirhash.Hash(fsys)
+	h2, err := dirhash.Hash(fsys)
 	is.NoErr(err)
-	is.Equal(hash, "BJFOfNZj8vk")
+	is.True(h1 != h2)
 
 	// Skip node_modules
 	skipModules := func(path string, isDir bool) bool {
 		return isDir && path == "node_modules"
 	}
-	hash, err = dirhash.Hash(fsys, dirhash.WithSkip(skipModules))
+	h3, err := dirhash.Hash(fsys, dirhash.WithSkip(skipModules))
 	is.NoErr(err)
-	is.Equal(hash, "Fiyf9IKN3Y0")
+	is.True(h1 == h3)
 }
 
 func TestGitIgnore(t *testing.T) {
@@ -69,17 +73,16 @@ func TestGitIgnore(t *testing.T) {
 		"main.go":    &fstest.MapFile{Data: []byte(`package main`)},
 		".gitignore": &fstest.MapFile{Data: []byte("node_modules\n")},
 	}
-	hash, err := dirhash.Hash(fsys)
+	h1, err := dirhash.Hash(fsys)
 	is.NoErr(err)
-	is.Equal(hash, "vs70i6JSubE")
 
 	fsys["node_modules/svelte/index.js"] = &fstest.MapFile{Data: []byte(`export default svelte`)}
-	hash, err = dirhash.Hash(fsys)
+	h2, err := dirhash.Hash(fsys)
 	is.NoErr(err)
-	is.Equal(hash, "eU_TkhGsqxk")
+	is.True(h1 != h2)
 
 	// Skip node_modules
-	hash, err = dirhash.Hash(fsys, dirhash.WithSkip(gitignore.FromFS(fsys)))
+	h3, err := dirhash.Hash(fsys, dirhash.WithSkip(gitignore.FromFS(fsys)))
 	is.NoErr(err)
-	is.Equal(hash, "vs70i6JSubE")
+	is.True(h1 == h3)
 }

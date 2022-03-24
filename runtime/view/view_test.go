@@ -8,7 +8,7 @@ import (
 
 	"github.com/matryer/is"
 	"github.com/matthewmueller/gotext"
-	"gitlab.com/mnm/bud/pkg/vfs"
+	"gitlab.com/mnm/bud/package/vfs"
 	"gitlab.com/mnm/bud/runtime/view"
 )
 

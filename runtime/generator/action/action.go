@@ -8,10 +8,10 @@ import (
 	"io/fs"
 
 	"gitlab.com/mnm/bud/internal/gotemplate"
+	"gitlab.com/mnm/bud/package/di"
+	"gitlab.com/mnm/bud/package/gomod"
 	"gitlab.com/mnm/bud/package/overlay"
-	"gitlab.com/mnm/bud/pkg/di"
-	"gitlab.com/mnm/bud/pkg/gomod"
-	"gitlab.com/mnm/bud/pkg/parser"
+	"gitlab.com/mnm/bud/package/parser"
 )
 
 //go:embed action.gotext

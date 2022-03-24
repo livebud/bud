@@ -1,7 +1,6 @@
 package dirhash
 
 import (
-	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -61,11 +60,9 @@ func Hash(fsys fs.FS, options ...Option) (string, error) {
 		if err != nil {
 			return err
 		}
-		hf := sha256.New()
+		defer f.Close()
+		hf := xxhash.New()
 		_, err = io.Copy(hf, f)
-		if err := f.Close(); err != nil {
-			return err
-		}
 		if err != nil {
 			return err
 		}

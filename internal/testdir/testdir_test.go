@@ -9,7 +9,7 @@ import (
 
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/internal/testdir"
-	"gitlab.com/mnm/bud/pkg/modcache"
+	"gitlab.com/mnm/bud/package/modcache"
 )
 
 func exists(fsys fs.FS, paths ...string) error {

@@ -13,8 +13,8 @@ import (
 	"gitlab.com/mnm/bud/package/merged"
 
 	"gitlab.com/mnm/bud/package/conjure"
-	"gitlab.com/mnm/bud/pkg/gomod"
-	"gitlab.com/mnm/bud/pkg/pluginfs"
+	"gitlab.com/mnm/bud/package/gomod"
+	"gitlab.com/mnm/bud/package/pluginfs"
 )
 
 // Load the overlay filesystem

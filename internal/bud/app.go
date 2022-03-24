@@ -6,12 +6,11 @@ import (
 	"net"
 	"os/exec"
 
-	"gitlab.com/mnm/bud/pkg/gomod"
-	"gitlab.com/mnm/bud/pkg/socket"
+	"gitlab.com/mnm/bud/package/gomod"
+	"gitlab.com/mnm/bud/package/socket"
 )
 
 type App struct {
-	Path   string
 	Module *gomod.Module
 	Env    []string
 	Stdout io.Writer
@@ -23,7 +22,7 @@ func (a *App) args(args ...string) []string {
 }
 
 func (a *App) command(ctx context.Context, args ...string) *exec.Cmd {
-	cmd := exec.CommandContext(ctx, a.Path, args...)
+	cmd := exec.CommandContext(ctx, a.Module.Directory("bud", "app"), args...)
 	cmd.Dir = a.Module.Directory()
 	cmd.Env = a.Env
 	cmd.Stderr = a.Stderr

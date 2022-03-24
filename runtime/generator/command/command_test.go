@@ -101,7 +101,7 @@ func TestNested(t *testing.T) {
 			"context"
 			"fmt"
 
-			router "gitlab.com/mnm/bud/pkg/router"
+			router "gitlab.com/mnm/bud/package/router"
 		)
 
 		type Command struct {
@@ -122,7 +122,7 @@ func TestNested(t *testing.T) {
 			"context"
 			"fmt"
 
-			router "gitlab.com/mnm/bud/pkg/router"
+			router "gitlab.com/mnm/bud/package/router"
 		)
 
 		type Command struct {

@@ -10,8 +10,8 @@ import (
 
 	"gitlab.com/mnm/bud/package/overlay"
 
-	"gitlab.com/mnm/bud/pkg/gomod"
-	"gitlab.com/mnm/bud/pkg/js"
+	"gitlab.com/mnm/bud/package/gomod"
+	"gitlab.com/mnm/bud/package/js"
 	"gitlab.com/mnm/bud/runtime/transform"
 	"gitlab.com/mnm/bud/runtime/view/dom"
 	"gitlab.com/mnm/bud/runtime/view/ssr"

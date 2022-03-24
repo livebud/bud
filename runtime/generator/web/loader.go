@@ -11,9 +11,9 @@ import (
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/imports"
 	"gitlab.com/mnm/bud/internal/ldflag"
-	"gitlab.com/mnm/bud/pkg/gomod"
-	"gitlab.com/mnm/bud/pkg/parser"
-	"gitlab.com/mnm/bud/pkg/vfs"
+	"gitlab.com/mnm/bud/package/gomod"
+	"gitlab.com/mnm/bud/package/parser"
+	"gitlab.com/mnm/bud/package/vfs"
 )
 
 func Load(fsys fs.FS, module *gomod.Module, parser *parser.Parser) (*State, error) {
@@ -53,9 +53,9 @@ func (l *loader) Load() (state *State, err error) {
 	// Add initial imports
 	l.imports.AddStd("net", "net/http", "context")
 	l.imports.AddNamed("hot", "gitlab.com/mnm/bud/runtime/hot")
-	l.imports.AddNamed("middleware", "gitlab.com/mnm/bud/pkg/middleware")
+	l.imports.AddNamed("middleware", "gitlab.com/mnm/bud/package/middleware")
 	l.imports.AddNamed("web", "gitlab.com/mnm/bud/runtime/web")
-	l.imports.AddNamed("router", "gitlab.com/mnm/bud/pkg/router")
+	l.imports.AddNamed("router", "gitlab.com/mnm/bud/package/router")
 	if l.exist["bud/.app/public/public.go"] {
 		state.HasPublic = true
 		l.imports.AddNamed("public", l.module.Import("bud/.app/public"))

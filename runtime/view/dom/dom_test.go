@@ -8,13 +8,13 @@ import (
 
 	"gitlab.com/mnm/bud/package/overlay"
 
-	"gitlab.com/mnm/bud/pkg/gomod"
+	"gitlab.com/mnm/bud/package/gomod"
 	"gitlab.com/mnm/bud/runtime/transform"
 
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/internal/testdir"
-	v8 "gitlab.com/mnm/bud/pkg/js/v8"
-	"gitlab.com/mnm/bud/pkg/svelte"
+	v8 "gitlab.com/mnm/bud/package/js/v8"
+	"gitlab.com/mnm/bud/package/svelte"
 	"gitlab.com/mnm/bud/runtime/view/dom"
 )
 

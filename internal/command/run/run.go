@@ -6,8 +6,8 @@ import (
 
 	"gitlab.com/mnm/bud/internal/bud"
 	"gitlab.com/mnm/bud/internal/command"
-	"gitlab.com/mnm/bud/pkg/log/console"
-	"gitlab.com/mnm/bud/pkg/socket"
+	"gitlab.com/mnm/bud/package/log/console"
+	"gitlab.com/mnm/bud/package/socket"
 )
 
 type Command struct {

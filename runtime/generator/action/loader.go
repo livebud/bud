@@ -16,10 +16,10 @@ import (
 	"github.com/matthewmueller/text"
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/pkg/di"
-	"gitlab.com/mnm/bud/pkg/gomod"
-	"gitlab.com/mnm/bud/pkg/parser"
-	"gitlab.com/mnm/bud/pkg/vfs"
+	"gitlab.com/mnm/bud/package/di"
+	"gitlab.com/mnm/bud/package/gomod"
+	"gitlab.com/mnm/bud/package/parser"
+	"gitlab.com/mnm/bud/package/vfs"
 )
 
 func Load(fsys fs.FS, injector *di.Injector, module *gomod.Module, parser *parser.Parser) (*State, error) {
@@ -476,9 +476,7 @@ func (l *loader) loadContext(controller *Controller, method *parser.Function) *C
 			},
 		},
 		Aliases: di.Aliases{
-			di.ToType("gitlab.com/mnm/bud/bfs", "FS"):                di.ToType("gitlab.com/mnm/bud/pkg/gen", "*FileSystem"),
-			di.ToType("gitlab.com/mnm/bud/pkg/gen", "FS"):            di.ToType("gitlab.com/mnm/bud/pkg/gen", "*FileSystem"),
-			di.ToType("gitlab.com/mnm/bud/pkg/js", "VM"):             di.ToType("gitlab.com/mnm/bud/pkg/js/v8client", "*Client"),
+			di.ToType("gitlab.com/mnm/bud/package/js", "VM"):         di.ToType("gitlab.com/mnm/bud/package/js/v8client", "*Client"),
 			di.ToType("gitlab.com/mnm/bud/runtime/view", "Renderer"): di.ToType("gitlab.com/mnm/bud/runtime/view", "*Server"),
 		},
 	})

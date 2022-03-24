@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"gitlab.com/mnm/bud/internal/dsync/set"
-	"gitlab.com/mnm/bud/pkg/vfs"
+	"gitlab.com/mnm/bud/package/vfs"
 )
 
 type skipFunc = func(name string, isDir bool) bool

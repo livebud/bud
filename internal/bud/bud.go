@@ -9,18 +9,18 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"gitlab.com/mnm/bud/generator/cli/command"
-	"gitlab.com/mnm/bud/generator/cli/generator"
-	"gitlab.com/mnm/bud/generator/cli/mainfile"
-	"gitlab.com/mnm/bud/generator/cli/program"
-	"gitlab.com/mnm/bud/internal/dirhash"
 	"gitlab.com/mnm/bud/internal/dsync"
-	"gitlab.com/mnm/bud/internal/gitignore"
+	"gitlab.com/mnm/bud/internal/generator/command"
+	"gitlab.com/mnm/bud/internal/generator/generator"
+	"gitlab.com/mnm/bud/internal/generator/mainfile"
+	"gitlab.com/mnm/bud/internal/generator/program"
+	"gitlab.com/mnm/bud/internal/imhash"
+	"gitlab.com/mnm/bud/internal/symlink"
+	"gitlab.com/mnm/bud/package/di"
+	"gitlab.com/mnm/bud/package/gomod"
 	"gitlab.com/mnm/bud/package/overlay"
+	"gitlab.com/mnm/bud/package/parser"
 	"gitlab.com/mnm/bud/package/trace"
-	"gitlab.com/mnm/bud/pkg/di"
-	"gitlab.com/mnm/bud/pkg/gomod"
-	"gitlab.com/mnm/bud/pkg/parser"
 )
 
 func defaultEnv(module *gomod.Module) Env {
@@ -63,8 +63,8 @@ type Compiler struct {
 	ModCacheRW bool
 }
 
-func (c *Compiler) cachePath(module *gomod.Module) (string, error) {
-	hash, err := dirhash.Hash(module, dirhash.WithSkip(gitignore.FromFS(module)))
+func (c *Compiler) cachePath(module *gomod.Module, mainDir string) (string, error) {
+	hash, err := imhash.Hash(module, mainDir)
 	if err != nil {
 		return "", err
 	}
@@ -136,21 +136,24 @@ func (c *Compiler) Compile(ctx context.Context, flag Flag) (p *Project, err erro
 	if err := c.sync(ctx, overlay); err != nil {
 		return nil, err
 	}
-	cachePath := ""
 	cliPath := filepath.Join("bud", "cli")
 	// Cached build
 	if flag.Cache {
-		cachePath, err = c.cachePath(c.module)
+		cachedDir, err := c.cachePath(c.module, filepath.Join("bud", ".cli"))
 		if err != nil {
 			return nil, err
 		}
-		cliPath = filepath.Join(cachePath, "cli")
-		if _, err := os.Stat(cliPath); errors.Is(err, fs.ErrNotExist) {
+		cachedPath := filepath.Join(cachedDir, "cli")
+		if _, err := os.Stat(cachedPath); errors.Is(err, fs.ErrNotExist) {
 			// Build the binary
-			if err := c.goBuild(ctx, c.module, cliPath); err != nil {
+			if err := c.goBuild(ctx, c.module, cachedPath); err != nil {
 				return nil, err
 			}
 		} else if err != nil {
+			return nil, err
+		}
+		// Symlink cached binary to CLI path
+		if err := symlink.Link(cachedPath, c.module.Directory(cliPath)); err != nil {
 			return nil, err
 		}
 	} else {
@@ -160,8 +163,6 @@ func (c *Compiler) Compile(ctx context.Context, flag Flag) (p *Project, err erro
 		}
 	}
 	return &Project{
-		Path:   cliPath,
-		Cache:  cachePath,
 		Module: c.module,
 		Flag:   flag,
 		Env:    c.Env,

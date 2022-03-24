@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"io/fs"
 
+	"gitlab.com/mnm/bud/package/di"
 	"gitlab.com/mnm/bud/package/overlay"
-	"gitlab.com/mnm/bud/pkg/di"
-	"gitlab.com/mnm/bud/pkg/vfs"
+	"gitlab.com/mnm/bud/package/vfs"
 
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/pkg/gomod"
+	"gitlab.com/mnm/bud/package/gomod"
 )
 
 //go:embed program.gotext
@@ -38,13 +38,13 @@ func (p *Program) GenerateFile(ctx context.Context, _ overlay.F, file *overlay.F
 	// Add the imports
 	imports := imports.New()
 	imports.AddStd("errors", "context")
-	imports.AddNamed("console", "gitlab.com/mnm/bud/pkg/log/console")
+	imports.AddNamed("console", "gitlab.com/mnm/bud/package/log/console")
 	imports.Add(p.Module.Import("bud/.app/command"))
 	provider, err := p.Injector.Wire(&di.Function{
 		Name:   "loadCLI",
 		Target: p.Module.Import("bud", "program"),
 		Params: []di.Dependency{
-			di.ToType("gitlab.com/mnm/bud/pkg/gomod", "*Module"),
+			di.ToType("gitlab.com/mnm/bud/package/gomod", "*Module"),
 		},
 		Results: []di.Dependency{
 			di.ToType(p.Module.Import("bud", ".app", "command"), "*CLI"),
@@ -52,7 +52,7 @@ func (p *Program) GenerateFile(ctx context.Context, _ overlay.F, file *overlay.F
 		},
 		Aliases: di.Aliases{
 			di.ToType("io/fs", "FS"):                                 di.ToType("gitlab.com/mnm/bud/package/overlay", "*FileSystem"),
-			di.ToType("gitlab.com/mnm/bud/pkg/js", "VM"):             di.ToType("gitlab.com/mnm/bud/pkg/js/v8client", "*Client"),
+			di.ToType("gitlab.com/mnm/bud/package/js", "VM"):         di.ToType("gitlab.com/mnm/bud/package/js/v8client", "*Client"),
 			di.ToType("gitlab.com/mnm/bud/runtime/view", "Renderer"): di.ToType("gitlab.com/mnm/bud/runtime/view", "*Server"),
 		},
 	})

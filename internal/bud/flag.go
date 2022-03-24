@@ -11,17 +11,12 @@ type Flag struct {
 	Cache  bool
 }
 
-func (f *Flag) List(cachePath string) []string {
+func (f *Flag) List() []string {
 	args := []string{
 		"--embed=" + strconv.FormatBool(f.Embed),
 		"--hot=" + strconv.FormatBool(f.Hot),
 		"--minify=" + strconv.FormatBool(f.Minify),
-	}
-	// Add the cache path if the cache is enabled
-	if f.Cache {
-		args = append(args,
-			"--cache="+cachePath,
-		)
+		"--cache=" + strconv.FormatBool(f.Cache),
 	}
 	return args
 }

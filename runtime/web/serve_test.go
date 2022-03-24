@@ -9,7 +9,7 @@ import (
 	"github.com/matryer/is"
 	"golang.org/x/sync/errgroup"
 
-	"gitlab.com/mnm/bud/pkg/socket"
+	"gitlab.com/mnm/bud/package/socket"
 	"gitlab.com/mnm/bud/runtime/web"
 )
 

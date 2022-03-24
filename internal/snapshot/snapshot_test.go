@@ -19,38 +19,39 @@ func TestHash(t *testing.T) {
 	is := is.New(t)
 	mapfs := fstest.MapFS{}
 	mapfs["main.go"] = &fstest.MapFile{Data: []byte(`package main`)}
-	key, err := snapshot.Hash(mapfs)
+	h1, err := snapshot.Hash(mapfs)
 	is.NoErr(err)
-	is.Equal(key, `Fiyf9IKN3Y0`)
+	is.Equal(len(h1), 11)
 	mapfs["b/c/d.go"] = &fstest.MapFile{Data: []byte("package d"), Mode: 0644, ModTime: modTime}
-	key, err = snapshot.Hash(mapfs)
+	h2, err := snapshot.Hash(mapfs)
 	is.NoErr(err)
-	is.Equal(key, `kdsFZWQqPcc`)
+	is.Equal(len(h2), 11)
+	is.True(h1 != h2)
 	// New dir doesn't change anything
 	mapfs["e"] = &fstest.MapFile{Data: []byte(``), Mode: fs.ModeDir, ModTime: modTime}
-	key, err = snapshot.Hash(mapfs)
+	h3, err := snapshot.Hash(mapfs)
 	is.NoErr(err)
-	is.Equal(key, `kdsFZWQqPcc`)
+	is.True(h2 == h3)
 	// Adjust data
 	mapfs["main.go"] = &fstest.MapFile{Data: []byte(`package main; func main() {}`)}
-	key, err = snapshot.Hash(mapfs)
+	h4, err := snapshot.Hash(mapfs)
 	is.NoErr(err)
-	is.Equal(key, `5qEzdxZ33Ws`)
+	is.True(h3 != h4)
 	// Adjust mode doesn't change anything
 	mapfs["b/c/d.go"] = &fstest.MapFile{Data: []byte("package d"), Mode: 0655, ModTime: modTime}
-	key, err = snapshot.Hash(mapfs)
+	h5, err := snapshot.Hash(mapfs)
 	is.NoErr(err)
-	is.Equal(key, `5qEzdxZ33Ws`)
+	is.True(h4 == h5)
 	// Adjust modtime, shouldn't change anything
 	mapfs["b/c/d.go"] = &fstest.MapFile{Data: []byte("package d"), Mode: 0655, ModTime: modTime2}
-	key, err = snapshot.Hash(mapfs)
+	h6, err := snapshot.Hash(mapfs)
 	is.NoErr(err)
-	is.Equal(key, `5qEzdxZ33Ws`)
+	is.True(h5 == h6)
 	// Hash with no changes
 	mapfs["b/c/d.go"] = &fstest.MapFile{Data: []byte("package d"), Mode: 0655, ModTime: modTime2}
-	key, err = snapshot.Hash(mapfs)
+	h7, err := snapshot.Hash(mapfs)
 	is.NoErr(err)
-	is.Equal(key, `5qEzdxZ33Ws`)
+	is.True(h6 == h7)
 }
 
 func TestBackupRestore(t *testing.T) {
@@ -59,19 +60,19 @@ func TestBackupRestore(t *testing.T) {
 	current := fstest.MapFS{
 		"main.go": &fstest.MapFile{Data: []byte(`package main`)},
 	}
-	hash, err := snapshot.Hash(original)
+	h1, err := snapshot.Hash(original)
 	is.NoErr(err)
-	is.Equal(hash, "70bbN1HY6Zk")
+	is.Equal(len(h1), 11)
 	// Backup based on the hash
-	err = snapshot.Backup(hash, current)
+	err = snapshot.Backup(h1, current)
 	is.NoErr(err)
-	fsys, err := snapshot.Restore(hash)
+	fsys, err := snapshot.Restore(h1)
 	is.NoErr(err)
 	data, err := fs.ReadFile(fsys, "main.go")
 	is.NoErr(err)
 	is.Equal(string(data), "package main")
 	// Restore again
-	fsys, err = snapshot.Restore(hash)
+	fsys, err = snapshot.Restore(h1)
 	is.NoErr(err)
 	data, err = fs.ReadFile(fsys, "main.go")
 	is.NoErr(err)
@@ -83,11 +84,11 @@ func TestRestoreNotExist(t *testing.T) {
 	original := fstest.MapFS{
 		"bin.go": &fstest.MapFile{Data: []byte(`package bin`)},
 	}
-	hash, err := snapshot.Hash(original)
+	h1, err := snapshot.Hash(original)
 	is.NoErr(err)
-	is.Equal(hash, "FD4w4ZnukkU")
+	is.Equal(len(h1), 11)
 	// Restore non-existent
-	fsys, err := snapshot.Restore(hash)
+	fsys, err := snapshot.Restore(h1)
 	is.True(errors.Is(err, fs.ErrNotExist))
 	is.Equal(fsys, nil)
 }

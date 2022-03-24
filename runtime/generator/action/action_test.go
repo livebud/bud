@@ -1813,8 +1813,6 @@ func TestResourceContext(t *testing.T) {
 }
 
 func TestWorkingChangeWorking(t *testing.T) {
-	// TODO: remove skip
-	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()

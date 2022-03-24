@@ -7,9 +7,9 @@ import (
 
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
+	"gitlab.com/mnm/bud/package/gomod"
 	"gitlab.com/mnm/bud/package/overlay"
-	"gitlab.com/mnm/bud/pkg/gomod"
-	"gitlab.com/mnm/bud/pkg/vfs"
+	"gitlab.com/mnm/bud/package/vfs"
 )
 
 //go:embed view.gotext
@@ -36,8 +36,8 @@ func (g *Generator) GenerateFile(ctx context.Context, _ overlay.F, file *overlay
 	imports := imports.New()
 	imports.AddNamed("transform", g.Module.Import("bud/.app/transform"))
 	imports.AddNamed("overlay", "gitlab.com/mnm/bud/package/overlay")
-	imports.AddNamed("mod", "gitlab.com/mnm/bud/pkg/gomod")
-	imports.AddNamed("js", "gitlab.com/mnm/bud/pkg/js")
+	imports.AddNamed("mod", "gitlab.com/mnm/bud/package/gomod")
+	imports.AddNamed("js", "gitlab.com/mnm/bud/package/js")
 	imports.AddNamed("view", "gitlab.com/mnm/bud/runtime/view")
 	code, err := generator.Generate(State{
 		Imports: imports.List(),

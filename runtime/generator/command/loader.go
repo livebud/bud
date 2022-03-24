@@ -11,8 +11,8 @@ import (
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/imports"
 	"gitlab.com/mnm/bud/internal/valid"
-	"gitlab.com/mnm/bud/pkg/gomod"
-	"gitlab.com/mnm/bud/pkg/parser"
+	"gitlab.com/mnm/bud/package/gomod"
+	"gitlab.com/mnm/bud/package/parser"
 )
 
 // Load state
@@ -60,7 +60,7 @@ func (l *loader) loadRoot(base string) *Command {
 		l.imports.AddStd("os")
 		// l.imports.AddStd("fmt")
 		l.imports.AddNamed("web", l.module.Import("bud", ".app", "web"))
-		l.imports.AddNamed("socket", "gitlab.com/mnm/bud/pkg/socket")
+		l.imports.AddNamed("socket", "gitlab.com/mnm/bud/package/socket")
 		command.Runnable = true
 	}
 	des, err := fs.ReadDir(l.fsys, base)

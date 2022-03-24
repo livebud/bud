@@ -22,9 +22,9 @@ import (
 	"github.com/matthewmueller/diff"
 	"gitlab.com/mnm/bud/internal/bud"
 	"gitlab.com/mnm/bud/internal/testdir"
-	"gitlab.com/mnm/bud/pkg/gomod"
-	"gitlab.com/mnm/bud/pkg/modcache"
-	"gitlab.com/mnm/bud/pkg/socket"
+	"gitlab.com/mnm/bud/package/gomod"
+	"gitlab.com/mnm/bud/package/modcache"
+	"gitlab.com/mnm/bud/package/socket"
 )
 
 var cache = flag.Bool("cache", true, "enable compiler caching")
@@ -137,6 +137,10 @@ func (p *Project) Exists(paths ...string) error {
 		}
 	}
 	return nil
+}
+
+func (p *Project) Directory(paths ...string) string {
+	return p.module.Directory(paths...)
 }
 
 func (p *Project) Execute(ctx context.Context, args ...string) (stdout Stdio, stderr Stdio, err error) {

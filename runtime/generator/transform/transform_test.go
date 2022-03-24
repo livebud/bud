@@ -8,7 +8,7 @@ import (
 
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/internal/budtest"
-	"gitlab.com/mnm/bud/pkg/modcache"
+	"gitlab.com/mnm/bud/package/modcache"
 )
 
 // TODO: re-enable once bud/app is always built

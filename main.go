@@ -15,7 +15,7 @@ import (
 
 	"gitlab.com/mnm/bud/package/commander"
 
-	"gitlab.com/mnm/bud/pkg/log/console"
+	"gitlab.com/mnm/bud/package/log/console"
 )
 
 func main() {

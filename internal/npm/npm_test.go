@@ -7,7 +7,7 @@ import (
 
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/internal/npm"
-	"gitlab.com/mnm/bud/pkg/vfs"
+	"gitlab.com/mnm/bud/package/vfs"
 )
 
 func exists(t testing.TB, path string) {

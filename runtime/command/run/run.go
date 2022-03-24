@@ -3,7 +3,7 @@ package run
 import (
 	"context"
 
-	"gitlab.com/mnm/bud/pkg/socket"
+	"gitlab.com/mnm/bud/package/socket"
 	"gitlab.com/mnm/bud/runtime/project"
 )
 

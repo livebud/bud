@@ -10,7 +10,7 @@ import (
 	"github.com/matryer/is"
 	"gitlab.com/mnm/bud/internal/dsync"
 	"gitlab.com/mnm/bud/package/conjure"
-	"gitlab.com/mnm/bud/pkg/vfs"
+	"gitlab.com/mnm/bud/package/vfs"
 )
 
 func TestFileSync(t *testing.T) {

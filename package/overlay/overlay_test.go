@@ -11,8 +11,8 @@ import (
 	"gitlab.com/mnm/bud/package/overlay"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/pkg/gomod"
-	"gitlab.com/mnm/bud/pkg/modcache"
+	"gitlab.com/mnm/bud/package/gomod"
+	"gitlab.com/mnm/bud/package/modcache"
 )
 
 const modFile = `

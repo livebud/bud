@@ -13,8 +13,8 @@ import (
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"gitlab.com/mnm/bud/internal/entrypoint"
 	"gitlab.com/mnm/bud/internal/gotemplate"
+	"gitlab.com/mnm/bud/package/gomod"
 	"gitlab.com/mnm/bud/package/overlay"
-	"gitlab.com/mnm/bud/pkg/gomod"
 	"gitlab.com/mnm/bud/runtime/transform"
 )
 

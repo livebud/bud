@@ -5,8 +5,8 @@ import (
 	_ "embed"
 	"io/fs"
 
+	"gitlab.com/mnm/bud/package/gomod"
 	"gitlab.com/mnm/bud/package/overlay"
-	"gitlab.com/mnm/bud/pkg/gomod"
 
 	"gitlab.com/mnm/bud/internal/gotemplate"
 )

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"gitlab.com/mnm/bud/pkg/js"
+	"gitlab.com/mnm/bud/package/js"
 )
 
 type Command struct {

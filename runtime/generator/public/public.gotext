@@ -10,7 +10,7 @@ import (
 	"path"
 	"time"
 
-	"gitlab.com/mnm/bud/pkg/middleware"
+	"gitlab.com/mnm/bud/package/middleware"
 )
 
 func New(fsys fs.FS) Middleware {

@@ -7,7 +7,7 @@ import (
 
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/pkg/gomod"
+	"gitlab.com/mnm/bud/package/gomod"
 )
 
 func Load(fsys fs.FS, module *gomod.Module, embed, minify bool) (*State, error) {

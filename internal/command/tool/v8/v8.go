@@ -11,7 +11,7 @@ import (
 
 	"github.com/mattn/go-isatty"
 	"gitlab.com/mnm/bud/internal/command"
-	v8 "gitlab.com/mnm/bud/pkg/js/v8"
+	v8 "gitlab.com/mnm/bud/package/js/v8"
 )
 
 type Command struct {

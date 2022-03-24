@@ -24,9 +24,9 @@ import (
 	"gitlab.com/mnm/bud/internal/snapshot"
 
 	"gitlab.com/mnm/bud/internal/npm"
-	"gitlab.com/mnm/bud/pkg/gomod"
-	"gitlab.com/mnm/bud/pkg/modcache"
-	"gitlab.com/mnm/bud/pkg/vfs"
+	"gitlab.com/mnm/bud/package/gomod"
+	"gitlab.com/mnm/bud/package/modcache"
+	"gitlab.com/mnm/bud/package/vfs"
 	"golang.org/x/mod/modfile"
 )
 

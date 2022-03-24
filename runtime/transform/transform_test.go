@@ -11,7 +11,7 @@ import (
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/pkg/vfs"
+	"gitlab.com/mnm/bud/package/vfs"
 	"gitlab.com/mnm/bud/runtime/transform"
 )
 

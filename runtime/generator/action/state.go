@@ -6,7 +6,7 @@ import (
 
 	"github.com/matthewmueller/gotext"
 	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/pkg/parser"
+	"gitlab.com/mnm/bud/package/parser"
 )
 
 type State struct {
