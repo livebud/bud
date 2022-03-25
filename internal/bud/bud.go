@@ -2,7 +2,6 @@ package bud
 
 import (
 	"context"
-	"errors"
 	"io"
 	"io/fs"
 	"os"
@@ -12,10 +11,9 @@ import (
 	"gitlab.com/mnm/bud/internal/dsync"
 	"gitlab.com/mnm/bud/internal/generator/command"
 	"gitlab.com/mnm/bud/internal/generator/generator"
+	"gitlab.com/mnm/bud/internal/generator/importfile"
 	"gitlab.com/mnm/bud/internal/generator/mainfile"
 	"gitlab.com/mnm/bud/internal/generator/program"
-	"gitlab.com/mnm/bud/internal/imhash"
-	"gitlab.com/mnm/bud/internal/symlink"
 	"gitlab.com/mnm/bud/package/di"
 	"gitlab.com/mnm/bud/package/gomod"
 	"gitlab.com/mnm/bud/package/overlay"
@@ -67,14 +65,6 @@ type Compiler struct {
 	ModCacheRW bool
 }
 
-func (c *Compiler) cachePath(module *gomod.Module, mainDir string) (string, error) {
-	hash, err := imhash.Hash(module, mainDir)
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(os.TempDir(), "bud-compiler", hash), nil
-}
-
 // Load the overlay
 func (c *Compiler) loadOverlay(ctx context.Context, module *gomod.Module) (fsys *overlay.FileSystem, err error) {
 	_, span := trace.Start(ctx, "load the overlay")
@@ -82,11 +72,25 @@ func (c *Compiler) loadOverlay(ctx context.Context, module *gomod.Module) (fsys 
 	return overlay.Load(module)
 }
 
+func (c *Compiler) writeImporter(ctx context.Context, overlay *overlay.FileSystem) error {
+	importFile, err := fs.ReadFile(overlay, "bud/import.go")
+	if err != nil {
+		return err
+	}
+	if err := c.module.DirFS().WriteFile("bud/import.go", importFile, 0644); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Sync the generators to bud/.cli
 func (c *Compiler) sync(ctx context.Context, overlay *overlay.FileSystem) (err error) {
 	_, span := trace.Start(ctx, "sync cli", "dir", "bud/.cli")
 	defer span.End(&err)
-	return dsync.Dir(overlay, "bud/.cli", c.module.DirFS("bud/.cli"), ".")
+	if err := dsync.Dir(overlay, "bud/.cli", c.module.DirFS("bud/.cli"), "."); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Build the CLI
@@ -132,6 +136,7 @@ func (c *Compiler) Compile(ctx context.Context, flag Flag) (p *Project, err erro
 	parser := parser.New(overlay, c.module)
 	injector := di.New(overlay, c.module, parser)
 	// Setup the generators
+	overlay.FileGenerator("bud/import.go", importfile.New(c.module))
 	overlay.FileGenerator("bud/.cli/main.go", mainfile.New(c.module))
 	overlay.FileGenerator("bud/.cli/program/program.go", program.New(injector, c.module))
 	overlay.FileGenerator("bud/.cli/command/command.go", command.New(overlay, c.module, parser))
@@ -140,31 +145,13 @@ func (c *Compiler) Compile(ctx context.Context, flag Flag) (p *Project, err erro
 	if err := c.sync(ctx, overlay); err != nil {
 		return nil, err
 	}
-	cliPath := filepath.Join("bud", "cli")
-	// Cached build
-	if flag.Cache {
-		cachedDir, err := c.cachePath(c.module, filepath.Join("bud", ".cli"))
-		if err != nil {
-			return nil, err
-		}
-		cachedPath := filepath.Join(cachedDir, "cli")
-		if _, err := os.Stat(cachedPath); errors.Is(err, fs.ErrNotExist) {
-			// Build the binary
-			if err := c.goBuild(ctx, c.module, cachedPath); err != nil {
-				return nil, err
-			}
-		} else if err != nil {
-			return nil, err
-		}
-		// Symlink cached binary to CLI path
-		if err := symlink.Link(cachedPath, c.module.Directory(cliPath)); err != nil {
-			return nil, err
-		}
-	} else {
-		// Build the binary
-		if err := c.goBuild(ctx, c.module, cliPath); err != nil {
-			return nil, err
-		}
+	// Write the import generator
+	if err := c.writeImporter(ctx, overlay); err != nil {
+		return nil, err
+	}
+	// Build the binary
+	if err := c.goBuild(ctx, c.module, filepath.Join("bud", "cli")); err != nil {
+		return nil, err
 	}
 	return &Project{
 		Module: c.module,

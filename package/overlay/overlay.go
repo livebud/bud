@@ -24,7 +24,6 @@ func Load(module *gomod.Module) (*FileSystem, error) {
 	cfs := conjure.New()
 	merged := merged.Merge(cfs, pluginFS)
 	dag := dag.New()
-	// cached := fscache.Wrap(merged)
 	ps := pubsub.New()
 	return &FileSystem{cfs, dag, merged, module, ps}, nil
 }
@@ -45,7 +44,6 @@ func (f *FileSystem) Link(from, to string) {
 }
 
 func (f *FileSystem) Open(name string) (fs.File, error) {
-	// fmt.Println("open", name)
 	return f.fsys.Open(name)
 }
 

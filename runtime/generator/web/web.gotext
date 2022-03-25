@@ -30,13 +30,13 @@ func New(
 	{{- end }}
 	// Compose the middleware together
 	middleware := middleware.Compose(
-		{{- if $.HasPublic }}
-		public,
-		{{- end }}
+		router,
 		{{- if $.HasView }}
 		view,
 		{{- end }}
-		router,
+		{{- if $.HasPublic }}
+		public,
+		{{- end }}
 	)
 	// 404 at the bottom of the middleware
 	handler := middleware.Middleware(http.NotFoundHandler())

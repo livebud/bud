@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.com/mnm/bud/internal/fscache"
 	"gitlab.com/mnm/bud/internal/gois"
 	"gitlab.com/mnm/bud/package/vfs"
 )
@@ -63,27 +62,6 @@ func (m *Module) FindIn(fsys fs.FS, importPath string) (*Module, error) {
 // Open a file within the module
 func (m *Module) Open(name string) (fs.File, error) {
 	return os.Open(filepath.Join(m.dir, name))
-	// if m.opt.fsCache == nil {
-	// }
-	// return m.cachedOpen(name)
-}
-
-func (m *Module) cachedOpen(name string) (fs.File, error) {
-	fcache := m.opt.fsCache
-	if fcache.Has(name) {
-		return fcache.Open(name)
-	}
-	file, err := os.Open(filepath.Join(m.dir, name))
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	vfile, err := fscache.From(file)
-	if err != nil {
-		return nil, err
-	}
-	fcache.Set(name, vfile)
-	return fcache.Open(name)
 }
 
 // ResolveImport returns an import path from a local directory.

@@ -36,6 +36,14 @@ func (c *Cache) Open(path string) (fs.File, error) {
 	return entry.open(), nil
 }
 
+func (c *Cache) Keys() (keys []string) {
+	c.sm.Range(func(key, value interface{}) bool {
+		keys = append(keys, key.(string))
+		return true
+	})
+	return keys
+}
+
 // File events
 
 // Update event

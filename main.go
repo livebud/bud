@@ -42,7 +42,6 @@ func do() error {
 		cli.Flag("embed", "embed the assets").Bool(&bud.Flag.Embed).Default(false)
 		cli.Flag("hot", "hot reload the frontend").Bool(&bud.Flag.Hot).Default(true)
 		cli.Flag("minify", "minify the assets").Bool(&bud.Flag.Minify).Default(false)
-		cli.Flag("cache", "use build cache").Bool(&bud.Flag.Cache).Default(true)
 		cli.Flag("port", "port").String(&cmd.Port).Default("3000")
 		cli.Run(cmd.Run)
 	}
@@ -53,7 +52,6 @@ func do() error {
 		cli.Flag("embed", "embed the assets").Bool(&bud.Flag.Embed).Default(true)
 		cli.Flag("hot", "hot reload the frontend").Bool(&bud.Flag.Hot).Default(false)
 		cli.Flag("minify", "minify the assets").Bool(&bud.Flag.Minify).Default(true)
-		cli.Flag("cache", "use build cache").Bool(&bud.Flag.Cache).Default(true)
 		cli.Run(cmd.Run)
 	}
 

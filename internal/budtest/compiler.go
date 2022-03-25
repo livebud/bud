@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"io/fs"
@@ -27,8 +26,6 @@ import (
 	"gitlab.com/mnm/bud/package/socket"
 )
 
-var cache = flag.Bool("cache", true, "enable compiler caching")
-
 func New(dir string) *Compiler {
 	return &Compiler{
 		dir: dir,
@@ -36,7 +33,6 @@ func New(dir string) *Compiler {
 			Embed:  false,
 			Minify: false,
 			Hot:    true,
-			Cache:  *cache,
 		},
 		Files:       map[string]string{},
 		BFiles:      map[string][]byte{},

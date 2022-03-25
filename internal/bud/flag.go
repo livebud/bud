@@ -8,7 +8,7 @@ type Flag struct {
 	Embed  bool
 	Hot    bool
 	Minify bool
-	Cache  bool
+	// Cache  bool
 }
 
 func (f *Flag) List() []string {
@@ -16,7 +16,7 @@ func (f *Flag) List() []string {
 		"--embed=" + strconv.FormatBool(f.Embed),
 		"--hot=" + strconv.FormatBool(f.Hot),
 		"--minify=" + strconv.FormatBool(f.Minify),
-		"--cache=" + strconv.FormatBool(f.Cache),
+		// "--cache=" + strconv.FormatBool(f.Cache),
 	}
 	return args
 }

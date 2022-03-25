@@ -28,7 +28,6 @@ func (c *CLI) Parse(ctx context.Context, args ...string) error {
 		cli.Flag("embed", "embed assets").Bool(&cmd.Flag.Embed).Default(false)
 		cli.Flag("hot", "hot reload").Bool(&cmd.Flag.Hot).Default(true)
 		cli.Flag("minify", "minify assets").Bool(&cmd.Flag.Minify).Default(false)
-		cli.Flag("cache", "enable build caching").Bool(&cmd.Flag.Cache).Default(true)
 		cli.Flag("port", "port to listen to").String(&cmd.Port).Default(":3000")
 		cli.Run(cmd.Run)
 	}
@@ -39,7 +38,6 @@ func (c *CLI) Parse(ctx context.Context, args ...string) error {
 		cli.Flag("embed", "embed assets").Bool(&cmd.Flag.Embed).Default(false)
 		cli.Flag("hot", "hot reload").Bool(&cmd.Flag.Hot).Default(true)
 		cli.Flag("minify", "minify assets").Bool(&cmd.Flag.Minify).Default(false)
-		cli.Flag("cache", "enable build caching").Bool(&cmd.Flag.Cache).Default(true)
 		cli.Run(cmd.Run)
 	}
 
