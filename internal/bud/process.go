@@ -18,7 +18,7 @@ func (p *Process) Close() error {
 		}
 	}
 	if err := p.cmd.Wait(); err != nil {
-		if !isExitStatus(err) {
+		if !isExitStatus(err) && !isWaitError(err) {
 			return err
 		}
 	}
@@ -31,6 +31,10 @@ func (p *Process) Wait() error {
 
 func isExitStatus(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "exit status ")
+}
+
+func isWaitError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "Wait was already called")
 }
 
 func (p *Process) Restart() error {
