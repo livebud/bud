@@ -1,6 +1,8 @@
 package pubsub
 
-import "sync"
+import (
+	"sync"
+)
 
 type Publisher interface {
 	Publish(topic string, data []byte)

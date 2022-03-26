@@ -26,8 +26,9 @@ type Command struct {
 func (c *Command) Run(ctx context.Context) error {
 	eg, ctx := errgroup.WithContext(ctx)
 	// Initialize the hot server
-	hotServer := hot.New()
+	var hotServer *hot.Server
 	if c.Flag.Hot {
+		hotServer = hot.New()
 		// Start the hot reload server
 		eg.Go(func() error { return c.startHot(ctx, hotServer) })
 	}
@@ -56,6 +57,10 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 		// Re-compile the app and restart the Go server
 		case ".go":
 			fmt.Println("restarting", path)
+			// Trigger a reload if there's a hot reload server configured
+			if hotServer != nil {
+				hotServer.Reload("*")
+			}
 			now := time.Now()
 			if err := process.Close(); err != nil {
 				fmt.Fprintln(os.Stderr, "error closing process", err)
@@ -75,11 +80,11 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 			return nil
 		// Hot reload the page
 		default:
-			if hotServer == nil {
-				return nil
-			}
 			fmt.Println("reloading", path)
-			hotServer.Reload("*")
+			// Trigger a reload if there's a hot reload server configured
+			if hotServer != nil {
+				hotServer.Reload("*")
+			}
 			return nil
 		}
 	}); err != nil {

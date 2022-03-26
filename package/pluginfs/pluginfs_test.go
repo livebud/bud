@@ -112,3 +112,7 @@ func TestMergeModules(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(string(code), `/* tailwind */`)
 }
+
+func TestPlugin(t *testing.T) {
+	t.SkipNow()
+}

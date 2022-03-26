@@ -3,6 +3,8 @@ package importfile
 import (
 	"context"
 	_ "embed"
+	"path"
+	"strings"
 
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
@@ -30,18 +32,29 @@ type Generator struct {
 }
 
 func (g *Generator) Parse(ctx context.Context) (*State, error) {
-	return &State{
-		Programs: []*imports.Import{
-			{
-				Name: "_",
-				Path: g.module.Import("bud/.cli/program"),
-			},
-			{
-				Name: "_",
-				Path: g.module.Import("bud/.app/program"),
-			},
+	state := new(State)
+	state.Programs = []*imports.Import{
+		{
+			Name: "_",
+			Path: g.module.Import("bud/.cli/program"),
 		},
-	}, nil
+		{
+			Name: "_",
+			Path: g.module.Import("bud/.app/program"),
+		},
+	}
+	// Range over requires
+	// TODO: consolidate with pluginfs
+	for _, req := range g.module.File().Requires() {
+		// The last path in the module path needs to start with "bud-"
+		if strings.HasPrefix(path.Base(req.Mod.Path), "bud-") {
+			state.Plugins = append(state.Plugins, &imports.Import{
+				Name: "_",
+				Path: req.Mod.Path,
+			})
+		}
+	}
+	return state, nil
 }
 
 // Generate a main file

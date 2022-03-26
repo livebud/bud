@@ -5,9 +5,18 @@
 package bud
 
 import (
+	{{/* Program support */}}
 	{{- if $.Programs }}
 	// Generated programs
 	{{- range $import := $.Programs }}
+	{{ $import.Name }} "{{ $import.Path }}"
+	{{- end }}
+	{{- end }}
+
+	{{/* Plugin support */}}
+	{{- if $.Plugins }}
+	// Generated plugins
+	{{- range $import := $.Plugins }}
 	{{ $import.Name }} "{{ $import.Path }}"
 	{{- end }}
 	{{- end }}

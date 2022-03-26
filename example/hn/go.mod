@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/matryer/is v1.4.0
 	gitlab.com/mnm/bud v0.0.0
+	gitlab.com/mnm/bud-tailwind v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -35,3 +36,5 @@ require (
 )
 
 replace gitlab.com/mnm/bud => ../..
+
+replace gitlab.com/mnm/bud-tailwind => ../../../bud-tailwind

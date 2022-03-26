@@ -127,8 +127,26 @@ func (res *Response) HTML(body string) http.Handler {
 		}
 		// Write the response
 		w.WriteHeader(res.status)
-		w.Write([]byte(body))
+		w.Write([]byte(wrapHTML(body)))
 	})
+}
+
+// TODO: make hot reload configurable
+func wrapHTML(body string) string {
+	return `
+		<!DOCTYPE html>
+		<html>
+		<head>
+			<meta charset="utf-8"/>
+		</head>
+		<body>
+			` + body + `
+			<script>
+				const sse = new EventSource("http://0.0.0.0:35729")
+				sse.addEventListener("message", () => { location.reload() })
+			</script>
+		</body>
+		</html>`
 }
 
 func (res *Response) ServeHTTP(w http.ResponseWriter, r *http.Request) {
