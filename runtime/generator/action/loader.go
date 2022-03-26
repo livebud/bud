@@ -163,7 +163,8 @@ func (l *loader) loadAction(controller *Controller, method *parser.Function) *Ac
 	action.Params = l.loadActionParams(method.Params())
 	action.Input = l.loadActionInput(action.Params)
 	action.Results = l.loadActionResults(method)
-	action.ResponseJSON = len(action.Results) > 0
+	action.RespondJSON = len(action.Results) > 0
+	action.RespondHTML = l.loadRespondHTML(action.Results)
 	action.Context = l.loadContext(controller, method)
 	action.Redirect = l.loadActionRedirect(action)
 	return action
@@ -439,6 +440,20 @@ func isSingleStruct(results ActionResults) bool {
 	default:
 		return false
 	}
+}
+
+func (l *loader) loadRespondHTML(results ActionResults) bool {
+	n := len(results)
+	if n == 1 || n == 2 {
+		if results[0].Named || results[0].Type != "string" {
+			return false
+		}
+		if n == 2 && !results[1].IsError {
+			return false
+		}
+		return true
+	}
+	return false
 }
 
 func (l *loader) loadContext(controller *Controller, method *parser.Function) *Context {

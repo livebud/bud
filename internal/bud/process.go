@@ -1,6 +1,7 @@
 package bud
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"strings"
@@ -37,13 +38,13 @@ func isWaitError(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "Wait was already called")
 }
 
-func (p *Process) Restart() error {
+func (p *Process) Restart(ctx context.Context) error {
 	// Close the process first
 	if err := p.Close(); err != nil {
 		return err
 	}
 	// Re-run the command again. cmd.Args[0] is the path, so we skip that.
-	cmd := exec.Command(p.cmd.Path, p.cmd.Args[1:]...)
+	cmd := exec.CommandContext(ctx, p.cmd.Path, p.cmd.Args[1:]...)
 	cmd.Env = p.cmd.Env
 	cmd.Stdout = p.cmd.Stdout
 	cmd.Stderr = p.cmd.Stderr

@@ -36,6 +36,16 @@ func TestIndexString(t *testing.T) {
 	defer server.Close()
 	res, err := server.Get("/")
 	is.NoErr(err)
+	// HTML response
+	is.NoErr(res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		Hello Users!
+	`))
+	// JSON response
+	res, err = server.GetJSON("/")
 	is.NoErr(err)
 	is.NoErr(res.Expect(`
 		HTTP/1.1 200 OK
@@ -66,6 +76,15 @@ func TestAboutIndexString(t *testing.T) {
 	is.NoErr(err)
 	defer server.Close()
 	res, err := server.Get("/about")
+	is.NoErr(err)
+	is.NoErr(res.Expect(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+
+		About
+	`))
+	res, err = server.GetJSON("/about")
 	is.NoErr(err)
 	is.NoErr(res.Expect(`
 		HTTP/1.1 200 OK
@@ -468,10 +487,10 @@ func TestDependencyRequest(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.Expect(`
 		HTTP/1.1 200 OK
-		Content-Type: application/json
+		Content-Type: text/html
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
 
-		"/"
+		/
 	`))
 }
 
@@ -1841,10 +1860,10 @@ func TestWorkingChangeWorking(t *testing.T) {
 	is.NoErr(err)
 	res.Expect(`
 		HTTP/1.1 200 OK
-		Content-Type: application/json
+		Content-Type: text/html
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
 
-		"Hello Users!"
+		Hello Users!
 	`)
 	// Update file
 	project.Files["action/action.go"] = `
@@ -1864,15 +1883,15 @@ func TestWorkingChangeWorking(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(app.Exists("bud/.app/action/action.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
-	err = server.Restart()
+	err = server.Restart(ctx)
 	is.NoErr(err)
 	res, err = server.Get("/")
 	is.NoErr(err)
 	is.NoErr(res.Expect(`
 		HTTP/1.1 200 OK
-		Content-Type: application/json
+		Content-Type: text/html
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
 
-		"Hello Humans!"
+		Hello Humans!
 	`))
 }

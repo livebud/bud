@@ -38,20 +38,21 @@ func (n Name) Pascal() string {
 
 // Action is the target action state
 type Action struct {
-	Name         string
-	Pascal       string
-	Camel        string
-	Short        string
-	View         *View
-	Key          string // Key is an extension-less path
-	Route        string // Route to this action
-	Redirect     string
-	Method       string
-	Context      *Context
-	Params       []*ActionParam
-	Input        string
-	Results      ActionResults
-	ResponseJSON bool
+	Name        string
+	Pascal      string
+	Camel       string
+	Short       string
+	View        *View
+	Key         string // Key is an extension-less path
+	Route       string // Route to this action
+	Redirect    string
+	Method      string
+	Context     *Context
+	Params      []*ActionParam
+	Input       string
+	Results     ActionResults
+	RespondJSON bool
+	RespondHTML bool
 }
 
 // View struct

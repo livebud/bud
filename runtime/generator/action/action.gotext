@@ -109,11 +109,13 @@ func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpReq
 		{{- if eq $action.Method "GET" }}
 		{{- if $action.View }}
 		HTML: {{ $action.Short }}.View.Handler("{{$action.View.Route}}", {{ $action.Results.Result }}),
+		{{- else if $action.RespondHTML }}
+		HTML: response.HTML({{ $action.Results.Result }}),
 		{{- end }}
 		{{- else }}
 		HTML: response.Status(302).Redirect(response.RedirectPath(httpRequest, {{$action.Redirect}})),
 		{{- end }}
-		{{- if $action.ResponseJSON }}
+		{{- if $action.RespondJSON }}
 		{{- if $action.Results.Result }}
 		JSON: response.JSON({{ $action.Results.Result }}),
 		{{- else }}

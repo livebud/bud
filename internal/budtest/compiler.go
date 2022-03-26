@@ -315,8 +315,8 @@ func isExitStatus(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "exit status ")
 }
 
-func (s *Server) Restart() error {
-	return s.process.Restart()
+func (s *Server) Restart(ctx context.Context) error {
+	return s.process.Restart(ctx)
 }
 
 func (s *Server) Request(req *http.Request) (*Response, error) {

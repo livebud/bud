@@ -105,6 +105,9 @@ func (s *Server) Render(path string, props interface{}) (*Response, error) {
 	if err := json.Unmarshal([]byte(result), res); err != nil {
 		return nil, err
 	}
+	if res.Status < 100 || res.Status > 999 {
+		return nil, fmt.Errorf("view: invalid status code %d", res.Status)
+	}
 	return res, nil
 }
 

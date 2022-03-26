@@ -67,44 +67,7 @@ func (res *Response) Redirect(path string) http.Handler {
 	})
 }
 
-// Render a view as HTML
-// func Render(renderer view.Renderer, props interface{}) http.Handler {
-// 	// response := &Response{
-// 	// 	headers: map[string]string{},
-// 	// }
-// 	// return response.Render(view, props)
-// 	return nil
-// }
-
-// // Render a view as HTML
-// func (res *Response) Render(view view.View, props interface{}) http.Handler {
-// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 		// Attach all preset headers
-// 		header := w.Header()
-// 		for key, value := range res.headers {
-// 			header.Set(key, value)
-// 		}
-// 		// Override any existing content types
-// 		header.Set("Content-Type", "text/html")
-// 		result, err := view.Render(props)
-// 		if err != nil {
-// 			fmt.Println("TODO HANDLE ERROR BETTER:", err.Error())
-// 			w.WriteHeader(500)
-// 			// TODO: probably redirect instead
-// 			w.Write([]byte(err.Error()))
-// 			return
-// 		}
-// 		// Default status is 200 OK
-// 		if res.status == 0 {
-// 			res.status = 200
-// 		}
-// 		// Write the response
-// 		w.WriteHeader(res.status)
-// 		w.Write(gohtml.FormatBytes(result))
-// 	})
-// }
-
-// Render JSON
+// JSON response
 func JSON(props interface{}) http.Handler {
 	response := &Response{
 		headers: map[string]string{},
@@ -140,6 +103,34 @@ func (res *Response) JSON(props interface{}) http.Handler {
 	})
 }
 
+// HTML response
+func HTML(body string) http.Handler {
+	response := &Response{
+		headers: map[string]string{},
+	}
+	return response.HTML(body)
+}
+
+// HTML responds with an HTML response.
+func (res *Response) HTML(body string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Attach all preset headers
+		header := w.Header()
+		for key, value := range res.headers {
+			header.Set(key, value)
+		}
+		// Override any existing content types
+		header.Set("Content-Type", "text/html")
+		// Default status is 200 OK
+		if res.status == 0 {
+			res.status = 200
+		}
+		// Write the response
+		w.WriteHeader(res.status)
+		w.Write([]byte(body))
+	})
+}
+
 func (res *Response) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Attach all preset headers
 	header := w.Header()
@@ -151,34 +142,6 @@ func (res *Response) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(res.status)
 }
-
-// // JSON responds with a JSON response.
-// func (res *Response) HTML(body string) http.Handler {
-// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 		// Attach all preset headers
-// 		header := w.Header()
-// 		for key, value := range res.headers {
-// 			header.Set(key, value)
-// 		}
-// 		// Override any existing content types
-// 		header.Set("Content-Type", "application/json")
-// 		// Marshal the JSON response
-// 		result, err := json.Marshal(body)
-// 		if err != nil {
-// 			w.WriteHeader(500)
-// 			// TODO: standardize this
-// 			w.Write([]byte(fmt.Sprintf(`{"error":{"message":%q}}`, err.Error())))
-// 			return
-// 		}
-// 		// Default status is 200 OK
-// 		if res.status == 0 {
-// 			res.status = 200
-// 		}
-// 		// Write the response
-// 		w.WriteHeader(res.status)
-// 		w.Write(result)
-// 	})
-// }
 
 // RedirectPath returns the response path.
 func RedirectPath(r *http.Request, subpath string) string {
