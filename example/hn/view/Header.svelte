@@ -1,6 +1,6 @@
 <div class="list">
   <img src="https://news.ycombinator.com/y18.gif" alt="Hacker News" />
-  <h1>Hacker News</h1>
+  <a href="/"><h1>Hacker News</h1></a>
   <div class="links">
     <a href="/news">News</a>
     <a href="/ask">Ask</a>

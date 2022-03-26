@@ -45,6 +45,7 @@ func (p *Program) GenerateFile(ctx context.Context, _ overlay.F, file *overlay.F
 		Target: p.Module.Import("bud", "program"),
 		Params: []di.Dependency{
 			di.ToType("gitlab.com/mnm/bud/package/gomod", "*Module"),
+			di.ToType("context", "Context"),
 		},
 		Results: []di.Dependency{
 			di.ToType(p.Module.Import("bud", ".app", "command"), "*CLI"),

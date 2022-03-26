@@ -18,7 +18,9 @@ func (p *Process) Close() error {
 		}
 	}
 	if err := p.cmd.Wait(); err != nil {
-		return err
+		if !isExitStatus(err) {
+			return err
+		}
 	}
 	return nil
 }
@@ -32,16 +34,9 @@ func isExitStatus(err error) bool {
 }
 
 func (p *Process) Restart() error {
-	sp := p.cmd.Process
-	if sp != nil {
-		if err := sp.Signal(os.Interrupt); err != nil {
-			sp.Kill()
-		}
-	}
-	if err := p.cmd.Wait(); err != nil {
-		if !isExitStatus(err) {
-			return err
-		}
+	// Close the process first
+	if err := p.Close(); err != nil {
+		return err
 	}
 	// Re-run the command again. cmd.Args[0] is the path, so we skip that.
 	cmd := exec.Command(p.cmd.Path, p.cmd.Args[1:]...)

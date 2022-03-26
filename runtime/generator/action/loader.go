@@ -466,14 +466,9 @@ func (l *loader) loadContext(controller *Controller, method *parser.Function) *C
 			},
 		},
 		Params: []di.Dependency{
-			&di.Type{
-				Import: "net/http",
-				Type:   "ResponseWriter",
-			},
-			&di.Type{
-				Import: "net/http",
-				Type:   "*Request",
-			},
+			di.ToType("net/http", "ResponseWriter"),
+			di.ToType("net/http", "*Request"),
+			di.ToType("context", "Context"),
 		},
 		Aliases: di.Aliases{
 			di.ToType("gitlab.com/mnm/bud/package/js", "VM"):         di.ToType("gitlab.com/mnm/bud/package/js/v8client", "*Client"),

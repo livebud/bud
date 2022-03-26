@@ -1,6 +1,7 @@
 package v8client
 
 import (
+	"context"
 	"encoding/gob"
 	"errors"
 	"os"
@@ -8,7 +9,7 @@ import (
 )
 
 // Launch the process and return a client
-func Load() (c *Client, err error) {
+func Load(ctx context.Context) (c *Client, err error) {
 	// Try getting the BUD_PATH that's been passed in
 	budPath := os.Getenv("BUD_PATH")
 	if budPath == "" {
@@ -17,7 +18,7 @@ func Load() (c *Client, err error) {
 			return nil, err
 		}
 	}
-	cmd := exec.Command(budPath, "tool", "v8", "client")
+	cmd := exec.CommandContext(ctx, budPath, "tool", "v8", "client")
 	cmd.Env = os.Environ()
 	cmd.Stderr = os.Stderr
 	stdin, err := cmd.StdinPipe()
