@@ -5,12 +5,12 @@ import (
 )
 
 func NewTransformable(compiler *Compiler) *Transformable {
-	return &transform.Transformable{
+	return &Transformable{
 		From: ".svelte",
 		To:   ".js",
-		Map: transform.Map{
-			// Browser transform
-			transform.PlatformBrowser: func(file *transform.File) error {
+		For: transform.Platforms{
+			// DOM transform (browser)
+			transform.PlatformDOM: func(file *transform.File) error {
 				dom, err := compiler.DOM(file.Path(), file.Code)
 				if err != nil {
 					return err
@@ -19,8 +19,8 @@ func NewTransformable(compiler *Compiler) *Transformable {
 				return nil
 			},
 
-			// Node transform
-			transform.PlatformNode: func(file *transform.File) error {
+			// SSR transform (server)
+			transform.PlatformSSR: func(file *transform.File) error {
 				ssr, err := compiler.SSR(file.Path(), file.Code)
 				if err != nil {
 					return err

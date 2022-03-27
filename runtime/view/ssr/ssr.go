@@ -18,7 +18,7 @@ import (
 	"gitlab.com/mnm/bud/runtime/transform"
 )
 
-func Generator(fsys fs.FS, module *gomod.Module, transformer *transform.Transformer) overlay.FileGenerator {
+func Generator(fsys fs.FS, module *gomod.Module, transformer *transform.Map) overlay.FileGenerator {
 	dir := module.Directory()
 	plugins := append([]esbuild.Plugin{
 		ssrPlugin(fsys, dir),
@@ -28,7 +28,7 @@ func Generator(fsys fs.FS, module *gomod.Module, transformer *transform.Transfor
 		jsxTransformPlugin(fsys, dir),
 		sveltePlugin(fsys, dir),
 		svelteRuntimePlugin(fsys, dir),
-	}, transformer.Node.Plugins()...)
+	}, transformer.SSR.Plugins()...)
 	return overlay.GenerateFile(func(ctx context.Context, _ overlay.F, file *overlay.File) error {
 		result := esbuild.Build(esbuild.BuildOptions{
 			EntryPointsAdvanced: []esbuild.EntryPoint{

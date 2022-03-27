@@ -25,11 +25,24 @@ var template string
 // generator
 var generator = gotemplate.MustParse("dom.gotext", template)
 
-func Runner(fsys fs.FS, module *gomod.Module, transformer *transform.Transformer) overlay.FileServer {
+type Compiler struct {
+	Module    *gomod.Module
+	Transform *transform.DOM
+}
+
+func (c *Compiler) ServeFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
+	panic("serve file not implemented yet")
+}
+
+func (c *Compiler) GenerateFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
+	panic("generate file not implemented yet")
+}
+
+func Runner(fsys fs.FS, module *gomod.Module, transformer *transform.Map) overlay.FileServer {
 	plugins := append([]esbuild.Plugin{
 		domPlugin(fsys, module),
 		domExternalizePlugin(),
-	}, transformer.Browser.Plugins()...)
+	}, transformer.DOM.Plugins()...)
 	return overlay.ServeFile(func(ctx context.Context, f overlay.F, file *overlay.File) error {
 		// If the name starts with node_modules, trim it to allow esbuild to do
 		// the resolving. e.g. node_modules/livebud => livebud
@@ -109,10 +122,10 @@ func NodeModules(module *gomod.Module) overlay.FileServer {
 	})
 }
 
-func Builder(fsys fs.FS, module *gomod.Module, transformer *transform.Transformer) overlay.DirGenerator {
+func Builder(fsys fs.FS, module *gomod.Module, transformer *transform.Map) overlay.DirGenerator {
 	plugins := append([]esbuild.Plugin{
 		domPlugin(fsys, module),
-	}, transformer.Browser.Plugins()...)
+	}, transformer.DOM.Plugins()...)
 	return overlay.GenerateDir(func(ctx context.Context, f overlay.F, dir *overlay.Dir) error {
 		views, err := entrypoint.List(fsys, "view")
 		if err != nil {

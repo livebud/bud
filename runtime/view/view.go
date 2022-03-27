@@ -46,7 +46,7 @@ func Test(t testing.TB) *Server {
 }
 
 // Live server serves view files on the fly. Used during development.
-func Live(module *gomod.Module, overlay *overlay.FileSystem, vm js.VM, transformer *transform.Transformer) *Server {
+func Live(module *gomod.Module, overlay *overlay.FileSystem, vm js.VM, transformer *transform.Map) *Server {
 	overlay.FileServer("bud/view", dom.Runner(overlay, module, transformer))
 	overlay.FileServer("bud/node_modules", dom.NodeModules(module))
 	overlay.FileGenerator("bud/view/_ssr.js", ssr.Generator(overlay, module, transformer))

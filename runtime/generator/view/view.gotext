@@ -13,7 +13,7 @@ import (
 {{- end }}
 
 // New is called like this when calling bud run
-func New(module *mod.Module, overlay *overlay.FileSystem, vm js.VM, transformer *transform.Transformer) *Server {
+func New(module *mod.Module, overlay *overlay.FileSystem, vm js.VM, transformer *transform.Map) *Server {
 	return view.Live(module, overlay, vm, transformer)
 }
 

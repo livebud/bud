@@ -17,7 +17,7 @@ func New(
 	web *web.Generator,
 	public *public.Generator,
 	action *action.Generator,
-	view *view.Generator,
+	view *view.Compiler,
 	transform *transform.Generator,
 ) FS {
 	overlay.FileGenerator("bud/.app/main.go", main)

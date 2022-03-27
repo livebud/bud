@@ -9,7 +9,7 @@ import (
 	"gitlab.com/mnm/bud/internal/imports"
 	"gitlab.com/mnm/bud/package/gomod"
 	"gitlab.com/mnm/bud/package/overlay"
-	"gitlab.com/mnm/bud/package/vfs"
+	"gitlab.com/mnm/bud/runtime/bud"
 )
 
 //go:embed view.gotext
@@ -17,31 +17,40 @@ var template string
 
 var generator = gotemplate.MustParse("view.gotext", template)
 
-type Generator struct {
+type Compiler struct {
+	Flag   *bud.Flag
 	FS     fs.FS
 	Module *gomod.Module
+	// DOM    *dom.Compiler
 }
 
 type State struct {
 	Imports []*imports.Import
 }
 
-func (g *Generator) GenerateFile(ctx context.Context, _ overlay.F, file *overlay.File) error {
-	exist, err := vfs.SomeExist(g.FS, "view")
+// Generate the view
+func Generate(state *State) ([]byte, error) {
+	return generator.Generate(state)
+}
+
+func (c *Compiler) Parse(ctx context.Context) (*State, error) {
+	return (&parser{
+		FS:      c.FS,
+		Module:  c.Module,
+		Imports: imports.New(),
+	}).Parse(ctx)
+}
+
+func (c *Compiler) Compile(ctx context.Context) ([]byte, error) {
+	state, err := c.Parse(ctx)
 	if err != nil {
-		return err
-	} else if len(exist) == 0 {
-		return fs.ErrNotExist
+		return nil, err
 	}
-	imports := imports.New()
-	imports.AddNamed("transform", g.Module.Import("bud/.app/transform"))
-	imports.AddNamed("overlay", "gitlab.com/mnm/bud/package/overlay")
-	imports.AddNamed("mod", "gitlab.com/mnm/bud/package/gomod")
-	imports.AddNamed("js", "gitlab.com/mnm/bud/package/js")
-	imports.AddNamed("view", "gitlab.com/mnm/bud/runtime/view")
-	code, err := generator.Generate(State{
-		Imports: imports.List(),
-	})
+	return Generate(state)
+}
+
+func (c *Compiler) GenerateFile(ctx context.Context, _ overlay.F, file *overlay.File) error {
+	code, err := c.Compile(ctx)
 	if err != nil {
 		return err
 	}

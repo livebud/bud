@@ -21,24 +21,24 @@ func (f *File) Path() string {
 	return base + f.ext
 }
 
-// Platform we're transforming to. Based on esbuild's Platform settings.
+// Platform we're transforming to.
 type Platform int
 
 const (
-	PlatformNeutral Platform = iota
-	PlatformBrowser
-	PlatformNode
+	PlatformAll Platform = iota
+	PlatformDOM
+	PlatformSSR
 )
 
-type Map map[Platform]func(file *File) error
+type Platforms map[Platform]func(file *File) error
 
 type Transformable struct {
 	To   string
 	From string
-	Map  Map
+	For  Platforms
 }
 
-func MustLoad(transformables ...*Transformable) *Transformer {
+func MustLoad(transformables ...*Transformable) *Map {
 	transformer, err := Load(transformables...)
 	if err != nil {
 		panic("transform: unable to load the transformer: " + err.Error())
@@ -46,24 +46,24 @@ func MustLoad(transformables ...*Transformable) *Transformer {
 	return transformer
 }
 
-func Load(transformables ...*Transformable) (*Transformer, error) {
-	browser, err := load(PlatformBrowser, transformables)
+func Load(transformables ...*Transformable) (*Map, error) {
+	browser, err := load(PlatformDOM, transformables)
 	if err != nil {
 		return nil, err
 	}
-	node, err := load(PlatformNode, transformables)
+	node, err := load(PlatformSSR, transformables)
 	if err != nil {
 		return nil, err
 	}
-	return &Transformer{browser, node}, nil
+	return &Map{browser, node}, nil
 }
 
 func getTransform(transformable *Transformable, platform Platform) (func(file *File) error, bool) {
-	tr, ok := transformable.Map[platform]
+	tr, ok := transformable.For[platform]
 	if ok {
 		return tr, true
 	}
-	tr, ok = transformable.Map[PlatformNeutral]
+	tr, ok = transformable.For[PlatformAll]
 	if ok {
 		return tr, true
 	}
@@ -122,10 +122,15 @@ func compose(fns []func(file *File) error) func(file *File) error {
 	}
 }
 
-// Transformer aggregates all the platform-specific transformers
-type Transformer struct {
-	Browser *transformer
-	Node    *transformer
+type Transformer interface {
+	Transform(fromPath, toPath string, code []byte) ([]byte, error)
+	Plugins() (plugins []esbuild.Plugin)
+}
+
+// Map aggregates all the platform-specific transformers
+type Map struct {
+	DOM *transformer
+	SSR *transformer
 }
 
 // Transformer is specific to a platform
@@ -134,6 +139,8 @@ type transformer struct {
 	index   map[string]func(file *File) error
 	pathmap map[string]string
 }
+
+var _ Transformer = (*transformer)(nil)
 
 // TODO: support context
 func (t *transformer) Transform(fromPath, toPath string, code []byte) ([]byte, error) {

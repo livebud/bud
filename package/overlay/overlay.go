@@ -30,6 +30,7 @@ func Load(module *gomod.Module) (*FileSystem, error) {
 }
 
 type F interface {
+	fs.FS
 	Link(from, to string)
 }
 

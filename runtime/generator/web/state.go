@@ -3,8 +3,9 @@ package web
 import "gitlab.com/mnm/bud/internal/imports"
 
 type State struct {
-	Imports   []*imports.Import
-	Actions   []*Action
+	Imports []*imports.Import
+	Actions []*Action
+
 	HasPublic bool
 	HasView   bool
 }

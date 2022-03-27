@@ -16,7 +16,7 @@ func Load(
 	{{- range $transform := $.Transforms }}
 	{{ $transform.Variable }} {{ $transform.Type }}
 	{{- end }}
-) (*Transformer, error) {
+) (*Map, error) {
 	return transform.Load(
 		svelte,
 		{{- range $transform := $.Transforms }}
@@ -31,4 +31,4 @@ func Load(
 	)
 }
 
-type Transformer = transform.Transformer
+type Map = transform.Map
