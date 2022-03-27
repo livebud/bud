@@ -21,15 +21,17 @@ import (
 	"github.com/matthewmueller/diff"
 	"gitlab.com/mnm/bud/internal/bud"
 	"gitlab.com/mnm/bud/internal/testdir"
+	"gitlab.com/mnm/bud/package/exe"
 	"gitlab.com/mnm/bud/package/gomod"
 	"gitlab.com/mnm/bud/package/modcache"
 	"gitlab.com/mnm/bud/package/socket"
+	runtime_bud "gitlab.com/mnm/bud/runtime/bud"
 )
 
 func New(dir string) *Compiler {
 	return &Compiler{
 		dir: dir,
-		Flag: bud.Flag{
+		Flag: runtime_bud.Flag{
 			Embed:  false,
 			Minify: false,
 			Hot:    true,
@@ -57,7 +59,7 @@ func New(dir string) *Compiler {
 
 type Compiler struct {
 	dir         string
-	Flag        bud.Flag
+	Flag        runtime_bud.Flag
 	Files       map[string]string // String files (convenient)
 	BFiles      map[string][]byte // Byte files (for images and binaries)
 	Modules     modcache.Modules  // name@version[path[data]]
@@ -95,7 +97,7 @@ func (c *Compiler) Compile(ctx context.Context) (p *Project, err error) {
 	}
 	compiler.Env = c.Env
 	compiler.ModCacheRW = true
-	project, err := compiler.Compile(ctx, c.Flag)
+	project, err := compiler.Compile(ctx, &c.Flag)
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +196,7 @@ func (p *Project) Run(ctx context.Context) (*Server, error) {
 
 type App struct {
 	module *gomod.Module
-	app    *bud.App
+	app    *runtime_bud.App
 }
 
 func (a *App) Exists(paths ...string) error {
@@ -296,7 +298,7 @@ func (s Stdio) String() string {
 }
 
 type Server struct {
-	process  *bud.Process
+	process  *exe.Cmd
 	listener net.Listener
 	client   *http.Client
 }
@@ -448,6 +450,17 @@ func (r *Response) ExpectHeaders(expect string) error {
 	dump := string(dumpBytes)
 	dump = contentLength.ReplaceAllString(dump, "")
 	return diffHTTP(expect, dump)
+}
+
+func (r *Response) ContainsBody(expect string) error {
+	body, err := io.ReadAll(r.Response.Body)
+	if err != nil {
+		return err
+	}
+	if strings.Contains(string(body), expect) {
+		return nil
+	}
+	return fmt.Errorf("%s does not contain %q", string(body), expect)
 }
 
 func (r *Response) Query(selector string) (*goquery.Selection, error) {

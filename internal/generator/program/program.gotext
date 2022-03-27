@@ -33,13 +33,20 @@ func run(ctx context.Context, args ...string) error {
 }
 
 func Load() (*Program, error) {
-	{{- with $variable := $.Provider.Variable "gitlab.com/mnm/bud/package/gomod.*Module" }}
-	{{ $variable }}, err := gomod.Find(".")
+	{{- with $gomod := $.Provider.Variable "gitlab.com/mnm/bud/package/gomod.*Module" }}
+	{{ $gomod }}, err := gomod.Find(".")
 	if err != nil {
 		return nil, err
 	}
 	{{- end }}
-	cli, err := {{ $.Provider.Name }}({{ $.Provider.Variables "gitlab.com/mnm/bud/package/gomod.*Module" }})
+	cli, err := {{ $.Provider.Name }}(
+		&bud.Flag{
+			{{- range $key, $value := $.Flags }}
+			{{ $key }}: {{ $value }},
+			{{- end }}
+		},
+		{{- with $gomod := $.Provider.Variable "gitlab.com/mnm/bud/package/gomod.*Module" }}{{ $gomod }},{{ end }}
+	)
 	if err != nil {
 		return nil, err
 	}

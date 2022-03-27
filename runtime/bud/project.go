@@ -1,4 +1,4 @@
-package project
+package bud
 
 import (
 	"context"
@@ -7,14 +7,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/mnm/bud/internal/bud"
 	"gitlab.com/mnm/bud/internal/dsync"
 	"gitlab.com/mnm/bud/internal/gobin"
 	"gitlab.com/mnm/bud/package/gomod"
 )
 
-func New(fsys fs.FS, module *gomod.Module) *Compiler {
-	return &Compiler{
+func New(fsys fs.FS, module *gomod.Module) *Project {
+	return &Project{
 		fsys:   fsys,
 		module: module,
 		Env:    os.Environ(),
@@ -23,7 +22,7 @@ func New(fsys fs.FS, module *gomod.Module) *Compiler {
 	}
 }
 
-type Compiler struct {
+type Project struct {
 	fsys   fs.FS
 	module *gomod.Module
 	Env    []string
@@ -31,13 +30,7 @@ type Compiler struct {
 	Stderr io.Writer
 }
 
-type Flag struct {
-	Embed  bool
-	Hot    bool
-	Minify bool
-}
-
-func (c *Compiler) Compile(ctx context.Context, flag *Flag) (*bud.App, error) {
+func (c *Project) Compile(ctx context.Context, flag *Flag) (*App, error) {
 	if err := dsync.Dir(c.fsys, "bud/.app", c.module.DirFS("bud/.app"), "."); err != nil {
 		return nil, err
 	}
@@ -49,7 +42,7 @@ func (c *Compiler) Compile(ctx context.Context, flag *Flag) (*bud.App, error) {
 	if err := gobin.Build(ctx, c.module.Directory(), "bud/.app/main.go", filepath.Join("bud", "app")); err != nil {
 		return nil, err
 	}
-	return &bud.App{
+	return &App{
 		Module: c.module,
 		Env:    c.Env,
 		Stderr: c.Stderr,

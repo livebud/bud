@@ -19,6 +19,7 @@ import (
 	"gitlab.com/mnm/bud/package/overlay"
 	"gitlab.com/mnm/bud/package/parser"
 	"gitlab.com/mnm/bud/package/trace"
+	"gitlab.com/mnm/bud/runtime/bud"
 )
 
 func defaultEnv(module *gomod.Module) (Env, error) {
@@ -123,7 +124,7 @@ func (c *Compiler) goBuild(ctx context.Context, module *gomod.Module, outPath st
 	return nil
 }
 
-func (c *Compiler) Compile(ctx context.Context, flag Flag) (p *Project, err error) {
+func (c *Compiler) Compile(ctx context.Context, flag *bud.Flag) (p *Project, err error) {
 	// Start the trace
 	ctx, span := trace.Start(ctx, "compile project cli")
 	defer span.End(&err)
@@ -138,7 +139,7 @@ func (c *Compiler) Compile(ctx context.Context, flag Flag) (p *Project, err erro
 	// Setup the generators
 	overlay.FileGenerator("bud/import.go", importfile.New(c.module))
 	overlay.FileGenerator("bud/.cli/main.go", mainfile.New(c.module))
-	overlay.FileGenerator("bud/.cli/program/program.go", program.New(injector, c.module))
+	overlay.FileGenerator("bud/.cli/program/program.go", program.New(flag, injector, c.module))
 	overlay.FileGenerator("bud/.cli/command/command.go", command.New(overlay, c.module, parser))
 	overlay.FileGenerator("bud/.cli/generator/generator.go", generator.New(overlay, c.module, parser))
 	// Sync the generators
@@ -155,7 +156,6 @@ func (c *Compiler) Compile(ctx context.Context, flag Flag) (p *Project, err erro
 	}
 	return &Project{
 		Module: c.module,
-		Flag:   flag,
 		Env:    c.Env,
 		Stdout: c.Stdout,
 		Stderr: c.Stderr,

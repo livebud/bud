@@ -3,12 +3,12 @@ package build
 import (
 	"context"
 
-	"gitlab.com/mnm/bud/runtime/project"
+	"gitlab.com/mnm/bud/runtime/bud"
 )
 
 type Command struct {
-	Project *project.Compiler
-	Flag    project.Flag
+	Project *bud.Project
+	Flag    bud.Flag
 }
 
 func (c *Command) Run(ctx context.Context) error {

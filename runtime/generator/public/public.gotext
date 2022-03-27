@@ -1,51 +1,42 @@
 package public
 
 // GENERATED. DO NOT EDIT.
+// TODO: move most of this logic into the runtime/public
+
+{{- if $.Imports }}
 
 import (
-	"errors"
-	"io"
-	"io/fs"
-	"net/http"
-	"path"
-	"time"
-
-	"gitlab.com/mnm/bud/package/middleware"
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
 )
+{{- end }}
 
-func New(fsys fs.FS) Middleware {
-	{{- if $.Embed }}
+func New(fsys *overlay.FileSystem) Middleware {
+	{{- if $.Flag.Embed }}
 	return embed(fsys)
 	{{- else }}
 	return reference(fsys)
 	{{- end }}
 }
 
-func reference(fsys fs.FS) Middleware {
+func reference(fsys *overlay.FileSystem) Middleware {
 	return serve(http.FS(fsys), serveContent)
 }
 
-func embed(fsys fs.FS) Middleware {
-	panic("embed not implemented yet")
+{{- if $.Flag.Embed }}
+func embed(fsys *overlay.FileSystem) Middleware {
 	{{- range $file := $.Files }}
-	// bfs.Entry(`{{ $file.Path }}`, nil)
+	fsys.FileGenerator(`{{ $file.Path }}`, &overlay.Embed{
+		{{ if $file.Data }}Data: []byte("{{ $file.Data }}"),{{ end }}
+		{{ if $file.Mode }}Mode: fs.FileMode({{ $file.Mode }}),{{ end }}
+	})
 	{{- end }}
-	return serve(http.FS(fsys), serveGzipContent)
+	return serve(http.FS(fsys), serveContent)
 }
+{{- end }}
 
 type Middleware = middleware.Middleware
-
-{{/* func serveFrom(dir string) func(f gen.F, file *gen.File) error {
-	return func(f gen.F, file *gen.File) error {
-		path := strings.TrimPrefix(file.Path(), "bud/public/")
-		code, err := fs.ReadFile(f, filepath.Join(dir, path))
-		if err != nil {
-			return err
-		}
-		file.Write(code)
-		return nil
-	}
-} */}}
 
 func serve(hfs http.FileSystem, serveContent func(w http.ResponseWriter, req *http.Request, name string, modtime time.Time, content io.ReadSeeker)) Middleware {
 	return middleware.Function(func(next http.Handler) http.Handler {

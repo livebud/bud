@@ -10,6 +10,7 @@ type FileGenerator interface {
 	GenerateFile(ctx context.Context, fsys F, file *File) error
 }
 
+// TODO: don't wrap, just extend
 type File struct {
 	*conjure.File
 }
@@ -18,5 +19,3 @@ type File struct {
 func (f *File) Link(path string) {
 
 }
-
-type Embed = conjure.Embed

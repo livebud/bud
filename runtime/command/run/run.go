@@ -14,12 +14,12 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"gitlab.com/mnm/bud/package/socket"
-	"gitlab.com/mnm/bud/runtime/project"
+	"gitlab.com/mnm/bud/runtime/bud"
 )
 
 type Command struct {
-	Project *project.Compiler
-	Flag    project.Flag
+	Project *bud.Project
+	Flag    bud.Flag
 	Port    string
 }
 

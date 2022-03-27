@@ -26,7 +26,7 @@ func (c *Command) Run(ctx context.Context) error {
 		return err
 	}
 	// Compile the project CLI
-	project, err := compiler.Compile(ctx, c.Bud.Flag)
+	project, err := compiler.Compile(ctx, &c.Bud.Flag)
 	if err != nil {
 		return err
 	}

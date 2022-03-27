@@ -8,11 +8,12 @@ import (
 
 	"gitlab.com/mnm/bud/internal/bud"
 	"gitlab.com/mnm/bud/package/trace"
+	runtime_bud "gitlab.com/mnm/bud/runtime/bud"
 )
 
 // Bud command
 type Bud struct {
-	Flag  bud.Flag
+	Flag  runtime_bud.Flag
 	Trace bool
 	Dir   string
 	Args  []string
@@ -61,7 +62,7 @@ func (c *Bud) Run(ctx context.Context) (err error) {
 		return err
 	}
 	// Compiler the project CLI
-	project, err := compiler.Compile(ctx, c.Flag)
+	project, err := compiler.Compile(ctx, &c.Flag)
 	if err != nil {
 		return err
 	}

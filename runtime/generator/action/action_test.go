@@ -37,13 +37,12 @@ func TestIndexString(t *testing.T) {
 	res, err := server.Get("/")
 	is.NoErr(err)
 	// HTML response
-	is.NoErr(res.Expect(`
+	is.NoErr(res.ExpectHeaders(`
 		HTTP/1.1 200 OK
 		Content-Type: text/html
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
-
-		Hello Users!
 	`))
+	is.NoErr(res.ContainsBody(`Hello Users!`))
 	// JSON response
 	res, err = server.GetJSON("/")
 	is.NoErr(err)
@@ -77,13 +76,12 @@ func TestAboutIndexString(t *testing.T) {
 	defer server.Close()
 	res, err := server.Get("/about")
 	is.NoErr(err)
-	is.NoErr(res.Expect(`
+	is.NoErr(res.ExpectHeaders(`
 		HTTP/1.1 200 OK
 		Content-Type: text/html
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
-
-		About
 	`))
+	is.NoErr(res.ContainsBody(`About`))
 	res, err = server.GetJSON("/about")
 	is.NoErr(err)
 	is.NoErr(res.Expect(`
@@ -277,11 +275,11 @@ func TestIndexListObject500(t *testing.T) {
 	defer server.Close()
 	res, err := server.Get("/")
 	is.NoErr(err)
-	res.Expect(`
+	is.NoErr(res.Expect(`
 		HTTP/1.1 302 Found
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
 		Location: /
-	`)
+	`))
 }
 
 func TestIndexListObject200(t *testing.T) {
@@ -485,13 +483,12 @@ func TestDependencyRequest(t *testing.T) {
 	defer server.Close()
 	res, err := server.Get("/")
 	is.NoErr(err)
-	is.NoErr(res.Expect(`
+	is.NoErr(res.ExpectHeaders(`
 		HTTP/1.1 200 OK
 		Content-Type: text/html
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
-
-		/
 	`))
+	is.NoErr(res.ContainsBody(`/`))
 }
 
 func TestShareStruct(t *testing.T) {
@@ -1331,13 +1328,13 @@ func TestViewRootResourceUnkeyed(t *testing.T) {
 	//
 	res, err := server.GetJSON("")
 	is.NoErr(err)
-	res.Expect(`
+	is.NoErr(res.Expect(`
 		HTTP/1.1 200 OK
 		Content-Type: application/json
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
 
 		[{"id":1,"name":"a"},{"id":2,"name":"b"}]
-	`)
+	`))
 	res, err = server.Get("")
 	is.NoErr(err)
 	is.NoErr(res.ExpectHeaders(`
@@ -1858,13 +1855,12 @@ func TestWorkingChangeWorking(t *testing.T) {
 	res, err := server.Get("/")
 	is.NoErr(err)
 	is.NoErr(err)
-	res.Expect(`
+	is.NoErr(res.ExpectHeaders(`
 		HTTP/1.1 200 OK
 		Content-Type: text/html
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
-
-		Hello Users!
-	`)
+	`))
+	is.NoErr(res.ContainsBody(`Hello Users!`))
 	// Update file
 	project.Files["action/action.go"] = `
 		package action
@@ -1887,11 +1883,10 @@ func TestWorkingChangeWorking(t *testing.T) {
 	is.NoErr(err)
 	res, err = server.Get("/")
 	is.NoErr(err)
-	is.NoErr(res.Expect(`
+	is.NoErr(res.ExpectHeaders(`
 		HTTP/1.1 200 OK
 		Content-Type: text/html
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
-
-		Hello Humans!
 	`))
+	is.NoErr(res.ContainsBody(`Hello Humans!`))
 }

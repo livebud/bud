@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/matryer/is"
@@ -110,6 +112,76 @@ func TestPlugin(t *testing.T) {
 	body, err := io.ReadAll(res.Body)
 	is.NoErr(err)
 	is.Equal(preflight, string(body))
+}
+
+func TestGetChangeGet(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	bud := budtest.New(dir)
+	bud.BFiles["public/favicon.ico"] = favicon
+	project, err := bud.Compile(ctx)
+	is.NoErr(err)
+	app, err := project.Build(ctx)
+	is.NoErr(err)
+	is.NoErr(app.Exists("bud/.app/public/public.go"))
+	server, err := app.Start(ctx)
+	is.NoErr(err)
+	defer server.Close()
+	res, err := server.Get("/favicon.ico")
+	is.NoErr(err)
+	defer res.Body.Close()
+	is.Equal(200, res.StatusCode)
+	body, err := io.ReadAll(res.Body)
+	is.NoErr(err)
+	is.True(bytes.Equal(favicon, body))
+	// Favicon2
+	favicon2 := []byte{0x00, 0x00, 0x01}
+	bud.BFiles["public/favicon.ico"] = favicon2
+	err = project.Rewrite()
+	is.NoErr(err)
+	// Rebuild
+	app, err = project.Build(ctx)
+	is.NoErr(err)
+	is.NoErr(app.Exists("bud/.app/public/public.go"))
+	err = server.Restart(ctx)
+	is.NoErr(err)
+	res, err = server.Get("/")
+	is.NoErr(err)
+	res, err = server.Get("/favicon.ico")
+	is.NoErr(err)
+	defer res.Body.Close()
+	is.Equal(200, res.StatusCode)
+	body, err = io.ReadAll(res.Body)
+	is.NoErr(err)
+	is.True(bytes.Equal(favicon2, body))
+}
+
+func TestEmbedFavicon(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	bud := budtest.New(dir)
+	bud.Flag.Embed = true
+	bud.BFiles["public/favicon.ico"] = favicon
+	project, err := bud.Compile(ctx)
+	is.NoErr(err)
+	app, err := project.Build(ctx)
+	is.NoErr(err)
+	is.NoErr(app.Exists("bud/.app/public/public.go"))
+	// Remove file to ensure it's been embedded
+	is.NoErr(os.Remove(filepath.Join(dir, "public/favicon.ico")))
+	// Try requesting the favicon, it should be in memory now
+	server, err := app.Start(ctx)
+	is.NoErr(err)
+	defer server.Close()
+	res, err := server.Get("/favicon.ico")
+	is.NoErr(err)
+	defer res.Body.Close()
+	is.Equal(200, res.StatusCode)
+	body, err := io.ReadAll(res.Body)
+	is.NoErr(err)
+	is.True(bytes.Equal(favicon, body))
 }
 
 func TestAppPluginOverlap(t *testing.T) {

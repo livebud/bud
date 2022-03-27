@@ -19,15 +19,12 @@ type CLI struct {
 }
 
 func (c *CLI) Parse(ctx context.Context, args ...string) error {
-	project := project.New(c.fsys, c.module)
+	project := bud.New(c.fsys, c.module)
 	cli := commander.New("cli")
 
 	{ // cli run
 		cmd := &run.Command{Project: project}
 		cli := cli.Command("run", "run command")
-		cli.Flag("embed", "embed assets").Bool(&cmd.Flag.Embed).Default(false)
-		cli.Flag("hot", "hot reload").Bool(&cmd.Flag.Hot).Default(true)
-		cli.Flag("minify", "minify assets").Bool(&cmd.Flag.Minify).Default(false)
 		cli.Flag("port", "port to listen to").String(&cmd.Port).Default(":3000")
 		cli.Run(cmd.Run)
 	}
@@ -35,9 +32,6 @@ func (c *CLI) Parse(ctx context.Context, args ...string) error {
 	{ // cli build
 		cmd := &build.Command{Project: project}
 		cli := cli.Command("build", "build command")
-		cli.Flag("embed", "embed assets").Bool(&cmd.Flag.Embed).Default(false)
-		cli.Flag("hot", "hot reload").Bool(&cmd.Flag.Hot).Default(true)
-		cli.Flag("minify", "minify assets").Bool(&cmd.Flag.Minify).Default(false)
 		cli.Run(cmd.Run)
 	}
 

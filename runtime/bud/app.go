@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 	"net"
-	"os/exec"
 
+	"gitlab.com/mnm/bud/package/exe"
 	"gitlab.com/mnm/bud/package/gomod"
 	"gitlab.com/mnm/bud/package/socket"
 )
@@ -21,8 +21,8 @@ func (a *App) args(args ...string) []string {
 	return args
 }
 
-func (a *App) command(ctx context.Context, args ...string) *exec.Cmd {
-	cmd := exec.CommandContext(ctx, a.Module.Directory("bud", "app"), args...)
+func (a *App) command(ctx context.Context, args ...string) *exe.Cmd {
+	cmd := exe.Command(ctx, a.Module.Directory("bud", "app"), args...)
 	cmd.Dir = a.Module.Directory()
 	cmd.Env = a.Env
 	cmd.Stderr = a.Stderr
@@ -30,7 +30,7 @@ func (a *App) command(ctx context.Context, args ...string) *exec.Cmd {
 	return cmd
 }
 
-func (a *App) Executor(ctx context.Context, args ...string) *exec.Cmd {
+func (a *App) Executor(ctx context.Context, args ...string) *exe.Cmd {
 	return a.command(ctx, a.args(args...)...)
 }
 
@@ -45,7 +45,7 @@ func (a *App) Execute(ctx context.Context, args ...string) error {
 }
 
 // Start the application
-func (a *App) Start(ctx context.Context, listener net.Listener) (*Process, error) {
+func (a *App) Start(ctx context.Context, listener net.Listener) (*exe.Cmd, error) {
 	// Pass the socket through
 	files, env, err := socket.Files(listener)
 	if err != nil {
@@ -57,14 +57,14 @@ func (a *App) Start(ctx context.Context, listener net.Listener) (*Process, error
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
-	return &Process{cmd}, nil
+	return cmd, nil
 }
 
 // Run the app and wait for the result
 func (a *App) Run(ctx context.Context, listener net.Listener) error {
-	process, err := a.Start(ctx, listener)
+	cmd, err := a.Start(ctx, listener)
 	if err != nil {
 		return err
 	}
-	return process.Wait()
+	return cmd.Wait()
 }

@@ -11,6 +11,7 @@ import (
 	"gitlab.com/mnm/bud/package/di"
 	"gitlab.com/mnm/bud/package/gomod"
 	"gitlab.com/mnm/bud/package/overlay"
+	"gitlab.com/mnm/bud/runtime/bud"
 )
 
 //go:embed program.gotext
@@ -23,6 +24,7 @@ var ErrCantWire = errors.New(`program: unable to wire`)
 // State of the program code
 type State struct {
 	Imports  []*imports.Import
+	Flags    map[string]string
 	Provider *di.Provider
 }
 
@@ -31,11 +33,12 @@ func Generate(state *State) ([]byte, error) {
 	return generator.Generate(state)
 }
 
-func New(injector *di.Injector, module *gomod.Module) *Program {
-	return &Program{injector, module}
+func New(flag *bud.Flag, injector *di.Injector, module *gomod.Module) *Program {
+	return &Program{flag, injector, module}
 }
 
 type Program struct {
+	flag     *bud.Flag
 	injector *di.Injector
 	module   *gomod.Module
 }
@@ -46,8 +49,6 @@ func (p *Program) Parse(ctx context.Context) (*State, error) {
 	imports.AddStd("errors", "context")
 	imports.AddNamed("console", "gitlab.com/mnm/bud/package/log/console")
 	imports.AddNamed("command", p.module.Import("bud/.cli/command"))
-	// imports.AddNamed("gomod", "gitlab.com/mnm/bud/package/gomod")
-	// imports.AddNamed("trace", "gitlab.com/mnm/bud/package/trace")
 	// Write up the dependencies
 	provider, err := p.injector.Wire(&di.Function{
 		Name:    "loadCLI",
@@ -55,6 +56,7 @@ func (p *Program) Parse(ctx context.Context) (*State, error) {
 		Target:  p.module.Import("bud/.cli/program"),
 		Params: []di.Dependency{
 			di.ToType("gitlab.com/mnm/bud/package/gomod", "*Module"),
+			di.ToType("gitlab.com/mnm/bud/runtime/bud", "*Flag"),
 		},
 		Aliases: di.Aliases{
 			di.ToType("io/fs", "FS"): di.ToType("gitlab.com/mnm/bud/package/overlay", "*FileSystem"),
@@ -74,6 +76,7 @@ func (p *Program) Parse(ctx context.Context) (*State, error) {
 	}
 	return &State{
 		Imports:  imports.List(),
+		Flags:    p.flag.Map(),
 		Provider: provider,
 	}, nil
 }
