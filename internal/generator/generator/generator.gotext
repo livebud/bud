@@ -18,7 +18,6 @@ func New(
 	public *public.Generator,
 	action *action.Generator,
 	view *view.Compiler,
-	transform *transform.Generator,
 ) FS {
 	overlay.FileGenerator("bud/.app/main.go", main)
 	overlay.FileGenerator("bud/.app/program/program.go", program)
@@ -27,7 +26,6 @@ func New(
 	overlay.FileGenerator("bud/.app/public/public.go", public)
 	overlay.FileGenerator("bud/.app/action/action.go", action)
 	overlay.FileGenerator("bud/.app/view/view.go", view)
-	overlay.FileGenerator("bud/.app/transform/transform.go", transform)
 	return overlay
 }
 

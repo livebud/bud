@@ -18,57 +18,71 @@ import (
 	"gitlab.com/mnm/bud/runtime/transform"
 )
 
-func Generator(fsys fs.FS, module *gomod.Module, transformer *transform.Map) overlay.FileGenerator {
-	dir := module.Directory()
-	plugins := append([]esbuild.Plugin{
-		ssrPlugin(fsys, dir),
-		ssrRuntimePlugin(fsys, dir),
-		jsxPlugin(fsys, dir),
-		jsxRuntimePlugin(fsys, dir),
-		jsxTransformPlugin(fsys, dir),
-		sveltePlugin(fsys, dir),
-		svelteRuntimePlugin(fsys, dir),
-	}, transformer.SSR.Plugins()...)
-	return overlay.GenerateFile(func(ctx context.Context, _ overlay.F, file *overlay.File) error {
-		result := esbuild.Build(esbuild.BuildOptions{
-			EntryPointsAdvanced: []esbuild.EntryPoint{
-				{
-					InputPath:  "./bud/view/_ssr.js",
-					OutputPath: "./bud/view/_ssr",
-				},
+func New(module *gomod.Module, transformer transform.Transformer) *Compiler {
+	return &Compiler{module, transformer}
+}
+
+type Compiler struct {
+	module      *gomod.Module
+	transformer transform.Transformer
+}
+
+func (c *Compiler) Compile(ctx context.Context, fsys fs.FS) ([]byte, error) {
+	dir := c.module.Directory()
+	result := esbuild.Build(esbuild.BuildOptions{
+		EntryPointsAdvanced: []esbuild.EntryPoint{
+			{
+				InputPath:  "./bud/view/_ssr.js",
+				OutputPath: "./bud/view/_ssr",
 			},
-			AbsWorkingDir: dir,
-			Outdir:        "./",
-			Format:        esbuild.FormatIIFE,
-			Platform:      esbuild.PlatformBrowser,
-			GlobalName:    "bud",
-			JSXFactory:    "__budReact__.createElement",
-			JSXFragment:   "__budReact__.Fragment",
-			Bundle:        true,
-			Metafile:      true,
-			Plugins:       plugins,
-		})
-		if len(result.Errors) > 0 {
-			msgs := esbuild.FormatMessages(result.Errors, esbuild.FormatMessagesOptions{
-				Color:         true,
-				Kind:          esbuild.ErrorMessage,
-				TerminalWidth: 80,
-			})
-			return fmt.Errorf(strings.Join(msgs, "\n"))
-		}
-		// Expect exactly 1 output file
-		if len(result.OutputFiles) != 1 {
-			return fmt.Errorf("expected exactly 1 output file but got %d", len(result.OutputFiles))
-		}
-		// if err := esmeta.Link2(dfs, result.Metafile); err != nil {
-		// 	return nil, err
-		// }
-		// TODO: remove WriteEvent and externalize actual file contents so we only
-		// need to watch directory changes.
-		// file.Watch("bud/view/**/*.{svelte,jsx}", gen.CreateEvent|gen.RemoveEvent|gen.WriteEvent)
-		file.Data = result.OutputFiles[0].Contents
-		return nil
+		},
+		AbsWorkingDir: dir,
+		Outdir:        "./",
+		Format:        esbuild.FormatIIFE,
+		Platform:      esbuild.PlatformBrowser,
+		GlobalName:    "bud",
+		JSXFactory:    "__budReact__.createElement",
+		JSXFragment:   "__budReact__.Fragment",
+		Bundle:        true,
+		Metafile:      true,
+		Plugins: append([]esbuild.Plugin{
+			ssrPlugin(fsys, dir),
+			ssrRuntimePlugin(fsys, dir),
+			jsxPlugin(fsys, dir),
+			jsxRuntimePlugin(fsys, dir),
+			jsxTransformPlugin(fsys, dir),
+			sveltePlugin(fsys, dir),
+			svelteRuntimePlugin(fsys, dir),
+		}, c.transformer.Plugins()...),
 	})
+	if len(result.Errors) > 0 {
+		msgs := esbuild.FormatMessages(result.Errors, esbuild.FormatMessagesOptions{
+			Color:         true,
+			Kind:          esbuild.ErrorMessage,
+			TerminalWidth: 80,
+		})
+		return nil, fmt.Errorf(strings.Join(msgs, "\n"))
+	}
+	// Expect exactly 1 output file
+	if len(result.OutputFiles) != 1 {
+		return nil, fmt.Errorf("expected exactly 1 output file but got %d", len(result.OutputFiles))
+	}
+	// if err := esmeta.Link2(dfs, result.Metafile); err != nil {
+	// 	return nil, err
+	// }
+	// TODO: remove WriteEvent and externalize actual file contents so we only
+	// need to watch directory changes.
+	// file.Watch("bud/view/**/*.{svelte,jsx}", gen.CreateEvent|gen.RemoveEvent|gen.WriteEvent)
+	return result.OutputFiles[0].Contents, nil
+}
+
+func (c *Compiler) GenerateFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
+	code, err := c.Compile(ctx, fsys)
+	if err != nil {
+		return err
+	}
+	file.Data = code
+	return nil
 }
 
 //go:embed ssr.gotext

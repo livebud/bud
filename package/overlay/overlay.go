@@ -2,7 +2,6 @@ package overlay
 
 import (
 	"context"
-	"fmt"
 
 	"gitlab.com/mnm/bud/internal/pubsub"
 
@@ -85,7 +84,6 @@ func (f *FileSystem) DirGenerator(path string, generator DirGenerator) {
 
 func (f *FileSystem) ServeFile(path string, fn func(ctx context.Context, fsys F, file *File) error) {
 	f.cfs.ServeFile(path, func(file *conjure.File) error {
-		fmt.Println("serving....", file.Path())
 		return fn(context.TODO(), f, &File{file})
 	})
 }

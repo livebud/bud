@@ -60,6 +60,9 @@ func (p *Program) Parse(ctx context.Context) (*State, error) {
 		},
 		Aliases: di.Aliases{
 			di.ToType("io/fs", "FS"): di.ToType("gitlab.com/mnm/bud/package/overlay", "*FileSystem"),
+			// TODO: change for non-embeds
+			di.ToType("gitlab.com/mnm/bud/package/js", "VM"):          di.ToType("gitlab.com/mnm/bud/package/js/v8", "*VM"),
+			di.ToType("gitlab.com/mnm/bud/runtime/transform", "*Map"): di.ToType(p.module.Import("bud/.cli/transform"), "*Map"),
 		},
 		Results: []di.Dependency{
 			di.ToType(p.module.Import("bud/.cli/command"), "*CLI"),

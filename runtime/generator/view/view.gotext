@@ -13,24 +13,24 @@ import (
 {{- end }}
 
 // New is called like this when calling bud run
+{{- if not $.Flag.Embed }}
 func New(module *mod.Module, overlay *overlay.FileSystem, vm js.VM, transformer *transform.Map) *Server {
 	return view.Live(module, overlay, vm, transformer)
 }
-
-// New_ is swapped in when generating with bud build
-func New_(module *mod.Module, overlay *overlay.FileSystem, vm js.VM) *Server {
-	// genfs.Add(map[string]gen.Generator{
-	// "bud/view/_ssr.js": &bfs.Embed{
-	// 	  Data:    []byte(`...`),
-	// 	  ModTime: time.New(),
-	// },
-	// "bud/view/_index.svelte": &bfs.Embed{
-	// 	  Data:    []byte(`...`),
-	// 	  ModTime: time.New(),
-	// },
-	// })
-	return view.Static(overlay, vm)
+{{ else }}
+// New is swapped in when generating with bud build
+func New(module *mod.Module, fsys *overlay.FileSystem, vm js.VM, _ *transform.Map) *Server {
+	{{- range $embed := $.Embeds }}
+	fsys.FileGenerator(`{{ $embed.Path }}`, &overlay.Embed{
+		{{ if $embed.Data }}Data: []byte("{{ $embed.Data }}"),{{ end }}
+	})
+	{{- end }}
+	{{/* overlay.FileServer("bud/view", dom.Runner(overlay, module, transformer))
+	overlay.FileServer("bud/node_modules", dom.NodeModules(module))
+	overlay.FileGenerator("bud/view/_ssr.js", ssr.Generator(overlay, module, transformer)) */}}
+	return view.Static(fsys, vm)
 }
+{{- end }}
 
 type Map = view.Map
 type Server = view.Server

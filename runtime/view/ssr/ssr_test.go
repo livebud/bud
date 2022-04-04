@@ -36,7 +36,7 @@ func TestSvelteHello(t *testing.T) {
 	is.NoErr(err)
 	overlay, err := overlay.Load(module)
 	is.NoErr(err)
-	overlay.FileGenerator("bud/view/_ssr.js", ssr.Generator(overlay, module, transformer))
+	overlay.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	// Read the wrapped version of index.svelte with node_modules rewritten
 	code, err := fs.ReadFile(overlay, "bud/view/_ssr.js")
 	is.NoErr(err)
@@ -90,7 +90,7 @@ func TestSvelteAwait(t *testing.T) {
 	is.NoErr(err)
 	overlay, err := overlay.Load(module)
 	is.NoErr(err)
-	overlay.FileGenerator("bud/view/_ssr.js", ssr.Generator(overlay, module, transformer))
+	overlay.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	// Read the wrapped version of index.svelte with node_modules rewritten
 	code, err := fs.ReadFile(overlay, "bud/view/_ssr.js")
 	is.NoErr(err)
@@ -175,7 +175,7 @@ func TestSvelteProps(t *testing.T) {
 	is.NoErr(err)
 	overlay, err := overlay.Load(module)
 	is.NoErr(err)
-	overlay.FileGenerator("bud/view/_ssr.js", ssr.Generator(overlay, module, transformer))
+	overlay.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	// Read the wrapped version of index.svelte with node_modules rewritten
 	code, err := fs.ReadFile(overlay, "bud/view/_ssr.js")
 	is.NoErr(err)
@@ -280,7 +280,7 @@ func TestSvelteLocalImports(t *testing.T) {
 	is.NoErr(err)
 	overlay, err := overlay.Load(module)
 	is.NoErr(err)
-	overlay.FileGenerator("bud/view/_ssr.js", ssr.Generator(overlay, module, transformer))
+	overlay.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	// Read the wrapped version of index.svelte with node_modules rewritten
 	code, err := fs.ReadFile(overlay, "bud/view/_ssr.js")
 	is.NoErr(err)

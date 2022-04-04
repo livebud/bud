@@ -3,9 +3,7 @@ package transform
 import (
 	"context"
 	_ "embed"
-	"io/fs"
 
-	"gitlab.com/mnm/bud/internal/entrypoint"
 	"gitlab.com/mnm/bud/package/overlay"
 
 	"gitlab.com/mnm/bud/internal/gotemplate"
@@ -18,8 +16,11 @@ var template string
 
 var generator = gotemplate.MustParse("transform.gotext", template)
 
+func New(module *gomod.Module) *Generator {
+	return &Generator{module}
+}
+
 type Generator struct {
-	FS     fs.FS
 	Module *gomod.Module
 }
 
@@ -37,13 +38,7 @@ type Transform struct {
 	Function string
 }
 
-func (g *Generator) GenerateFile(ctx context.Context, _ overlay.F, file *overlay.File) error {
-	views, err := entrypoint.List(g.FS, "view")
-	if err != nil {
-		return err
-	} else if len(views) == 0 {
-		return fs.ErrNotExist
-	}
+func (g *Generator) GenerateFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
 	imports := imports.New()
 	imports.AddNamed("transform", "gitlab.com/mnm/bud/runtime/transform")
 	imports.AddNamed("svelte", "gitlab.com/mnm/bud/package/svelte")

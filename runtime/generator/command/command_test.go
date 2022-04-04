@@ -28,8 +28,8 @@ func TestEmpty(t *testing.T) {
 	project, err := bud.Compile(ctx)
 	is.NoErr(err)
 	app, err := project.Build(ctx)
-	is.Equal(err.Error(), `exit status 1`)
-	is.Equal(app, nil)
+	is.NoErr(err)
+	is.NoErr(app.Exists("bud/.app/command/command.go"))
 }
 
 func TestCommand(t *testing.T) {

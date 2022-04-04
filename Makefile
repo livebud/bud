@@ -9,6 +9,16 @@ precommit:
 
 TAILWIND := $(realpath $(PWD)/../bud-tailwind)
 
+e2e.hn:
+	@ clear
+	@ rm -fr example/hn/bud
+	@ go run main.go -C example/hn build --embed
+	@ mv example/hn/bud/app $(TMPDIR)/bud_app
+	@ $(TMPDIR)/bud_app
+
+hn:
+	@ watch -- $(MAKE) e2e.hn
+
 e2e.hackernews:
 	@ clear
 	@ rm -rf _build/hn
@@ -34,9 +44,6 @@ e2e.hackernews.run:
 # 	# @ rm -rf ../hackernews
 # 	# @ mkdir -p ../hackernews
 # 	@ go run main.go -C ../hackernews deploy
-
-example:
-	@ watch -- $(MAKE) e2e.hackernews
 
 action:
 	@ watch -- $(MAKE) test.action

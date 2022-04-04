@@ -18,7 +18,7 @@ import (
 	"gitlab.com/mnm/bud/runtime/view/dom"
 )
 
-func TestRunner(t *testing.T) {
+func TestServeFile(t *testing.T) {
 	is := is.New(t)
 	dir := t.TempDir()
 	vm, err := v8.Load()
@@ -36,7 +36,7 @@ func TestRunner(t *testing.T) {
 	is.NoErr(err)
 	overlay, err := overlay.Load(module)
 	is.NoErr(err)
-	overlay.FileServer("bud/view", dom.Runner(overlay, module, transformer))
+	overlay.FileServer("bud/view", dom.New(module, transformer.DOM))
 	// Read the wrapped version of index.svelte with node_modules rewritten
 	code, err := fs.ReadFile(overlay, "bud/view/_index.svelte")
 	is.NoErr(err)
@@ -99,7 +99,7 @@ func TestNodeModules(t *testing.T) {
 	is.True(strings.Contains(string(code), `function text(`))
 }
 
-func TestBuilder(t *testing.T) {
+func TestGenerateDir(t *testing.T) {
 	chunkPath := "chunk-H7BRTJPS.js"
 	is := is.New(t)
 	dir := t.TempDir()
@@ -118,7 +118,7 @@ func TestBuilder(t *testing.T) {
 	is.NoErr(err)
 	overlay, err := overlay.Load(module)
 	is.NoErr(err)
-	overlay.DirGenerator("bud/view", dom.Builder(overlay, module, transformer))
+	overlay.DirGenerator("bud/view", dom.New(module, transformer.DOM))
 	des, err := fs.ReadDir(overlay, "bud/view")
 	is.NoErr(err)
 	is.Equal(len(des), 3)

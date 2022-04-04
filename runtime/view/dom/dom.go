@@ -25,61 +25,8 @@ var template string
 // generator
 var generator = gotemplate.MustParse("dom.gotext", template)
 
-type Compiler struct {
-	Module    *gomod.Module
-	Transform *transform.DOM
-}
-
-func (c *Compiler) ServeFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
-	panic("serve file not implemented yet")
-}
-
-func (c *Compiler) GenerateFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
-	panic("generate file not implemented yet")
-}
-
-func Runner(fsys fs.FS, module *gomod.Module, transformer *transform.Map) overlay.FileServer {
-	plugins := append([]esbuild.Plugin{
-		domPlugin(fsys, module),
-		domExternalizePlugin(),
-	}, transformer.DOM.Plugins()...)
-	return overlay.ServeFile(func(ctx context.Context, f overlay.F, file *overlay.File) error {
-		// If the name starts with node_modules, trim it to allow esbuild to do
-		// the resolving. e.g. node_modules/livebud => livebud
-		entryPoint := trimEntrypoint(file.Path())
-		result := esbuild.Build(esbuild.BuildOptions{
-			EntryPoints:   []string{entryPoint},
-			AbsWorkingDir: module.Directory(),
-			Format:        esbuild.FormatESModule,
-			Platform:      esbuild.PlatformBrowser,
-			// Add "import" condition to support svelte/internal
-			// https://esbuild.github.io/api/#how-conditions-work
-			Conditions: []string{"browser", "default", "import"},
-			Metafile:   true,
-			Bundle:     true,
-			Plugins:    plugins,
-		})
-		if len(result.Errors) > 0 {
-			msgs := esbuild.FormatMessages(result.Errors, esbuild.FormatMessagesOptions{
-				Color:         true,
-				Kind:          esbuild.ErrorMessage,
-				TerminalWidth: 80,
-			})
-			return fmt.Errorf(strings.Join(msgs, "\n"))
-		}
-		// if err := esmeta.Link2(dfs, result.Metafile); err != nil {
-		// 	return nil, err
-		// }
-		code := result.OutputFiles[0].Contents
-		// Replace require statements and updates the path on imports
-		code = replaceDependencyPaths(code)
-		file.Data = code
-		source := strings.TrimPrefix(file.Path(), "bud/")
-		file.Link(source)
-		return nil
-	})
-}
-
+// Serve node_modules
+// TODO: migrate to it's own package
 func NodeModules(module *gomod.Module) overlay.FileServer {
 	plugins := []esbuild.Plugin{
 		domExternalizePlugin(),
@@ -122,67 +69,125 @@ func NodeModules(module *gomod.Module) overlay.FileServer {
 	})
 }
 
-func Builder(fsys fs.FS, module *gomod.Module, transformer *transform.Map) overlay.DirGenerator {
-	plugins := append([]esbuild.Plugin{
-		domPlugin(fsys, module),
-	}, transformer.DOM.Plugins()...)
-	return overlay.GenerateDir(func(ctx context.Context, f overlay.F, dir *overlay.Dir) error {
-		views, err := entrypoint.List(fsys, "view")
-		if err != nil {
-			return err
+func New(module *gomod.Module, transformer transform.Transformer) *Compiler {
+	return &Compiler{module, transformer}
+}
+
+type Compiler struct {
+	module      *gomod.Module
+	transformer transform.Transformer
+}
+
+// Compile into a list of  views for embedding
+func (c *Compiler) Compile(ctx context.Context, fsys fs.FS) ([]esbuild.OutputFile, error) {
+	views, err := entrypoint.List(fsys, "view")
+	if err != nil {
+		return nil, err
+	}
+	entries := make([]esbuild.EntryPoint, len(views))
+	viewDir := filepath.Join("bud", "view") + string(filepath.Separator)
+	for i, view := range views {
+		entryPath := filepath.Join("bud", toEntry(string(view.Page)))
+		outPath := strings.TrimPrefix(entryPath, viewDir)
+		entries[i] = esbuild.EntryPoint{
+			InputPath:  entryPath,
+			OutputPath: outPath,
 		}
-		entries := make([]esbuild.EntryPoint, len(views))
-		viewDir := filepath.Join("bud", "view") + string(filepath.Separator)
-		for i, view := range views {
-			entryPath := filepath.Join("bud", toEntry(string(view.Page)))
-			outPath := strings.TrimPrefix(entryPath, viewDir)
-			entries[i] = esbuild.EntryPoint{
-				InputPath:  entryPath,
-				OutputPath: outPath,
-			}
-		}
-		// If the name starts with node_modules, trim it to allow esbuild to do
-		// the resolving. e.g. node_modules/livebud => livebud
-		result := esbuild.Build(esbuild.BuildOptions{
-			EntryPointsAdvanced: entries,
-			Outdir:              "/",
-			AbsWorkingDir:       module.Directory(),
-			ChunkNames:          "[name]-[hash]",
-			Format:              esbuild.FormatESModule,
-			Platform:            esbuild.PlatformBrowser,
-			// Add "import" condition to support svelte/internal
-			// https://esbuild.github.io/api/#how-conditions-work
-			Conditions:        []string{"browser", "default", "import"},
-			Metafile:          false,
-			Bundle:            true,
-			Splitting:         true,
-			MinifyIdentifiers: true,
-			MinifySyntax:      true,
-			MinifyWhitespace:  true,
-			Plugins:           plugins,
-			Write:             false,
-		})
-		if len(result.Errors) > 0 {
-			msgs := esbuild.FormatMessages(result.Errors, esbuild.FormatMessagesOptions{
-				Color:         true,
-				Kind:          esbuild.ErrorMessage,
-				TerminalWidth: 80,
-			})
-			return fmt.Errorf(strings.Join(msgs, "\n"))
-		}
-		for _, outFile := range result.OutputFiles {
-			outFile := outFile
-			outPath := strings.TrimPrefix(outFile.Path, "/")
-			if isEntry(outPath) {
-				outPath = strings.TrimSuffix(outPath, ".js")
-			}
-			dir.GenerateFile(outPath, func(ctx context.Context, f overlay.F, file *overlay.File) error {
-				file.Data = outFile.Contents
-				return nil
-			})
-		}
-		return nil
+	}
+	// If the name starts with node_modules, trim it to allow esbuild to do
+	// the resolving. e.g. node_modules/livebud => livebud
+	result := esbuild.Build(esbuild.BuildOptions{
+		EntryPointsAdvanced: entries,
+		Outdir:              "/",
+		AbsWorkingDir:       c.module.Directory(),
+		ChunkNames:          "[name]-[hash]",
+		Format:              esbuild.FormatESModule,
+		Platform:            esbuild.PlatformBrowser,
+		// Add "import" condition to support svelte/internal
+		// https://esbuild.github.io/api/#how-conditions-work
+		Conditions:        []string{"browser", "default", "import"},
+		Metafile:          false,
+		Bundle:            true,
+		Splitting:         true,
+		MinifyIdentifiers: true,
+		MinifySyntax:      true,
+		MinifyWhitespace:  true,
+		Plugins: append([]esbuild.Plugin{
+			domPlugin(fsys, c.module),
+		}, c.transformer.Plugins()...),
+		Write: false,
 	})
+	if len(result.Errors) > 0 {
+		msgs := esbuild.FormatMessages(result.Errors, esbuild.FormatMessagesOptions{
+			Color:         true,
+			Kind:          esbuild.ErrorMessage,
+			TerminalWidth: 80,
+		})
+		return nil, fmt.Errorf(strings.Join(msgs, "\n"))
+	}
+	for i, outFile := range result.OutputFiles {
+		outFile := outFile
+		outPath := strings.TrimPrefix(outFile.Path, "/")
+		if isEntry(outPath) {
+			outPath = strings.TrimSuffix(outPath, ".js")
+		}
+		result.OutputFiles[i].Path = outPath
+	}
+	return result.OutputFiles, nil
+}
+
+// GenerateDir generates a directory of compiled files
+func (c *Compiler) GenerateDir(ctx context.Context, fsys overlay.F, dir *overlay.Dir) error {
+	files, err := c.Compile(ctx, fsys)
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		dir.FileGenerator(file.Path, &overlay.Embed{
+			Data: file.Contents,
+		})
+	}
+	return nil
+}
+
+// Serve a single file, used in development
+func (c *Compiler) ServeFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
+	// If the name starts with node_modules, trim it to allow esbuild to do
+	// the resolving. e.g. node_modules/livebud => livebud
+	entryPoint := trimEntrypoint(file.Path())
+	result := esbuild.Build(esbuild.BuildOptions{
+		EntryPoints:   []string{entryPoint},
+		AbsWorkingDir: c.module.Directory(),
+		Format:        esbuild.FormatESModule,
+		Platform:      esbuild.PlatformBrowser,
+		// Add "import" condition to support svelte/internal
+		// https://esbuild.github.io/api/#how-conditions-work
+		Conditions: []string{"browser", "default", "import"},
+		Metafile:   true,
+		Bundle:     true,
+		Plugins: append([]esbuild.Plugin{
+			domPlugin(fsys, c.module),
+			domExternalizePlugin(),
+		}, c.transformer.Plugins()...),
+	})
+	if len(result.Errors) > 0 {
+		msgs := esbuild.FormatMessages(result.Errors, esbuild.FormatMessagesOptions{
+			Color:         true,
+			Kind:          esbuild.ErrorMessage,
+			TerminalWidth: 80,
+		})
+		return fmt.Errorf(strings.Join(msgs, "\n"))
+	}
+	// if err := esmeta.Link2(dfs, result.Metafile); err != nil {
+	// 	return nil, err
+	// }
+	code := result.OutputFiles[0].Contents
+	// Replace require statements and updates the path on imports
+	code = replaceDependencyPaths(code)
+	file.Data = code
+	source := strings.TrimPrefix(file.Path(), "bud/")
+	file.Link(source)
+	return nil
 }
 
 func toEntry(path string) string {

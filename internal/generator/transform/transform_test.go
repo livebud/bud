@@ -2,8 +2,6 @@ package transform_test
 
 import (
 	"context"
-	"fmt"
-	"io"
 	"testing"
 
 	"github.com/matryer/is"
@@ -11,9 +9,7 @@ import (
 	"gitlab.com/mnm/bud/package/modcache"
 )
 
-// TODO: re-enable once bud/app is always built
 func TestEmpty(t *testing.T) {
-	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
@@ -22,7 +18,7 @@ func TestEmpty(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.NotExists("bud/.app/transform/transform.go"))
+	is.NoErr(app.Exists("bud/.cli/transform/transform.go"))
 }
 
 func TestSvelteView(t *testing.T) {
@@ -30,12 +26,12 @@ func TestSvelteView(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["view/index.svelte"] = `<h1>hello world!</h1>`
+	bud.Files["view/index.svelte"] = `<h1>hello</h1>`
 	project, err := bud.Compile(ctx)
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/transform/transform.go"))
+	is.NoErr(app.Exists("bud/.cli/transform/transform.go"))
 }
 
 func TestMarkdownPlugin(t *testing.T) {
@@ -61,17 +57,19 @@ func TestMarkdownPlugin(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/transform/transform.go"))
-	is.NoErr(app.Exists("bud/main.go"))
-	fmt.Println("starting")
+	is.NoErr(app.Exists("bud/.cli/transform/transform.go"))
+	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
 	defer server.Close()
 	res, err := server.Get("/")
 	is.NoErr(err)
 	defer res.Body.Close()
-	is.Equal(200, res.StatusCode)
-	body, err := io.ReadAll(res.Body)
-	is.NoErr(err)
-	is.Equal(`<h1>hello</h1>`, string(body))
+	// HTML response
+	is.NoErr(res.ExpectHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`))
+	is.NoErr(res.ContainsBody(`<h1>hello</h1>`))
 }

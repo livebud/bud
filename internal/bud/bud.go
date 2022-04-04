@@ -14,6 +14,7 @@ import (
 	"gitlab.com/mnm/bud/internal/generator/importfile"
 	"gitlab.com/mnm/bud/internal/generator/mainfile"
 	"gitlab.com/mnm/bud/internal/generator/program"
+	"gitlab.com/mnm/bud/internal/generator/transform"
 	"gitlab.com/mnm/bud/package/di"
 	"gitlab.com/mnm/bud/package/gomod"
 	"gitlab.com/mnm/bud/package/overlay"
@@ -142,6 +143,7 @@ func (c *Compiler) Compile(ctx context.Context, flag *bud.Flag) (p *Project, err
 	overlay.FileGenerator("bud/.cli/program/program.go", program.New(flag, injector, c.module))
 	overlay.FileGenerator("bud/.cli/command/command.go", command.New(overlay, c.module, parser))
 	overlay.FileGenerator("bud/.cli/generator/generator.go", generator.New(overlay, c.module, parser))
+	overlay.FileGenerator("bud/.cli/transform/transform.go", transform.New(c.module))
 	// Sync the generators
 	if err := c.sync(ctx, overlay); err != nil {
 		return nil, err

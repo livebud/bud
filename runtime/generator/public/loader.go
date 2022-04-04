@@ -3,9 +3,9 @@ package public
 import (
 	"io/fs"
 	"path"
-	"strings"
 
 	"gitlab.com/mnm/bud/internal/bail"
+	"gitlab.com/mnm/bud/internal/embed"
 	"gitlab.com/mnm/bud/internal/imports"
 	"gitlab.com/mnm/bud/package/gomod"
 	"gitlab.com/mnm/bud/runtime/bud"
@@ -34,9 +34,8 @@ func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
 	state = new(State)
 	state.Flag = l.flag
-	state.Files = l.loadFiles()
-	if len(state.Files) == 0 {
-		return nil, fs.ErrNotExist
+	if l.flag.Embed {
+		state.Embeds = l.loadEmbedsFrom("public", ".")
 	}
 	l.imports.AddStd("errors", "io", "io/fs", "net/http", "path", "time")
 	// l.imports.AddStd("fmt")
@@ -46,12 +45,7 @@ func (l *loader) Load() (state *State, err error) {
 	return state, nil
 }
 
-func (l *loader) loadFiles() (files []*File) {
-	files = l.loadFilesFrom("public", ".")
-	return files
-}
-
-func (l *loader) loadFilesFrom(root, dir string) (files []*File) {
+func (l *loader) loadEmbedsFrom(root, dir string) (files []*embed.File) {
 	fullDir := path.Join(root, dir)
 	des, err := fs.ReadDir(l.fsys, fullDir)
 	if err != nil {
@@ -64,41 +58,19 @@ func (l *loader) loadFilesFrom(root, dir string) (files []*File) {
 		}
 		filePath := path.Join(dir, name)
 		if de.IsDir() {
-			files = append(files, l.loadFilesFrom(root, filePath)...)
+			files = append(files, l.loadEmbedsFrom(root, filePath)...)
 			continue
 		}
 		fullPath := path.Join(root, filePath)
-		file := &File{
+		file := &embed.File{
 			Path: fullPath,
-			Root: root,
 		}
-		if l.flag.Embed {
-			file.Data = l.loadData(fullPath)
-			file.Mode = "0644" // TODO: configurable
+		data, err := fs.ReadFile(l.fsys, fullPath)
+		if err != nil {
+			l.Bail(err)
 		}
+		file.Data = data
 		files = append(files, file)
 	}
 	return files
-}
-
-const lowerHex = "0123456789abcdef"
-
-// Based on:
-// https://github.com/go-bindata/go-bindata/blob/26949cc13d95310ffcc491c325da869a5aafce8f/stringwriter.go#L18-L36
-func (l *loader) loadData(filePath string) string {
-	data, err := fs.ReadFile(l.fsys, filePath)
-	if err != nil {
-		l.Bail(err)
-	}
-	if len(data) == 0 {
-		return ""
-	}
-	s := new(strings.Builder)
-	buf := []byte(`\x00`)
-	for _, b := range data {
-		buf[2] = lowerHex[b/16]
-		buf[3] = lowerHex[b%16]
-		s.Write(buf)
-	}
-	return s.String()
 }

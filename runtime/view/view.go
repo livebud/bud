@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"net/http"
 	"strings"
-	"testing"
 
 	"gitlab.com/mnm/bud/package/overlay"
 
@@ -41,15 +40,11 @@ func New(fsys fs.FS, vm js.VM) *Server {
 	return &Server{fsys, http.FS(fsys), vm}
 }
 
-func Test(t testing.TB) *Server {
-	panic("view: Test not implemented yet")
-}
-
 // Live server serves view files on the fly. Used during development.
 func Live(module *gomod.Module, overlay *overlay.FileSystem, vm js.VM, transformer *transform.Map) *Server {
-	overlay.FileServer("bud/view", dom.Runner(overlay, module, transformer))
+	overlay.FileServer("bud/view", dom.New(module, transformer.DOM))
 	overlay.FileServer("bud/node_modules", dom.NodeModules(module))
-	overlay.FileGenerator("bud/view/_ssr.js", ssr.Generator(overlay, module, transformer))
+	overlay.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	return &Server{overlay, http.FS(overlay), vm}
 }
 

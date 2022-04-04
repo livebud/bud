@@ -12,26 +12,19 @@ import (
 )
 {{- end }}
 
-func New(fsys *overlay.FileSystem) Middleware {
-	{{- if $.Flag.Embed }}
-	return embed(fsys)
-	{{- else }}
-	return reference(fsys)
-	{{- end }}
-}
-
-func reference(fsys *overlay.FileSystem) Middleware {
-	return serve(http.FS(fsys), serveContent)
-}
-
 {{- if $.Flag.Embed }}
-func embed(fsys *overlay.FileSystem) Middleware {
-	{{- range $file := $.Files }}
-	fsys.FileGenerator(`{{ $file.Path }}`, &overlay.Embed{
-		{{ if $file.Data }}Data: []byte("{{ $file.Data }}"),{{ end }}
-		{{ if $file.Mode }}Mode: fs.FileMode({{ $file.Mode }}),{{ end }}
+// New middleware that serves embedded files
+func New(fsys *overlay.FileSystem) Middleware {
+	{{- range $embed := $.Embeds }}
+	fsys.FileGenerator(`{{ $embed.Path }}`, &overlay.Embed{
+		{{ if $embed.Data }}Data: []byte("{{ $embed.Data }}"),{{ end }}
 	})
 	{{- end }}
+	return serve(http.FS(fsys), serveContent)
+}
+{{- else }}
+// New middleware that serves files by reference
+func New(fsys *overlay.FileSystem) Middleware {
 	return serve(http.FS(fsys), serveContent)
 }
 {{- end }}
