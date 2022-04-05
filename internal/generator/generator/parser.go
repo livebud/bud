@@ -20,7 +20,6 @@ type parser struct {
 
 func (p *parser) Parse(ctx context.Context) (state *State, err error) {
 	defer p.Recover2(&err, "generator: unable to parse")
-	p.imports.AddStd("io/fs")
 	p.imports.AddNamed("overlay", "gitlab.com/mnm/bud/package/overlay")
 	p.imports.AddNamed("mainfile", "gitlab.com/mnm/bud/runtime/generator/mainfile")
 	p.imports.AddNamed("program", "gitlab.com/mnm/bud/runtime/generator/program")

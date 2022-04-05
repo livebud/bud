@@ -18,7 +18,7 @@ func New(
 	public *public.Generator,
 	action *action.Generator,
 	view *view.Compiler,
-) FS {
+) *FileSystem {
 	overlay.FileGenerator("bud/.app/main.go", main)
 	overlay.FileGenerator("bud/.app/program/program.go", program)
 	overlay.FileGenerator("bud/.app/command/command.go", command)
@@ -29,4 +29,4 @@ func New(
 	return overlay
 }
 
-type FS = fs.FS
+type FileSystem = overlay.FileSystem

@@ -3,7 +3,6 @@ package mainfile
 import (
 	"context"
 	_ "embed"
-	"io/fs"
 
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/internal/imports"
@@ -22,12 +21,11 @@ type State struct {
 	Imports []*imports.Import
 }
 
-func New(fsys fs.FS, module *gomod.Module) *Main {
-	return &Main{fsys, module}
+func New(module *gomod.Module) *Main {
+	return &Main{module}
 }
 
 type Main struct {
-	fsys   fs.FS
 	module *gomod.Module
 }
 
@@ -47,7 +45,7 @@ func Generate(state *State) ([]byte, error) {
 }
 
 func (m *Main) GenerateFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
-	if err := vfs.Exist(m.fsys, "bud/.app/program/program.go"); err != nil {
+	if err := vfs.Exist(fsys, "bud/.app/program/program.go"); err != nil {
 		return err
 	}
 	state, err := m.Parse(ctx)

@@ -7,12 +7,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/mnm/bud/internal/dsync"
 	"gitlab.com/mnm/bud/internal/gobin"
 	"gitlab.com/mnm/bud/package/gomod"
+	"gitlab.com/mnm/bud/package/overlay"
 )
 
-func New(fsys fs.FS, module *gomod.Module) *Project {
+func New(fsys *overlay.FileSystem, module *gomod.Module) *Project {
 	return &Project{
 		fsys:   fsys,
 		module: module,
@@ -23,7 +23,7 @@ func New(fsys fs.FS, module *gomod.Module) *Project {
 }
 
 type Project struct {
-	fsys   fs.FS
+	fsys   *overlay.FileSystem
 	module *gomod.Module
 	Env    []string
 	Stdout io.Writer
@@ -31,7 +31,8 @@ type Project struct {
 }
 
 func (c *Project) Compile(ctx context.Context, flag *Flag) (*App, error) {
-	if err := dsync.Dir(c.fsys, "bud/.app", c.module.DirFS("bud/.app"), "."); err != nil {
+	// Sync the app
+	if err := c.fsys.Sync("bud/.app"); err != nil {
 		return nil, err
 	}
 	// Ensure that main.go exists

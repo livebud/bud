@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"gitlab.com/mnm/bud/internal/dsync"
 	"gitlab.com/mnm/bud/internal/generator/command"
 	"gitlab.com/mnm/bud/internal/generator/generator"
 	"gitlab.com/mnm/bud/internal/generator/importfile"
@@ -89,7 +88,7 @@ func (c *Compiler) writeImporter(ctx context.Context, overlay *overlay.FileSyste
 func (c *Compiler) sync(ctx context.Context, overlay *overlay.FileSystem) (err error) {
 	_, span := trace.Start(ctx, "sync cli", "dir", "bud/.cli")
 	defer span.End(&err)
-	if err := dsync.Dir(overlay, "bud/.cli", c.module.DirFS("bud/.cli"), "."); err != nil {
+	if err := overlay.Sync("bud/.cli"); err != nil {
 		return err
 	}
 	return nil

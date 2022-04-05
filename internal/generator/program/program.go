@@ -61,8 +61,8 @@ func (p *Program) Parse(ctx context.Context) (*State, error) {
 			di.ToType("gitlab.com/mnm/bud/runtime/bud", "*Flag"),
 		},
 		Aliases: di.Aliases{
-			di.ToType("io/fs", "FS"): di.ToType("gitlab.com/mnm/bud/package/overlay", "*FileSystem"),
 			jsVM:                     di.ToType("gitlab.com/mnm/bud/package/js/v8client", "*Client"),
+			di.ToType("io/fs", "FS"): di.ToType("gitlab.com/mnm/bud/package/overlay", "*FileSystem"),
 			di.ToType("gitlab.com/mnm/bud/runtime/transform", "*Map"): di.ToType(p.module.Import("bud/.cli/transform"), "*Map"),
 		},
 		Results: []di.Dependency{

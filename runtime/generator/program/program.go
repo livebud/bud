@@ -41,8 +41,8 @@ func (p *Program) GenerateFile(ctx context.Context, fsys overlay.F, file *overla
 	imports.AddNamed("console", "gitlab.com/mnm/bud/package/log/console")
 	imports.Add(p.Module.Import("bud/.app/command"))
 	jsVM := di.ToType("gitlab.com/mnm/bud/package/js", "VM")
-	loadCLI := &di.Function{
-		Name:   "loadCLI",
+	loadApp := &di.Function{
+		Name:   "loadApp",
 		Target: p.Module.Import("bud", "program"),
 		Params: []di.Dependency{
 			di.ToType("gitlab.com/mnm/bud/package/gomod", "*Module"),
@@ -59,9 +59,9 @@ func (p *Program) GenerateFile(ctx context.Context, fsys overlay.F, file *overla
 		},
 	}
 	if p.Flag.Embed {
-		loadCLI.Aliases[jsVM] = di.ToType("gitlab.com/mnm/bud/package/js/v8", "*VM")
+		loadApp.Aliases[jsVM] = di.ToType("gitlab.com/mnm/bud/package/js/v8", "*VM")
 	}
-	provider, err := p.Injector.Wire(loadCLI)
+	provider, err := p.Injector.Wire(loadApp)
 	if err != nil {
 		// Don't wrap on purpose, this error gets swallowed up easily
 		return fmt.Errorf("program: unable to wire > %s", err)

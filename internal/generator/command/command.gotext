@@ -9,12 +9,12 @@ import (
 )
 {{- end }}
 
-func New(fsys generator.FS, module *gomod.Module) *CLI {
+func New(fsys *generator.FileSystem, module *gomod.Module) *CLI {
 	return &CLI{fsys, module}
 }
 
 type CLI struct {
-	fsys generator.FS
+	fsys   *generator.FileSystem
 	module *gomod.Module
 }
 

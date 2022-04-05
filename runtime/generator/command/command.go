@@ -3,7 +3,6 @@ package command
 import (
 	"context"
 	_ "embed"
-	"io/fs"
 
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/package/gomod"
@@ -18,14 +17,13 @@ var generator = gotemplate.MustParse("command.gotext", template)
 
 // TODO: rename to Command
 type Generator struct {
-	FS     fs.FS
 	Module *gomod.Module
 	Parser *parser.Parser
 }
 
-func (g *Generator) GenerateFile(ctx context.Context, f overlay.F, file *overlay.File) error {
+func (g *Generator) GenerateFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
 	// Load command state
-	state, err := Load(g.FS, g.Module, g.Parser)
+	state, err := Load(fsys, g.Module, g.Parser)
 	if err != nil {
 		return err
 	}

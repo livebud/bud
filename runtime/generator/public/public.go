@@ -3,7 +3,6 @@ package public
 import (
 	"context"
 	_ "embed"
-	"io/fs"
 
 	"gitlab.com/mnm/bud/package/gomod"
 	"gitlab.com/mnm/bud/package/overlay"
@@ -17,22 +16,20 @@ var template string
 
 var generator = gotemplate.MustParse("public", template)
 
-func New(flag *bud.Flag, fsys fs.FS, module *gomod.Module) *Generator {
+func New(flag *bud.Flag, module *gomod.Module) *Generator {
 	return &Generator{
 		flag:   flag,
-		fsys:   fsys,
 		module: module,
 	}
 }
 
 type Generator struct {
 	flag   *bud.Flag
-	fsys   fs.FS
 	module *gomod.Module
 }
 
-func (g *Generator) GenerateFile(ctx context.Context, _ overlay.F, file *overlay.File) error {
-	state, err := Load(g.flag, g.fsys, g.module)
+func (g *Generator) GenerateFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
+	state, err := Load(g.flag, fsys, g.module)
 	if err != nil {
 		return err
 	}
