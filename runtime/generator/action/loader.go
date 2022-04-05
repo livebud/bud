@@ -486,7 +486,6 @@ func (l *loader) loadContext(controller *Controller, method *parser.Function) *C
 			di.ToType("context", "Context"),
 		},
 		Aliases: di.Aliases{
-			di.ToType("gitlab.com/mnm/bud/package/js", "VM"):         di.ToType("gitlab.com/mnm/bud/package/js/v8client", "*Client"),
 			di.ToType("gitlab.com/mnm/bud/runtime/view", "Renderer"): di.ToType("gitlab.com/mnm/bud/runtime/view", "*Server"),
 		},
 	})

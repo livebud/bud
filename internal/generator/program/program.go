@@ -50,25 +50,30 @@ func (p *Program) Parse(ctx context.Context) (*State, error) {
 	imports.AddNamed("console", "gitlab.com/mnm/bud/package/log/console")
 	imports.AddNamed("command", p.module.Import("bud/.cli/command"))
 	// Write up the dependencies
-	provider, err := p.injector.Wire(&di.Function{
+	jsVM := di.ToType("gitlab.com/mnm/bud/package/js", "VM")
+	loadCLI := &di.Function{
 		Name:    "loadCLI",
 		Imports: imports,
 		Target:  p.module.Import("bud/.cli/program"),
 		Params: []di.Dependency{
 			di.ToType("gitlab.com/mnm/bud/package/gomod", "*Module"),
+			di.ToType("context", "Context"),
 			di.ToType("gitlab.com/mnm/bud/runtime/bud", "*Flag"),
 		},
 		Aliases: di.Aliases{
 			di.ToType("io/fs", "FS"): di.ToType("gitlab.com/mnm/bud/package/overlay", "*FileSystem"),
-			// TODO: change for non-embeds
-			di.ToType("gitlab.com/mnm/bud/package/js", "VM"):          di.ToType("gitlab.com/mnm/bud/package/js/v8", "*VM"),
+			jsVM:                     di.ToType("gitlab.com/mnm/bud/package/js/v8client", "*Client"),
 			di.ToType("gitlab.com/mnm/bud/runtime/transform", "*Map"): di.ToType(p.module.Import("bud/.cli/transform"), "*Map"),
 		},
 		Results: []di.Dependency{
 			di.ToType(p.module.Import("bud/.cli/command"), "*CLI"),
 			&di.Error{},
 		},
-	})
+	}
+	if p.flag.Embed {
+		loadCLI.Aliases[jsVM] = di.ToType("gitlab.com/mnm/bud/package/js/v8", "*VM")
+	}
+	provider, err := p.injector.Wire(loadCLI)
 	if err != nil {
 		// Don't wrap on purpose, this error gets swallowed up too easily
 		return nil, fmt.Errorf("%w > %s", ErrCantWire, err)

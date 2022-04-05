@@ -25,14 +25,14 @@ func Run(ctx context.Context, args ...string) int {
 }
 
 func run(ctx context.Context, args ...string) error {
-	program, err := Load()
+	program, err := Load(ctx)
 	if err != nil {
 		return err
 	}
 	return program.Run(ctx, args...)
 }
 
-func Load() (*Program, error) {
+func Load(ctx context.Context) (*Program, error) {
 	{{- with $gomod := $.Provider.Variable "gitlab.com/mnm/bud/package/gomod.*Module" }}
 	{{ $gomod }}, err := gomod.Find(".")
 	if err != nil {
@@ -45,6 +45,7 @@ func Load() (*Program, error) {
 			{{ $key }}: {{ $value }},
 			{{- end }}
 		},
+		{{- if $.Provider.Variable "context.Context" }}ctx,{{ end }}
 		{{- with $gomod := $.Provider.Variable "gitlab.com/mnm/bud/package/gomod.*Module" }}{{ $gomod }},{{ end }}
 	)
 	if err != nil {
