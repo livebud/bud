@@ -37,10 +37,12 @@ func (c *Command) Run(ctx context.Context) error {
 	fn := &di.Function{
 		Hoist: c.Hoist,
 	}
-	fn.Target, err = c.toImportPath(module, c.Target)
+	target, err := c.toDependency(module, c.Target)
 	if err != nil {
 		return err
 	}
+	fn.Target = target.ImportPath()
+	fn.Name = target.TypeName()
 	// Add the type mapping
 	for from, to := range c.Map {
 		fromDep, err := c.toDependency(module, from)
