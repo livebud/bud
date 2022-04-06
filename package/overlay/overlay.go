@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"gitlab.com/mnm/bud/internal/dsync"
+	"gitlab.com/mnm/bud/internal/fscache"
 	"gitlab.com/mnm/bud/internal/pubsub"
 
 	"io/fs"
@@ -18,6 +19,21 @@ import (
 
 // Load the overlay filesystem
 func Load(module *gomod.Module) (*FileSystem, error) {
+	cache := fscache.New()
+	pluginFS, err := pluginfs.Load(module)
+	if err != nil {
+		return nil, err
+	}
+	cfs := conjure.New()
+	merged := merged.Merge(cache.Wrap("cfs", cfs), cache.Wrap("pluginfs", pluginFS))
+	dag := dag.New()
+	ps := pubsub.New()
+	return &FileSystem{cache, cfs, dag, cache.Wrap("merged", merged), module, ps}, nil
+}
+
+// Serve is just load without the cache
+// TODO: consolidate
+func Serve(module *gomod.Module) (*Server, error) {
 	pluginFS, err := pluginfs.Load(module)
 	if err != nil {
 		return nil, err
@@ -26,8 +42,10 @@ func Load(module *gomod.Module) (*FileSystem, error) {
 	merged := merged.Merge(cfs, pluginFS)
 	dag := dag.New()
 	ps := pubsub.New()
-	return &FileSystem{cfs, dag, merged, module, ps}, nil
+	return &FileSystem{fscache.New(), cfs, dag, merged, module, ps}, nil
 }
+
+type Server = FileSystem
 
 type F interface {
 	fs.FS
@@ -35,6 +53,7 @@ type F interface {
 }
 
 type FileSystem struct {
+	cache  *fscache.Cache
 	cfs    *conjure.FileSystem
 	dag    *dag.Graph
 	fsys   fs.FS
@@ -46,6 +65,7 @@ func (f *FileSystem) Link(from, to string) {
 }
 
 func (f *FileSystem) Open(name string) (fs.File, error) {
+	// fmt.Println("overlay opening", name)
 	return f.fsys.Open(name)
 }
 
@@ -95,5 +115,7 @@ func (f *FileSystem) FileServer(path string, server FileServer) {
 
 // Sync the overlay to the filesystem
 func (f *FileSystem) Sync(dir string) error {
+	// Clear the filesystem cache before syncing again
+	f.cache.Clear()
 	return dsync.Dir(f.fsys, dir, f.module.DirFS(dir), ".")
 }

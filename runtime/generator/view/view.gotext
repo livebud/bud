@@ -14,7 +14,7 @@ import (
 
 // New is called like this when calling bud run
 {{- if not $.Flag.Embed }}
-func New(module *mod.Module, overlay *overlay.FileSystem, vm js.VM, transformer *transform.Map) *Server {
+func New(module *mod.Module, overlay *overlay.Server, vm js.VM, transformer *transform.Map) *Server {
 	return view.Live(module, overlay, vm, transformer)
 }
 {{ else }}

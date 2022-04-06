@@ -24,7 +24,7 @@ func New(fsys *overlay.FileSystem) Middleware {
 }
 {{- else }}
 // New middleware that serves files by reference
-func New(fsys *overlay.FileSystem) Middleware {
+func New(fsys *overlay.Server) Middleware {
 	return serve(http.FS(fsys), serveContent)
 }
 {{- end }}

@@ -4,19 +4,18 @@ import (
 	"io/fs"
 )
 
-func Wrap(fs fs.FS) *Wrapped {
-	return &Wrapped{fs, New()}
-}
-
 type Wrapped struct {
-	fs fs.FS
-	c  *Cache
+	name string
+	fs   fs.FS
+	c    *Cache
 }
 
 func (w *Wrapped) Open(name string) (fs.File, error) {
 	if w.c.Has(name) {
+		// fmt.Println("  ", w.name, "cache hit", name)
 		return w.c.Open(name)
 	}
+	// fmt.Println("  ", w.name, "cache miss", name)
 	file, err := w.fs.Open(name)
 	if err != nil {
 		return nil, err

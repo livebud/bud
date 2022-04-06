@@ -44,6 +44,14 @@ func (c *Cache) Keys() (keys []string) {
 	return keys
 }
 
+func (c *Cache) Clear() {
+	c.sm = sync.Map{}
+}
+
+func (c *Cache) Wrap(name string, fsys fs.FS) fs.FS {
+	return &Wrapped{name, fsys, c}
+}
+
 // File events
 
 // Update event

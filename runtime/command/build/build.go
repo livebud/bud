@@ -7,12 +7,12 @@ import (
 )
 
 type Command struct {
+	Flag    *bud.Flag
 	Project *bud.Project
-	Flag    bud.Flag
 }
 
 func (c *Command) Run(ctx context.Context) error {
-	_, err := c.Project.Compile(ctx, &c.Flag)
+	_, err := c.Project.Compile(ctx, c.Flag)
 	if err != nil {
 		return err
 	}

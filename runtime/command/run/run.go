@@ -18,8 +18,8 @@ import (
 )
 
 type Command struct {
+	Flag    *bud.Flag
 	Project *bud.Project
-	Flag    bud.Flag
 	Port    string
 }
 
@@ -38,7 +38,7 @@ func (c *Command) Run(ctx context.Context) error {
 }
 
 func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
-	app, err := c.Project.Compile(ctx, &c.Flag)
+	app, err := c.Project.Compile(ctx, c.Flag)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 				fmt.Fprintln(os.Stderr, "error closing process", err)
 				return nil
 			}
-			app, err := c.Project.Compile(ctx, &c.Flag)
+			app, err := c.Project.Compile(ctx, c.Flag)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "error compiling", err.Error())
 				return nil
