@@ -32,7 +32,6 @@ func do() error {
 	bud := new(command.Bud)
 	cli := commander.New("bud")
 	cli.Flag("chdir", "Change the working directory").Short('C').String(&bud.Dir).Default(".")
-	cli.Flag("trace", "Enable tracing").Short('t').Bool(&bud.Trace).Default(false)
 	cli.Args("args").Strings(&bud.Args)
 	cli.Run(bud.Run)
 

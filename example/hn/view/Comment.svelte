@@ -14,7 +14,7 @@
     <span class="text-sm ml-2 text-gray-600"
       >{comment.author}
       {comment.created_at}
-      [<a href={"#"} on:click={toggle}>{show ? "–" : `${numChildren} more`}</a>]
+      [<a href={"#"} on:click={toggle}>{show ? "-" : `${numChildren} more`}</a>]
     </span>
   </div>
   {#if show}

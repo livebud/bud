@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cespare/xxhash"
 	"gitlab.com/mnm/bud/internal/gois"
 	"gitlab.com/mnm/bud/package/vfs"
 )
@@ -144,6 +145,14 @@ func (m *Module) ResolveDirectoryIn(localFS fs.FS, importPath string) (directory
 		}
 	}
 	return "", fmt.Errorf("mod: unable to resolve directory for import path %q: %w", importPath, fs.ErrNotExist)
+}
+
+// Hash the module
+func (m *Module) Hash() []byte {
+	code := m.File().Format()
+	h := xxhash.New()
+	h.Write(code)
+	return h.Sum(nil)
 }
 
 // Resolve allows `path` to be replaced by an absolute path in `rest`

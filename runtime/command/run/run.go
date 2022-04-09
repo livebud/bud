@@ -80,7 +80,6 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 			return nil
 		// Hot reload the page
 		default:
-			fmt.Println("reloading", path)
 			// Trigger a reload if there's a hot reload server configured
 			if hotServer != nil {
 				hotServer.Reload("*")

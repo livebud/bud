@@ -1,4 +1,4 @@
-package v8client
+package v8server
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 
 	"gitlab.com/mnm/bud/package/js"
 	v8 "gitlab.com/mnm/bud/package/js/v8"
+	"gitlab.com/mnm/bud/package/js/v8client"
 )
 
 func Serve(ctx context.Context) error {
@@ -27,7 +28,7 @@ func Serve(ctx context.Context) error {
 		default:
 		}
 		// Decode messages into input
-		var in input
+		var in v8client.Input
 		if err := dec.Decode(&in); err != nil {
 			if errors.Is(err, io.EOF) {
 				return nil
@@ -53,7 +54,7 @@ func Serve(ctx context.Context) error {
 }
 
 func script(vm js.VM, enc *gob.Encoder, path, code string) error {
-	var out output
+	var out v8client.Output
 	err := vm.Script(path, code)
 	if err != nil {
 		out.Error = err.Error()
@@ -62,7 +63,7 @@ func script(vm js.VM, enc *gob.Encoder, path, code string) error {
 }
 
 func eval(vm js.VM, enc *gob.Encoder, path, code string) error {
-	var out output
+	var out v8client.Output
 	result, err := vm.Eval(path, code)
 	if err != nil {
 		out.Error = err.Error()

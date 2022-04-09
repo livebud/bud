@@ -46,10 +46,10 @@ type Client struct {
 }
 
 func (c *Client) Script(path, script string) error {
-	if err := c.stdin.Encode(input{Type: "script", Path: path, Code: script}); err != nil {
+	if err := c.stdin.Encode(Input{Type: "script", Path: path, Code: script}); err != nil {
 		return err
 	}
-	var out output
+	var out Output
 	if err := c.stdout.Decode(&out); err != nil {
 		return err
 	}
@@ -60,10 +60,10 @@ func (c *Client) Script(path, script string) error {
 }
 
 func (c *Client) Eval(path, expr string) (value string, err error) {
-	if err := c.stdin.Encode(input{Type: "eval", Path: path, Code: expr}); err != nil {
+	if err := c.stdin.Encode(Input{Type: "eval", Path: path, Code: expr}); err != nil {
 		return "", err
 	}
-	var out output
+	var out Output
 	if err := c.stdout.Decode(&out); err != nil {
 		return "", err
 	}

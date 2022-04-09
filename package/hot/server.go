@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strings"
 	"time"
 
 	"gitlab.com/mnm/bud/runtime/web"
@@ -39,7 +38,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		err := fmt.Errorf("hot: response writer is not a flusher")
-		fmt.Println(err)
 		http.Error(w, err.Error(), 500)
 		return
 	}
@@ -57,7 +55,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if pagePath != "" {
 		topics = append(topics, pagePath[1:])
 	}
-	fmt.Println("subscribed to", strings.Join(topics, ", "))
 	subscription := s.ps.Subscribe(topics...)
 	ctx := r.Context()
 	for {
@@ -65,7 +62,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case <-ctx.Done():
 			return
 		case topic := <-subscription.Wait():
-			fmt.Println("reloading", string(topic))
+			_ = topic
 			payload := fmt.Sprintf("data: {\"scripts\":[%q]}\n\n", fmt.Sprintf("%s?ts=%d", pagePath, time.Now().UnixMilli()))
 			w.Write([]byte(payload))
 			flusher.Flush()

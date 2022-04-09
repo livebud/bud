@@ -16,11 +16,6 @@ type Command struct {
 }
 
 func (c *Command) Run(ctx context.Context) error {
-	ctx, shutdown, err := c.Bud.Tracer(ctx)
-	if err != nil {
-		return err
-	}
-	defer shutdown(&err)
 	// Start listening on the port
 	listener, err := socket.Load(c.Port)
 	if err != nil {

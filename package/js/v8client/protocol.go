@@ -1,12 +1,12 @@
 package v8client
 
-type input struct {
+type Input struct {
 	Type string // "script" or "expr"
 	Path string
 	Code string
 }
 
-type output struct {
+type Output struct {
 	Result string
 	Error  string
 }

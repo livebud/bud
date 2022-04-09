@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/mnm/bud/internal/gobin"
+	"gitlab.com/mnm/bud/internal/buildcache"
 	"gitlab.com/mnm/bud/package/gomod"
 	"gitlab.com/mnm/bud/package/overlay"
 )
@@ -16,6 +16,7 @@ func New(fsys *overlay.FileSystem, module *gomod.Module) *Project {
 	return &Project{
 		fsys:   fsys,
 		module: module,
+		bcache: buildcache.Default(),
 		Env:    os.Environ(),
 		Stderr: os.Stderr,
 		Stdout: os.Stdout,
@@ -25,6 +26,7 @@ func New(fsys *overlay.FileSystem, module *gomod.Module) *Project {
 type Project struct {
 	fsys   *overlay.FileSystem
 	module *gomod.Module
+	bcache *buildcache.Cache
 	Env    []string
 	Stdout io.Writer
 	Stderr io.Writer
@@ -40,7 +42,7 @@ func (c *Project) Compile(ctx context.Context, flag *Flag) (*App, error) {
 		return nil, err
 	}
 	// Build the binary
-	if err := gobin.Build(ctx, c.module.Directory(), "bud/.app/main.go", filepath.Join("bud", "app")); err != nil {
+	if err := c.bcache.Build(ctx, c.module, "bud/.app/main.go", filepath.Join("bud", "app")); err != nil {
 		return nil, err
 	}
 	return &App{

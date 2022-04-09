@@ -5,9 +5,9 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 
+	"gitlab.com/mnm/bud/internal/buildcache"
 	"gitlab.com/mnm/bud/internal/generator/command"
 	"gitlab.com/mnm/bud/internal/generator/generator"
 	"gitlab.com/mnm/bud/internal/generator/importfile"
@@ -52,6 +52,7 @@ func Load(module *gomod.Module) (*Compiler, error) {
 	}
 	return &Compiler{
 		module: module,
+		bcache: buildcache.Default(),
 		Env:    env,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
@@ -60,6 +61,7 @@ func Load(module *gomod.Module) (*Compiler, error) {
 
 type Compiler struct {
 	module     *gomod.Module
+	bcache     *buildcache.Cache
 	Env        Env
 	Stdout     io.Writer
 	Stderr     io.Writer
@@ -102,23 +104,11 @@ func (c *Compiler) goBuild(ctx context.Context, module *gomod.Module, outPath st
 	if _, err := fs.Stat(c.module, "bud/.cli/main.go"); err != nil {
 		return err
 	}
-	// Compile the args
-	args := []string{
-		"build",
-		"-mod=mod",
-		"-o=" + outPath,
-	}
+	flags := []string{}
 	if c.ModCacheRW {
-		args = append(args, "-modcacherw")
+		flags = append(flags, "-modcacherw")
 	}
-	args = append(args, "bud/.cli/main.go")
-	// Run go build
-	cmd := exec.CommandContext(ctx, "go", args...)
-	cmd.Env = c.Env.List()
-	cmd.Stdout = c.Stdout
-	cmd.Stderr = c.Stderr
-	cmd.Dir = module.Directory()
-	if err := cmd.Run(); err != nil {
+	if err := c.bcache.Build(ctx, module, "bud/.cli/main.go", outPath, flags...); err != nil {
 		return err
 	}
 	return nil

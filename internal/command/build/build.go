@@ -5,7 +5,6 @@ import (
 
 	"gitlab.com/mnm/bud/internal/bud"
 	"gitlab.com/mnm/bud/internal/command"
-	"gitlab.com/mnm/bud/package/trace"
 )
 
 type Command struct {
@@ -13,13 +12,6 @@ type Command struct {
 }
 
 func (c *Command) Run(ctx context.Context) error {
-	ctx, shutdown, err := c.Bud.Tracer(ctx)
-	if err != nil {
-		return err
-	}
-	defer shutdown(&err)
-	_, span := trace.Start(ctx, "bud build")
-	defer span.End(&err)
 	// Load the compiler
 	compiler, err := bud.Find(c.Bud.Dir)
 	if err != nil {
