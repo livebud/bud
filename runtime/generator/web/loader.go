@@ -16,22 +16,11 @@ import (
 )
 
 func Load(fsys fs.FS, module *gomod.Module, parser *parser.Parser) (*State, error) {
-	exist, err := vfs.SomeExist(fsys,
-		"bud/.app/action/action.go",
-		"bud/.app/public/public.go",
-		"bud/.app/view/view.go",
-	)
-	if err != nil {
-		return nil, err
-	} else if len(exist) == 0 {
-		return nil, fs.ErrNotExist
-	}
 	loader := &loader{
 		imports: imports.New(),
 		fsys:    fsys,
 		module:  module,
 		parser:  parser,
-		exist:   exist,
 	}
 	return loader.Load()
 }
@@ -42,29 +31,44 @@ type loader struct {
 	fsys    fs.FS
 	module  *gomod.Module
 	parser  *parser.Parser
-	exist   map[string]bool
 }
 
 // Load the command state
 func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
 	state = new(State)
+	// Ensure the web files exist
+	exist, err := vfs.SomeExist(l.fsys,
+		"bud/.app/action/action.go",
+		"bud/.app/public/public.go",
+		"bud/.app/view/view.go",
+	)
+	if err != nil {
+		return nil, err
+	}
 	// Add initial imports
 	l.imports.AddStd("net", "net/http", "context")
-	// l.imports.AddNamed("hot", "gitlab.com/mnm/bud/runtime/hot")
 	l.imports.AddNamed("middleware", "gitlab.com/mnm/bud/package/middleware")
 	l.imports.AddNamed("web", "gitlab.com/mnm/bud/runtime/web")
 	l.imports.AddNamed("router", "gitlab.com/mnm/bud/package/router")
-	if l.exist["bud/.app/public/public.go"] {
+	// Show the welcome page if we don't have actions, views or public files
+	if len(exist) == 0 {
+		l.imports.AddNamed("welcome", "gitlab.com/mnm/bud/runtime/web/welcome")
+		state.ShowWelcome = true
+		state.Imports = l.imports.List()
+		return state, nil
+	}
+	// Turn on parts of the web server, based on what's generated
+	if exist["bud/.app/public/public.go"] {
 		state.HasPublic = true
 		l.imports.AddNamed("public", l.module.Import("bud/.app/public"))
 	}
-	if l.exist["bud/.app/view/view.go"] {
+	if exist["bud/.app/view/view.go"] {
 		state.HasView = true
 		l.imports.AddNamed("view", l.module.Import("bud/.app/view"))
 	}
 	// Load the actions
-	if l.exist["bud/.app/action/action.go"] {
+	if exist["bud/.app/action/action.go"] {
 		l.imports.AddNamed("action", l.module.Import("bud/.app/action"))
 		state.Actions = l.loadControllerActions()
 	}

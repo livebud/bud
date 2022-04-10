@@ -4,10 +4,13 @@ import "gitlab.com/mnm/bud/internal/imports"
 
 type State struct {
 	Imports []*imports.Import
-	Actions []*Action
 
+	Actions   []*Action
 	HasPublic bool
 	HasView   bool
+
+	// Show the welcome page
+	ShowWelcome bool
 }
 
 type Def struct {

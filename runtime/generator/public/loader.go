@@ -4,6 +4,8 @@ import (
 	"io/fs"
 	"path"
 
+	"gitlab.com/mnm/bud/package/vfs"
+
 	"gitlab.com/mnm/bud/internal/bail"
 	"gitlab.com/mnm/bud/internal/embed"
 	"gitlab.com/mnm/bud/internal/imports"
@@ -34,6 +36,11 @@ func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
 	state = new(State)
 	state.Flag = l.flag
+	// Ensure the that the public directory exists
+	if err := vfs.Exist(l.fsys, "public"); err != nil {
+		return nil, err
+	}
+	// Load embeds
 	if l.flag.Embed {
 		state.Embeds = l.loadEmbedsFrom("public", ".")
 	}

@@ -68,6 +68,7 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	handler.ServeHTTP(w, r)
 }
 
+// Middleware implements the router middleware
 func (rt *Router) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tree, ok := rt.methods[r.Method]

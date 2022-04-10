@@ -23,14 +23,22 @@ func New(
 	{{- if $.HasView }}
 	view *view.Server,
 	{{- end }}
+	{{- if $.ShowWelcome }}
+	welcome welcome.Middleware,
+	{{- end }}
 ) *Server {
+	{{- if $.Actions }}
 	// Action routing
 	{{- range $action := $.Actions }}
 	router.{{ $action.Method }}(`{{ $action.Route }}`, controller.{{ $action.CallName }})
 	{{- end }}
+	{{- end }}
 	// Compose the middleware together
 	middleware := middleware.Compose(
 		router,
+		{{- if $.ShowWelcome }}
+		welcome,
+		{{- end }}
 		{{- if $.HasView }}
 		view,
 		{{- end }}

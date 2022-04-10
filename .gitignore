@@ -6,3 +6,4 @@ _build/
 example/*/bud
 example/hello
 bud/
+runtime/web/welcome/*.out.*
