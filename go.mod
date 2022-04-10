@@ -3,6 +3,7 @@ module gitlab.com/mnm/bud
 go 1.18
 
 require (
+	github.com/Bowery/prompt v0.0.0-20190916142128-fa8279994f75
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/ajg/form v1.5.2-0.20200323032839-9aeb3cf462e1
 	github.com/armon/go-radix v1.0.0
@@ -32,7 +33,6 @@ require (
 )
 
 require (
-	github.com/Bowery/prompt v0.0.0-20190916142128-fa8279994f75 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/gedex/inflector v0.0.0-20170307190818-16278e9db813 // indirect
 	github.com/go-logr/logr v1.2.2 // indirect
