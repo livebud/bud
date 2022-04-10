@@ -7,6 +7,7 @@ import (
 
 	"gitlab.com/mnm/bud/internal/command"
 	"gitlab.com/mnm/bud/internal/command/build"
+	"gitlab.com/mnm/bud/internal/command/create"
 	"gitlab.com/mnm/bud/internal/command/run"
 	"gitlab.com/mnm/bud/internal/command/tool/cache"
 	"gitlab.com/mnm/bud/internal/command/tool/di"
@@ -34,6 +35,18 @@ func do() error {
 	cli.Flag("chdir", "Change the working directory").Short('C').String(&bud.Dir).Default(".")
 	cli.Args("args").Strings(&bud.Args)
 	cli.Run(bud.Run)
+
+	{ // $ bud create <app>
+		cmd := &create.Command{Bud: bud}
+		cli := cli.Command("create", "create a new project")
+		cli.Flag("link", "link for development").Bool(&cmd.Link).Default(false)
+		cli.Arg("dir").String(&cmd.Dir)
+		cli.Run(cmd.Run)
+	}
+
+	{ // $ bud new <scaffolder> [args...]
+
+	}
 
 	{ // $ bud run
 		cmd := &run.Command{Bud: bud}

@@ -1,0 +1,21 @@
+module {{ $.Name }}
+
+go {{ $.Version}}
+
+{{- if $.Requires }}
+
+require (
+	{{- range $req := $.Requires }}
+	{{ $req.Import }} {{ $req.Version }}{{if $req.Indirect}} // indirect{{ end }}
+	{{- end }}
+)
+{{- end }}
+
+{{- if $.Replaces }}
+
+replace (
+	{{- range $rep := $.Replaces }}
+	{{ $rep.From }} => {{ $rep.To }}
+	{{- end }}
+)
+{{- end }}

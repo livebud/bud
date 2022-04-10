@@ -71,19 +71,8 @@ func find(opt *option, dir string) (*Module, error) {
 
 // Infer the module path from the $GOPATH. This only works if you work inside
 // $GOPATH.
-func Infer(dir string, options ...Option) (*Module, error) {
-	opt := &option{
-		modCache: modcache.Default(),
-	}
-	for _, option := range options {
-		option(opt)
-	}
-	modulePath := modulePathFromGoPath(dir)
-	if modulePath == "" {
-		return nil, fmt.Errorf("%w for %q, run `go mod init` to fix", ErrCantInfer, dir)
-	}
-	virtualPath := filepath.Join(dir, "go.mod")
-	return parse(opt, virtualPath, []byte("module "+modulePath))
+func Infer(dir string) string {
+	return modulePathFromGoPath(dir)
 }
 
 // Parse a modfile from it's data

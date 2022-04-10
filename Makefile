@@ -9,6 +9,15 @@ precommit:
 
 TAILWIND := $(realpath $(PWD)/../bud-tailwind)
 
+e2e.hello:
+	@ clear
+	@ rm -fr example/hello
+	@ go run main.go create --link=true example/hello
+	@ go run main.go -C example/hello run
+
+hello:
+	@ watch -- $(MAKE) e2e.hello
+
 e2e.hn:
 	@ clear
 	@ rm -fr example/hn/bud

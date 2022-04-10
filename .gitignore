@@ -4,3 +4,5 @@ js-livebud/dist/
 main
 _build/
 example/*/bud
+example/hello
+bud/
