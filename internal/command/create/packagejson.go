@@ -35,7 +35,7 @@ func (c *Command) generatePackageJSON(ctx context.Context, dir, name string) err
 	if err != nil {
 		return err
 	}
-	cmd := exec.CommandContext(ctx, npm, "install", "--loglevel=error")
+	cmd := exec.CommandContext(ctx, npm, "install", "--loglevel=error", "--no-progress")
 	cmd.Dir = dir
 	cmd.Stderr = os.Stderr
 	cmd.Env = []string{

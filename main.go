@@ -44,10 +44,6 @@ func do() error {
 		cli.Run(cmd.Run)
 	}
 
-	{ // $ bud new <scaffolder> [args...]
-
-	}
-
 	{ // $ bud run
 		cmd := &run.Command{Bud: bud}
 		cli := cli.Command("run", "run the development server")

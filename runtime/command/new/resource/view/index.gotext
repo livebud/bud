@@ -1,0 +1,32 @@
+<script>
+  export let props = []
+</script>
+
+<h1>{{ $.Title }} Index</h1>
+
+<table border="1" cellpadding="10">
+  {#if props.length > 0}
+    <thead>
+      {#each Object.keys(props[0]) as key}
+        <th>{key}</th>
+      {/each}
+    </thead>
+  {/if}
+  {#each props as {{ $.Singular -}} }
+    <tr>
+      {#each Object.keys({{ $.Singular }}) as key}
+        {#if key === "id"}
+          <td><a href={`/${ {{- $.Singular }}[key]}`}>{ {{- $.Singular }}[key]}</a></td>
+        {:else}
+          <td>{ {{- $.Singular }}[key]}</td>
+        {/if}
+      {/each}
+    </tr>
+  {/each}
+</table>
+
+<style>
+  table {
+    border-collapse: collapse;
+  }
+</style>

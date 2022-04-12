@@ -22,7 +22,9 @@ func Build(ctx context.Context, module *gomod.Module, mainPath string, outPath s
 	}, flags...)
 	args = append(args, mainPath)
 	cmd := exec.CommandContext(ctx, "go", args...)
-	cmd.Env = os.Environ()
+	cmd.Env = append(os.Environ(),
+		"GOMODCACHE="+module.ModCache(),
+	)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin

@@ -9,14 +9,20 @@ import (
 )
 {{- end }}
 
-func New(flag *bud.Flag, fsys *generator.FileSystem, module *gomod.Module) *CLI {
-	return &CLI{flag, fsys, module}
+func New(
+	flag *bud.Flag,
+	fsys *generator.FileSystem,
+	module *gomod.Module,
+	newResource *resource.Command,
+) *CLI {
+	return &CLI{flag, fsys, module, newResource}
 }
 
 type CLI struct {
   flag   *bud.Flag
 	fsys   *generator.FileSystem
 	module *gomod.Module
+	newResource *resource.Command
 }
 
 func (c *CLI) Parse(ctx context.Context, args ...string) error {
@@ -34,6 +40,17 @@ func (c *CLI) Parse(ctx context.Context, args ...string) error {
 		cmd := &build.Command{Flag: c.flag, Project: project}
 		cli := cli.Command("build", "build command")
 		cli.Run(cmd.Run)
+	}
+
+	{ // cli new <scaffold>
+		cli := cli.Command("new", "new scaffold")
+
+		{ // cli new resource <path> [actions...]
+			cli := cli.Command("resource", "new resource")
+			cli.Arg("path").String(&c.newResource.Path)
+			cli.Args("actions").Strings(&c.newResource.Actions)
+			cli.Run(c.newResource.Run)
+		}
 	}
 
 	return cli.Parse(ctx, args)
