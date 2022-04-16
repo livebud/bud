@@ -1585,45 +1585,48 @@ func TestViewDeepResourceUnkeyed(t *testing.T) {
 			export let onlineUsers = []
 		</script>
 		{#each onlineUsers as user}
-		<h1>index: {user.id} {user.name}</h1>
+		<h1>index: {user.id} {user.name} {user.createdAt}</h1>
 		{/each}
 	`
 	bud.Files["view/teams/users/new.svelte"] = `
 		<script>
 			export let onlineUser = {}
 		</script>
-		<h1>new: {onlineUser.id} {onlineUser.name}</h1>
+		<h1>new: {onlineUser.id} {onlineUser.name} {onlineUser.createdAt}</h1>
 	`
 	bud.Files["view/teams/users/show.svelte"] = `
 		<script>
 			export let onlineUser = {}
 		</script>
-		<h1>show: {onlineUser.id} {onlineUser.name}</h1>
+		<h1>show: {onlineUser.id} {onlineUser.name} {onlineUser.createdAt}</h1>
 	`
 	bud.Files["view/teams/users/edit.svelte"] = `
 		<script>
 			export let onlineUser = {}
 		</script>
-		<h1>edit: {onlineUser.id} {onlineUser.name}</h1>
+		<h1>edit: {onlineUser.id} {onlineUser.name} {onlineUser.createdAt}</h1>
 	`
 	bud.Files["action/teams/users/users.go"] = `
 		package users
+		import "time"
 		type Controller struct {}
 		type OnlineUser struct {
 			ID int ` + "`" + `json:"id"` + "`" + `
 			Name string ` + "`" + `json:"name"` + "`" + `
+			CreatedAt time.Time ` + "`" + `json:"createdAt"` + "`" + `
 		}
+		var now = time.Date(2021, 8, 4, 14, 56, 0, 0, time.UTC)
 		func (c *Controller) Index() []*OnlineUser {
-			return []*OnlineUser{{1, "a"}, {2, "b"}}
+			return []*OnlineUser{{1, "a", now}, {2, "b", now}}
 		}
 		func (c *Controller) New() *OnlineUser {
-			return &OnlineUser{3, "c"}
+			return &OnlineUser{3, "c", now}
 		}
 		func (c *Controller) Show(id int) *OnlineUser {
-			return &OnlineUser{id, "s"}
+			return &OnlineUser{id, "s", now}
 		}
 		func (c *Controller) Edit(id int) *OnlineUser {
-			return &OnlineUser{id, "e"}
+			return &OnlineUser{id, "e", now}
 		}
 	`
 	// Generate the app
@@ -1645,7 +1648,7 @@ func TestViewDeepResourceUnkeyed(t *testing.T) {
 		Content-Type: application/json
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
 
-		[{"id":1,"name":"a"},{"id":2,"name":"b"}]
+		[{"id":1,"name":"a","createdAt":"2021-08-04T14:56:00Z"},{"id":2,"name":"b","createdAt":"2021-08-04T14:56:00Z"}]
 	`))
 	res, err = server.Get("/teams/5/users")
 	is.NoErr(err)
@@ -1658,7 +1661,7 @@ func TestViewDeepResourceUnkeyed(t *testing.T) {
 	is.NoErr(err)
 	html, err := el.Html()
 	is.NoErr(err)
-	is.Equal(`<h1>index: 1 a</h1><h1>index: 2 b</h1>`, html)
+	is.Equal(`<h1>index: 1 a 2021-08-04T14:56:00Z</h1><h1>index: 2 b 2021-08-04T14:56:00Z</h1>`, html)
 
 	// /teams/:team_id/users/new
 	res, err = server.GetJSON("/teams/5/users/new")
@@ -1668,7 +1671,7 @@ func TestViewDeepResourceUnkeyed(t *testing.T) {
 		Content-Type: application/json
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
 
-		{"id":3,"name":"c"}
+		{"id":3,"name":"c","createdAt":"2021-08-04T14:56:00Z"}
 	`))
 	res, err = server.Get("/teams/5/users/new")
 	is.NoErr(err)
@@ -1681,7 +1684,7 @@ func TestViewDeepResourceUnkeyed(t *testing.T) {
 	is.NoErr(err)
 	html, err = el.Html()
 	is.NoErr(err)
-	is.Equal(`<h1>new: 3 c</h1>`, html)
+	is.Equal(`<h1>new: 3 c 2021-08-04T14:56:00Z</h1>`, html)
 
 	// /teams/:team_id/users/:id
 	res, err = server.GetJSON("/teams/5/users/10")
@@ -1691,7 +1694,7 @@ func TestViewDeepResourceUnkeyed(t *testing.T) {
 		Content-Type: application/json
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
 
-		{"id":10,"name":"s"}
+		{"id":10,"name":"s","createdAt":"2021-08-04T14:56:00Z"}
 	`))
 	res, err = server.Get("/teams/5/users/10")
 	is.NoErr(err)
@@ -1704,7 +1707,7 @@ func TestViewDeepResourceUnkeyed(t *testing.T) {
 	is.NoErr(err)
 	html, err = el.Html()
 	is.NoErr(err)
-	is.Equal(`<h1>show: 10 s</h1>`, html)
+	is.Equal(`<h1>show: 10 s 2021-08-04T14:56:00Z</h1>`, html)
 
 	// /teams/:team_id/users/:id/edit
 	res, err = server.GetJSON("/teams/5/users/10/edit")
@@ -1714,7 +1717,7 @@ func TestViewDeepResourceUnkeyed(t *testing.T) {
 		Content-Type: application/json
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
 
-		{"id":10,"name":"e"}
+		{"id":10,"name":"e","createdAt":"2021-08-04T14:56:00Z"}
 	`))
 	res, err = server.Get("/teams/5/users/10/edit")
 	is.NoErr(err)
@@ -1727,7 +1730,7 @@ func TestViewDeepResourceUnkeyed(t *testing.T) {
 	is.NoErr(err)
 	html, err = el.Html()
 	is.NoErr(err)
-	is.Equal(`<h1>edit: 10 e</h1>`, html)
+	is.Equal(`<h1>edit: 10 e 2021-08-04T14:56:00Z</h1>`, html)
 }
 
 func TestResourceContext(t *testing.T) {

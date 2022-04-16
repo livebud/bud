@@ -287,11 +287,9 @@ func (l *loader) loadType(dt parser.Type, dec parser.Declaration) string {
 	if err != nil {
 		l.Bail(err)
 	}
-	// Handle context.Context differently
-	// It doesn't need to be imported because it's within http.Request
-	if importPath == "std/context" {
-		// Add the type's import
-		dt = parser.Requalify(dt, "context")
+	// Standard library
+	if strings.HasPrefix(importPath, "std/") {
+		dt := parser.Requalify(dt, imports.AssumedName(importPath))
 		return dt.String()
 	}
 	// Add the type's import

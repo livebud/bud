@@ -28,7 +28,9 @@ hello:
 	@ watch -- $(MAKE) e2e.hello
 
 e2e.hn:
-	@ clear
+	@ go run main.go -C example/hn run
+
+e2e.hn.embed:
 	@ rm -fr example/hn/bud
 	@ go run main.go -C example/hn build --embed
 	@ mv example/hn/bud/app $(TMPDIR)/bud_app
