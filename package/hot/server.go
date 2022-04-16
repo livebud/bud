@@ -66,6 +66,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			payload := fmt.Sprintf("data: {\"scripts\":[%q]}\n\n", fmt.Sprintf("%s?ts=%d", pagePath, time.Now().UnixMilli()))
 			w.Write([]byte(payload))
 			flusher.Flush()
+
+		// TODO: rethink this, this was just the easiest way I could think of to add
+		// full-reloading. Using the exclamation point so it doesn't conflict with a
+		// file path
+		case <-s.ps.Subscribe("!").Wait():
+			payload := fmt.Sprintf("data: {\"reload\":true}\n\n")
+			w.Write([]byte(payload))
+			flusher.Flush()
 		}
 	}
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"gitlab.com/mnm/bud/package/watcher"
 
@@ -56,12 +55,11 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 		switch filepath.Ext(path) {
 		// Re-compile the app and restart the Go server
 		case ".go":
-			fmt.Println("restarting", path)
 			// Trigger a reload if there's a hot reload server configured
 			if hotServer != nil {
-				hotServer.Reload("*")
+				// Exclamation point just means full page reload
+				hotServer.Reload("!")
 			}
-			now := time.Now()
 			if err := process.Close(); err != nil {
 				fmt.Fprintln(os.Stderr, "error closing process", err)
 				return nil
@@ -76,7 +74,6 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 				fmt.Fprintln(os.Stderr, "error starting", err.Error())
 				return nil
 			}
-			fmt.Println("restarted", time.Since(now))
 			return nil
 		// Hot reload the page
 		default:
