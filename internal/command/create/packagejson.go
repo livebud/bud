@@ -31,11 +31,11 @@ func (c *Command) generatePackageJSON(ctx context.Context, dir, name string) err
 	if err := os.WriteFile(filepath.Join(dir, "package.json"), code, 0644); err != nil {
 		return err
 	}
-	npm, err := exec.LookPath("npm")
+	npmPath, err := exec.LookPath("npm")
 	if err != nil {
 		return err
 	}
-	cmd := exec.CommandContext(ctx, npm, "install", "--loglevel=error", "--no-progress")
+	cmd := exec.CommandContext(ctx, npmPath, "install", "--loglevel=error", "--no-progress")
 	cmd.Dir = dir
 	cmd.Stderr = os.Stderr
 	cmd.Env = []string{
@@ -46,19 +46,5 @@ func (c *Command) generatePackageJSON(ctx context.Context, dir, name string) err
 	if err := cmd.Run(); err != nil {
 		return err
 	}
-	// if c.Link {
-	// 	cmd := exec.CommandContext(ctx, npm, "link", "--loglevel=error", "livebud")
-	// 	cmd.Dir = dir
-	// 	cmd.Stderr = os.Stderr
-	// 	cmd.Env = []string{
-	// 		"HOME=" + os.Getenv("HOME"),
-	// 		"PATH=" + os.Getenv("PATH"),
-	// 		"NO_COLOR=1",
-	// 	}
-	// 	if err := cmd.Run(); err != nil {
-	// 		return err
-	// 	}
-
-	// }
 	return nil
 }

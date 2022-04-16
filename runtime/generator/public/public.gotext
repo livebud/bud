@@ -25,6 +25,12 @@ func New(fsys *overlay.FileSystem) Middleware {
 {{- else }}
 // New middleware that serves files by reference
 func New(fsys *overlay.Server) Middleware {
+	{{/* Support default embeds (favicon.ico, default.css) */}}
+	{{- range $embed := $.Embeds }}
+	fsys.FileGenerator(`{{ $embed.Path }}`, &overlay.Embed{
+		{{ if $embed.Data }}Data: []byte("{{ $embed.Data }}"),{{ end }}
+	})
+	{{- end }}
 	return serve(http.FS(fsys), serveContent)
 }
 {{- end }}

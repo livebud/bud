@@ -17,11 +17,11 @@ basic:
 	@ watch -- $(MAKE) e2e.basic
 
 e2e.hello:
-	@ clear
+	# @ clear
 	@ rm -fr example/hello
 	@ go run main.go create --link=true example/hello
-	@ go run main.go -C example/hello new resource / index show
-	@ go run main.go -C example/hello new resource users/admin index show
+	@ go run main.go -C example/hello new controller / index show
+	@ go run main.go -C example/hello new controller users/admin:admin index show
 	@ go run main.go -C example/hello run
 
 hello:

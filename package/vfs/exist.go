@@ -24,6 +24,7 @@ func Exist(fsys fs.FS, paths ...string) (err error) {
 }
 
 // Exists will check if files exist at once, returning a map of the results.
+// If there are any errors (besides ErrNotExist), the whole call fails.
 func SomeExist(fsys fs.FS, paths ...string) (map[string]bool, error) {
 	m := map[string]bool{}
 	mu := sync.Mutex{}

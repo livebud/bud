@@ -13,16 +13,16 @@ func New(
 	flag *bud.Flag,
 	fsys *generator.FileSystem,
 	module *gomod.Module,
-	newResource *resource.Command,
+	newController *new_controller.Command,
 ) *CLI {
-	return &CLI{flag, fsys, module, newResource}
+	return &CLI{flag, fsys, module, newController}
 }
 
 type CLI struct {
   flag   *bud.Flag
 	fsys   *generator.FileSystem
 	module *gomod.Module
-	newResource *resource.Command
+	newController *new_controller.Command
 }
 
 func (c *CLI) Parse(ctx context.Context, args ...string) error {
@@ -46,10 +46,10 @@ func (c *CLI) Parse(ctx context.Context, args ...string) error {
 		cli := cli.Command("new", "new scaffold")
 
 		{ // cli new resource <path> [actions...]
-			cli := cli.Command("resource", "new resource")
-			cli.Arg("path").String(&c.newResource.Path)
-			cli.Args("actions").Strings(&c.newResource.Actions)
-			cli.Run(c.newResource.Run)
+			cli := cli.Command("controller", "new controller")
+			cli.Arg("path").String(&c.newController.Path)
+			cli.Args("actions").Strings(&c.newController.Actions)
+			cli.Run(c.newController.Run)
 		}
 	}
 

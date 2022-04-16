@@ -1,4 +1,4 @@
-package resource
+package controller
 
 import (
 	"context"
@@ -96,7 +96,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 }
 
 func (c *Command) Load() (state *State, err error) {
-	defer c.Recover2(&err, "new resource error")
+	defer c.Recover2(&err, "new controller")
 	state = new(State)
 	state.Controller = c.controller()
 	state.Views = c.views(state.Controller)
@@ -108,19 +108,13 @@ func (c *Command) controller() *Controller {
 	imports := imports.New()
 	imports.AddStd("context")
 	controller.Imports = imports.List()
-	controller.key = controllerKey(c.Path)
-	controller.path = controllerPath(controller.key)
-	controller.Name = path.Base(controller.key)
-	if controller.Name == "." {
-		controller.Name = "controller"
-		controller.Struct = "Resource"
-		controller.Plural = "resources"
-		controller.Singular = "resource"
-	} else {
-		controller.Struct = gotext.Pascal(text.Singular(controller.Name))
-		controller.Plural = text.Plural(controller.Name)
-		controller.Singular = text.Singular(controller.Name)
-	}
+	key, resource := splitKeyAndResource(c.Path)
+	controller.key = key
+	controller.path = controllerPath(key)
+	controller.Name = controllerName(key)
+	controller.Struct = gotext.Pascal(text.Singular(resource))
+	controller.Plural = text.Plural(resource)
+	controller.Singular = text.Singular(resource)
 	controller.Route = controllerRoute(controller.key)
 	controller.Package = gotext.Snake(controller.Name)
 	controller.Pascal = gotext.Pascal(controller.Name)
@@ -147,7 +141,7 @@ func (c *Command) controllerAction(controller *Controller, a string) *Action {
 		action.Route = path.Join(controller.Route, "/:id")
 		action.Result = gotext.Camel(controller.Singular)
 	default:
-		c.Bail(fmt.Errorf("new resource: action not implemented yet %q", a))
+		c.Bail(fmt.Errorf("invalid path:resource %q", a))
 	}
 	return action
 }
@@ -191,8 +185,22 @@ func Generate(fsys vfs.ReadWritable, state *State) error {
 	return templates.Write(fsys)
 }
 
+func splitKeyAndResource(rel string) (p string, r string) {
+	rel = strings.ToLower(rel)
+	parts := strings.SplitN(rel, ":", 2)
+	if len(parts) == 1 {
+		key := controllerKey(rel)
+		resource := path.Base(key)
+		if resource == "." {
+			return key, "resource"
+		}
+		return key, resource
+	}
+	key := controllerKey(parts[0])
+	return key, parts[1]
+}
+
 func controllerKey(path string) string {
-	path = strings.ToLower(path)
 	path = strings.TrimPrefix(path, "/")
 	if path == "" {
 		return ""
@@ -204,6 +212,14 @@ func controllerKey(path string) string {
 func controllerPath(controllerKey string) string {
 	// TODO: change this back to controller
 	return filepath.Join("action", controllerKey, "controller.go")
+}
+
+func controllerName(controllerKey string) string {
+	name := path.Base(controllerKey)
+	if name == "." {
+		return "controller"
+	}
+	return name
 }
 
 // TODO: dedupe with controllerRoute in runtime/generator/web

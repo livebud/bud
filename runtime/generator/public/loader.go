@@ -1,6 +1,8 @@
 package public
 
 import (
+	_ "embed"
+	"errors"
 	"io/fs"
 	"path"
 
@@ -36,18 +38,23 @@ func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
 	state = new(State)
 	state.Flag = l.flag
-	// Ensure the that the public directory exists
-	if err := vfs.Exist(l.fsys, "public"); err != nil {
+	exist, err := vfs.SomeExist(l.fsys, "public", "action", "view")
+	if err != nil {
 		return nil, err
+	} else if len(exist) == 0 {
+		return nil, fs.ErrNotExist
 	}
-	// Load embeds
-	if l.flag.Embed {
-		state.Embeds = l.loadEmbedsFrom("public", ".")
-	}
+	// Default imports
 	l.imports.AddStd("errors", "io", "io/fs", "net/http", "path", "time")
-	// l.imports.AddStd("fmt")
 	l.imports.AddNamed("middleware", "gitlab.com/mnm/bud/package/middleware")
 	l.imports.AddNamed("overlay", "gitlab.com/mnm/bud/package/overlay")
+	// Load embeds
+	if exist["public"] && l.flag.Embed {
+		state.Embeds = l.loadEmbedsFrom("public", ".")
+	}
+	// Load default public files
+	state.Embeds = append(state.Embeds, l.loadDefaults()...)
+	// Add the imports
 	state.Imports = l.imports.List()
 	return state, nil
 }
@@ -78,6 +85,38 @@ func (l *loader) loadEmbedsFrom(root, dir string) (files []*embed.File) {
 		}
 		file.Data = data
 		files = append(files, file)
+	}
+	return files
+}
+
+//go:embed favicon.ico
+var favicon []byte
+
+// Default CSS is modern-normalize by Sindre Sorhus
+// https://raw.githubusercontent.com/sindresorhus/modern-normalize/v1.1.0/modern-normalize.css
+//go:embed default.css
+var defaultCSS []byte
+
+func (l *loader) loadDefaults() (files []*embed.File) {
+	// Add a public favicon if it doesn't exist
+	if err := vfs.Exist(l.fsys, "public/favicon.ico"); err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			l.Bail(err)
+		}
+		files = append(files, &embed.File{
+			Path: "public/favicon.ico",
+			Data: favicon,
+		})
+	}
+	// Add default.css if it doesn't exist
+	if err := vfs.Exist(l.fsys, "public/default.css"); err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			l.Bail(err)
+		}
+		files = append(files, &embed.File{
+			Path: "public/default.css",
+			Data: defaultCSS,
+		})
 	}
 	return files
 }

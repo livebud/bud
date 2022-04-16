@@ -1,7 +1,9 @@
 package scaffold
 
 import (
+	"go/format"
 	"path"
+	"path/filepath"
 
 	"gitlab.com/mnm/bud/internal/gotemplate"
 	"gitlab.com/mnm/bud/package/vfs"
@@ -34,6 +36,13 @@ func (t *Template) Write(fsys vfs.ReadWritable) error {
 	code, err := generator.Generate(t.State)
 	if err != nil {
 		return err
+	}
+	// Format Go code automatically
+	if filepath.Ext(t.Path) == ".go" {
+		code, err = format.Source(code)
+		if err != nil {
+			return err
+		}
 	}
 	if err := fsys.MkdirAll(path.Dir(t.Path), 0755); err != nil {
 		return err

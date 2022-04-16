@@ -3,6 +3,7 @@ package public_test
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"io"
 	"os"
 	"path/filepath"
@@ -190,4 +191,83 @@ func TestAppPluginOverlap(t *testing.T) {
 
 func TestPluginPluginOverlap(t *testing.T) {
 	t.SkipNow()
+}
+
+//go:embed favicon.ico
+var defaultFavicon []byte
+
+//go:embed default.css
+var defaultCSS []byte
+
+func TestDefaults(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	bud := budtest.New(dir)
+	bud.Files["view/index.svelte"] = `<h1>hello</h1>`
+	project, err := bud.Compile(ctx)
+	is.NoErr(err)
+	app, err := project.Build(ctx)
+	is.NoErr(err)
+	is.NoErr(app.Exists("bud/.app/public/public.go"))
+	server, err := app.Start(ctx)
+	is.NoErr(err)
+	defer server.Close()
+	// favicon.ico
+	res, err := server.Get("/favicon.ico")
+	is.NoErr(err)
+	defer res.Body.Close()
+	is.Equal(200, res.StatusCode)
+	body, err := io.ReadAll(res.Body)
+	is.NoErr(err)
+	is.True(bytes.Equal(defaultFavicon, body))
+	// default.css
+	res, err = server.Get("/default.css")
+	is.NoErr(err)
+	defer res.Body.Close()
+	is.Equal(200, res.StatusCode)
+	body, err = io.ReadAll(res.Body)
+	is.NoErr(err)
+	is.True(bytes.Equal(defaultCSS, body))
+}
+
+func TestDefaultsPublic(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	bud := budtest.New(dir)
+	ga := `function ga(track){}`
+	bud.Files["public/ga.js"] = ga
+	project, err := bud.Compile(ctx)
+	is.NoErr(err)
+	app, err := project.Build(ctx)
+	is.NoErr(err)
+	is.NoErr(app.Exists("bud/.app/public/public.go"))
+	server, err := app.Start(ctx)
+	is.NoErr(err)
+	defer server.Close()
+	// favicon.ico
+	res, err := server.Get("/ga.js")
+	is.NoErr(err)
+	defer res.Body.Close()
+	is.Equal(200, res.StatusCode)
+	body, err := io.ReadAll(res.Body)
+	is.NoErr(err)
+	is.Equal(ga, string(body))
+	// favicon.ico
+	res, err = server.Get("/favicon.ico")
+	is.NoErr(err)
+	defer res.Body.Close()
+	is.Equal(200, res.StatusCode)
+	body, err = io.ReadAll(res.Body)
+	is.NoErr(err)
+	is.True(bytes.Equal(defaultFavicon, body))
+	// default.css
+	res, err = server.Get("/default.css")
+	is.NoErr(err)
+	defer res.Body.Close()
+	is.Equal(200, res.StatusCode)
+	body, err = io.ReadAll(res.Body)
+	is.NoErr(err)
+	is.True(bytes.Equal(defaultCSS, body))
 }
