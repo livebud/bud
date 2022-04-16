@@ -100,7 +100,6 @@ func TestNodeModules(t *testing.T) {
 }
 
 func TestGenerateDir(t *testing.T) {
-	chunkPath := "chunk-H7BRTJPS.js"
 	is := is.New(t)
 	dir := t.TempDir()
 	td := testdir.New()
@@ -126,8 +125,9 @@ func TestGenerateDir(t *testing.T) {
 	is.Equal(des[0].IsDir(), false)
 	is.Equal(des[1].Name(), "about")
 	is.Equal(des[1].IsDir(), true)
-	is.Equal(des[2].Name(), chunkPath)
+	is.True(strings.HasPrefix(des[2].Name(), "chunk-"))
 	is.Equal(des[2].IsDir(), false)
+	chunkName := des[2].Name()
 	des, err = fs.ReadDir(overlay, "bud/view/about")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
@@ -138,7 +138,7 @@ func TestGenerateDir(t *testing.T) {
 	is.NoErr(err)
 	is.True(strings.Contains(string(code), `"H1"`))
 	is.True(strings.Contains(string(code), `"index"`))
-	is.True(strings.Contains(string(code), fmt.Sprintf(`from"./%s"`, chunkPath)))
+	is.True(strings.Contains(string(code), fmt.Sprintf(`from"./%s"`, chunkName)))
 	is.True(strings.Contains(string(code), `page:"/bud/view/index.svelte"`))
 	is.True(strings.Contains(string(code), `document.getElementById("bud_target")`))
 	// TODO: remove hot
@@ -148,13 +148,13 @@ func TestGenerateDir(t *testing.T) {
 	is.NoErr(err)
 	is.True(strings.Contains(string(code), `"H2"`))
 	is.True(strings.Contains(string(code), `"about"`))
-	is.True(strings.Contains(string(code), fmt.Sprintf(`from"../%s"`, chunkPath)))
+	is.True(strings.Contains(string(code), fmt.Sprintf(`from"../%s"`, chunkName)))
 	is.True(strings.Contains(string(code), `page:"/bud/view/about/index.svelte"`))
 	is.True(strings.Contains(string(code), `document.getElementById("bud_target")`))
 	// TODO: remove hot
 	// is.True(!strings.Contains(string(code), `hot:`))
 
-	code, err = fs.ReadFile(overlay, fmt.Sprintf("bud/view/%s", chunkPath))
+	code, err = fs.ReadFile(overlay, fmt.Sprintf("bud/view/%s", chunkName))
 	is.NoErr(err)
 	is.True(strings.Contains(string(code), `"SvelteDOMInsert"`))
 	is.True(strings.Contains(string(code), `"bud_props"`))

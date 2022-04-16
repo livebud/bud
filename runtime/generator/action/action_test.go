@@ -1270,29 +1270,29 @@ func TestViewRootResourceUnkeyed(t *testing.T) {
 	bud.NodeModules["svelte"] = "3.42.3"
 	bud.Files["view/index.svelte"] = `
 		<script>
-			export let props = []
+			export let users = []
 		</script>
-		{#each props as user}
+		{#each users as user}
 		<h1>index: {user.id} {user.name}</h1>
 		{/each}
 	`
 	bud.Files["view/new.svelte"] = `
 		<script>
-			export let props = {}
+			export let user = {}
 		</script>
-		<h1>new: {props.id} {props.name}</h1>
+		<h1>new: {user.id} {user.name}</h1>
 	`
 	bud.Files["view/show.svelte"] = `
 		<script>
-			export let props = {}
+			export let user = {}
 		</script>
-		<h1>show: {props.id} {props.name}</h1>
+		<h1>show: {user.id} {user.name}</h1>
 	`
 	bud.Files["view/edit.svelte"] = `
 		<script>
-			export let props = {}
+			export let user = {}
 		</script>
-		<h1>edit: {props.id} {props.name}</h1>
+		<h1>edit: {user.id} {user.name}</h1>
 	`
 	bud.Files["action/action.go"] = `
 		package action
@@ -1426,29 +1426,29 @@ func TestViewNestedResourceUnkeyed(t *testing.T) {
 	bud.NodeModules["svelte"] = "3.42.3"
 	bud.Files["view/users/index.svelte"] = `
 		<script>
-			export let props = []
+			export let users = []
 		</script>
-		{#each props as user}
+		{#each users as user}
 		<h1>index: {user.id} {user.name}</h1>
 		{/each}
 	`
 	bud.Files["view/users/new.svelte"] = `
 		<script>
-			export let props = {}
+			export let user = {}
 		</script>
-		<h1>new: {props.id} {props.name}</h1>
+		<h1>new: {user.id} {user.name}</h1>
 	`
 	bud.Files["view/users/show.svelte"] = `
 		<script>
-			export let props = {}
+			export let user = {}
 		</script>
-		<h1>show: {props.id} {props.name}</h1>
+		<h1>show: {user.id} {user.name}</h1>
 	`
 	bud.Files["view/users/edit.svelte"] = `
 		<script>
-			export let props = {}
+			export let user = {}
 		</script>
-		<h1>edit: {props.id} {props.name}</h1>
+		<h1>edit: {user.id} {user.name}</h1>
 	`
 	bud.Files["action/users/users.go"] = `
 		package users
@@ -1582,48 +1582,48 @@ func TestViewDeepResourceUnkeyed(t *testing.T) {
 	bud.NodeModules["svelte"] = "3.42.3"
 	bud.Files["view/teams/users/index.svelte"] = `
 		<script>
-			export let props = []
+			export let onlineUsers = []
 		</script>
-		{#each props as user}
+		{#each onlineUsers as user}
 		<h1>index: {user.id} {user.name}</h1>
 		{/each}
 	`
 	bud.Files["view/teams/users/new.svelte"] = `
 		<script>
-			export let props = {}
+			export let onlineUser = {}
 		</script>
-		<h1>new: {props.id} {props.name}</h1>
+		<h1>new: {onlineUser.id} {onlineUser.name}</h1>
 	`
 	bud.Files["view/teams/users/show.svelte"] = `
 		<script>
-			export let props = {}
+			export let onlineUser = {}
 		</script>
-		<h1>show: {props.id} {props.name}</h1>
+		<h1>show: {onlineUser.id} {onlineUser.name}</h1>
 	`
 	bud.Files["view/teams/users/edit.svelte"] = `
 		<script>
-			export let props = {}
+			export let onlineUser = {}
 		</script>
-		<h1>edit: {props.id} {props.name}</h1>
+		<h1>edit: {onlineUser.id} {onlineUser.name}</h1>
 	`
 	bud.Files["action/teams/users/users.go"] = `
 		package users
 		type Controller struct {}
-		type User struct {
+		type OnlineUser struct {
 			ID int ` + "`" + `json:"id"` + "`" + `
 			Name string ` + "`" + `json:"name"` + "`" + `
 		}
-		func (c *Controller) Index() []*User {
-			return []*User{{1, "a"}, {2, "b"}}
+		func (c *Controller) Index() []*OnlineUser {
+			return []*OnlineUser{{1, "a"}, {2, "b"}}
 		}
-		func (c *Controller) New() *User {
-			return &User{3, "c"}
+		func (c *Controller) New() *OnlineUser {
+			return &OnlineUser{3, "c"}
 		}
-		func (c *Controller) Show(id int) *User {
-			return &User{id, "s"}
+		func (c *Controller) Show(id int) *OnlineUser {
+			return &OnlineUser{id, "s"}
 		}
-		func (c *Controller) Edit(id int) *User {
-			return &User{id, "e"}
+		func (c *Controller) Edit(id int) *OnlineUser {
+			return &OnlineUser{id, "e"}
 		}
 	`
 	// Generate the app

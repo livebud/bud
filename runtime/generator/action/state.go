@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/matthewmueller/gotext"
+	"github.com/matthewmueller/text"
 	"gitlab.com/mnm/bud/internal/imports"
 	"gitlab.com/mnm/bud/package/parser"
 )
@@ -19,6 +20,7 @@ type State struct {
 type Controller struct {
 	Name        string
 	Pascal      string
+	JSON        string
 	Path        string // Path to controller without action dir
 	Route       string
 	Actions     []*Action
@@ -53,6 +55,7 @@ type Action struct {
 	Results     ActionResults
 	RespondJSON bool
 	RespondHTML bool
+	PropsKey    string
 }
 
 // View struct
@@ -129,6 +132,43 @@ func (results ActionResults) Result() string {
 		return out
 	}
 	return ""
+}
+
+func (results ActionResults) propsKey() string {
+	for _, result := range results {
+		if result.IsError {
+			continue
+		} else if result.Named {
+			return result.Name
+		}
+		dataType := strings.TrimPrefix(result.Type, "[]*")
+		if isList(result.Type) {
+			// e.g. []*UserStory => userStories
+			return gotext.Camel(text.Plural(dataType))
+		}
+		// e.g. *UserStory => userStory
+		return gotext.Camel(dataType)
+	}
+	return ""
+}
+
+func isList(dataType string) bool {
+	return strings.HasPrefix(dataType, "[]") ||
+		strings.HasPrefix(dataType, "map")
+}
+
+func (results ActionResults) ViewResult() string {
+	propsKey := results.propsKey()
+	if propsKey == "" {
+		return results.Result()
+	}
+	out := new(strings.Builder)
+	out.WriteString(`map[string]interface{}{`)
+	out.WriteString(strconv.Quote(propsKey))
+	out.WriteString(":")
+	out.WriteString(results.Result())
+	out.WriteString(`},`)
+	return out.String()
 }
 
 func (results ActionResults) isArray() bool {

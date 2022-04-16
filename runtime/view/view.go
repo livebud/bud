@@ -36,27 +36,28 @@ type Renderer interface {
 	Render(path string, props interface{}) (*Response, error)
 }
 
-func New(fsys fs.FS, vm js.VM) *Server {
-	return &Server{fsys, http.FS(fsys), vm}
-}
+// func New(fsys fs.FS, vm js.VM, wrapProps map[string]string) *Server {
+// 	return &Server{fsys, http.FS(fsys), vm}
+// }
 
 // Live server serves view files on the fly. Used during development.
-func Live(module *gomod.Module, overlay *overlay.FileSystem, vm js.VM, transformer *transform.Map) *Server {
+func Live(module *gomod.Module, overlay *overlay.FileSystem, vm js.VM, transformer *transform.Map, wrapProps func(path string, props interface{}) interface{}) *Server {
 	overlay.FileServer("bud/view", dom.New(module, transformer.DOM))
 	overlay.FileServer("bud/node_modules", dom.NodeModules(module))
 	overlay.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
-	return &Server{overlay, http.FS(overlay), vm}
+	return &Server{overlay, http.FS(overlay), vm, wrapProps}
 }
 
 // Static server serves the same files every time. Used during production.
-func Static(fsys fs.FS, vm js.VM) *Server {
-	return &Server{fsys, http.FS(fsys), vm}
+func Static(fsys fs.FS, vm js.VM, wrapProps func(path string, props interface{}) interface{}) *Server {
+	return &Server{fsys, http.FS(fsys), vm, wrapProps}
 }
 
 type Server struct {
-	fsys fs.FS
-	hfs  http.FileSystem
-	vm   js.VM
+	fsys      fs.FS
+	hfs       http.FileSystem
+	vm        js.VM
+	wrapProps func(path string, props interface{}) interface{}
 }
 
 // Map is a convenience function for the common case of passing a map of props
@@ -81,7 +82,7 @@ func (s *Server) Respond(w http.ResponseWriter, path string, props interface{}) 
 }
 
 func (s *Server) Render(path string, props interface{}) (*Response, error) {
-	propBytes, err := json.Marshal(props)
+	propBytes, err := json.Marshal(s.wrapProps(path, props))
 	if err != nil {
 		return nil, err
 	}

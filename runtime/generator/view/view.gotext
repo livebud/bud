@@ -15,7 +15,9 @@ import (
 // New is called like this when calling bud run
 {{- if not $.Flag.Embed }}
 func New(module *mod.Module, overlay *overlay.Server, vm js.VM, transformer *transform.Map) *Server {
-	return view.Live(module, overlay, vm, transformer)
+	return view.Live(module, overlay, vm, transformer, func(path string, props interface{}) interface{} {
+		return props
+	})
 }
 {{ else }}
 // New is swapped in when generating with bud build
@@ -25,10 +27,9 @@ func New(module *mod.Module, fsys *overlay.FileSystem, vm js.VM, _ *transform.Ma
 		{{ if $embed.Data }}Data: []byte("{{ $embed.Data }}"),{{ end }}
 	})
 	{{- end }}
-	{{/* overlay.FileServer("bud/view", dom.Runner(overlay, module, transformer))
-	overlay.FileServer("bud/node_modules", dom.NodeModules(module))
-	overlay.FileGenerator("bud/view/_ssr.js", ssr.Generator(overlay, module, transformer)) */}}
-	return view.Static(fsys, vm)
+	return view.Static(fsys, vm, func(path string, props interface{}) interface{} {
+		return props
+	})
 }
 {{- end }}
 

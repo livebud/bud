@@ -51,7 +51,7 @@ func TestSvelteHello(t *testing.T) {
 	is.Equal(res.Status, 200)
 	is.Equal(len(res.Headers), 1)
 	is.Equal(res.Headers["Content-Type"], "text/html")
-	is.True(strings.Contains(res.Body, `<script id="bud_props" type="text/template" defer>{"props":{}}</script>`))
+	is.True(strings.Contains(res.Body, `<script id="bud_props" type="text/template" defer>{}</script>`))
 	is.True(strings.Contains(res.Body, `<script type="module" src="/bud/view/_index.svelte" defer></script>`))
 	is.True(strings.Contains(res.Body, `<div id="bud_target">`))
 	is.True(strings.Contains(res.Body, `<h1>hi world</h1>`))
@@ -102,10 +102,15 @@ func TestSvelteAwait(t *testing.T) {
 	is.Equal(res.Status, 200)
 	is.Equal(len(res.Headers), 1)
 	is.Equal(res.Headers["Content-Type"], "text/html")
-	is.True(strings.Contains(res.Body, `<script id="bud_props" type="text/template" defer>{"props":{}}</script>`))
+	is.True(strings.Contains(res.Body, `<script id="bud_props" type="text/template" defer>{}</script>`))
 	is.True(strings.Contains(res.Body, `<script type="module" src="/bud/view/_index.svelte" defer></script>`))
 	is.True(strings.Contains(res.Body, `<div id="bud_target">`))
 	is.True(strings.Contains(res.Body, `Loading...`))
+}
+
+// Wrap props with key (first use of generics :-D)
+func wrap[P any](key string, props P) map[string]P {
+	return map[string]P{key: props}
 }
 
 func render(vm js.VM, code, path string, props interface{}) (*view.Response, error) {
@@ -130,39 +135,39 @@ func TestSvelteProps(t *testing.T) {
 	td := testdir.New()
 	td.Files["view/index.svelte"] = `
 		<script>
-			export let props
+			export let users = []
 		</script>
-		<h1>{@html JSON.stringify(props)}</h1>
+		<h1>{@html JSON.stringify(users)}</h1>
 	`
 	td.Files["view/show.svelte"] = `
 		<script>
-			export let props
+			export let user = {}
 		</script>
-		<h2>{@html JSON.stringify(props)}</h2>
+		<h2>{@html JSON.stringify(user)}</h2>
 	`
 	td.Files["view/users/index.svelte"] = `
 		<script>
-			export let props
+			export let users = []
 		</script>
-		<h3>{@html JSON.stringify(props)}</h3>
+		<h3>{@html JSON.stringify(users)}</h3>
 	`
 	td.Files["view/users/show.svelte"] = `
 		<script>
-			export let props
+			export let user = {}
 		</script>
-		<h4>{@html JSON.stringify(props)}</h4>
+		<h4>{@html JSON.stringify(user)}</h4>
 	`
 	td.Files["view/posts/comments/index.svelte"] = `
 		<script>
-			export let props
+			export let comments = []
 		</script>
-		<h5>{@html JSON.stringify(props)}</h5>
+		<h5>{@html JSON.stringify(comments)}</h5>
 	`
 	td.Files["view/posts/comments/show.svelte"] = `
 		<script>
-			export let props
+			export let comment = {}
 		</script>
-		<h6>{@html JSON.stringify(props)}</h6>
+		<h6>{@html JSON.stringify(comment)}</h6>
 	`
 	td.NodeModules["svelte"] = "3.46.4"
 	is.NoErr(td.Write(dir))
@@ -184,34 +189,34 @@ func TestSvelteProps(t *testing.T) {
 		Name  string `json:"name"`
 		Email string `json:"email"`
 	}
-	res, err := render(vm, string(code), "/", []*User{
+	res, err := render(vm, string(code), "/", wrap("users", []*User{
 		{"Alice", "alice@livebud.com"},
 		{"Tom", "tom@livebud.com"},
-	})
+	}))
 	is.NoErr(err)
 	is.Equal(res.Status, 200)
 	is.Equal(len(res.Headers), 1)
 	is.Equal(res.Headers["Content-Type"], "text/html")
 	is.True(strings.Contains(res.Body, `<h1><!-- HTML_TAG_START -->[{"name":"Alice","email":"alice@livebud.com"},{"name":"Tom","email":"tom@livebud.com"}]<!-- HTML_TAG_END --></h1>`))
 	// show
-	res, err = render(vm, string(code), "/:id", &User{"Alice", "alice@livebud.com"})
+	res, err = render(vm, string(code), "/:id", wrap("user", &User{"Alice", "alice@livebud.com"}))
 	is.NoErr(err)
 	is.Equal(res.Status, 200)
 	is.Equal(len(res.Headers), 1)
 	is.Equal(res.Headers["Content-Type"], "text/html")
 	is.True(strings.Contains(res.Body, `<h2><!-- HTML_TAG_START -->{"name":"Alice","email":"alice@livebud.com"}<!-- HTML_TAG_END --></h2>`))
 	// users/index
-	res, err = render(vm, string(code), "/users", []*User{
+	res, err = render(vm, string(code), "/users", wrap("users", []*User{
 		{"Alice", "alice@livebud.com"},
 		{"Tom", "tom@livebud.com"},
-	})
+	}))
 	is.NoErr(err)
 	is.Equal(res.Status, 200)
 	is.Equal(len(res.Headers), 1)
 	is.Equal(res.Headers["Content-Type"], "text/html")
 	is.True(strings.Contains(res.Body, `<h3><!-- HTML_TAG_START -->[{"name":"Alice","email":"alice@livebud.com"},{"name":"Tom","email":"tom@livebud.com"}]<!-- HTML_TAG_END --></h3>`))
 	// users/show
-	res, err = render(vm, string(code), "/users/:id", &User{"Alice", "alice@livebud.com"})
+	res, err = render(vm, string(code), "/users/:id", wrap("user", &User{"Alice", "alice@livebud.com"}))
 	is.NoErr(err)
 	is.Equal(res.Status, 200)
 	is.Equal(len(res.Headers), 1)
@@ -222,17 +227,17 @@ func TestSvelteProps(t *testing.T) {
 		Name  string `json:"name"`
 		Title string `json:"title"`
 	}
-	res, err = render(vm, string(code), "/posts/:post_id/comments", []*Comment{
+	res, err = render(vm, string(code), "/posts/:post_id/comments", wrap("comments", []*Comment{
 		{"Alice", "first"},
 		{"Tom", "second"},
-	})
+	}))
 	is.NoErr(err)
 	is.Equal(res.Status, 200)
 	is.Equal(len(res.Headers), 1)
 	is.Equal(res.Headers["Content-Type"], "text/html")
 	is.True(strings.Contains(res.Body, `<h5><!-- HTML_TAG_START -->[{"name":"Alice","title":"first"},{"name":"Tom","title":"second"}]<!-- HTML_TAG_END --></h5>`))
 	// posts/comments/:id
-	res, err = render(vm, string(code), "/posts/:post_id/comments/:id", &Comment{"Alice", "first"})
+	res, err = render(vm, string(code), "/posts/:post_id/comments/:id", wrap("comment", &Comment{"Alice", "first"}))
 	is.NoErr(err)
 	is.Equal(res.Status, 200)
 	is.Equal(len(res.Headers), 1)
@@ -260,12 +265,13 @@ func TestSvelteLocalImports(t *testing.T) {
 		<script>
 			import Story from "./Story.svelte"
 			import Comment from "./Comment.svelte"
-			export let props = {
-					comments: []
+			export let story = {
+				title: "",
+				comments: []
 			}
 		</script>
-		<Story story={props} />
-		{#each props.comments as comment}
+		<Story story={story} />
+		{#each story.comments as comment}
 			<Comment {comment} />
 		{/each}
 	`
@@ -291,13 +297,14 @@ func TestSvelteLocalImports(t *testing.T) {
 		Title    string     `json:"title"`
 		Comments []*Comment `json:"comments"`
 	}
-	res, err := render(vm, string(code), "/:id", &Story{
+	props := wrap("story", &Story{
 		Title: "first story",
 		Comments: []*Comment{
 			{Message: "first comment"},
 			{Message: "second comment"},
 		},
 	})
+	res, err := render(vm, string(code), "/:id", props)
 	is.NoErr(err)
 	is.Equal(res.Status, 200)
 	is.Equal(len(res.Headers), 1)

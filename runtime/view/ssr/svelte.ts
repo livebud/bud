@@ -14,12 +14,6 @@ type View = {
 export function createView(view: View) {
   view.layout = view.layout || defaultLayout
   return function ({ props, context }) {
-    // Wrap what's passed from the server as props. This gives a consistent
-    // exported variable that can be any value:
-    // - For index.svelte, that would be a list of resources, e.g. props = [...]
-    // - For show.svelte, that would be an single resources, e.g. props = {...}
-    props = { props }
-
     const page = view.page.render(props)
     let css = page.css.code
     let html = page.html
