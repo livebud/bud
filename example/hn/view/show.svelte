@@ -9,13 +9,8 @@
 
 <div>
   <Header />
-
-  <ul class="mb-12">
-    <li class="pl-5 pt-6">
-      <Story {story} />
-      {#each story.children as comment}
-        <Comment {comment} />
-      {/each}
-    </li>
-  </ul>
+  <Story {story} />
+  {#each story.children as comment}
+    <Comment {comment} />
+  {/each}
 </div>

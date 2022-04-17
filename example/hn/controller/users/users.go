@@ -4,5 +4,5 @@ type Controller struct {
 }
 
 func (c *Controller) Index() (string, error) {
-	return "hello user!!!!!!", nil
+	return "hello user", nil
 }

@@ -1,15 +1,6 @@
 <script>
   import { format as timeago } from "timeago.js"
-  export let i = 0
-  export let story = {
-    id: 0,
-    title: "",
-    url: "",
-    points: 0,
-    author: "",
-    created_at: new Date(),
-    num_comments: 0,
-  }
+  export let story = {}
 
   function formatURL(url) {
     if (!url) return ""
@@ -28,15 +19,13 @@
 </script>
 
 <div class="story">
-  <div class="text-lg">
-    <a class="title" href={story.url}>{i}. {story.title}</a>
+  <div>
+    <a class="title" href={story.url || `/${story.id}`}>{story.title}</a>
     {#if story.url}
-      <span class="text-sm text-gray-500">
-        ({formatURL(story.url)})
-      </span>
+      <a class="url" href={story.url}>({formatURL(story.url)})</a>
     {/if}
   </div>
-  <div class="text-sm text-gray-500">
+  <div class="meta">
     {story.points} points by {story.author} • {timeago(story.created_at)} •
     <a href={`/${story.id}`}>{formatComments(story.num_comments)}</a>
   </div>
@@ -45,8 +34,20 @@
 <style>
   .story {
     padding: 10px;
+    font-size: 14px;
+  }
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+  a[href]:hover {
+    text-decoration: underline;
   }
   .title {
     font-weight: 500;
+  }
+  .url,
+  .meta {
+    color: gray;
   }
 </style>

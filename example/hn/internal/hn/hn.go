@@ -84,10 +84,10 @@ type Children struct {
 	CreatedAt  time.Time  `json:"created_at,omitempty"`
 	CreatedAtI int        `json:"created_at_i,omitempty"`
 	Type       string     `json:"type,omitempty"`
-	Author     string     `json:"author,omitempty"`
+	Author     *string    `json:"author,omitempty"`
 	Title      *string    `json:"title,omitempty"`
 	URL        *string    `json:"url,omitempty"`
-	Text       string     `json:"text,omitempty"`
+	Text       *string    `json:"text,omitempty"`
 	Points     *int       `json:"points,omitempty"`
 	ParentID   int        `json:"parent_id,omitempty"`
 	StoryID    int        `json:"story_id,omitempty"`
@@ -117,8 +117,21 @@ func (c *Client) Find(ctx context.Context, id string) (*Story, error) {
 	if err := json.Unmarshal(body, story); err != nil {
 		return nil, err
 	}
+	story.Children = filterChildren(story.Children)
 	recursivelySort(story.Children)
 	return story, nil
+}
+
+// Some comments are nil for some reason (perhaps removed?)
+func filterChildren(childs []Children) (children []Children) {
+	for _, child := range childs {
+		if child.Author == nil || child.Text == nil {
+			continue
+		}
+		child.Children = filterChildren(child.Children)
+		children = append(children, child)
+	}
+	return children
 }
 
 func recursivelySort(children []Children) {

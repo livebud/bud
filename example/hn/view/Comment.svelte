@@ -1,27 +1,21 @@
 <script>
+  import { format as timeago } from "timeago.js"
   export let comment = {}
-  let numChildren = (comment.children || []).length
   let show = true
-
   function toggle() {
     show = !show
   }
 </script>
 
-<div class="pl-5 pt-6">
-  <div class="ml-4 flex items-center">
-    <span class="text-gray-600" />
-    <span class="text-sm ml-2 text-gray-600"
-      >{comment.author}
-      {comment.created_at}
-      [<a href={"#"} on:click={toggle}>{show ? "-" : `${numChildren} more`}</a>]
-    </span>
+<div class="comment">
+  <div class="header">
+    <a class="fold" href={"#"} on:click={toggle}>{show ? "↓" : `→`}</a>
+    {comment.author}
+    {timeago(comment.created_at)}
   </div>
   {#if show}
-    <div class="mt-1 ml-6">
-      <div class="max-w-prose leading-relaxed text-gray-900">
-        {@html comment.text}
-      </div>
+    <div class="body">
+      {@html comment.text}
     </div>
     {#if comment.children}
       {#each comment.children as comment}
@@ -30,3 +24,28 @@
     {/if}
   {/if}
 </div>
+
+<style>
+  .comment {
+    padding: 10px;
+  }
+  .header {
+    color: gray;
+    font-size: 75%;
+  }
+  .fold {
+    text-decoration: none;
+    color: inherit;
+  }
+  .body {
+    padding-left: 13px;
+    font-size: 14px;
+  }
+  .body :global(a) {
+    text-decoration: none;
+    color: inherit;
+  }
+  .body :global(a:hover) {
+    text-decoration: underline;
+  }
+</style>
