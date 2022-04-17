@@ -1,7 +1,6 @@
 <script>
   import { format as timeago } from "timeago.js"
   export let story = {}
-
   function formatURL(url) {
     if (!url) return ""
     const parsed = new URL(url)

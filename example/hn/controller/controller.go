@@ -3,18 +3,18 @@ package controller
 import (
 	"context"
 
-	"gitlab.com/mnm/bud/example/hn/internal/hn"
+	"github.com/matthewmueller/hackernews"
 )
 
 type Controller struct {
-	HN *hn.Client
+	HN *hackernews.Client
 }
 
-func (c *Controller) Index(ctx context.Context) (news *hn.News, err error) {
+func (c *Controller) Index(ctx context.Context) (stories []*hackernews.Story, err error) {
 	return c.HN.FrontPage(ctx)
 }
 
 // Show a comment
-func (c *Controller) Show(ctx context.Context, id string) (story *hn.Story, err error) {
+func (c *Controller) Show(ctx context.Context, id int) (story *hackernews.Story, err error) {
 	return c.HN.Find(ctx, id)
 }

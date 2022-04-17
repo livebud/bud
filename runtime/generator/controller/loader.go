@@ -246,7 +246,7 @@ func (l *loader) loadActionParams(params []*parser.Param) (inputs []*ActionParam
 func (l *loader) loadActionParam(param *parser.Param, nth, numParams int) *ActionParam {
 	dec, err := param.Definition()
 	if err != nil {
-		l.Bail(fmt.Errorf("controller: unable to find param definition: %w", err))
+		l.Bail(fmt.Errorf("controller: unable to find param definition for %s > %w", param.Type(), err))
 	}
 	ap := new(ActionParam)
 	ap.Name = l.loadActionParamName(param, nth)
@@ -333,7 +333,7 @@ func (l *loader) loadActionResults(method *parser.Function) (outputs []*ActionRe
 func (l *loader) loadActionResult(order int, result *parser.Result) *ActionResult {
 	def, err := result.Definition()
 	if err != nil {
-		l.Bail(fmt.Errorf("controller: unable to load result definition for %s", result.Type()))
+		l.Bail(fmt.Errorf("controller: unable to load result definition for %s > %w", result.Type(), err))
 	}
 	output := new(ActionResult)
 	output.Name = l.loadActionResultName(order, result)
@@ -372,7 +372,7 @@ func (l *loader) loadActionResultFields(result *parser.Result, def parser.Declar
 	for _, field := range stct.PublicFields() {
 		def, err := field.Definition()
 		if err != nil {
-			l.Bail(fmt.Errorf("controller: unable to load definition for field %s in %s", field.Name(), result.Name()))
+			l.Bail(fmt.Errorf("controller: unable to load definition for field %s in %s > %w", field.Name(), result.Name(), err))
 		}
 		fields = append(fields, &ActionResultField{
 			Name: field.Name(),

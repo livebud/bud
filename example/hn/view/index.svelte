@@ -1,17 +1,15 @@
 <script>
   import Header from "./Header.svelte"
   import Story from "./Story.svelte"
-  export let news = {
-    stories: [],
-  }
+  export let stories = []
 </script>
 
 <main>
   <Header />
 
   <div>
-    {#each news.stories as story, i}
-      <Story i={i + 1} {story} />
+    {#each stories as story}
+      <Story {story} />
     {/each}
   </div>
 </main>

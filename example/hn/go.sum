@@ -53,6 +53,10 @@ github.com/matthewmueller/diff v0.0.0-20220104030700-cb2fe910d90c h1:yjGBNrCIE7I
 github.com/matthewmueller/diff v0.0.0-20220104030700-cb2fe910d90c/go.mod h1:xIxeV0n2W+WNB3ik/j9lUkcrQAk71VrvT9ch8u4pcvM=
 github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac h1:SjopLdUF96kdJU8ynYmGVHoJmngpwFHRvR5p2plBXG4=
 github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac/go.mod h1:0mnotoJNdO4NPxld/GcrLppxwGWuMqgroWyu413oOvw=
+github.com/matthewmueller/hackernews v0.2.0 h1:wTM/tKlS9wwACodvcyPt83/HZaqNmIvnb1gzI1NgwEk=
+github.com/matthewmueller/hackernews v0.2.0/go.mod h1:LLJX9jtOV7MNmPN0AWn2E9Rg4z/9fam7iwlVVPPx75U=
+github.com/matthewmueller/hackernews v0.3.0 h1:mIkIKzZXvIgzHkPYi0qSxjsbWawFJ7X8BgHHfaNoP9Y=
+github.com/matthewmueller/hackernews v0.3.0/go.mod h1:LLJX9jtOV7MNmPN0AWn2E9Rg4z/9fam7iwlVVPPx75U=
 github.com/matthewmueller/text v0.0.0-20201215225457-a00346c71bb3/go.mod h1:vtPaEU72VzARd4tSSzHIX7DddCEamoO2X4ozlrdmtNY=
 github.com/matthewmueller/text v0.0.0-20210424201111-ec1e4af8dfe8 h1:XTmVlF7P9bpSNkLFlxpNlhig0kaVJ5mO4D3yK2CYjmM=
 github.com/matthewmueller/text v0.0.0-20210424201111-ec1e4af8dfe8/go.mod h1:vtPaEU72VzARd4tSSzHIX7DddCEamoO2X4ozlrdmtNY=

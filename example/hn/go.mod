@@ -16,6 +16,7 @@ require (
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/gedex/inflector v0.0.0-20170307190818-16278e9db813 // indirect
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac // indirect
+	github.com/matthewmueller/hackernews v0.3.0 // indirect
 	github.com/matthewmueller/text v0.0.0-20210424201111-ec1e4af8dfe8 // indirect
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/otiai10/copy v1.7.0 // indirect
