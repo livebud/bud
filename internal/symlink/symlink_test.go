@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/internal/symlink"
+	"github.com/matryer/is"
 )
 
 func TestLink(t *testing.T) {

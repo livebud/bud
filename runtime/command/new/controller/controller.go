@@ -12,11 +12,11 @@ import (
 
 	"github.com/matthewmueller/gotext"
 
-	"github.com/matthewmueller/text"
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/scaffold"
+	"github.com/matthewmueller/text"
 )
 
 func New(module *gomod.Module) *Command {

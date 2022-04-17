@@ -4,10 +4,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/matthewmueller/gotext"
-	"github.com/matthewmueller/text"
 	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/package/parser"
+	"github.com/matthewmueller/gotext"
+	"github.com/matthewmueller/text"
 )
 
 type State struct {

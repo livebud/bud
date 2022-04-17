@@ -8,8 +8,8 @@ import (
 
 	"github.com/livebud/bud/internal/imhash"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/internal/budtest"
+	"github.com/matryer/is"
 )
 
 func TestAppHash(t *testing.T) {

@@ -3,8 +3,8 @@ package fstree_test
 import (
 	"testing"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/internal/fstree"
+	"github.com/matryer/is"
 )
 
 func TestTree(t *testing.T) {

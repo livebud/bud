@@ -3,8 +3,8 @@ package imports_test
 import (
 	"testing"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/internal/imports"
+	"github.com/matryer/is"
 )
 
 func TestAdd(t *testing.T) {

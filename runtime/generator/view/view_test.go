@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/internal/budtest"
+	"github.com/matryer/is"
 )
 
 func TestHello(t *testing.T) {

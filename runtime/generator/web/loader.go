@@ -7,12 +7,12 @@ import (
 
 	"github.com/livebud/bud/internal/scan"
 
-	"github.com/matthewmueller/text"
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/parser"
 	"github.com/livebud/bud/package/vfs"
+	"github.com/matthewmueller/text"
 )
 
 func Load(fsys fs.FS, module *gomod.Module, parser *parser.Parser) (*State, error) {

@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/internal/budtest"
+	"github.com/matryer/is"
 )
 
 // TODO: We should always generate a main, even if empty dir

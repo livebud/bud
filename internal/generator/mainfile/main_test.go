@@ -6,9 +6,9 @@ import (
 	"go/token"
 	"testing"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/internal/generator/mainfile"
 	"github.com/livebud/bud/internal/imports"
+	"github.com/matryer/is"
 )
 
 func parse(code []byte) (*ast.File, error) {

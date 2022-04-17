@@ -5,8 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/matryer/is"
 	. "github.com/livebud/bud/runtime/controller/request"
+	"github.com/matryer/is"
 )
 
 func TestJSONEmpty(t *testing.T) {

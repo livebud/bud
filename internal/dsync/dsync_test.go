@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/package/conjure"
 	"github.com/livebud/bud/package/vfs"
+	"github.com/matryer/is"
 )
 
 func TestFileSync(t *testing.T) {

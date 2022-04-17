@@ -6,10 +6,10 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/matryer/is"
-	"github.com/matthewmueller/gotext"
 	"github.com/livebud/bud/package/vfs"
 	"github.com/livebud/bud/runtime/view"
+	"github.com/matryer/is"
+	"github.com/matthewmueller/gotext"
 )
 
 // func TestSvelteView(t *testing.T) {

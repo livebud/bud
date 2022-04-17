@@ -18,7 +18,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/lithammer/dedent"
-	"github.com/matthewmueller/diff"
 	"github.com/livebud/bud/internal/bud"
 	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/package/exe"
@@ -26,6 +25,7 @@ import (
 	"github.com/livebud/bud/package/modcache"
 	"github.com/livebud/bud/package/socket"
 	runtime_bud "github.com/livebud/bud/runtime/bud"
+	"github.com/matthewmueller/diff"
 )
 
 func New(dir string) *Compiler {

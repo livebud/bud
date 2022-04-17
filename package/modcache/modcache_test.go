@@ -14,8 +14,8 @@ import (
 	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/package/vfs"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/package/modcache"
+	"github.com/matryer/is"
 )
 
 // Run calls `go run -mod=mod main.go ...`

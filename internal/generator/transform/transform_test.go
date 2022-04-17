@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/internal/budtest"
 	"github.com/livebud/bud/package/modcache"
+	"github.com/matryer/is"
 )
 
 func TestEmpty(t *testing.T) {

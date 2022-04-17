@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/package/socket"
+	"github.com/matryer/is"
 )
 
 func TestUnixPassthrough(t *testing.T) {

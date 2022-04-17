@@ -4,11 +4,11 @@ import (
 	"io/fs"
 	"testing"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/modcache"
 	"github.com/livebud/bud/package/pluginfs"
 	"github.com/livebud/bud/package/vfs"
+	"github.com/matryer/is"
 )
 
 func TestMergeModules(t *testing.T) {

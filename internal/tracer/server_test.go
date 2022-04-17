@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/internal/tracer"
+	"github.com/matryer/is"
 )
 
 func TestSingleClient(t *testing.T) {

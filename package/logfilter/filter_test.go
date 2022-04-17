@@ -3,9 +3,9 @@ package logfilter_test
 import (
 	"testing"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/logfilter"
+	"github.com/matryer/is"
 )
 
 func Test(t *testing.T) {

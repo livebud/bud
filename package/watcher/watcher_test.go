@@ -10,8 +10,8 @@ import (
 	"github.com/livebud/bud/package/watcher"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/package/vfs"
+	"github.com/matryer/is"
 )
 
 func TestChange(t *testing.T) {

@@ -9,9 +9,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mattn/go-isatty"
 	"github.com/livebud/bud/internal/command"
 	v8 "github.com/livebud/bud/package/js/v8"
+	"github.com/mattn/go-isatty"
 )
 
 type Command struct {

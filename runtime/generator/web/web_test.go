@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/internal/budtest"
+	"github.com/matryer/is"
 )
 
 // TODO: generate welcome server when there are no routes

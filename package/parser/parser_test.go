@@ -11,10 +11,10 @@ import (
 	"github.com/livebud/bud/package/modcache"
 	"github.com/livebud/bud/package/parser"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/internal/txtar"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/vfs"
+	"github.com/matryer/is"
 )
 
 func TestStructLookup(t *testing.T) {

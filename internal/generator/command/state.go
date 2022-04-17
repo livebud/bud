@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/livebud/bud/internal/imports"
 	"github.com/matthewmueller/gotext"
 	"github.com/matthewmueller/text"
-	"github.com/livebud/bud/internal/imports"
 )
 
 type State struct {

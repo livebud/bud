@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/internal/budtest"
 	"github.com/livebud/bud/package/modcache"
+	"github.com/matryer/is"
 )
 
 // TODO: bud/.app/main.go should always be generated, but public will not exist

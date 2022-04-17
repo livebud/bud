@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/livebud/bud/package/commander"
 	"github.com/matryer/is"
 	"github.com/matthewmueller/diff"
-	"github.com/livebud/bud/package/commander"
 )
 
 func isEqual(t testing.TB, actual, expected string) {

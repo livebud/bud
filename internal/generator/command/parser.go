@@ -11,12 +11,12 @@ import (
 
 	"github.com/matthewmueller/gotext"
 
-	"github.com/matthewmueller/text"
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/internal/valid"
 	"github.com/livebud/bud/package/gomod"
 	goparse "github.com/livebud/bud/package/parser"
+	"github.com/matthewmueller/text"
 )
 
 type parser struct {

@@ -15,9 +15,9 @@ import (
 
 	"io/fs"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/package/conjure"
 	"github.com/livebud/bud/package/merged"
+	"github.com/matryer/is"
 )
 
 func View() func(dir *conjure.Dir) error {

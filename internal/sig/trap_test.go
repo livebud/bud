@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/internal/sig"
+	"github.com/matryer/is"
 )
 
 // Based on: https://github.com/golang/go/issues/19326

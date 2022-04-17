@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/xlab/treeprint"
 	"github.com/livebud/bud/package/router"
+	"github.com/xlab/treeprint"
 
 	"github.com/livebud/bud/package/socket"
 )

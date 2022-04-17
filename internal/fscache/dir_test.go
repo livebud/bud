@@ -4,8 +4,8 @@ import (
 	"io/fs"
 	"testing"
 
-	"github.com/matryer/is"
 	"github.com/livebud/bud/internal/fscache"
+	"github.com/matryer/is"
 )
 
 func TestDir(t *testing.T) {
