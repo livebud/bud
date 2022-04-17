@@ -1,4 +1,4 @@
-package action
+package controller
 
 import (
 
@@ -13,10 +13,10 @@ import (
 	"gitlab.com/mnm/bud/package/parser"
 )
 
-//go:embed action.gotext
+//go:embed controller.gotext
 var template string
 
-var generator = gotemplate.MustParse("action.gotext", template)
+var generator = gotemplate.MustParse("controller.gotext", template)
 
 type Generator struct {
 	Injector *di.Injector

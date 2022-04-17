@@ -53,7 +53,7 @@ func invalidGoFile(name string) bool {
 		strings.HasSuffix(name, "_test") // Test file
 }
 
-func ActionFile(name string) bool {
+func ControllerFile(name string) bool {
 	return !invalidGoFile(name)
 }
 

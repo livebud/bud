@@ -7,6 +7,7 @@ import { parse } from "../../url"
 export default class Hot {
   private subs: Array<() => void> = []
   private sse: EventSource
+  private queue = new Queue()
 
   constructor(path: string, private readonly components: Record<string, any>) {
     this.sse = new EventSource(path)
@@ -24,7 +25,9 @@ export default class Hot {
       location.reload()
       return
     }
-    this.loadScripts(payload.scripts).catch((err) => console.error(err))
+    this.queue.enqueue(() => {
+      this.loadScripts(payload.scripts).catch((err) => console.error(err))
+    })
   }
 
   private async loadScripts(scripts: string[]) {
@@ -38,40 +41,29 @@ export default class Hot {
     }
   }
 
-  // // load scripts in order
-  // private loadScripts(...scripts: string[]) {
-  //   const self = this
-  //   const src = scripts.shift()
-  //   if (!src) return
-  //   const script = document.createElement("script")
-  //   script.type = "module"
-  //   script.src = src + "?ts=" + Math.random()
-  //   function next() {
-  //     self.loadScripts(...scripts)
-  //   }
-  //   function error() {
-  //     // TODO: better error handling
-  //     throw new Error("unable to load script")
-  //   }
-  //   script.addEventListener("error", function () {
-  //     script.removeEventListener("error", error)
-  //     error()
-  //   })
-  //   script.addEventListener("load", function () {
-  //     script.removeEventListener("load", next)
-  //     next()
-  //   })
-  //   // Add or replace existing script
-  //   const existing = document.querySelector(`script[src="${src}"]`)
-  //   if (existing && existing.parentNode) {
-  //     existing.parentNode.replaceChild(script, existing)
-  //   } else {
-  //     document.head.appendChild(script)
-  //   }
-  // }
-
   close() {
     this.sse.removeEventListener("message", this.onmessage)
     this.sse.close()
+  }
+}
+
+/**
+ * Simple queue to ensure updates only happen one at a time, in order.
+ */
+class Queue {
+  private queue: Array<() => void> = []
+  private idle: boolean = true
+  enqueue(fn: () => void) {
+    this.queue.push(fn)
+    this.process()
+  }
+  private process() {
+    if (!this.idle) return
+    this.idle = false
+    let fn: (() => void) | undefined
+    while ((fn = this.queue.shift())) {
+      fn()
+    }
+    this.idle = true
   }
 }

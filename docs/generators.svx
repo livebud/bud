@@ -58,7 +58,7 @@ type Generator struct {
 }
 
 func (g *Generator) Generate(dir *generator.Dir) error {
-  des, err := fs.ReadDir(g.Module, "action")
+  des, err := fs.ReadDir(g.Module, "controller")
   if err != nil {
     return err
   }

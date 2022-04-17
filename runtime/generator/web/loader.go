@@ -39,7 +39,7 @@ func (l *loader) Load() (state *State, err error) {
 	state = new(State)
 	// Ensure the web files exist
 	exist, err := vfs.SomeExist(l.fsys,
-		"bud/.app/action/action.go",
+		"bud/.app/controller/controller.go",
 		"bud/.app/public/public.go",
 		"bud/.app/view/view.go",
 	)
@@ -51,7 +51,7 @@ func (l *loader) Load() (state *State, err error) {
 	l.imports.AddNamed("middleware", "gitlab.com/mnm/bud/package/middleware")
 	l.imports.AddNamed("web", "gitlab.com/mnm/bud/runtime/web")
 	l.imports.AddNamed("router", "gitlab.com/mnm/bud/package/router")
-	// Show the welcome page if we don't have actions, views or public files
+	// Show the welcome page if we don't have controllers, views or public files
 	if len(exist) == 0 {
 		l.imports.AddNamed("welcome", "gitlab.com/mnm/bud/runtime/web/welcome")
 		state.ShowWelcome = true
@@ -67,9 +67,9 @@ func (l *loader) Load() (state *State, err error) {
 		state.HasView = true
 		l.imports.AddNamed("view", l.module.Import("bud/.app/view"))
 	}
-	// Load the actions
-	if exist["bud/.app/action/action.go"] {
-		l.imports.AddNamed("action", l.module.Import("bud/.app/action"))
+	// Load the controllers
+	if exist["bud/.app/controller/controller.go"] {
+		l.imports.AddNamed("controller", l.module.Import("bud/.app/controller"))
 		state.Actions = l.loadControllerActions()
 	}
 	// state.Command = l.loadRoot("command")
@@ -79,11 +79,11 @@ func (l *loader) Load() (state *State, err error) {
 }
 
 func (l *loader) loadControllerActions() (actions []*Action) {
-	subfs, err := fs.Sub(l.fsys, "action")
+	subfs, err := fs.Sub(l.fsys, "controller")
 	if err != nil {
 		l.Bail(err)
 	}
-	scanner := scan.Actions(subfs)
+	scanner := scan.Controllers(subfs)
 	for scanner.Scan() {
 		actions = append(actions, l.loadActions(scanner.Text())...)
 	}
@@ -94,7 +94,7 @@ func (l *loader) loadControllerActions() (actions []*Action) {
 }
 
 func (l *loader) loadActions(dir string) (actions []*Action) {
-	pkg, err := l.parser.Parse(path.Join("action", dir))
+	pkg, err := l.parser.Parse(path.Join("controller", dir))
 	if err != nil {
 		l.Bail(err)
 	}

@@ -230,8 +230,8 @@ func TestWithSkip(t *testing.T) {
 	is.Equal(len(targetFS), 1) // this should have deleted node_modules
 	// starting points
 	sourceFS = vfs.Memory{
-		"index.svelte":  &vfs.File{Data: []byte("<h1>index</h1>")},
-		"bud/action.go": &vfs.File{Data: []byte("package action")},
+		"index.svelte":      &vfs.File{Data: []byte("<h1>index</h1>")},
+		"bud/controller.go": &vfs.File{Data: []byte("package controller")},
 	}
 	targetFS = vfs.Memory{
 		"node_modules/svelte/svelte.js": &vfs.File{Data: []byte("svelte")},
@@ -240,7 +240,7 @@ func TestWithSkip(t *testing.T) {
 	skip1 := func(name string, isDir bool) bool {
 		return isDir && filepath.Base(name) == "node_modules"
 	}
-	// NOTE: if you don't have bud/action.go
+	// NOTE: if you don't have bud/controller.go
 	skip2 := func(name string, isDir bool) bool {
 		return !isDir && name == "bud/generate.go"
 	}

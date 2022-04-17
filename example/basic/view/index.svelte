@@ -1,13 +1,12 @@
 <script>
-  export let props = ""
+  export let _string = ""
 </script>
 
-<h1>{props}</h1>
+<h1>{_string}</h1>
 
 <style>
   h1 {
     background: red;
     color: white;
-    padding: 20px;
   }
 </style>

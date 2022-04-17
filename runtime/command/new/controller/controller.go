@@ -211,7 +211,7 @@ func controllerKey(path string) string {
 
 func controllerPath(controllerKey string) string {
 	// TODO: change this back to controller
-	return filepath.Join("action", controllerKey, "controller.go")
+	return filepath.Join("controller", controllerKey, "controller.go")
 }
 
 func controllerName(controllerKey string) string {

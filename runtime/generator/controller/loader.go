@@ -1,4 +1,4 @@
-package action
+package controller
 
 import (
 	"errors"
@@ -23,7 +23,7 @@ import (
 )
 
 func Load(fsys fs.FS, injector *di.Injector, module *gomod.Module, parser *parser.Parser) (*State, error) {
-	exist, err := vfs.SomeExist(fsys, "action")
+	exist, err := vfs.SomeExist(fsys, "controller")
 	if err != nil {
 		return nil, err
 	} else if len(exist) == 0 {
@@ -57,31 +57,31 @@ type loader struct {
 func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
 	state = new(State)
-	state.Controller = l.loadController("action")
+	state.Controller = l.loadController("controller")
 	state.Contexts = l.contexts.List()
 	state.Imports = l.imports.List()
 	return state, err
 }
 
-func (l *loader) loadController(actionPath string) *Controller {
-	des, err := fs.ReadDir(l.fsys, actionPath)
+func (l *loader) loadController(controllerPath string) *Controller {
+	des, err := fs.ReadDir(l.fsys, controllerPath)
 	if err != nil {
 		l.Bail(err)
 	}
 	controller := new(Controller)
-	controller.Path = l.loadControllerPath(actionPath)
+	controller.Path = l.loadControllerPath(controllerPath)
 	controller.Name = l.loadControllerName(controller.Path)
 	controller.Pascal = gotext.Pascal(controller.Name)
 	// TODO: rename to route
 	controller.Route = l.loadControllerRoute(controller.Path)
 	shouldParse := false
 	for _, de := range des {
-		if !de.IsDir() && valid.ActionFile(de.Name()) {
+		if !de.IsDir() && valid.ControllerFile(de.Name()) {
 			shouldParse = true
 			continue
 		}
 		if de.IsDir() && valid.Dir(de.Name()) {
-			subController := l.loadController(path.Join(actionPath, de.Name()))
+			subController := l.loadController(path.Join(controllerPath, de.Name()))
 			if subController == nil {
 				continue
 			}
@@ -92,7 +92,7 @@ func (l *loader) loadController(actionPath string) *Controller {
 	if !shouldParse {
 		return controller
 	}
-	pkg, err := l.parser.Parse(actionPath)
+	pkg, err := l.parser.Parse(controllerPath)
 	if err != nil {
 		l.Bail(err)
 	}
@@ -104,8 +104,8 @@ func (l *loader) loadController(actionPath string) *Controller {
 	return controller
 }
 
-func (l *loader) loadControllerPath(actionPath string) string {
-	parts := strings.SplitN(actionPath, "/", 2)
+func (l *loader) loadControllerPath(controllerPath string) string {
+	parts := strings.SplitN(controllerPath, "/", 2)
 	if len(parts) == 1 {
 		return "/"
 	}
@@ -144,7 +144,7 @@ func (l *loader) loadActions(controller *Controller, stct *parser.Struct) (actio
 			l.Bail(err)
 		}
 		l.imports.Add(importPath)
-		l.imports.Add("gitlab.com/mnm/bud/runtime/action/response")
+		l.imports.Add("gitlab.com/mnm/bud/runtime/controller/response")
 		l.imports.Add("net/http")
 	}
 	return actions
@@ -211,7 +211,7 @@ func (l *loader) loadView(controllerKey, actionKey, actionRoute string) *View {
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil
 		}
-		l.Bail(fmt.Errorf("action: unable read view directory %q > %w", viewDir, err))
+		l.Bail(fmt.Errorf("controller: unable read view directory %q > %w", viewDir, err))
 	}
 	for _, de := range des {
 		name := de.Name()
@@ -238,7 +238,7 @@ func (l *loader) loadActionParams(params []*parser.Param) (inputs []*ActionParam
 		inputs = append(inputs, l.loadActionParam(param, nth, numParams))
 	}
 	if len(inputs) > 0 {
-		l.imports.Add("gitlab.com/mnm/bud/runtime/action/request")
+		l.imports.Add("gitlab.com/mnm/bud/runtime/controller/request")
 	}
 	return inputs
 }
@@ -246,7 +246,7 @@ func (l *loader) loadActionParams(params []*parser.Param) (inputs []*ActionParam
 func (l *loader) loadActionParam(param *parser.Param, nth, numParams int) *ActionParam {
 	dec, err := param.Definition()
 	if err != nil {
-		l.Bail(fmt.Errorf("action: unable to find param definition: %w", err))
+		l.Bail(fmt.Errorf("controller: unable to find param definition: %w", err))
 	}
 	ap := new(ActionParam)
 	ap.Name = l.loadActionParamName(param, nth)
@@ -333,7 +333,7 @@ func (l *loader) loadActionResults(method *parser.Function) (outputs []*ActionRe
 func (l *loader) loadActionResult(order int, result *parser.Result) *ActionResult {
 	def, err := result.Definition()
 	if err != nil {
-		l.Bail(fmt.Errorf("action: unable to load result definition for %s", result.Type()))
+		l.Bail(fmt.Errorf("controller: unable to load result definition for %s", result.Type()))
 	}
 	output := new(ActionResult)
 	output.Name = l.loadActionResultName(order, result)
@@ -367,12 +367,12 @@ func (l *loader) loadActionResultFields(result *parser.Result, def parser.Declar
 	// Find the struct in the package
 	stct := def.Package().Struct(def.Name())
 	if stct == nil {
-		l.Bail(fmt.Errorf("action: unable to find struct for %s", result.Type()))
+		l.Bail(fmt.Errorf("controller: unable to find struct for %s", result.Type()))
 	}
 	for _, field := range stct.PublicFields() {
 		def, err := field.Definition()
 		if err != nil {
-			l.Bail(fmt.Errorf("action: unable to load definition for field %s in %s", field.Name(), result.Name()))
+			l.Bail(fmt.Errorf("controller: unable to load definition for field %s in %s", field.Name(), result.Name()))
 		}
 		fields = append(fields, &ActionResultField{
 			Name: field.Name(),
@@ -415,7 +415,7 @@ func (l *loader) variableToString(dataType string, variable string) string {
 		l.imports.AddStd("strconv")
 		return `strconv.Itoa(` + variable + `)`
 	default:
-		l.Bail(fmt.Errorf("action: unable to generate string from %s", dataType))
+		l.Bail(fmt.Errorf("controller: unable to generate string from %s", dataType))
 		return ""
 	}
 }
@@ -470,7 +470,7 @@ func (l *loader) loadContext(controller *Controller, method *parser.Function) *C
 	fnName := gotext.Camel("load " + controller.Name + " " + def.Name())
 	provider, err := l.injector.Wire(&di.Function{
 		Name:   fnName,
-		Target: l.module.Import("bud", "action"),
+		Target: l.module.Import("bud", "controller"),
 		Hoist:  true,
 		Results: []di.Dependency{
 			&di.Type{

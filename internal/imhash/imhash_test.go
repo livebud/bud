@@ -17,8 +17,8 @@ func TestAppHash(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 
 		type Controller struct {
 		}
@@ -43,8 +43,8 @@ func TestAppHash(t *testing.T) {
 	is.Equal(len(hash1), 11)
 
 	// Update
-	project.Files["action/action.go"] = `
-		package action
+	project.Files["controller/controller.go"] = `
+		package controller
 
 		type Controller struct {
 		}

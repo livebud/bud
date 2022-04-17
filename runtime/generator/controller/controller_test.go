@@ -1,4 +1,4 @@
-package action_test
+package controller_test
 
 import (
 	"bytes"
@@ -15,8 +15,8 @@ func TestIndexString(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 
 		type Controller struct {
 		}
@@ -29,7 +29,7 @@ func TestIndexString(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -60,8 +60,8 @@ func TestAboutIndexString(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/about/action.go"] = `
-		package action
+	bud.Files["controller/about/controller.go"] = `
+		package controller
 		type Controller struct {}
 		func (c *Controller) Index() string { return "About" }
 	`
@@ -69,7 +69,7 @@ func TestAboutIndexString(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -98,8 +98,8 @@ func TestCreate302(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		type Controller struct {}
 		func (c *Controller) Create() {
 		}
@@ -108,7 +108,7 @@ func TestCreate302(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -127,8 +127,8 @@ func TestIndex204(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		type Controller struct {}
 		func (c *Controller) Index() {
 		}
@@ -137,7 +137,7 @@ func TestIndex204(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -155,8 +155,8 @@ func TestIndex500(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		import "errors"
 		type Controller struct {}
 		type Post struct {}
@@ -168,7 +168,7 @@ func TestIndex500(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -190,8 +190,8 @@ func TestIndexList500(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		import "errors"
 		type Controller struct {}
 		type Post struct {}
@@ -203,7 +203,7 @@ func TestIndexList500(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -223,8 +223,8 @@ func TestIndexList200(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		type Controller struct {}
 		type Post struct {}
 		func (c *Controller) Index() (int, string, error) {
@@ -235,7 +235,7 @@ func TestIndexList200(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -255,8 +255,8 @@ func TestIndexListObject500(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		import "errors"
 		type Controller struct {}
 		type Post struct {}
@@ -268,7 +268,7 @@ func TestIndexListObject500(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -288,8 +288,8 @@ func TestIndexListObject200(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		type Controller struct {}
 		type Post struct {}
 		func (c *Controller) Index() (a int, b string, err error) {
@@ -300,7 +300,7 @@ func TestIndexListObject200(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -319,8 +319,8 @@ func TestIndexStructs200(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		type Controller struct {}
 		type Post struct {
 			ID int ` + "`" + `json:"id"` + "`" + `
@@ -334,7 +334,7 @@ func TestIndexStructs200(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -355,8 +355,8 @@ func TestJSONCreate204(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		type Controller struct {}
 		func (c *Controller) Create() {}
 	`
@@ -364,7 +364,7 @@ func TestJSONCreate204(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -383,8 +383,8 @@ func TestJSONCreate500(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		import "errors"
 		type Controller struct {}
 		func (c *Controller) Create() (string, error) {
@@ -395,7 +395,7 @@ func TestJSONCreate500(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -421,8 +421,8 @@ func TestDependencyHoist(t *testing.T) {
 		func New() *Pool { return &Pool{1} }
 		type Pool struct { ID int }
 	`
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		import "app.com/postgres"
 		type Controller struct {
 			Pool *postgres.Pool
@@ -435,7 +435,7 @@ func TestDependencyHoist(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -462,8 +462,8 @@ func TestDependencyRequest(t *testing.T) {
 		func New(r *http.Request) *Pool { return &Pool{r.URL.Path} }
 		type Pool struct { Path string }
 	`
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		import "app.com/postgres"
 		type Controller struct {
 			Pool *postgres.Pool
@@ -476,7 +476,7 @@ func TestDependencyRequest(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -503,8 +503,8 @@ func TestShareStruct(t *testing.T) {
 			Title string ` + "`" + `json:"title"` + "`" + `
 		}
 	`
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		import "app.com/article"
 		type Controller struct {
 		}
@@ -516,7 +516,7 @@ func TestShareStruct(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -542,8 +542,8 @@ func TestJSONCreateNested(t *testing.T) {
 		func New(r *http.Request) *Pool { return &Pool{r.URL.Path} }
 		type Pool struct { Path string }
 	`
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		type Controller struct {}
 		type Post struct {
 			ID int ` + "`" + `json:"id"` + "`" + `
@@ -553,7 +553,7 @@ func TestJSONCreateNested(t *testing.T) {
 			return p
 		}
 	`
-	bud.Files["action/users/users.go"] = `
+	bud.Files["controller/users/users.go"] = `
 		package users
 		type Controller struct {}
 		type Post struct {
@@ -564,7 +564,7 @@ func TestJSONCreateNested(t *testing.T) {
 			return p
 		}
 	`
-	bud.Files["action/users/admin/admin.go"] = `
+	bud.Files["controller/users/admin/admin.go"] = `
 		package admin
 		type Controller struct {}
 		type Post struct {
@@ -576,7 +576,7 @@ func TestJSONCreateNested(t *testing.T) {
 			return p
 		}
 	`
-	bud.Files["action/articles/articles.go"] = `
+	bud.Files["controller/articles/articles.go"] = `
 		package articles
 		type Controller struct {}
 		type Post struct {
@@ -591,7 +591,7 @@ func TestJSONCreateNested(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -639,8 +639,8 @@ func TestJSONDelete500(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		import "errors"
 		type Controller struct {}
 		func (c *Controller) Delete() (string, error) {
@@ -651,7 +651,7 @@ func TestJSONDelete500(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -672,8 +672,8 @@ func TestJSONDelete200(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		type Controller struct {}
 		type Post struct {
 			ID int
@@ -687,7 +687,7 @@ func TestJSONDelete200(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -708,7 +708,7 @@ func TestJSONMultipleActions(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
+	bud.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
 		func (c *Controller) Index() string {
@@ -723,7 +723,7 @@ func TestJSONMultipleActions(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -753,8 +753,8 @@ func TestJSONUpdate500(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		import "errors"
 		type Controller struct {}
 		func (c *Controller) Update() (string, error) {
@@ -765,7 +765,7 @@ func TestJSONUpdate500(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -786,8 +786,8 @@ func TestJSONUpdate200(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		type Controller struct {}
 		type Post struct {
 			ID int ` + "`" + `json:"id"` + "`" + `
@@ -801,7 +801,7 @@ func TestJSONUpdate200(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -822,7 +822,7 @@ func TestReturnKeyedStruct(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/users/users.go"] = `
+	bud.Files["controller/users/users.go"] = `
 		package users
 		type DB struct {}
 		type Controller struct {
@@ -857,7 +857,7 @@ func TestReturnKeyedStruct(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -870,7 +870,7 @@ func TestNestedResource(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/users/users.go"] = `
+	bud.Files["controller/users/users.go"] = `
 		package users
 		type DB struct {}
 		type Controller struct {
@@ -903,7 +903,7 @@ func TestNestedResource(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -968,7 +968,7 @@ func TestDeepNestedResource(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/posts/comments/comments.go"] = `
+	bud.Files["controller/posts/comments/comments.go"] = `
 		package comments
 		type DB struct {}
 		type Controller struct {
@@ -1004,7 +1004,7 @@ func TestDeepNestedResource(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -1082,8 +1082,8 @@ func TestRedirectRootResource(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		type Controller struct {
 		}
 		type Post struct {
@@ -1107,7 +1107,7 @@ func TestRedirectRootResource(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -1140,7 +1140,7 @@ func TestRedirectNestedResource(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/posts/posts.go"] = `
+	bud.Files["controller/posts/posts.go"] = `
 		package posts
 		type Controller struct {
 		}
@@ -1165,7 +1165,7 @@ func TestRedirectNestedResource(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -1198,7 +1198,7 @@ func TestRedirectDeepNestedResource(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/posts/comments/comments.go"] = `
+	bud.Files["controller/posts/comments/comments.go"] = `
 		package comments
 		type DB struct {}
 		type Controller struct {
@@ -1234,7 +1234,7 @@ func TestRedirectDeepNestedResource(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -1294,8 +1294,8 @@ func TestViewRootResourceUnkeyed(t *testing.T) {
 		</script>
 		<h1>edit: {user.id} {user.name}</h1>
 	`
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		type Controller struct {}
 		type User struct {
 			ID int ` + "`" + `json:"id"` + "`" + `
@@ -1319,7 +1319,7 @@ func TestViewRootResourceUnkeyed(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -1450,7 +1450,7 @@ func TestViewNestedResourceUnkeyed(t *testing.T) {
 		</script>
 		<h1>edit: {user.id} {user.name}</h1>
 	`
-	bud.Files["action/users/users.go"] = `
+	bud.Files["controller/users/users.go"] = `
 		package users
 		type Controller struct {}
 		type User struct {
@@ -1475,7 +1475,7 @@ func TestViewNestedResourceUnkeyed(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -1606,7 +1606,7 @@ func TestViewDeepResourceUnkeyed(t *testing.T) {
 		</script>
 		<h1>edit: {onlineUser.id} {onlineUser.name} {onlineUser.createdAt}</h1>
 	`
-	bud.Files["action/teams/users/users.go"] = `
+	bud.Files["controller/teams/users/users.go"] = `
 		package users
 		import "time"
 		type Controller struct {}
@@ -1634,7 +1634,7 @@ func TestViewDeepResourceUnkeyed(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -1738,7 +1738,7 @@ func TestResourceContext(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/users/users.go"] = `
+	bud.Files["controller/users/users.go"] = `
 		package users
 		import contexts "context"
 		type User struct {
@@ -1770,7 +1770,7 @@ func TestResourceContext(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -1836,8 +1836,8 @@ func TestWorkingChangeWorking(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 
 		type Controller struct {
 		}
@@ -1850,7 +1850,7 @@ func TestWorkingChangeWorking(t *testing.T) {
 	is.NoErr(err)
 	app, err := project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
@@ -1865,8 +1865,8 @@ func TestWorkingChangeWorking(t *testing.T) {
 	`))
 	is.NoErr(res.ContainsBody(`Hello Users!`))
 	// Update file
-	project.Files["action/action.go"] = `
-		package action
+	project.Files["controller/controller.go"] = `
+		package controller
 
 		type Controller struct {
 		}
@@ -1880,7 +1880,7 @@ func TestWorkingChangeWorking(t *testing.T) {
 	// Rebuild
 	app, err = project.Build(ctx)
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/action/action.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	err = server.Restart(ctx)
 	is.NoErr(err)
@@ -1900,8 +1900,8 @@ func TestEmptyActionWithView(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		type Controller struct {}
 		func (c *Controller) Index() {}
 	`

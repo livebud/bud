@@ -15,7 +15,7 @@ import (
 func New(
 	router *router.Router,
 	{{- if $.Actions }}
-	controller *action.Controller,
+	controller *controller.Controller,
 	{{- end }}
 	{{- if $.HasPublic }}
 	public public.Middleware,

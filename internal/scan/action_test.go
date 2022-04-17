@@ -11,19 +11,19 @@ import (
 	"gitlab.com/mnm/bud/package/vfs"
 )
 
-func TestActionScan(t *testing.T) {
+func TestControllerScan(t *testing.T) {
 	is := is.New(t)
 	fsys := vfs.Memory{
-		"action/action.go":             &vfs.File{Data: []byte(``)},
-		"action/users/users.go":        &vfs.File{Data: []byte(``)},
-		"action/users/admin/admin.go":  &vfs.File{Data: []byte(``)},
-		"action/posts/posts.go":        &vfs.File{Data: []byte(``)},
-		"action/messages/_messages.go": &vfs.File{Data: []byte(``)},
-		"action/about":                 &vfs.File{Mode: fs.ModeDir},
+		"controller/controller.go":         &vfs.File{Data: []byte(``)},
+		"controller/users/users.go":        &vfs.File{Data: []byte(``)},
+		"controller/users/admin/admin.go":  &vfs.File{Data: []byte(``)},
+		"controller/posts/posts.go":        &vfs.File{Data: []byte(``)},
+		"controller/messages/_messages.go": &vfs.File{Data: []byte(``)},
+		"controller/about":                 &vfs.File{Mode: fs.ModeDir},
 	}
-	subfs, err := fs.Sub(fsys, "action")
+	subfs, err := fs.Sub(fsys, "controller")
 	is.NoErr(err)
-	scanner := scan.Actions(subfs)
+	scanner := scan.Controllers(subfs)
 	expect := [...]string{
 		".",
 		"posts",
@@ -39,12 +39,12 @@ func TestActionScan(t *testing.T) {
 	is.Equal(n, 4)
 }
 
-func TestActionScanEmpty(t *testing.T) {
+func TestControllerScanEmpty(t *testing.T) {
 	is := is.New(t)
 	fsys := vfs.Memory{}
-	subfs, err := fs.Sub(fsys, "action")
+	subfs, err := fs.Sub(fsys, "controller")
 	is.NoErr(err)
-	scanner := scan.Actions(subfs)
+	scanner := scan.Controllers(subfs)
 	n := 0
 	for scanner.Scan() {
 		n++
@@ -61,10 +61,10 @@ func (*errFS) Open(name string) (fs.File, error) {
 	return nil, fs.ErrInvalid
 }
 
-func TestActionScanError(t *testing.T) {
+func TestControllerScanError(t *testing.T) {
 	is := is.New(t)
 	fsys := &errFS{}
-	scanner := scan.Actions(fsys)
+	scanner := scan.Controllers(fsys)
 	n := 0
 	for scanner.Scan() {
 		n++

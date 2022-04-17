@@ -38,7 +38,7 @@ func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
 	state = new(State)
 	state.Flag = l.flag
-	exist, err := vfs.SomeExist(l.fsys, "public", "action", "view")
+	exist, err := vfs.SomeExist(l.fsys, "public", "controller", "view")
 	if err != nil {
 		return nil, err
 	} else if len(exist) == 0 {

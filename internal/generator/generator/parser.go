@@ -26,7 +26,7 @@ func (p *parser) Parse(ctx context.Context) (state *State, err error) {
 	p.imports.AddNamed("command", "gitlab.com/mnm/bud/runtime/generator/command")
 	p.imports.AddNamed("web", "gitlab.com/mnm/bud/runtime/generator/web")
 	p.imports.AddNamed("public", "gitlab.com/mnm/bud/runtime/generator/public")
-	p.imports.AddNamed("action", "gitlab.com/mnm/bud/runtime/generator/action")
+	p.imports.AddNamed("controller", "gitlab.com/mnm/bud/runtime/generator/controller")
 	p.imports.AddNamed("view", "gitlab.com/mnm/bud/runtime/generator/view")
 	state = new(State)
 	state.Imports = p.imports.List()

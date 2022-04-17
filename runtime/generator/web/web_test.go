@@ -27,8 +27,8 @@ func TestRootAction(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		type Controller struct {}
 		func (c *Controller) Index() {}
 		func (c *Controller) Show() {}

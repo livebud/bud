@@ -15,8 +15,8 @@ func TestHello(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		type Controller struct {}
 		func (c *Controller) Index() string { return "" }
 	`
@@ -49,8 +49,8 @@ func TestHelloEmbed(t *testing.T) {
 	dir := t.TempDir()
 	bud := budtest.New(dir)
 	bud.Flag.Embed = true
-	bud.Files["action/action.go"] = `
-		package action
+	bud.Files["controller/controller.go"] = `
+		package controller
 		type Controller struct {}
 		func (c *Controller) Index() string { return "" }
 	`

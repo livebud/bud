@@ -1,4 +1,4 @@
-package action
+package controller
 
 import (
 	"strconv"

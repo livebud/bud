@@ -40,7 +40,7 @@ func TestDir(t *testing.T) {
 			"public/tailwind/preflight.css": `/* tailwind */`,
 		},
 	}
-	td.Files["action/action.go"] = `package action`
+	td.Files["controller/controller.go"] = `package controller`
 	td.BFiles["public/favicon.ico"] = []byte{0x00}
 	td.NodeModules["svelte"] = `3.46.4`
 	td.NodeModules["livebud"] = "*"
@@ -48,7 +48,7 @@ func TestDir(t *testing.T) {
 	err := td.Write(dir, testdir.WithBackup(false))
 	is.NoErr(err)
 	err = exists(os.DirFS(dir),
-		"action/action.go",
+		"controller/controller.go",
 		"public/favicon.ico",
 		".mod/gitlab.com/mnm/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
 		".npm/livebud.tgz",
@@ -68,7 +68,7 @@ func TestRefresh(t *testing.T) {
 			"public/tailwind/preflight.css": `/* tailwind */`,
 		},
 	}
-	td.Files["action/action.go"] = `package action`
+	td.Files["controller/controller.go"] = `package controller`
 	td.BFiles["public/favicon.ico"] = []byte{0x00}
 	td.NodeModules["svelte"] = `3.46.4`
 	td.NodeModules["livebud"] = "*"
@@ -76,7 +76,7 @@ func TestRefresh(t *testing.T) {
 	err := td.Write(dir, testdir.WithBackup(false))
 	is.NoErr(err)
 	err = exists(os.DirFS(dir),
-		"action/action.go",
+		"controller/controller.go",
 		"public/favicon.ico",
 		".mod/gitlab.com/mnm/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
 		".npm/livebud.tgz",
@@ -86,12 +86,12 @@ func TestRefresh(t *testing.T) {
 		"go.mod",
 	)
 	td.Modules = map[string]modcache.Files{}
-	delete(td.Files, "action/action.go")
+	delete(td.Files, "controller/controller.go")
 	delete(td.BFiles, "public/favicon.ico")
 	err = td.Write(dir, testdir.WithBackup(false))
 	is.NoErr(err)
 	is.NoErr(notExists(os.DirFS(dir),
-		"action/action.go",
+		"controller/controller.go",
 		"public/favicon.ico",
 		".mod/gitlab.com/mnm/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
 	))
@@ -112,7 +112,7 @@ func TestSkip(t *testing.T) {
 			"public/tailwind/preflight.css": `/* tailwind */`,
 		},
 	}
-	td.Files["action/action.go"] = `package action`
+	td.Files["controller/controller.go"] = `package controller`
 	td.BFiles["public/favicon.ico"] = []byte{0x00}
 	td.NodeModules["svelte"] = `3.46.4`
 	td.NodeModules["livebud"] = "*"
@@ -120,7 +120,7 @@ func TestSkip(t *testing.T) {
 	err := td.Write(dir, testdir.WithBackup(false))
 	is.NoErr(err)
 	err = exists(os.DirFS(dir),
-		"action/action.go",
+		"controller/controller.go",
 		"public/favicon.ico",
 		".mod/gitlab.com/mnm/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
 		".npm/livebud.tgz",
@@ -130,17 +130,17 @@ func TestSkip(t *testing.T) {
 		"go.mod",
 	)
 	td.Modules = map[string]modcache.Files{}
-	delete(td.Files, "action/action.go")
+	delete(td.Files, "controller/controller.go")
 	delete(td.BFiles, "public/favicon.ico")
 	err = td.Write(dir, testdir.WithBackup(false), testdir.WithSkip(func(name string, isDir bool) bool {
-		return (name == "action" && isDir) || (name == ".mod" && isDir)
+		return (name == "controller" && isDir) || (name == ".mod" && isDir)
 	}))
 	is.NoErr(err)
 	is.NoErr(notExists(os.DirFS(dir),
 		"public/favicon.ico",
 	))
 	is.NoErr(exists(os.DirFS(dir),
-		"action/action.go",
+		"controller/controller.go",
 		".mod/gitlab.com/mnm/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
 		".npm/livebud.tgz",
 		"node_modules/livebud/package.json",
