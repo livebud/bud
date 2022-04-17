@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/symlink"
+	"github.com/livebud/bud/internal/symlink"
 )
 
 func TestLink(t *testing.T) {

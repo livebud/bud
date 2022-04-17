@@ -5,10 +5,10 @@ import (
 	"io"
 	"net"
 
-	"gitlab.com/mnm/bud/package/exe"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/socket"
-	"gitlab.com/mnm/bud/runtime/bud"
+	"github.com/livebud/bud/package/exe"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/socket"
+	"github.com/livebud/bud/runtime/bud"
 )
 
 type Project struct {

@@ -11,11 +11,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/mnm/bud/internal/dsync"
-	"gitlab.com/mnm/bud/package/vfs"
+	"github.com/livebud/bud/internal/dsync"
+	"github.com/livebud/bud/package/vfs"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/package/modcache"
+	"github.com/livebud/bud/package/modcache"
 )
 
 // Run calls `go run -mod=mod main.go ...`
@@ -181,18 +181,18 @@ func TestExportImport(t *testing.T) {
 	cacheDir := t.TempDir()
 	modCache := modcache.New(cacheDir)
 	err := modCache.Write(map[string]modcache.Files{
-		"gitlab.com/mnm/bud-tailwind@v0.0.1": modcache.Files{
+		"github.com/livebud/bud-tailwind@v0.0.1": modcache.Files{
 			"public/tailwind/preflight.css": `/* tailwind */`,
 		},
 	})
 	is.NoErr(err)
-	dir, err := modCache.ResolveDirectory("gitlab.com/mnm/bud-tailwind", "v0.0.1")
+	dir, err := modCache.ResolveDirectory("github.com/livebud/bud-tailwind", "v0.0.1")
 	is.NoErr(err)
-	is.Equal(dir, modCache.Directory("gitlab.com/mnm/bud-tailwind@v0.0.1"))
+	is.Equal(dir, modCache.Directory("github.com/livebud/bud-tailwind@v0.0.1"))
 	cacheDir2 := t.TempDir()
 	modCache2 := modcache.New(cacheDir2)
 	// Verify modcache2 doesn't have the module
-	dir, err = modCache2.ResolveDirectory("gitlab.com/mnm/bud-tailwind", "v0.0.1")
+	dir, err = modCache2.ResolveDirectory("github.com/livebud/bud-tailwind", "v0.0.1")
 	is.Equal(dir, "")
 	is.True(errors.Is(err, fs.ErrNotExist))
 	// Export to a new location
@@ -203,7 +203,7 @@ func TestExportImport(t *testing.T) {
 	err = modCache2.Import(tmpDir)
 	is.NoErr(err)
 	// Try again
-	dir, err = modCache2.ResolveDirectory("gitlab.com/mnm/bud-tailwind", "v0.0.1")
+	dir, err = modCache2.ResolveDirectory("github.com/livebud/bud-tailwind", "v0.0.1")
 	is.NoErr(err)
-	is.Equal(dir, modCache2.Directory("gitlab.com/mnm/bud-tailwind@v0.0.1"))
+	is.Equal(dir, modCache2.Directory("github.com/livebud/bud-tailwind@v0.0.1"))
 }

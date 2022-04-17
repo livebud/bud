@@ -7,7 +7,7 @@ import (
 	"testing/fstest"
 	"time"
 
-	"gitlab.com/mnm/bud/internal/snapshot"
+	"github.com/livebud/bud/internal/snapshot"
 
 	"github.com/matryer/is"
 )

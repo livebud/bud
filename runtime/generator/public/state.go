@@ -1,9 +1,9 @@
 package public
 
 import (
-	"gitlab.com/mnm/bud/internal/embed"
-	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/runtime/bud"
+	"github.com/livebud/bud/internal/embed"
+	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/runtime/bud"
 )
 
 type State struct {

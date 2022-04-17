@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/package/router/lex"
+	"github.com/livebud/bud/package/router/lex"
 )
 
 func tokens(t testing.TB, input string) lex.Tokens {

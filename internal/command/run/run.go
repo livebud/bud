@@ -4,10 +4,10 @@ import (
 	"context"
 	"net"
 
-	"gitlab.com/mnm/bud/internal/bud"
-	"gitlab.com/mnm/bud/internal/command"
-	"gitlab.com/mnm/bud/package/log/console"
-	"gitlab.com/mnm/bud/package/socket"
+	"github.com/livebud/bud/internal/bud"
+	"github.com/livebud/bud/internal/command"
+	"github.com/livebud/bud/package/log/console"
+	"github.com/livebud/bud/package/socket"
 )
 
 type Command struct {

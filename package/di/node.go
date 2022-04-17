@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"gitlab.com/mnm/bud/internal/imports"
+	"github.com/livebud/bud/internal/imports"
 )
 
 // node in the dependency injection graph

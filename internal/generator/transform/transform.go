@@ -4,11 +4,11 @@ import (
 	"context"
 	_ "embed"
 
-	"gitlab.com/mnm/bud/package/overlay"
+	"github.com/livebud/bud/package/overlay"
 
-	"gitlab.com/mnm/bud/internal/gotemplate"
-	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/package/gomod"
+	"github.com/livebud/bud/internal/gotemplate"
+	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/gomod"
 )
 
 //go:embed transform.gotext
@@ -40,8 +40,8 @@ type Transform struct {
 
 func (g *Generator) GenerateFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
 	imports := imports.New()
-	imports.AddNamed("transform", "gitlab.com/mnm/bud/runtime/transform")
-	imports.AddNamed("svelte", "gitlab.com/mnm/bud/package/svelte")
+	imports.AddNamed("transform", "github.com/livebud/bud/runtime/transform")
+	imports.AddNamed("svelte", "github.com/livebud/bud/package/svelte")
 	code, err := generator.Generate(State{
 		Imports: imports.List(),
 	})

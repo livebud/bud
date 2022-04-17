@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/cespare/xxhash"
-	"gitlab.com/mnm/bud/internal/gois"
-	"gitlab.com/mnm/bud/package/vfs"
+	"github.com/livebud/bud/internal/gois"
+	"github.com/livebud/bud/package/vfs"
 )
 
 type Module struct {
@@ -35,7 +35,7 @@ func (m *Module) ModCache() string {
 	return m.opt.modCache.Directory()
 }
 
-// Import returns the module's import path (e.g. gitlab.com/mnm/bud)
+// Import returns the module's import path (e.g. github.com/livebud/bud)
 func (m *Module) Import(subpaths ...string) string {
 	return m.file.Import(subpaths...)
 }

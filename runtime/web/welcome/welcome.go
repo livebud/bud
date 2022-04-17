@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"gitlab.com/mnm/bud/package/middleware"
-	"gitlab.com/mnm/bud/package/router"
+	"github.com/livebud/bud/package/middleware"
+	"github.com/livebud/bud/package/router"
 )
 
 //go:generate esbuild --bundle --log-level=error --outfile=index.out.css index.css

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/valid"
+	"github.com/livebud/bud/internal/valid"
 )
 
 func TestDir(t *testing.T) {

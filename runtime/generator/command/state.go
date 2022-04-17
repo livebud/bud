@@ -6,7 +6,7 @@ import (
 
 	"github.com/matthewmueller/gotext"
 	"github.com/matthewmueller/text"
-	"gitlab.com/mnm/bud/internal/imports"
+	"github.com/livebud/bud/internal/imports"
 )
 
 func methodName(dataType string) (string, error) {

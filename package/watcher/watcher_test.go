@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"gitlab.com/mnm/bud/package/watcher"
+	"github.com/livebud/bud/package/watcher"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/package/vfs"
+	"github.com/livebud/bud/package/vfs"
 )
 
 func TestChange(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"go/ast"
 
-	"gitlab.com/mnm/bud/internal/gois"
+	"github.com/livebud/bud/internal/gois"
 )
 
 // Definition looks a local definition up by name

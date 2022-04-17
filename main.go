@@ -5,18 +5,18 @@ import (
 	"os"
 	"strings"
 
-	"gitlab.com/mnm/bud/internal/command"
-	"gitlab.com/mnm/bud/internal/command/build"
-	"gitlab.com/mnm/bud/internal/command/create"
-	"gitlab.com/mnm/bud/internal/command/run"
-	"gitlab.com/mnm/bud/internal/command/tool/cache"
-	"gitlab.com/mnm/bud/internal/command/tool/di"
-	v8 "gitlab.com/mnm/bud/internal/command/tool/v8"
-	v8client "gitlab.com/mnm/bud/internal/command/tool/v8/client"
+	"github.com/livebud/bud/internal/command"
+	"github.com/livebud/bud/internal/command/build"
+	"github.com/livebud/bud/internal/command/create"
+	"github.com/livebud/bud/internal/command/run"
+	"github.com/livebud/bud/internal/command/tool/cache"
+	"github.com/livebud/bud/internal/command/tool/di"
+	v8 "github.com/livebud/bud/internal/command/tool/v8"
+	v8client "github.com/livebud/bud/internal/command/tool/v8/client"
 
-	"gitlab.com/mnm/bud/package/commander"
+	"github.com/livebud/bud/package/commander"
 
-	"gitlab.com/mnm/bud/package/log/console"
+	"github.com/livebud/bud/package/log/console"
 )
 
 func main() {

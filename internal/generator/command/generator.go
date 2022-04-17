@@ -3,7 +3,7 @@ package command
 import (
 	_ "embed"
 
-	"gitlab.com/mnm/bud/internal/gotemplate"
+	"github.com/livebud/bud/internal/gotemplate"
 )
 
 //go:embed command.gotext

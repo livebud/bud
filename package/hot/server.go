@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"time"
 
-	"gitlab.com/mnm/bud/runtime/web"
+	"github.com/livebud/bud/runtime/web"
 
-	"gitlab.com/mnm/bud/internal/pubsub"
+	"github.com/livebud/bud/internal/pubsub"
 )
 
 func New() *Server {

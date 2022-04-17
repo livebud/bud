@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	v8 "gitlab.com/mnm/bud/package/js/v8"
+	v8 "github.com/livebud/bud/package/js/v8"
 )
 
 func TestCompile(t *testing.T) {

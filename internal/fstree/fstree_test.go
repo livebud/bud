@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/fstree"
+	"github.com/livebud/bud/internal/fstree"
 )
 
 func TestTree(t *testing.T) {

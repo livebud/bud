@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/budtest"
+	"github.com/livebud/bud/internal/budtest"
 )
 
 // TODO: generate welcome server when there are no routes

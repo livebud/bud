@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/package/vfs"
+	"github.com/livebud/bud/package/vfs"
 )
 
 func TestMap(t *testing.T) {

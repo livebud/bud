@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/mattn/go-isatty"
-	"gitlab.com/mnm/bud/internal/command"
-	v8 "gitlab.com/mnm/bud/package/js/v8"
+	"github.com/livebud/bud/internal/command"
+	v8 "github.com/livebud/bud/package/js/v8"
 )
 
 type Command struct {

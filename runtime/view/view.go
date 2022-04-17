@@ -7,13 +7,13 @@ import (
 	"net/http"
 	"strings"
 
-	"gitlab.com/mnm/bud/package/overlay"
+	"github.com/livebud/bud/package/overlay"
 
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/js"
-	"gitlab.com/mnm/bud/runtime/transform"
-	"gitlab.com/mnm/bud/runtime/view/dom"
-	"gitlab.com/mnm/bud/runtime/view/ssr"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/js"
+	"github.com/livebud/bud/runtime/transform"
+	"github.com/livebud/bud/runtime/view/dom"
+	"github.com/livebud/bud/runtime/view/ssr"
 )
 
 type Response struct {

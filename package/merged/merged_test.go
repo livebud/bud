@@ -7,7 +7,7 @@ import (
 
 	"github.com/matryer/is"
 
-	"gitlab.com/mnm/bud/package/merged"
+	"github.com/livebud/bud/package/merged"
 )
 
 func TestMerge(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/mnm/bud/internal/uds"
+	"github.com/livebud/bud/internal/uds"
 
 	"github.com/matryer/is"
 )

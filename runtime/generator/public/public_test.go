@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/budtest"
-	"gitlab.com/mnm/bud/package/modcache"
+	"github.com/livebud/bud/internal/budtest"
+	"github.com/livebud/bud/package/modcache"
 )
 
 // TODO: bud/.app/main.go should always be generated, but public will not exist
@@ -94,7 +94,7 @@ func TestPlugin(t *testing.T) {
 	bud := budtest.New(dir)
 	preflight := `/* tailwind */`
 	bud.Modules = map[string]modcache.Files{
-		"gitlab.com/mnm/bud-tailwind@v0.0.1": modcache.Files{
+		"github.com/livebud/bud-tailwind@v0.0.1": modcache.Files{
 			"public/tailwind/preflight.css": preflight,
 		},
 	}

@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/mnm/bud/internal/fscache"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/modcache"
-	"gitlab.com/mnm/bud/package/vfs"
+	"github.com/livebud/bud/internal/fscache"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/modcache"
+	"github.com/livebud/bud/package/vfs"
 
 	"github.com/matryer/is"
 )
@@ -93,7 +93,7 @@ func TestResolveDirectoryNestedSame(t *testing.T) {
 	modCache := modcache.Default()
 	module, err := gomod.Find(wd, gomod.WithModCache(modCache))
 	is.NoErr(err)
-	dir, err := module.ResolveDirectory("gitlab.com/mnm/bud/package/modcache")
+	dir, err := module.ResolveDirectory("github.com/livebud/bud/package/modcache")
 	is.NoErr(err)
 	expected := module.Directory("package/modcache")
 	is.Equal(dir, expected)

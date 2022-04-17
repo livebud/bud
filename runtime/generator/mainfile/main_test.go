@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/budtest"
+	"github.com/livebud/bud/internal/budtest"
 )
 
 // TODO: We should always generate a main, even if empty dir

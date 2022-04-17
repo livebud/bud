@@ -3,7 +3,7 @@ package scan
 import (
 	"io/fs"
 
-	"gitlab.com/mnm/bud/internal/valid"
+	"github.com/livebud/bud/internal/valid"
 )
 
 func Controllers(fsys fs.FS) Scanner {

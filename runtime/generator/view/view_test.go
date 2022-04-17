@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/budtest"
+	"github.com/livebud/bud/internal/budtest"
 )
 
 func TestHello(t *testing.T) {

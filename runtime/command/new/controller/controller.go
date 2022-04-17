@@ -8,15 +8,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitlab.com/mnm/bud/package/vfs"
+	"github.com/livebud/bud/package/vfs"
 
 	"github.com/matthewmueller/gotext"
 
 	"github.com/matthewmueller/text"
-	"gitlab.com/mnm/bud/internal/bail"
-	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/scaffold"
+	"github.com/livebud/bud/internal/bail"
+	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/scaffold"
 )
 
 func New(module *gomod.Module) *Command {

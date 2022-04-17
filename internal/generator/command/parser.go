@@ -12,11 +12,11 @@ import (
 	"github.com/matthewmueller/gotext"
 
 	"github.com/matthewmueller/text"
-	"gitlab.com/mnm/bud/internal/bail"
-	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/internal/valid"
-	"gitlab.com/mnm/bud/package/gomod"
-	goparse "gitlab.com/mnm/bud/package/parser"
+	"github.com/livebud/bud/internal/bail"
+	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/internal/valid"
+	"github.com/livebud/bud/package/gomod"
+	goparse "github.com/livebud/bud/package/parser"
 )
 
 type parser struct {
@@ -31,13 +31,13 @@ func (p *parser) Parse(ctx context.Context) (state *State, err error) {
 	defer p.Recover2(&err, "command: unable to parse")
 	// Default imports
 	p.imports.AddStd("context")
-	p.imports.AddNamed("commander", "gitlab.com/mnm/bud/package/commander")
-	// p.imports.AddNamed("command", "gitlab.com/mnm/bud/runtime/command")
-	p.imports.AddNamed("gomod", "gitlab.com/mnm/bud/package/gomod")
-	p.imports.AddNamed("bud", "gitlab.com/mnm/bud/runtime/bud")
-	p.imports.AddNamed("run", "gitlab.com/mnm/bud/runtime/command/run")
-	p.imports.AddNamed("new_controller", "gitlab.com/mnm/bud/runtime/command/new/controller")
-	p.imports.AddNamed("build", "gitlab.com/mnm/bud/runtime/command/build")
+	p.imports.AddNamed("commander", "github.com/livebud/bud/package/commander")
+	// p.imports.AddNamed("command", "github.com/livebud/bud/runtime/command")
+	p.imports.AddNamed("gomod", "github.com/livebud/bud/package/gomod")
+	p.imports.AddNamed("bud", "github.com/livebud/bud/runtime/bud")
+	p.imports.AddNamed("run", "github.com/livebud/bud/runtime/command/run")
+	p.imports.AddNamed("new_controller", "github.com/livebud/bud/runtime/command/new/controller")
+	p.imports.AddNamed("build", "github.com/livebud/bud/runtime/command/build")
 	p.imports.AddNamed("generator", p.module.Import("bud/.cli/generator"))
 	state = new(State)
 	state.Imports = p.imports.List()

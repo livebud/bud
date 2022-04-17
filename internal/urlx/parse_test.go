@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	urlx "gitlab.com/mnm/bud/internal/urlx"
+	urlx "github.com/livebud/bud/internal/urlx"
 )
 
 func Test(t *testing.T) {

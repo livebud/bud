@@ -12,7 +12,7 @@ import (
 
 	"github.com/matryer/is"
 	"github.com/matthewmueller/diff"
-	"gitlab.com/mnm/bud/package/commander"
+	"github.com/livebud/bud/package/commander"
 )
 
 func isEqual(t testing.TB, actual, expected string) {

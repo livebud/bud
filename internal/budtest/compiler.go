@@ -19,13 +19,13 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/lithammer/dedent"
 	"github.com/matthewmueller/diff"
-	"gitlab.com/mnm/bud/internal/bud"
-	"gitlab.com/mnm/bud/internal/testdir"
-	"gitlab.com/mnm/bud/package/exe"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/modcache"
-	"gitlab.com/mnm/bud/package/socket"
-	runtime_bud "gitlab.com/mnm/bud/runtime/bud"
+	"github.com/livebud/bud/internal/bud"
+	"github.com/livebud/bud/internal/testdir"
+	"github.com/livebud/bud/package/exe"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/modcache"
+	"github.com/livebud/bud/package/socket"
+	runtime_bud "github.com/livebud/bud/runtime/bud"
 )
 
 func New(dir string) *Compiler {

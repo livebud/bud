@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/scan"
+	"github.com/livebud/bud/internal/scan"
 
-	"gitlab.com/mnm/bud/package/vfs"
+	"github.com/livebud/bud/package/vfs"
 )
 
 func TestControllerScan(t *testing.T) {

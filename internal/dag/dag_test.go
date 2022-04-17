@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"gitlab.com/mnm/bud/internal/dag"
+	"github.com/livebud/bud/internal/dag"
 	"github.com/matryer/is"
 )
 

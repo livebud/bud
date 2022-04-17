@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/xlab/treeprint"
-	"gitlab.com/mnm/bud/package/router"
+	"github.com/livebud/bud/package/router"
 
-	"gitlab.com/mnm/bud/package/socket"
+	"github.com/livebud/bud/package/socket"
 )
 
 // TODO: align with OpenTelemetry's data structure

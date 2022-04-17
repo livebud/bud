@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/tracer"
+	"github.com/livebud/bud/internal/tracer"
 )
 
 func TestSingleClient(t *testing.T) {

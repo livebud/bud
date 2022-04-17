@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"path"
 
-	"gitlab.com/mnm/bud/runtime/controller/request"
+	"github.com/livebud/bud/runtime/controller/request"
 )
 
 // Format returns different responses depending on the Accepts request header

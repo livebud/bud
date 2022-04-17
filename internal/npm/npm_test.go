@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/npm"
-	"gitlab.com/mnm/bud/package/vfs"
+	"github.com/livebud/bud/internal/npm"
+	"github.com/livebud/bud/package/vfs"
 )
 
 func exists(t testing.TB, path string) {

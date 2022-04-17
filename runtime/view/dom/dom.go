@@ -10,13 +10,13 @@ import (
 	"regexp"
 	"strings"
 
-	"gitlab.com/mnm/bud/package/overlay"
+	"github.com/livebud/bud/package/overlay"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
-	"gitlab.com/mnm/bud/internal/entrypoint"
-	"gitlab.com/mnm/bud/internal/gotemplate"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/runtime/transform"
+	"github.com/livebud/bud/internal/entrypoint"
+	"github.com/livebud/bud/internal/gotemplate"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/runtime/transform"
 )
 
 //go:embed dom.gotext

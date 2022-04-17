@@ -8,18 +8,18 @@ import (
 
 	"io/fs"
 
-	"gitlab.com/mnm/bud/package/overlay"
+	"github.com/livebud/bud/package/overlay"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/modcache"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/modcache"
 )
 
 const modFile = `
 module app.com
 
-require gitlab.com/mnm/bud-tailwind v0.0.1
-require gitlab.com/mnm/bud-lambda v1.0.0
+require github.com/livebud/bud-tailwind v0.0.1
+require github.com/livebud/bud-lambda v1.0.0
 `
 
 func TestPlugins(t *testing.T) {
@@ -27,10 +27,10 @@ func TestPlugins(t *testing.T) {
 	cacheDir := t.TempDir()
 	modCache := modcache.New(cacheDir)
 	err := modCache.Write(map[string]modcache.Files{
-		"gitlab.com/mnm/bud-tailwind@v0.0.1": modcache.Files{
+		"github.com/livebud/bud-tailwind@v0.0.1": modcache.Files{
 			"public/tailwind/preflight.css": `/* tailwind */`,
 		},
-		"gitlab.com/mnm/bud-lambda@v1.0.0": modcache.Files{
+		"github.com/livebud/bud-lambda@v1.0.0": modcache.Files{
 			"command/lambda/lambda.go": `package lambda`,
 		},
 	})

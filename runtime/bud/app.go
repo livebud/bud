@@ -5,9 +5,9 @@ import (
 	"io"
 	"net"
 
-	"gitlab.com/mnm/bud/package/exe"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/socket"
+	"github.com/livebud/bud/package/exe"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/socket"
 )
 
 type App struct {

@@ -9,15 +9,15 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/testdir"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/js"
-	v8 "gitlab.com/mnm/bud/package/js/v8"
-	"gitlab.com/mnm/bud/package/overlay"
-	"gitlab.com/mnm/bud/package/svelte"
-	"gitlab.com/mnm/bud/runtime/transform"
-	"gitlab.com/mnm/bud/runtime/view"
-	"gitlab.com/mnm/bud/runtime/view/ssr"
+	"github.com/livebud/bud/internal/testdir"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/js"
+	v8 "github.com/livebud/bud/package/js/v8"
+	"github.com/livebud/bud/package/overlay"
+	"github.com/livebud/bud/package/svelte"
+	"github.com/livebud/bud/runtime/transform"
+	"github.com/livebud/bud/runtime/view"
+	"github.com/livebud/bud/runtime/view/ssr"
 )
 
 func TestSvelteHello(t *testing.T) {

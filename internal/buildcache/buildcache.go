@@ -8,10 +8,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/mnm/bud/internal/gobin"
-	"gitlab.com/mnm/bud/internal/imhash"
-	"gitlab.com/mnm/bud/internal/symlink"
-	"gitlab.com/mnm/bud/package/gomod"
+	"github.com/livebud/bud/internal/gobin"
+	"github.com/livebud/bud/internal/imhash"
+	"github.com/livebud/bud/internal/symlink"
+	"github.com/livebud/bud/package/gomod"
 )
 
 func Default() *Cache {

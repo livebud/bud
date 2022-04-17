@@ -3,7 +3,7 @@ package build
 import (
 	"context"
 
-	"gitlab.com/mnm/bud/runtime/bud"
+	"github.com/livebud/bud/runtime/bud"
 )
 
 type Command struct {

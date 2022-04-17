@@ -6,10 +6,10 @@ import (
 	"path"
 	"strings"
 
-	"gitlab.com/mnm/bud/internal/gotemplate"
-	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/overlay"
+	"github.com/livebud/bud/internal/gotemplate"
+	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/overlay"
 )
 
 //go:embed import.gotext

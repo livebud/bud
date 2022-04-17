@@ -8,9 +8,9 @@ import (
 
 	"github.com/lithammer/dedent"
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/modcache"
-	"gitlab.com/mnm/bud/package/vfs"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/modcache"
+	"github.com/livebud/bud/package/vfs"
 )
 
 type Module struct {
@@ -68,7 +68,7 @@ func replaceBud(t testing.TB, code string) string {
 	is.NoErr(err)
 	module, err := gomod.Parse("go.mod", []byte(code))
 	is.NoErr(err)
-	err = module.File().Replace("gitlab.com/mnm/bud", budModule.Directory())
+	err = module.File().Replace("github.com/livebud/bud", budModule.Directory())
 	is.NoErr(err)
 	return string(module.File().Format())
 }

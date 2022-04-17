@@ -5,8 +5,8 @@ import (
 	"path"
 	"path/filepath"
 
-	"gitlab.com/mnm/bud/internal/gotemplate"
-	"gitlab.com/mnm/bud/package/vfs"
+	"github.com/livebud/bud/internal/gotemplate"
+	"github.com/livebud/bud/package/vfs"
 	"golang.org/x/sync/errgroup"
 )
 

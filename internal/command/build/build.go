@@ -3,8 +3,8 @@ package build
 import (
 	"context"
 
-	"gitlab.com/mnm/bud/internal/bud"
-	"gitlab.com/mnm/bud/internal/command"
+	"github.com/livebud/bud/internal/bud"
+	"github.com/livebud/bud/internal/command"
 )
 
 type Command struct {

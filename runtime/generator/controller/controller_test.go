@@ -5,7 +5,7 @@ import (
 	"context"
 	"testing"
 
-	"gitlab.com/mnm/bud/internal/budtest"
+	"github.com/livebud/bud/internal/budtest"
 
 	"github.com/matryer/is"
 )

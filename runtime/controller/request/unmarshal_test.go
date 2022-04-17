@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	. "gitlab.com/mnm/bud/runtime/controller/request"
+	. "github.com/livebud/bud/runtime/controller/request"
 )
 
 func TestJSONEmpty(t *testing.T) {

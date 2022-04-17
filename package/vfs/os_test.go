@@ -8,7 +8,7 @@ import (
 	"testing/fstest"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/package/vfs"
+	"github.com/livebud/bud/package/vfs"
 )
 
 func TestOS(t *testing.T) {

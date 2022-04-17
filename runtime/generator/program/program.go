@@ -5,14 +5,14 @@ import (
 	_ "embed"
 	"fmt"
 
-	"gitlab.com/mnm/bud/package/di"
-	"gitlab.com/mnm/bud/package/overlay"
-	"gitlab.com/mnm/bud/package/vfs"
-	"gitlab.com/mnm/bud/runtime/bud"
+	"github.com/livebud/bud/package/di"
+	"github.com/livebud/bud/package/overlay"
+	"github.com/livebud/bud/package/vfs"
+	"github.com/livebud/bud/runtime/bud"
 
-	"gitlab.com/mnm/bud/internal/gotemplate"
-	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/package/gomod"
+	"github.com/livebud/bud/internal/gotemplate"
+	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/gomod"
 )
 
 //go:embed program.gotext
@@ -38,14 +38,14 @@ func (p *Program) GenerateFile(ctx context.Context, fsys overlay.F, file *overla
 	// Add the imports
 	imports := imports.New()
 	imports.AddStd("errors", "context")
-	imports.AddNamed("console", "gitlab.com/mnm/bud/package/log/console")
+	imports.AddNamed("console", "github.com/livebud/bud/package/log/console")
 	imports.Add(p.Module.Import("bud/.app/command"))
-	jsVM := di.ToType("gitlab.com/mnm/bud/package/js", "VM")
+	jsVM := di.ToType("github.com/livebud/bud/package/js", "VM")
 	loadApp := &di.Function{
 		Name:   "loadApp",
 		Target: p.Module.Import("bud", "program"),
 		Params: []di.Dependency{
-			di.ToType("gitlab.com/mnm/bud/package/gomod", "*Module"),
+			di.ToType("github.com/livebud/bud/package/gomod", "*Module"),
 			di.ToType("context", "Context"),
 		},
 		Results: []di.Dependency{
@@ -53,13 +53,13 @@ func (p *Program) GenerateFile(ctx context.Context, fsys overlay.F, file *overla
 			&di.Error{},
 		},
 		Aliases: di.Aliases{
-			di.ToType("io/fs", "FS"): di.ToType("gitlab.com/mnm/bud/package/overlay", "*FileSystem"),
-			jsVM:                     di.ToType("gitlab.com/mnm/bud/package/js/v8client", "*Client"),
-			di.ToType("gitlab.com/mnm/bud/runtime/view", "Renderer"): di.ToType("gitlab.com/mnm/bud/runtime/view", "*Server"),
+			di.ToType("io/fs", "FS"): di.ToType("github.com/livebud/bud/package/overlay", "*FileSystem"),
+			jsVM:                     di.ToType("github.com/livebud/bud/package/js/v8client", "*Client"),
+			di.ToType("github.com/livebud/bud/runtime/view", "Renderer"): di.ToType("github.com/livebud/bud/runtime/view", "*Server"),
 		},
 	}
 	if p.Flag.Embed {
-		loadApp.Aliases[jsVM] = di.ToType("gitlab.com/mnm/bud/package/js/v8", "*VM")
+		loadApp.Aliases[jsVM] = di.ToType("github.com/livebud/bud/package/js/v8", "*VM")
 	}
 	provider, err := p.Injector.Wire(loadApp)
 	if err != nil {

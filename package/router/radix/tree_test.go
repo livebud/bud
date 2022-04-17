@@ -10,7 +10,7 @@ import (
 
 	"github.com/gitchander/permutation"
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/package/router/radix"
+	"github.com/livebud/bud/package/router/radix"
 )
 
 type test struct {

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/mnm/bud/internal/budtest"
+	"github.com/livebud/bud/internal/budtest"
 
 	"github.com/lithammer/dedent"
 	"github.com/matryer/is"
@@ -101,7 +101,7 @@ func TestNested(t *testing.T) {
 			"context"
 			"fmt"
 
-			router "gitlab.com/mnm/bud/package/router"
+			router "github.com/livebud/bud/package/router"
 		)
 
 		type Command struct {
@@ -122,7 +122,7 @@ func TestNested(t *testing.T) {
 			"context"
 			"fmt"
 
-			router "gitlab.com/mnm/bud/package/router"
+			router "github.com/livebud/bud/package/router"
 		)
 
 		type Command struct {

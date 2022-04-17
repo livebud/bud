@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"gitlab.com/mnm/bud/internal/urlx"
+	"github.com/livebud/bud/internal/urlx"
 )
 
 type file interface {

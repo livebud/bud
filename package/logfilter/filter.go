@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"gitlab.com/mnm/bud/package/log"
+	"github.com/livebud/bud/package/log"
 )
 
 //go:generate peg -switch -inline filter.peg

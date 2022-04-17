@@ -1,6 +1,6 @@
 package di
 
-import "gitlab.com/mnm/bud/package/parser"
+import "github.com/livebud/bud/package/parser"
 
 // Error type
 type Error struct {

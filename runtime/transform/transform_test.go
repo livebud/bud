@@ -9,8 +9,8 @@ import (
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/testdir"
-	"gitlab.com/mnm/bud/runtime/transform"
+	"github.com/livebud/bud/internal/testdir"
+	"github.com/livebud/bud/runtime/transform"
 )
 
 func TestTransform(t *testing.T) {

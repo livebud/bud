@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	"gitlab.com/mnm/bud/package/socket"
+	"github.com/livebud/bud/package/socket"
 )
 
 func NewClient(addr string) (*Client, error) {

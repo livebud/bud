@@ -6,16 +6,16 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/mnm/bud/package/overlay"
+	"github.com/livebud/bud/package/overlay"
 
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/runtime/transform"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/runtime/transform"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/testdir"
-	v8 "gitlab.com/mnm/bud/package/js/v8"
-	"gitlab.com/mnm/bud/package/svelte"
-	"gitlab.com/mnm/bud/runtime/view/dom"
+	"github.com/livebud/bud/internal/testdir"
+	v8 "github.com/livebud/bud/package/js/v8"
+	"github.com/livebud/bud/package/svelte"
+	"github.com/livebud/bud/runtime/view/dom"
 )
 
 func TestServeFile(t *testing.T) {

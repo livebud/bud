@@ -6,9 +6,9 @@ import (
 
 	"io/fs"
 
-	"gitlab.com/mnm/bud/internal/fscache"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/merged"
+	"github.com/livebud/bud/internal/fscache"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/merged"
 	"golang.org/x/sync/errgroup"
 )
 

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode"
 
-	"gitlab.com/mnm/bud/package/router/radix"
+	"github.com/livebud/bud/package/router/radix"
 )
 
 // New router

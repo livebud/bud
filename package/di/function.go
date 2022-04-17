@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"gitlab.com/mnm/bud/internal/gois"
-	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/package/parser"
+	"github.com/livebud/bud/internal/gois"
+	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/parser"
 )
 
 // Function is the top-level load function that we generate to provide all the

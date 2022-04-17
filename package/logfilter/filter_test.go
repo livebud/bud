@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/package/log"
-	"gitlab.com/mnm/bud/package/logfilter"
+	"github.com/livebud/bud/package/log"
+	"github.com/livebud/bud/package/logfilter"
 )
 
 func Test(t *testing.T) {

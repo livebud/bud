@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"gitlab.com/mnm/bud/internal/valid"
+	"github.com/livebud/bud/internal/valid"
 
 	"github.com/matthewmueller/text"
 )

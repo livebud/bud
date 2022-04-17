@@ -12,10 +12,10 @@ import (
 	"sync"
 
 	"github.com/cespare/xxhash"
-	"gitlab.com/mnm/bud/package/parser"
+	"github.com/livebud/bud/package/parser"
 	"golang.org/x/sync/errgroup"
 
-	"gitlab.com/mnm/bud/package/gomod"
+	"github.com/livebud/bud/package/gomod"
 )
 
 func find(module *gomod.Module, mainDir string) (*fileSet, error) {
@@ -144,7 +144,7 @@ func shouldWalk(module *gomod.Module, importPath string) bool {
 	return module.IsLocal(importPath) ||
 		// TODO: consider removing in release mode and are able to turn enable this
 		// for development
-		strings.HasPrefix(importPath, "gitlab.com/mnm/bud")
+		strings.HasPrefix(importPath, "github.com/livebud/bud")
 }
 
 func findDeps(fset *fileSet, module *gomod.Module, parser *parser.Parser, dir string) (err error) {

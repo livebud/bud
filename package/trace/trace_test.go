@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"gitlab.com/mnm/bud/package/trace"
+	"github.com/livebud/bud/package/trace"
 
 	"github.com/matryer/is"
 )

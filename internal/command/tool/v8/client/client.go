@@ -3,8 +3,8 @@ package client
 import (
 	"context"
 
-	"gitlab.com/mnm/bud/internal/command"
-	"gitlab.com/mnm/bud/package/js/v8server"
+	"github.com/livebud/bud/internal/command"
+	"github.com/livebud/bud/package/js/v8server"
 )
 
 type Command struct {

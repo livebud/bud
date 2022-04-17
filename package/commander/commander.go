@@ -11,7 +11,7 @@ import (
 	"os"
 	"text/template"
 
-	"gitlab.com/mnm/bud/internal/sig"
+	"github.com/livebud/bud/internal/sig"
 )
 
 //go:embed usage.gotext

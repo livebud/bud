@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/mnm/bud/internal/gitignore"
+	"github.com/livebud/bud/internal/gitignore"
 
 	"github.com/fsnotify/fsnotify"
 )

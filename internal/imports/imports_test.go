@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/imports"
+	"github.com/livebud/bud/internal/imports"
 )
 
 func TestAdd(t *testing.T) {

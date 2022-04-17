@@ -8,11 +8,11 @@ import (
 
 	"github.com/matthewmueller/text"
 
-	"gitlab.com/mnm/bud/internal/bail"
-	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/internal/valid"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/parser"
+	"github.com/livebud/bud/internal/bail"
+	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/internal/valid"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/parser"
 )
 
 // Load state
@@ -40,7 +40,7 @@ func (l *loader) Load() (state *State, err error) {
 	state = new(State)
 	// Add initial imports
 	l.imports.AddStd("context")
-	l.imports.AddNamed("commander", "gitlab.com/mnm/bud/package/commander")
+	l.imports.AddNamed("commander", "github.com/livebud/bud/package/commander")
 	// Load the commands
 	state.Command = l.loadRoot("command")
 	if !state.Command.Runnable && len(state.Command.Subs) == 0 {
@@ -60,7 +60,7 @@ func (l *loader) loadRoot(base string) *Command {
 		l.imports.AddStd("os")
 		// l.imports.AddStd("fmt")
 		l.imports.AddNamed("web", l.module.Import("bud", ".app", "web"))
-		l.imports.AddNamed("socket", "gitlab.com/mnm/bud/package/socket")
+		l.imports.AddNamed("socket", "github.com/livebud/bud/package/socket")
 		command.Runnable = true
 	}
 	des, err := fs.ReadDir(l.fsys, base)

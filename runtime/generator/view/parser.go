@@ -6,15 +6,15 @@ import (
 	"path"
 	"strings"
 
-	"gitlab.com/mnm/bud/runtime/view/dom"
-	"gitlab.com/mnm/bud/runtime/view/ssr"
+	"github.com/livebud/bud/runtime/view/dom"
+	"github.com/livebud/bud/runtime/view/ssr"
 
-	"gitlab.com/mnm/bud/internal/embed"
-	"gitlab.com/mnm/bud/internal/entrypoint"
-	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/runtime/bud"
-	"gitlab.com/mnm/bud/runtime/transform"
+	"github.com/livebud/bud/internal/embed"
+	"github.com/livebud/bud/internal/entrypoint"
+	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/runtime/bud"
+	"github.com/livebud/bud/runtime/transform"
 )
 
 type parser struct {
@@ -69,10 +69,10 @@ func (p *parser) Parse(fsys fs.FS, ctx context.Context) (*State, error) {
 	}
 	// fmt.Println(p.Flag.Embed, p.Transform.SSR, views)
 	p.Imports.AddNamed("transform", p.Module.Import("bud/.cli/transform"))
-	p.Imports.AddNamed("overlay", "gitlab.com/mnm/bud/package/overlay")
-	p.Imports.AddNamed("mod", "gitlab.com/mnm/bud/package/gomod")
-	p.Imports.AddNamed("js", "gitlab.com/mnm/bud/package/js")
-	p.Imports.AddNamed("view", "gitlab.com/mnm/bud/runtime/view")
+	p.Imports.AddNamed("overlay", "github.com/livebud/bud/package/overlay")
+	p.Imports.AddNamed("mod", "github.com/livebud/bud/package/gomod")
+	p.Imports.AddNamed("js", "github.com/livebud/bud/package/js")
+	p.Imports.AddNamed("view", "github.com/livebud/bud/runtime/view")
 	state.Imports = p.Imports.List()
 	return state, nil
 }

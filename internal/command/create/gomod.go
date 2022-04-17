@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/Bowery/prompt"
-	"gitlab.com/mnm/bud/internal/gotemplate"
-	"gitlab.com/mnm/bud/package/gomod"
+	"github.com/livebud/bud/internal/gotemplate"
+	"github.com/livebud/bud/package/gomod"
 )
 
 //go:embed gomod.gotext
@@ -54,7 +54,7 @@ func (c *Command) generateGoMod(ctx context.Context, dir string) error {
 	// Add the required dependencies
 	state.Requires = []*Require{
 		{
-			Import:  "gitlab.com/mnm/bud",
+			Import:  "github.com/livebud/bud",
 			Version: "v0.0.0",
 		},
 	}
@@ -65,7 +65,7 @@ func (c *Command) generateGoMod(ctx context.Context, dir string) error {
 		}
 		state.Replaces = []*Replace{
 			{
-				From: "gitlab.com/mnm/bud",
+				From: "github.com/livebud/bud",
 				To:   budModule.Directory(),
 			},
 		}

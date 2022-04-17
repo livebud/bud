@@ -1,9 +1,23 @@
+# Don't commit mac files
+.DS_Store
+
+# Don't commit node_modules
 node_modules/
+
+# Sometimes tests write to _tmp/ don't commit these files
 _tmp/
-js-livebud/dist/
+
+# Don't commit the build file
 main
-_build/
+
+# Don't commit generated files
 example/*/bud
-example/hello
-bud/
+
+# The scratch example is always built from scratch
+example/scratch
+
+# Generated welcome files
 runtime/web/welcome/*.out.*
+
+# Avoid accidental builds getting committed
+/bud

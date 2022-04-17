@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"gitlab.com/mnm/bud/internal/tracer"
+	"github.com/livebud/bud/internal/tracer"
 )
 
 type Trace = tracer.Trace

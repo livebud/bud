@@ -10,16 +10,16 @@ import (
 	"strconv"
 	"strings"
 
-	"gitlab.com/mnm/bud/internal/valid"
+	"github.com/livebud/bud/internal/valid"
 
 	"github.com/matthewmueller/gotext"
 	"github.com/matthewmueller/text"
-	"gitlab.com/mnm/bud/internal/bail"
-	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/package/di"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/parser"
-	"gitlab.com/mnm/bud/package/vfs"
+	"github.com/livebud/bud/internal/bail"
+	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/di"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/parser"
+	"github.com/livebud/bud/package/vfs"
 )
 
 func Load(fsys fs.FS, injector *di.Injector, module *gomod.Module, parser *parser.Parser) (*State, error) {
@@ -144,7 +144,7 @@ func (l *loader) loadActions(controller *Controller, stct *parser.Struct) (actio
 			l.Bail(err)
 		}
 		l.imports.Add(importPath)
-		l.imports.Add("gitlab.com/mnm/bud/runtime/controller/response")
+		l.imports.Add("github.com/livebud/bud/runtime/controller/response")
 		l.imports.Add("net/http")
 	}
 	return actions
@@ -238,7 +238,7 @@ func (l *loader) loadActionParams(params []*parser.Param) (inputs []*ActionParam
 		inputs = append(inputs, l.loadActionParam(param, nth, numParams))
 	}
 	if len(inputs) > 0 {
-		l.imports.Add("gitlab.com/mnm/bud/runtime/controller/request")
+		l.imports.Add("github.com/livebud/bud/runtime/controller/request")
 	}
 	return inputs
 }
@@ -484,7 +484,7 @@ func (l *loader) loadContext(controller *Controller, method *parser.Function) *C
 			di.ToType("context", "Context"),
 		},
 		Aliases: di.Aliases{
-			di.ToType("gitlab.com/mnm/bud/runtime/view", "Renderer"): di.ToType("gitlab.com/mnm/bud/runtime/view", "*Server"),
+			di.ToType("github.com/livebud/bud/runtime/view", "Renderer"): di.ToType("github.com/livebud/bud/runtime/view", "*Server"),
 		},
 	})
 	if err != nil {

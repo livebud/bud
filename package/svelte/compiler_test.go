@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	v8 "gitlab.com/mnm/bud/package/js/v8"
-	"gitlab.com/mnm/bud/package/svelte"
+	v8 "github.com/livebud/bud/package/js/v8"
+	"github.com/livebud/bud/package/svelte"
 )
 
 func TestSSR(t *testing.T) {

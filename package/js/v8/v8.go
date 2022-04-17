@@ -1,7 +1,7 @@
 package v8
 
 import (
-	"gitlab.com/mnm/bud/package/js"
+	"github.com/livebud/bud/package/js"
 	"go.kuoruan.net/v8go-polyfills/console"
 	"go.kuoruan.net/v8go-polyfills/fetch"
 	"go.kuoruan.net/v8go-polyfills/url"

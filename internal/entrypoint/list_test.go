@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/entrypoint"
-	"gitlab.com/mnm/bud/package/vfs"
+	"github.com/livebud/bud/internal/entrypoint"
+	"github.com/livebud/bud/package/vfs"
 )
 
 func TestList(t *testing.T) {

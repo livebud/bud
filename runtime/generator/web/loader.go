@@ -5,14 +5,14 @@ import (
 	"path"
 	"strings"
 
-	"gitlab.com/mnm/bud/internal/scan"
+	"github.com/livebud/bud/internal/scan"
 
 	"github.com/matthewmueller/text"
-	"gitlab.com/mnm/bud/internal/bail"
-	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/parser"
-	"gitlab.com/mnm/bud/package/vfs"
+	"github.com/livebud/bud/internal/bail"
+	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/parser"
+	"github.com/livebud/bud/package/vfs"
 )
 
 func Load(fsys fs.FS, module *gomod.Module, parser *parser.Parser) (*State, error) {
@@ -48,12 +48,12 @@ func (l *loader) Load() (state *State, err error) {
 	}
 	// Add initial imports
 	l.imports.AddStd("net", "net/http", "context")
-	l.imports.AddNamed("middleware", "gitlab.com/mnm/bud/package/middleware")
-	l.imports.AddNamed("web", "gitlab.com/mnm/bud/runtime/web")
-	l.imports.AddNamed("router", "gitlab.com/mnm/bud/package/router")
+	l.imports.AddNamed("middleware", "github.com/livebud/bud/package/middleware")
+	l.imports.AddNamed("web", "github.com/livebud/bud/runtime/web")
+	l.imports.AddNamed("router", "github.com/livebud/bud/package/router")
 	// Show the welcome page if we don't have controllers, views or public files
 	if len(exist) == 0 {
-		l.imports.AddNamed("welcome", "gitlab.com/mnm/bud/runtime/web/welcome")
+		l.imports.AddNamed("welcome", "github.com/livebud/bud/runtime/web/welcome")
 		state.ShowWelcome = true
 		state.Imports = l.imports.List()
 		return state, nil

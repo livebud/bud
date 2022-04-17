@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/mnm/bud/internal/buildcache"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/overlay"
+	"github.com/livebud/bud/internal/buildcache"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/overlay"
 )
 
 func New(fsys *overlay.FileSystem, module *gomod.Module) *Project {

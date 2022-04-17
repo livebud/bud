@@ -5,8 +5,8 @@ import (
 	"testing/fstest"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/dirhash"
-	"gitlab.com/mnm/bud/internal/gitignore"
+	"github.com/livebud/bud/internal/dirhash"
+	"github.com/livebud/bud/internal/gitignore"
 )
 
 func TestHash(t *testing.T) {

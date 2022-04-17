@@ -3,9 +3,9 @@ package di
 import (
 	"io/fs"
 
-	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/parser"
+	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/parser"
 )
 
 func New(fsys fs.FS, module *gomod.Module, parser *parser.Parser) *Injector {

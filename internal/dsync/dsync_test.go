@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/dsync"
-	"gitlab.com/mnm/bud/package/conjure"
-	"gitlab.com/mnm/bud/package/vfs"
+	"github.com/livebud/bud/internal/dsync"
+	"github.com/livebud/bud/package/conjure"
+	"github.com/livebud/bud/package/vfs"
 )
 
 func TestFileSync(t *testing.T) {

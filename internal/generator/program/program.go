@@ -6,12 +6,12 @@ import (
 	"errors"
 	"fmt"
 
-	"gitlab.com/mnm/bud/internal/gotemplate"
-	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/package/di"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/overlay"
-	"gitlab.com/mnm/bud/runtime/bud"
+	"github.com/livebud/bud/internal/gotemplate"
+	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/di"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/overlay"
+	"github.com/livebud/bud/runtime/bud"
 )
 
 //go:embed program.gotext
@@ -47,23 +47,23 @@ func (p *Program) Parse(ctx context.Context) (*State, error) {
 	// Default  imports
 	imports := imports.New()
 	imports.AddStd("errors", "context")
-	imports.AddNamed("console", "gitlab.com/mnm/bud/package/log/console")
+	imports.AddNamed("console", "github.com/livebud/bud/package/log/console")
 	imports.AddNamed("command", p.module.Import("bud/.cli/command"))
 	// Write up the dependencies
-	jsVM := di.ToType("gitlab.com/mnm/bud/package/js", "VM")
+	jsVM := di.ToType("github.com/livebud/bud/package/js", "VM")
 	loadCLI := &di.Function{
 		Name:    "loadCLI",
 		Imports: imports,
 		Target:  p.module.Import("bud/.cli/program"),
 		Params: []di.Dependency{
-			di.ToType("gitlab.com/mnm/bud/package/gomod", "*Module"),
+			di.ToType("github.com/livebud/bud/package/gomod", "*Module"),
 			di.ToType("context", "Context"),
-			di.ToType("gitlab.com/mnm/bud/runtime/bud", "*Flag"),
+			di.ToType("github.com/livebud/bud/runtime/bud", "*Flag"),
 		},
 		Aliases: di.Aliases{
-			jsVM:                     di.ToType("gitlab.com/mnm/bud/package/js/v8client", "*Client"),
-			di.ToType("io/fs", "FS"): di.ToType("gitlab.com/mnm/bud/package/overlay", "*FileSystem"),
-			di.ToType("gitlab.com/mnm/bud/runtime/transform", "*Map"): di.ToType(p.module.Import("bud/.cli/transform"), "*Map"),
+			jsVM:                     di.ToType("github.com/livebud/bud/package/js/v8client", "*Client"),
+			di.ToType("io/fs", "FS"): di.ToType("github.com/livebud/bud/package/overlay", "*FileSystem"),
+			di.ToType("github.com/livebud/bud/runtime/transform", "*Map"): di.ToType(p.module.Import("bud/.cli/transform"), "*Map"),
 		},
 		Results: []di.Dependency{
 			di.ToType(p.module.Import("bud/.cli/command"), "*CLI"),
@@ -71,7 +71,7 @@ func (p *Program) Parse(ctx context.Context) (*State, error) {
 		},
 	}
 	if p.flag.Embed {
-		loadCLI.Aliases[jsVM] = di.ToType("gitlab.com/mnm/bud/package/js/v8", "*VM")
+		loadCLI.Aliases[jsVM] = di.ToType("github.com/livebud/bud/package/js/v8", "*VM")
 	}
 	provider, err := p.injector.Wire(loadCLI)
 	if err != nil {

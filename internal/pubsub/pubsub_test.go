@@ -3,7 +3,7 @@ package pubsub_test
 import (
 	"testing"
 
-	"gitlab.com/mnm/bud/internal/pubsub"
+	"github.com/livebud/bud/internal/pubsub"
 	"github.com/matryer/is"
 	"golang.org/x/sync/errgroup"
 )

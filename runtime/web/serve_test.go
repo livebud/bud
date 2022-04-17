@@ -9,8 +9,8 @@ import (
 	"github.com/matryer/is"
 	"golang.org/x/sync/errgroup"
 
-	"gitlab.com/mnm/bud/package/socket"
-	"gitlab.com/mnm/bud/runtime/web"
+	"github.com/livebud/bud/package/socket"
+	"github.com/livebud/bud/runtime/web"
 )
 
 func TestServe(t *testing.T) {

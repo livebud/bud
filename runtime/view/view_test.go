@@ -8,8 +8,8 @@ import (
 
 	"github.com/matryer/is"
 	"github.com/matthewmueller/gotext"
-	"gitlab.com/mnm/bud/package/vfs"
-	"gitlab.com/mnm/bud/runtime/view"
+	"github.com/livebud/bud/package/vfs"
+	"github.com/livebud/bud/runtime/view"
 )
 
 // func TestSvelteView(t *testing.T) {

@@ -6,14 +6,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/mnm/bud/package/watcher"
+	"github.com/livebud/bud/package/watcher"
 
-	"gitlab.com/mnm/bud/package/hot"
+	"github.com/livebud/bud/package/hot"
 
 	"golang.org/x/sync/errgroup"
 
-	"gitlab.com/mnm/bud/package/socket"
-	"gitlab.com/mnm/bud/runtime/bud"
+	"github.com/livebud/bud/package/socket"
+	"github.com/livebud/bud/runtime/bud"
 )
 
 type Command struct {

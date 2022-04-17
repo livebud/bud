@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"gitlab.com/mnm/bud/internal/imports"
+	"github.com/livebud/bud/internal/imports"
 )
 
 // Provider is the result of generating. Provider can generate functions or

@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/testdir"
-	"gitlab.com/mnm/bud/package/modcache"
+	"github.com/livebud/bud/internal/testdir"
+	"github.com/livebud/bud/package/modcache"
 )
 
 func exists(fsys fs.FS, paths ...string) error {
@@ -36,7 +36,7 @@ func TestDir(t *testing.T) {
 	is := is.New(t)
 	td := testdir.New()
 	td.Modules = map[string]modcache.Files{
-		"gitlab.com/mnm/bud-tailwind@v0.0.1": modcache.Files{
+		"github.com/livebud/bud-tailwind@v0.0.1": modcache.Files{
 			"public/tailwind/preflight.css": `/* tailwind */`,
 		},
 	}
@@ -50,7 +50,7 @@ func TestDir(t *testing.T) {
 	err = exists(os.DirFS(dir),
 		"controller/controller.go",
 		"public/favicon.ico",
-		".mod/gitlab.com/mnm/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
+		".mod/github.com/livebud/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
 		".npm/livebud.tgz",
 		"node_modules/svelte/package.json",
 		"node_modules/livebud/package.json",
@@ -64,7 +64,7 @@ func TestRefresh(t *testing.T) {
 	is := is.New(t)
 	td := testdir.New()
 	td.Modules = map[string]modcache.Files{
-		"gitlab.com/mnm/bud-tailwind@v0.0.1": modcache.Files{
+		"github.com/livebud/bud-tailwind@v0.0.1": modcache.Files{
 			"public/tailwind/preflight.css": `/* tailwind */`,
 		},
 	}
@@ -78,7 +78,7 @@ func TestRefresh(t *testing.T) {
 	err = exists(os.DirFS(dir),
 		"controller/controller.go",
 		"public/favicon.ico",
-		".mod/gitlab.com/mnm/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
+		".mod/github.com/livebud/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
 		".npm/livebud.tgz",
 		"node_modules/svelte/package.json",
 		"node_modules/livebud/package.json",
@@ -93,7 +93,7 @@ func TestRefresh(t *testing.T) {
 	is.NoErr(notExists(os.DirFS(dir),
 		"controller/controller.go",
 		"public/favicon.ico",
-		".mod/gitlab.com/mnm/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
+		".mod/github.com/livebud/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
 	))
 	is.NoErr(exists(os.DirFS(dir),
 		".npm/livebud.tgz",
@@ -108,7 +108,7 @@ func TestSkip(t *testing.T) {
 	is := is.New(t)
 	td := testdir.New()
 	td.Modules = map[string]modcache.Files{
-		"gitlab.com/mnm/bud-tailwind@v0.0.1": modcache.Files{
+		"github.com/livebud/bud-tailwind@v0.0.1": modcache.Files{
 			"public/tailwind/preflight.css": `/* tailwind */`,
 		},
 	}
@@ -122,7 +122,7 @@ func TestSkip(t *testing.T) {
 	err = exists(os.DirFS(dir),
 		"controller/controller.go",
 		"public/favicon.ico",
-		".mod/gitlab.com/mnm/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
+		".mod/github.com/livebud/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
 		".npm/livebud.tgz",
 		"node_modules/svelte/package.json",
 		"node_modules/livebud/package.json",
@@ -141,7 +141,7 @@ func TestSkip(t *testing.T) {
 	))
 	is.NoErr(exists(os.DirFS(dir),
 		"controller/controller.go",
-		".mod/gitlab.com/mnm/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
+		".mod/github.com/livebud/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
 		".npm/livebud.tgz",
 		"node_modules/livebud/package.json",
 		"node_modules/svelte/package.json",

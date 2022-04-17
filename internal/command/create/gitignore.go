@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"gitlab.com/mnm/bud/internal/gotemplate"
+	"github.com/livebud/bud/internal/gotemplate"
 )
 
 //go:embed gitignore.gotext

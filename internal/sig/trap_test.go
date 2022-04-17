@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/sig"
+	"github.com/livebud/bud/internal/sig"
 )
 
 // Based on: https://github.com/golang/go/issues/19326

@@ -6,13 +6,13 @@ import (
 	"io/fs"
 	"path"
 
-	"gitlab.com/mnm/bud/package/vfs"
+	"github.com/livebud/bud/package/vfs"
 
-	"gitlab.com/mnm/bud/internal/bail"
-	"gitlab.com/mnm/bud/internal/embed"
-	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/runtime/bud"
+	"github.com/livebud/bud/internal/bail"
+	"github.com/livebud/bud/internal/embed"
+	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/runtime/bud"
 )
 
 func Load(flag *bud.Flag, fsys fs.FS, module *gomod.Module) (*State, error) {
@@ -46,8 +46,8 @@ func (l *loader) Load() (state *State, err error) {
 	}
 	// Default imports
 	l.imports.AddStd("errors", "io", "io/fs", "net/http", "path", "time")
-	l.imports.AddNamed("middleware", "gitlab.com/mnm/bud/package/middleware")
-	l.imports.AddNamed("overlay", "gitlab.com/mnm/bud/package/overlay")
+	l.imports.AddNamed("middleware", "github.com/livebud/bud/package/middleware")
+	l.imports.AddNamed("overlay", "github.com/livebud/bud/package/overlay")
 	// Load embeds
 	if exist["public"] && l.flag.Embed {
 		state.Embeds = l.loadEmbedsFrom("public", ".")

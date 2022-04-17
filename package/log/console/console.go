@@ -6,8 +6,8 @@ import (
 	"os"
 	"sync"
 
-	"gitlab.com/mnm/bud/internal/ansi"
-	"gitlab.com/mnm/bud/package/log"
+	"github.com/livebud/bud/internal/ansi"
+	"github.com/livebud/bud/package/log"
 )
 
 func color(level log.Level) string {

@@ -4,10 +4,10 @@ import (
 	"context"
 	"io/fs"
 
-	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/overlay"
-	goparse "gitlab.com/mnm/bud/package/parser"
+	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/overlay"
+	goparse "github.com/livebud/bud/package/parser"
 )
 
 func New(fs fs.FS, module *gomod.Module, parser *goparse.Parser) *Command {

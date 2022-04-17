@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"gitlab.com/mnm/bud/package/router/lex"
+	"github.com/livebud/bud/package/router/lex"
 )
 
 // New radix tree

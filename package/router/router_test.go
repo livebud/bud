@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/package/router"
+	"github.com/livebud/bud/package/router"
 )
 
 type test struct {

@@ -1,7 +1,7 @@
 package svelte
 
 import (
-	"gitlab.com/mnm/bud/runtime/transform"
+	"github.com/livebud/bud/runtime/transform"
 )
 
 func NewTransformable(compiler *Compiler) *Transformable {

@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"gitlab.com/mnm/bud/package/gomod"
+	"github.com/livebud/bud/package/gomod"
 
-	"gitlab.com/mnm/bud/internal/imhash"
+	"github.com/livebud/bud/internal/imhash"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/budtest"
+	"github.com/livebud/bud/internal/budtest"
 )
 
 func TestAppHash(t *testing.T) {

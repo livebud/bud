@@ -5,16 +5,16 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitlab.com/mnm/bud/package/conjure"
-	"gitlab.com/mnm/bud/package/merged"
+	"github.com/livebud/bud/package/conjure"
+	"github.com/livebud/bud/package/merged"
 
-	"gitlab.com/mnm/bud/package/modcache"
-	"gitlab.com/mnm/bud/package/parser"
+	"github.com/livebud/bud/package/modcache"
+	"github.com/livebud/bud/package/parser"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/txtar"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/vfs"
+	"github.com/livebud/bud/internal/txtar"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/vfs"
 )
 
 func TestStructLookup(t *testing.T) {

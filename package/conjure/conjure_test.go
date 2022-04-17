@@ -16,8 +16,8 @@ import (
 	"io/fs"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/package/conjure"
-	"gitlab.com/mnm/bud/package/merged"
+	"github.com/livebud/bud/package/conjure"
+	"github.com/livebud/bud/package/merged"
 )
 
 func View() func(dir *conjure.Dir) error {

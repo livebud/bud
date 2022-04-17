@@ -13,7 +13,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"gitlab.com/mnm/bud/internal/command"
+	"github.com/livebud/bud/internal/command"
 )
 
 type Command struct {

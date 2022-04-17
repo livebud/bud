@@ -6,12 +6,12 @@ import (
 	"os"
 	"strings"
 
-	"gitlab.com/mnm/bud/internal/command"
-	"gitlab.com/mnm/bud/internal/imports"
-	"gitlab.com/mnm/bud/package/di"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/overlay"
-	"gitlab.com/mnm/bud/package/parser"
+	"github.com/livebud/bud/internal/command"
+	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/di"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/overlay"
+	"github.com/livebud/bud/package/parser"
 )
 
 type Command struct {

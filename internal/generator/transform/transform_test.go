@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/budtest"
-	"gitlab.com/mnm/bud/package/modcache"
+	"github.com/livebud/bud/internal/budtest"
+	"github.com/livebud/bud/package/modcache"
 )
 
 func TestEmpty(t *testing.T) {
@@ -41,10 +41,10 @@ func TestMarkdownPlugin(t *testing.T) {
 	dir := t.TempDir()
 	bud := budtest.New(dir)
 	bud.Modules = map[string]modcache.Files{
-		"gitlab.com/mnm/bud-markdown@v0.0.1": modcache.Files{
+		"github.com/livebud/bud-markdown@v0.0.1": modcache.Files{
 			"transform/markdown/transform.go": `
 				package markdown
-				import "gitlab.com/mnm/bud/runtime/transform"
+				import "github.com/livebud/bud/runtime/transform"
 				type Transform struct {}
 				func (t *Transform) MdToSvelte(file *transform.File) error {
 					file.Code = "<h1>hello</h1>"

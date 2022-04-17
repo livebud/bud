@@ -8,7 +8,7 @@ import (
 	"go/token"
 	"path/filepath"
 
-	"gitlab.com/mnm/bud/internal/gois"
+	"github.com/livebud/bud/internal/gois"
 )
 
 // Get the expression

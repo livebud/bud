@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/modcache"
-	"gitlab.com/mnm/bud/package/pluginfs"
-	"gitlab.com/mnm/bud/package/vfs"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/modcache"
+	"github.com/livebud/bud/package/pluginfs"
+	"github.com/livebud/bud/package/vfs"
 )
 
 func TestMergeModules(t *testing.T) {
@@ -17,7 +17,7 @@ func TestMergeModules(t *testing.T) {
 	modCache := modcache.New(cacheDir)
 	preflight := `/* tailwind */`
 	err := modCache.Write(map[string]modcache.Files{
-		"gitlab.com/mnm/bud-tailwind@v0.0.1": modcache.Files{
+		"github.com/livebud/bud-tailwind@v0.0.1": modcache.Files{
 			"public/tailwind/preflight.css": preflight,
 		},
 	})
@@ -25,7 +25,7 @@ func TestMergeModules(t *testing.T) {
 	appDir := t.TempDir()
 	err = vfs.Write(appDir, vfs.Map{
 		"public/normalize.css": []byte(`/* normalize */`),
-		"go.mod":               []byte("module app.com\nrequire gitlab.com/mnm/bud-tailwind v0.0.1"),
+		"go.mod":               []byte("module app.com\nrequire github.com/livebud/bud-tailwind v0.0.1"),
 	})
 	is.NoErr(err)
 	module, err := gomod.Find(appDir, gomod.WithModCache(modCache))

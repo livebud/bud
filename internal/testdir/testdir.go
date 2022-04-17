@@ -16,17 +16,17 @@ import (
 	"testing/fstest"
 	"time"
 
-	"gitlab.com/mnm/bud/internal/fstree"
+	"github.com/livebud/bud/internal/fstree"
 
 	"golang.org/x/sync/errgroup"
 
-	"gitlab.com/mnm/bud/internal/dsync"
-	"gitlab.com/mnm/bud/internal/snapshot"
+	"github.com/livebud/bud/internal/dsync"
+	"github.com/livebud/bud/internal/snapshot"
 
-	"gitlab.com/mnm/bud/internal/npm"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/modcache"
-	"gitlab.com/mnm/bud/package/vfs"
+	"github.com/livebud/bud/internal/npm"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/modcache"
+	"github.com/livebud/bud/package/vfs"
 	"golang.org/x/mod/modfile"
 )
 
@@ -34,7 +34,7 @@ const goMod = `
 	module app.com
 
 	require (
-		gitlab.com/mnm/bud v0.0.0
+		github.com/livebud/bud v0.0.0
 	)
 `
 
@@ -113,7 +113,7 @@ func (d *Dir) mapfs() (fstest.MapFS, error) {
 	if err != nil {
 		return nil, err
 	}
-	modFile.AddReplace("gitlab.com/mnm/bud", "", budDir, "")
+	modFile.AddReplace("github.com/livebud/bud", "", budDir, "")
 	// Merge the go modules in
 	if len(d.Modules) > 0 {
 		fsys, err := modcache.WriteFS(d.Modules)

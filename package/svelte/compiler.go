@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"gitlab.com/mnm/bud/internal/ldflag"
+	"github.com/livebud/bud/internal/ldflag"
 
 	_ "embed"
 
-	"gitlab.com/mnm/bud/package/js"
+	"github.com/livebud/bud/package/js"
 )
 
 type Input struct {

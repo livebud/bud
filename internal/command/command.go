@@ -3,9 +3,9 @@ package command
 import (
 	"context"
 
-	"gitlab.com/mnm/bud/internal/bud"
-	"gitlab.com/mnm/bud/package/trace"
-	runtime_bud "gitlab.com/mnm/bud/runtime/bud"
+	"github.com/livebud/bud/internal/bud"
+	"github.com/livebud/bud/package/trace"
+	runtime_bud "github.com/livebud/bud/runtime/bud"
 )
 
 // Bud command

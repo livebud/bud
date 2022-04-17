@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/matryer/is"
-	"gitlab.com/mnm/bud/internal/generator/mainfile"
-	"gitlab.com/mnm/bud/internal/imports"
+	"github.com/livebud/bud/internal/generator/mainfile"
+	"github.com/livebud/bud/internal/imports"
 )
 
 func parse(code []byte) (*ast.File, error) {

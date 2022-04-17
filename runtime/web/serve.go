@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"gitlab.com/mnm/bud/internal/sig"
+	"github.com/livebud/bud/internal/sig"
 )
 
 func Serve(ctx context.Context, ln net.Listener, handler http.Handler) error {

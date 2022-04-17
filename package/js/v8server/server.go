@@ -8,9 +8,9 @@ import (
 	"io"
 	"os"
 
-	"gitlab.com/mnm/bud/package/js"
-	v8 "gitlab.com/mnm/bud/package/js/v8"
-	"gitlab.com/mnm/bud/package/js/v8client"
+	"github.com/livebud/bud/package/js"
+	v8 "github.com/livebud/bud/package/js/v8"
+	"github.com/livebud/bud/package/js/v8client"
 )
 
 func Serve(ctx context.Context) error {

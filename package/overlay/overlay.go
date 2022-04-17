@@ -3,18 +3,18 @@ package overlay
 import (
 	"context"
 
-	"gitlab.com/mnm/bud/internal/dsync"
-	"gitlab.com/mnm/bud/internal/fscache"
-	"gitlab.com/mnm/bud/internal/pubsub"
+	"github.com/livebud/bud/internal/dsync"
+	"github.com/livebud/bud/internal/fscache"
+	"github.com/livebud/bud/internal/pubsub"
 
 	"io/fs"
 
-	"gitlab.com/mnm/bud/internal/dag"
-	"gitlab.com/mnm/bud/package/merged"
+	"github.com/livebud/bud/internal/dag"
+	"github.com/livebud/bud/package/merged"
 
-	"gitlab.com/mnm/bud/package/conjure"
-	"gitlab.com/mnm/bud/package/gomod"
-	"gitlab.com/mnm/bud/package/pluginfs"
+	"github.com/livebud/bud/package/conjure"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/pluginfs"
 )
 
 // Load the overlay filesystem
