@@ -21,3 +21,6 @@ runtime/web/welcome/*.out.*
 
 # Avoid accidental builds getting committed
 /bud
+
+# Release is where we build binaries for release
+/release

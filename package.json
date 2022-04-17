@@ -1,6 +1,5 @@
 {
   "name": "bud",
-  "version": "0.0.1",
   "private": true,
   "devDependencies": {
     "js-confetti": "0.10.2",
