@@ -2,9 +2,9 @@
   <img src="https://news.ycombinator.com/y18.gif" alt="Hacker News" />
   <a href="/"><h1>Hacker News</h1></a>
   <div class="links">
-    <a href="/news">New</a>
-    <a href="/ask">Ask</a>
-    <a href="/show">Show</a>
+    <a href="/newest">Newest</a>
+    <a href="/askhn">Ask HN</a>
+    <a href="/showhn">Show HN</a>
   </div>
 </div>
 
