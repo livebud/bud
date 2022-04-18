@@ -47,8 +47,8 @@ example.hn.watch:
 GO_SOURCE := ./internal/... ./package/... ./runtime/...
 GO_FLAGS := -trimpath -ldflags="-s -w"
 
-go.mod.download:
-	@ go mod download
+go.mod.tidy:
+	@ go mod tidy
 
 # Run go generate
 go.generate:
@@ -94,8 +94,8 @@ test.all: go.generate go.fmt go.vet go.test
 ci.npm:
 	@ npm ci
 
-ci.macos: go.mod.download ci.npm test.all
-ci.ubuntu: go.mod.download ci.npm test.all
+ci.macos: go.mod.tidy ci.npm test.all
+ci.ubuntu: go.mod.tidy ci.npm test.all
 
 ##
 # Build

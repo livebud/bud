@@ -7,7 +7,7 @@ import (
 	"github.com/livebud/bud/package/log"
 )
 
-//go:generate peg -switch -inline filter.peg
+//go:generate go run github.com/pointlander/peg -switch -inline filter.peg
 
 var ErrParsing = errors.New("urlx: unable to parse")
 
