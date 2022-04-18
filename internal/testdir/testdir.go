@@ -266,6 +266,7 @@ func (d *Dir) Write(dir string, options ...Option) error {
 	if _, ok := fsys["go.mod"]; ok {
 		// Use "all" to extract cached directories into GOMODCACHE, so there's not
 		// a "go: downloading ..." step during go build.
+		// TODO: speed this call up, it takes around 60s right now
 		cmd := exec.CommandContext(ctx, "go", "mod", "download", "-modcacherw", "all")
 		cmd.Dir = dir
 		cmd.Stderr = os.Stderr
@@ -279,7 +280,10 @@ func (d *Dir) Write(dir string, options ...Option) error {
 			// TODO: remove once we can write a sum file to the modcache
 			"GOPRIVATE=*",
 		}
-		eg.Go(cmd.Run)
+		eg.Go(func() error {
+			err := cmd.Run()
+			return err
+		})
 	}
 
 	if _, ok := fsys["package.json"]; ok {
@@ -291,7 +295,10 @@ func (d *Dir) Write(dir string, options ...Option) error {
 			"PATH=" + os.Getenv("PATH"),
 			"NO_COLOR=1",
 		}
-		eg.Go(cmd.Run)
+		eg.Go(func() error {
+			err := cmd.Run()
+			return err
+		})
 	}
 
 	// Copy livebud.tgz into node_modules and install any dependencies
@@ -304,7 +311,10 @@ func (d *Dir) Write(dir string, options ...Option) error {
 			"PATH=" + os.Getenv("PATH"),
 			"NO_COLOR=1",
 		}
-		eg.Go(cmd.Run)
+		eg.Go(func() error {
+			err := cmd.Run()
+			return err
+		})
 	}
 
 	// Wait for both commands to finish

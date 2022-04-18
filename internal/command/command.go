@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/livebud/bud/internal/bud"
-	"github.com/livebud/bud/package/trace"
 	runtime_bud "github.com/livebud/bud/runtime/bud"
 )
 
@@ -17,9 +16,6 @@ type Bud struct {
 
 // Run a custom command
 func (c *Bud) Run(ctx context.Context) (err error) {
-	// Start the trace
-	ctx, span := trace.Start(ctx, "running bud")
-	defer span.End(&err)
 	// Load the compiler
 	compiler, err := bud.Find(c.Dir)
 	if err != nil {
