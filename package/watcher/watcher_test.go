@@ -67,8 +67,8 @@ func TestDelete(t *testing.T) {
 	select {
 	case path := <-event:
 		is.Equal(path, filepath.Join(dir, "a.txt"))
-	case <-time.After(time.Second):
-		t.Fatal("timed out while waiting for watcher")
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out while waiting for watcher after 5s")
 	}
 	cancel()
 	is.NoErr(eg.Wait())

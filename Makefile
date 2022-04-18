@@ -86,12 +86,25 @@ go.build.windows:
 	@ xgo --targets=windows/amd64 --dest=release --out=bud-v$(BUD_VERSION) --trimpath --ldflags="-s -w" ./ 1> /dev/null
 
 ##
+# BudJS
+##
+
+budjs.ci:
+	@ (cd livebud && npm ci)
+
+budjs.check:
+	@ (cd livebud && ./node_modules/.bin/tsc)
+
+budjs.test:
+	@ (cd livebud && ./node_modules/.bin/mocha -r ts-eager/register **/*_test.ts)
+
+##
 # Test
 ##
 
 test: test.dev
-test.dev: go.tools go.generate go.fmt go.vet go.test
-test.all: go.tools go.generate go.fmt go.vet go.test
+test.dev: go.tools go.generate go.fmt go.vet budjs.check go.test budjs.test
+test.all: go.tools go.generate go.fmt go.vet budjs.check go.test budjs.test
 
 ##
 # CI
@@ -121,7 +134,6 @@ build:
 #
 # TODO: remove Makefile & docs/release.md from the excluded files
 ##
-
 publish:
 	@ npm --version > /dev/null || (echo "The 'npm' command must be in your path to publish" && false)
 	@ echo "Checking for uncommitted/untracked changes..." && test -z "`git status --porcelain | grep -vE 'M (CHANGELOG\.md|version\.txt|Makefile|docs/release.md)'`" || \
@@ -134,3 +146,5 @@ publish:
 
 	# Build the releases
 	@$(MAKE) --no-print-directory build
+
+
