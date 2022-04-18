@@ -10,7 +10,7 @@ import (
 	"net/url"
 )
 
-//go:generate go run github.com/pointlander/peg -switch -inline parse.peg
+//go:generate peg -switch -inline parse.peg
 
 var ErrParsing = errors.New("urlx: unable to parse")
 

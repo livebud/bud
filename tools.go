@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build tools
 
 // Tools we depend on. This file is here to prevent `go mod tidy` from cleaning
 // up these dependencies

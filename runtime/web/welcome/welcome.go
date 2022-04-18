@@ -10,8 +10,8 @@ import (
 	"github.com/livebud/bud/package/router"
 )
 
-//go:generate go run github.com/evanw/esbuild/cmd/esbuild --bundle --log-level=error --outfile=index.out.css index.css
-//go:generate go run github.com/evanw/esbuild/cmd/esbuild --bundle --log-level=error --outfile=index.out.js index.js
+//go:generate esbuild --bundle --log-level=error --outfile=index.out.css index.css
+//go:generate esbuild --bundle --log-level=error --outfile=index.out.js index.js
 
 // Compute the modTime once when loaded
 // TODO: can we do better here?

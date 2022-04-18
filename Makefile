@@ -47,6 +47,12 @@ example.hn.watch:
 GO_SOURCE := ./internal/... ./package/... ./runtime/...
 GO_FLAGS := -trimpath -ldflags="-s -w"
 
+go.tools:
+	@ go install \
+		github.com/evanw/esbuild/cmd/esbuild \
+		github.com/pointlander/peg \
+		src.techknowlogick.com/xgo
+
 go.mod.tidy:
 	@ go mod tidy
 
