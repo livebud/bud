@@ -62,7 +62,7 @@ go.generate:
 
 # TODO: add -race back in
 go.test:
-	@ go test $(GO_SOURCE)
+	@ go test --failfast $(GO_SOURCE)
 
 go.vet:
 	@ go vet $(GO_SOURCE)
