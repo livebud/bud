@@ -90,8 +90,8 @@ go.build.windows:
 ##
 
 test: test.dev
-test.dev: go.generate go.fmt go.vet go.test
-test.all: go.generate go.fmt go.vet go.test
+test.dev: go.tools go.generate go.fmt go.vet go.test
+test.all: go.tools go.generate go.fmt go.vet go.test
 
 ##
 # CI
