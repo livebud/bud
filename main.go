@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"os"
 	"strings"
 
@@ -21,7 +22,7 @@ import (
 
 func main() {
 	if err := do(); err != nil {
-		if !isExitStatus(err) {
+		if !errors.Is(err, context.Canceled) && !isExitStatus(err) {
 			console.Error(err.Error())
 		}
 		os.Exit(1)

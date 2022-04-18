@@ -13,6 +13,9 @@ jobs:
         os: [ubuntu-latest, macos-latest]
 
     steps:
+      - name: Check out bud
+        uses: actions/checkout@v2
+
       - name: Set up Go
         uses: actions/setup-go@v2
         id: go
@@ -22,10 +25,40 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v1.4.4
         with:
-          node-version: 16
+          node-version: 14
+          cache: 'npm'
+          cache-dependency-path: |
+            livebud/package-lock.json
+            package-lock.json
 
-      - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+      - name: Install bud node_modules
+        run: npm install
+
+      - name: Install budjs node_modules
+        run: npm install
+        working-directory: ./livebud
+
+      # Get values for cache paths to be used in later steps
+      # Based on: https://markphelps.me/posts/speed-up-your-go-builds-with-actions-cache/
+      - id: go-cache-paths
+        run: |
+          echo "::set-output name=go-build::$(go env GOCACHE)"
+          echo "::set-output name=go-mod::$(go env GOMODCACHE)"
+      # Cache go build cache, used to speedup go test
+      - name: Go Build Cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.go-cache-paths.outputs.go-build }}
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
+      # Cache go mod cache, used to speedup builds
+      - name: Go Mod Cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.go-cache-paths.outputs.go-mod }}
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+
+      - name: Install go modules
+        run: go mod download
 
       - name: Run CI (OSX)
         if: matrix.os == 'macos-latest'

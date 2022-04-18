@@ -113,8 +113,8 @@ test.all: go.tools go.generate go.fmt go.vet budjs.check go.test budjs.test
 ci.npm:
 	@ npm ci
 
-ci.macos: go.mod.tidy ci.npm test.all
-ci.ubuntu: go.mod.tidy ci.npm test.all
+ci.macos: test.all
+ci.ubuntu: test.all
 
 ##
 # Build
