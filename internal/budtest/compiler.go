@@ -85,7 +85,7 @@ func (c *Compiler) buildBud(ctx context.Context) (budPath string, err error) {
 	if err := gobin.Build(ctx, module, module.Directory("main.go"), budPath); err != nil {
 		return "", err
 	}
-	return "", nil
+	return budPath, nil
 }
 
 func (c *Compiler) Compile(ctx context.Context) (p *Project, err error) {

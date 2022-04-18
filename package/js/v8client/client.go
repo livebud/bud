@@ -4,19 +4,18 @@ import (
 	"context"
 	"encoding/gob"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 )
 
 // Launch the process and return a client
 func Load(ctx context.Context) (c *Client, err error) {
-	// Try getting the BUD_PATH that's been passed in
+	// Get the BUD_PATH that's been passed in or fail. This should always be set
+	// by the compiler
 	budPath := os.Getenv("BUD_PATH")
 	if budPath == "" {
-		budPath, err = exec.LookPath("bud")
-		if err != nil {
-			return nil, err
-		}
+		return nil, fmt.Errorf("v8client: $BUD_PATH must be set")
 	}
 	cmd := exec.CommandContext(ctx, budPath, "tool", "v8", "client")
 	cmd.Env = os.Environ()
