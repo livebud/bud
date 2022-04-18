@@ -161,3 +161,5 @@ mvdan.cc/gofumpt v0.2.0 h1:AInyCTHfhp4bFrP2VYC5kR2wPwgWj7eGSb+7437zn7I=
 mvdan.cc/gofumpt v0.2.0/go.mod h1:TiGmrf914DAuT6+hDIxOqoDb4QXIzAuEUSXqEf9hGKY=
 rogchap.com/v8go v0.7.0 h1:kgjbiO4zE5itA962ze6Hqmbs4HgZbGzmueCXsZtremg=
 rogchap.com/v8go v0.7.0/go.mod h1:MxgP3pL2MW4dpme/72QRs8sgNMmM0pRc8DPhcuLWPAs=
+src.techknowlogick.com/xgo v1.4.1-0.20220413212431-091a0a22b814 h1:/oIyHjKnlyQ3yFzxq7uin83l6h0sHXT7Z+9TpP9wr8s=
+src.techknowlogick.com/xgo v1.4.1-0.20220413212431-091a0a22b814/go.mod h1:31CE1YKtDOrKTk9PSnjTpe6YbO6W/0LTYZ1VskL09oU=

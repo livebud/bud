@@ -34,7 +34,6 @@ func do() error {
 	cli := commander.New("bud")
 	cli.Flag("chdir", "Change the working directory").Short('C').String(&bud.Dir).Default(".")
 	cli.Args("args").Strings(&bud.Args)
-	cli.Run(bud.Run)
 
 	{ // $ bud create <app>
 		cmd := &create.Command{Bud: bud}

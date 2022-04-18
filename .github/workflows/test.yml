@@ -1,0 +1,38 @@
+name: Test
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: ['*']
+
+jobs:
+  bud:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        id: go
+        with:
+          go-version: 1.18.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v1.4.4
+        with:
+          node-version: 16
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+
+      - name: Run CI (OSX)
+        if: matrix.os == 'macos-latest'
+        run: make ci.macos
+
+      - name: Run CI (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: make ci.ubuntu
