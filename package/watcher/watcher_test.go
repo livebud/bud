@@ -40,7 +40,7 @@ func TestChange(t *testing.T) {
 	select {
 	case path := <-event:
 		is.Equal(path, filepath.Join(dir, "a.txt"))
-	case <-time.After(time.Second):
+	case <-time.After(5 * time.Second):
 		t.Fatal("timed out while waiting for watcher")
 	}
 	cancel()
@@ -60,7 +60,10 @@ func TestDelete(t *testing.T) {
 	eg := new(errgroup.Group)
 	eg.Go(func() error {
 		return watcher.Watch(ctx, dir, func(path string) error {
-			event <- path
+			select {
+			case event <- path:
+			case <-ctx.Done():
+			}
 			return nil
 		})
 	})
@@ -86,7 +89,10 @@ func TestCreate(t *testing.T) {
 	eg := new(errgroup.Group)
 	eg.Go(func() error {
 		return watcher.Watch(ctx, dir, func(path string) error {
-			event <- path
+			select {
+			case event <- path:
+			case <-ctx.Done():
+			}
 			return nil
 		})
 	})
@@ -96,7 +102,7 @@ func TestCreate(t *testing.T) {
 	select {
 	case path := <-event:
 		is.Equal(path, filepath.Join(dir, "a.txt"))
-	case <-time.After(time.Second):
+	case <-time.After(5 * time.Second):
 		t.Fatal("timed out while waiting for watcher")
 	}
 	cancel()
@@ -112,7 +118,10 @@ func TestCreateRecursive(t *testing.T) {
 	eg := new(errgroup.Group)
 	eg.Go(func() error {
 		return watcher.Watch(ctx, dir, func(path string) error {
-			event <- path
+			select {
+			case event <- path:
+			case <-ctx.Done():
+			}
 			return nil
 		})
 	})
@@ -122,7 +131,7 @@ func TestCreateRecursive(t *testing.T) {
 	select {
 	case path := <-event:
 		is.Equal(path, filepath.Join(dir, "b"))
-	case <-time.After(time.Second):
+	case <-time.After(5 * time.Second):
 		t.Fatal("timed out while waiting for watcher")
 	}
 	err = os.WriteFile(filepath.Join(dir, "b", "a.txt"), []byte("b"), 0644)
@@ -130,7 +139,7 @@ func TestCreateRecursive(t *testing.T) {
 	select {
 	case path := <-event:
 		is.Equal(path, filepath.Join(dir, "b", "a.txt"))
-	case <-time.After(time.Second):
+	case <-time.After(5 * time.Second):
 		t.Fatal("timed out while waiting for watcher")
 	}
 	cancel()
