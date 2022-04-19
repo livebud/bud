@@ -27,7 +27,10 @@ func TestChange(t *testing.T) {
 	eg := new(errgroup.Group)
 	eg.Go(func() error {
 		return watcher.Watch(ctx, dir, func(path string) error {
-			event <- path
+			select {
+			case event <- path:
+			case <-ctx.Done():
+			}
 			return nil
 		})
 	})

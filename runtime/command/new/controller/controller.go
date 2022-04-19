@@ -85,6 +85,7 @@ type View struct {
 	Title    string
 	Variable string
 	Singular string
+	Plural   string
 }
 
 func (c *Command) Run(ctx context.Context) (err error) {
@@ -164,6 +165,7 @@ func (c *Command) view(controller *Controller, action *Action) *View {
 		Title:    text.Title(controller.Struct),
 		Variable: text.Camel(action.Result),
 		Singular: text.Camel(text.Singular(action.Result)),
+		Plural:   text.Camel(text.Plural(action.Result)),
 	}
 }
 

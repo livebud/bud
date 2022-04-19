@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/livebud/bud/internal/bud"
+	"github.com/livebud/bud/package/commander"
 	runtime_bud "github.com/livebud/bud/runtime/bud"
 )
 
@@ -16,6 +17,9 @@ type Bud struct {
 
 // Run a custom command
 func (c *Bud) Run(ctx context.Context) (err error) {
+	if len(c.Args) == 0 {
+		return commander.Usage()
+	}
 	// Load the compiler
 	compiler, err := bud.Find(c.Dir)
 	if err != nil {

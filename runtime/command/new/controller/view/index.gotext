@@ -1,18 +1,18 @@
 <script>
-  export let props = []
+  export let {{ $.Plural }} = []
 </script>
 
 <h1>{{ $.Title }} Index</h1>
 
 <table border="1" cellpadding="10">
-  {#if props.length > 0}
+  {#if {{ $.Plural }}.length > 0}
     <thead>
-      {#each Object.keys(props[0]) as key}
+      {#each Object.keys({{ $.Plural }}[0]) as key}
         <th>{key}</th>
       {/each}
     </thead>
   {/if}
-  {#each props as {{ $.Singular -}} }
+  {#each {{ $.Plural }} as {{ $.Singular -}} }
     <tr>
       {#each Object.keys({{ $.Singular }}) as key}
         {#if key === "id"}
