@@ -1,7 +1,6 @@
 package v8server
 
 import (
-	"context"
 	"encoding/gob"
 	"errors"
 	"fmt"
@@ -13,27 +12,30 @@ import (
 	"github.com/livebud/bud/package/js/v8client"
 )
 
-func Serve(ctx context.Context) error {
+func Serve() error {
+	server := &Server{os.Stdin, os.Stdout}
+	return server.Serve()
+}
+
+type Server struct {
+	Reader io.Reader
+	Writer io.Writer
+}
+
+func (s *Server) Serve() error {
 	vm, err := v8.Load()
 	if err != nil {
 		return err
 	}
-	dec := gob.NewDecoder(os.Stdin)
-	enc := gob.NewEncoder(os.Stdout)
+	dec := gob.NewDecoder(s.Reader)
+	enc := gob.NewEncoder(s.Writer)
 	for {
-		// Wait to be done
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-		}
 		// Decode messages into input
 		var in v8client.Input
 		if err := dec.Decode(&in); err != nil {
 			if errors.Is(err, io.EOF) {
 				return nil
 			}
-			fmt.Fprintln(os.Stderr, err)
 			continue
 		}
 		// Handle eval

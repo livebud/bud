@@ -1325,8 +1325,8 @@ func TestViewRootResourceUnkeyed(t *testing.T) {
 	is.NoErr(err)
 	defer server.Close()
 
-	//
-	res, err := server.GetJSON("")
+	// /
+	res, err := server.GetJSON("/")
 	is.NoErr(err)
 	is.NoErr(res.Expect(`
 		HTTP/1.1 200 OK
@@ -1335,7 +1335,7 @@ func TestViewRootResourceUnkeyed(t *testing.T) {
 
 		[{"id":1,"name":"a"},{"id":2,"name":"b"}]
 	`))
-	res, err = server.Get("")
+	res, err = server.Get("/")
 	is.NoErr(err)
 	is.NoErr(res.ExpectHeaders(`
 		HTTP/1.1 200 OK

@@ -47,7 +47,6 @@ func New(dir string) *Compiler {
 			"PATH":       os.Getenv("PATH"),
 			"TMPDIR":     os.TempDir(),
 			"GOPATH":     os.Getenv("GOPATH"),
-			"GOCACHE":    os.Getenv("GOCACHE"),
 			"GOMODCACHE": modcache.Default().Directory(),
 			"NO_COLOR":   "1",
 			// TODO: remove once we can write a sum file to the modcache

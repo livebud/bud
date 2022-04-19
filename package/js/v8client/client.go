@@ -1,3 +1,8 @@
+// Package v8client is a client for submitting jobs to the v8server. The purpose
+// of this package and the v8server package is because embedding v8 into your Go
+// binary takes too much time, so we instead communicate back with the embedded
+// V8 in the bud binary during development. When building, we embed V8 directly
+// because builds can afford to be slower.
 package v8client
 
 import (
@@ -5,12 +10,14 @@ import (
 	"encoding/gob"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
+	"sync"
 )
 
 // Launch the process and return a client
-func Load(ctx context.Context) (c *Client, err error) {
+func Launch(ctx context.Context) (*Client, error) {
 	// Get the BUD_PATH that's been passed in or fail. This should always be set
 	// by the compiler
 	budPath := os.Getenv("BUD_PATH")
@@ -31,25 +38,54 @@ func Load(ctx context.Context) (c *Client, err error) {
 	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
+	// Close function to shut down the process gracefully
+	closer := func() error {
+		if cmd.Process == nil {
+			return nil
+		}
+		if err := cmd.Process.Signal(os.Interrupt); err != nil {
+			return err
+		}
+		if err := cmd.Wait(); err != nil && err.Error() != "signal: interrupt" {
+			return err
+		}
+		return nil
+	}
 	return &Client{
-		cmd:    cmd,
-		stdin:  gob.NewEncoder(stdin),
-		stdout: gob.NewDecoder(stdout),
+		reader: gob.NewDecoder(stdout),
+		writer: gob.NewEncoder(stdin),
+		closer: closer,
 	}, nil
 }
 
+// New client for testing
+func New(reader io.Reader, writer io.Writer) *Client {
+	return &Client{
+		reader: gob.NewDecoder(reader),
+		writer: gob.NewEncoder(writer),
+		closer: func() error { return nil },
+	}
+}
+
+// Client for evaluating scripts against the V8 server. This client may be used
+// concurrently, but you cannot have multiple instances of clients communicating
+// with the same server
 type Client struct {
-	cmd    *exec.Cmd
-	stdin  *gob.Encoder
-	stdout *gob.Decoder
+	// Synchronize readers, writers and closers
+	mu     sync.Mutex
+	closer func() error
+	reader *gob.Decoder
+	writer *gob.Encoder
 }
 
 func (c *Client) Script(path, script string) error {
-	if err := c.stdin.Encode(Input{Type: "script", Path: path, Code: script}); err != nil {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if err := c.writer.Encode(Input{Type: "script", Path: path, Code: script}); err != nil {
 		return err
 	}
 	var out Output
-	if err := c.stdout.Decode(&out); err != nil {
+	if err := c.reader.Decode(&out); err != nil {
 		return err
 	}
 	if out.Error != "" {
@@ -59,11 +95,13 @@ func (c *Client) Script(path, script string) error {
 }
 
 func (c *Client) Eval(path, expr string) (value string, err error) {
-	if err := c.stdin.Encode(Input{Type: "eval", Path: path, Code: expr}); err != nil {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if err := c.writer.Encode(Input{Type: "eval", Path: path, Code: expr}); err != nil {
 		return "", err
 	}
 	var out Output
-	if err := c.stdout.Decode(&out); err != nil {
+	if err := c.reader.Decode(&out); err != nil {
 		return "", err
 	}
 	if out.Error != "" {
@@ -73,14 +111,7 @@ func (c *Client) Eval(path, expr string) (value string, err error) {
 }
 
 func (c *Client) Close() error {
-	if c.cmd.Process == nil {
-		return nil
-	}
-	if err := c.cmd.Process.Signal(os.Interrupt); err != nil {
-		return err
-	}
-	if err := c.cmd.Wait(); err != nil && err.Error() != "signal: interrupt" {
-		return err
-	}
-	return nil
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.closer()
 }
