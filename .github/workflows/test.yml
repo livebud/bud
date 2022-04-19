@@ -60,6 +60,12 @@ jobs:
       - name: Install go modules
         run: go mod download
 
+      - Cached testdir snapshots
+        uses: actions/cache@v2
+        with:
+          path: $TMPDIR/bud/snapshot
+          key: ${{ runner.os }}
+
       - name: Run CI (OSX)
         if: matrix.os == 'macos-latest'
         run: make ci.macos
