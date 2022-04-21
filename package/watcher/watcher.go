@@ -14,6 +14,8 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+var Stop = errors.New("stop watching")
+
 // Watch function
 func Watch(ctx context.Context, dir string, fn func(path string) error) error {
 	watcher, err := fsnotify.NewWatcher()
@@ -168,5 +170,12 @@ func Watch(ctx context.Context, dir string, fn func(path string) error) error {
 			}
 		}
 	})
-	return eg.Wait()
+	// Wait for the watcher to complete
+	if err := eg.Wait(); err != nil {
+		if !errors.Is(err, Stop) {
+			return err
+		}
+		return nil
+	}
+	return nil
 }

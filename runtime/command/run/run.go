@@ -2,10 +2,11 @@ package run
 
 import (
 	"context"
-	"fmt"
-	"os"
+	"net"
 	"path/filepath"
 
+	"github.com/livebud/bud/package/exe"
+	"github.com/livebud/bud/package/log/console"
 	"github.com/livebud/bud/package/watcher"
 
 	"github.com/livebud/bud/package/hot"
@@ -36,18 +37,39 @@ func (c *Command) Run(ctx context.Context) error {
 	return eg.Wait()
 }
 
-func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
+func (c *Command) compileAndStart(ctx context.Context, ln net.Listener) (*exe.Cmd, error) {
 	app, err := c.Project.Compile(ctx, c.Flag)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	process, err := app.Start(ctx, ln)
+	if err != nil {
+		return nil, err
+	}
+	return process, nil
+}
+
+func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 	listener, err := socket.Load(c.Port)
 	if err != nil {
 		return err
 	}
-	process, err := app.Start(ctx, listener)
+	// Compile and start the project
+	process, err := c.compileAndStart(ctx, listener)
 	if err != nil {
-		return err
+		// TODO: de-duplicate with the watcher above
+		console.Error(err.Error())
+		if err := watcher.Watch(ctx, ".", func(path string) error {
+			process, err = c.compileAndStart(ctx, listener)
+			if err != nil {
+				console.Error(err.Error())
+				return nil
+			}
+			console.Info("Ready on http://0.0.0.0:" + c.Port)
+			return watcher.Stop
+		}); err != nil {
+			return err
+		}
 	}
 	defer process.Close()
 	// Start watching
@@ -61,19 +83,20 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 				hotServer.Reload("!")
 			}
 			if err := process.Close(); err != nil {
-				fmt.Fprintln(os.Stderr, "error closing process", err)
+				console.Error(err.Error())
 				return nil
 			}
 			app, err := c.Project.Compile(ctx, c.Flag)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "error compiling", err.Error())
+				console.Error(err.Error())
 				return nil
 			}
 			process, err = app.Start(ctx, listener)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "error starting", err.Error())
+				console.Error(err.Error())
 				return nil
 			}
+			console.Info("Ready on http://0.0.0.0:" + c.Port)
 			return nil
 		// Hot reload the page
 		default:
