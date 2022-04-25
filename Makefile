@@ -158,6 +158,7 @@ build:
 ##
 publish:
 	@ npm --version > /dev/null || (echo "The 'npm' command must be in your path to publish" && false)
+	@ gh --version > /dev/null || (echo "The 'gh' command must be in your path to publish" && false)
 
 	@ echo "Checking for uncommitted/untracked changes..." && test -z "`git status --porcelain | grep -vE 'M (CHANGELOG\.md|version\.txt)'`" || \
 		(echo "Refusing to publish with these uncommitted/untracked changes:" && \
@@ -167,26 +168,36 @@ publish:
 	@ echo "Checking for unpushed commits..." && git fetch
 	@ test "" = "`git cherry`" || (echo "Refusing to publish with unpushed commits" && false)
 
-	@ echo "Building binaries into release/..."
-	@$(MAKE) --no-print-directory build
+	@ echo "Building binaries into ./release..."
+	@ $(MAKE) --no-print-directory build
+	@ go run scripts/generate-changelog/main.go "v$(BUD_VERSION)" > release/changelog.md
 	@ echo "Checking for uncommitted/untracked changes after build..." && test -z "`git status --porcelain | grep -vE 'M (CHANGELOG\.md|version\.txt)'`" || \
 		(echo "Refusing to publish with these uncommitted/untracked changes:" && \
 		git status --porcelain | grep -vE 'M (CHANGELOG\.md|version\.txt)' && false)
 
+	@ echo "Committing and tagging the release..."
 	@ git commit -am "Release v$(BUD_VERSION)"
 	@ # Note: If git tag fails, then the version number was likely not incremented before running this command
-	@ git tag "v$(ESBUILD_VERSION)"
+	@ git tag "v$(BUD_VERSION)"
 	@ test -z "`git status --porcelain`" || (echo "Aborting because git is somehow unclean after a commit" && false)
 
+	@ echo "Uploading the binaries to a draft release..."
+	@ gh release create --draft=true --notes-file=release/changelog.md "v$(BUD_VERSION)" release/bud-*
+
+	@ echo "Publishing to NPM..."
 	@ echo "Enter one-time password:"
 	@ read OTP && \
 		cd livebud && \
-		npm pkg set version=$(ESBUILD_VERSION) && \
+		npm pkg set version=$(BUD_VERSION) && \
 		npm pkg delete private && \
 		test -n "$$OTP" && \
 		npm publish --otp=$$OTP && \
 		npm pkg set version=main && \
 		npm pkg set private=true
+
+	@ echo "Pushing up to Github and publishing the release"
+	@ git push origin main "v$(BUD_VERSION)"
+	@ gh release edit "v$(BUD_VERSION)" --draft=false
 
 read:
 	@ echo "Enter one-time password:"
