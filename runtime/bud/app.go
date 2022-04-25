@@ -66,5 +66,8 @@ func (a *App) Run(ctx context.Context, listener net.Listener) error {
 	if err != nil {
 		return err
 	}
-	return cmd.Wait()
+	if err := cmd.Wait(); err != nil {
+		return err
+	}
+	return nil
 }

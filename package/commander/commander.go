@@ -19,6 +19,10 @@ var usage string
 
 var defaultUsage = template.Must(template.New("usage").Funcs(colors).Parse(usage))
 
+func Usage() error {
+	return flag.ErrHelp
+}
+
 func New(name string) *CLI {
 	config := &config{"", os.Stdout, defaultUsage, []os.Signal{os.Interrupt}}
 	return &CLI{newCommand(config, name, ""), config}
@@ -179,7 +183,14 @@ loop:
 		}
 		return fmt.Errorf("unexpected %s", c.fset.Arg(0))
 	}
-	return c.run(ctx)
+	if err := c.run(ctx); err != nil {
+		// Support explicitly printing usage
+		if errors.Is(err, flag.ErrHelp) {
+			return c.printUsage()
+		}
+		return err
+	}
+	return nil
 }
 
 func (c *Command) Run(runner func(ctx context.Context) error) {

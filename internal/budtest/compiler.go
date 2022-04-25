@@ -19,6 +19,8 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/lithammer/dedent"
 	"github.com/livebud/bud/internal/bud"
+	"github.com/livebud/bud/internal/gobin"
+	"github.com/livebud/bud/internal/imhash"
 	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/package/exe"
 	"github.com/livebud/bud/package/gomod"
@@ -45,15 +47,12 @@ func New(dir string) *Compiler {
 			"PATH":       os.Getenv("PATH"),
 			"TMPDIR":     os.TempDir(),
 			"GOPATH":     os.Getenv("GOPATH"),
-			"GOCACHE":    os.Getenv("GOCACHE"),
 			"GOMODCACHE": modcache.Default().Directory(),
 			"NO_COLOR":   "1",
 			// TODO: remove once we can write a sum file to the modcache
 			"GOPRIVATE": "*",
-			// TODO: set the BUD_PATH, right now we very unexpectedly use
-			// the bud in the $PATH for tests.
-			"BUD_PATH": "",
 		},
+		CacheDir: filepath.Join(os.TempDir(), "bud", "cache"),
 	}
 }
 
@@ -65,7 +64,27 @@ type Compiler struct {
 	Modules     modcache.Modules  // name@version[path[data]]
 	NodeModules map[string]string // name[version]
 	Env         bud.Env
-	Cache       bool
+	CacheDir    string
+}
+
+func (c *Compiler) buildBud(ctx context.Context) (budPath string, err error) {
+	// Find the bud module
+	module, err := gomod.Find(".")
+	if err != nil {
+		return "", err
+	}
+	hash, err := imhash.Hash(module, ".")
+	if err != nil {
+		return "", err
+	}
+	budPath = filepath.Join(c.CacheDir, hash)
+	if _, err := os.Stat(budPath); nil == err {
+		return budPath, nil
+	}
+	if err := gobin.Build(ctx, module, module.Directory("main.go"), budPath); err != nil {
+		return "", err
+	}
+	return budPath, nil
 }
 
 func (c *Compiler) Compile(ctx context.Context) (p *Project, err error) {
@@ -82,6 +101,12 @@ func (c *Compiler) Compile(ctx context.Context) (p *Project, err error) {
 	if err := td.Write(dir); err != nil {
 		return nil, err
 	}
+	// Build bud to use with the V8 Client
+	budPath, err := c.buildBud(ctx)
+	if err != nil {
+		return nil, err
+	}
+	c.Env["BUD_PATH"] = budPath
 	// Get the modCache
 	modCache := testdir.ModCache(dir)
 	c.Env["GOMODCACHE"] = modCache.Directory()

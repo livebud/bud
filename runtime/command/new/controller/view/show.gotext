@@ -1,18 +1,18 @@
 <script>
-  export let props = {}
+  export let {{ $.Singular }} = {}
 </script>
 
 <h1>Showing {{ $.Title }}</h1>
 
 <table border="1" cellpadding="10">
   <thead>
-    {#each Object.keys(props) as key}
+    {#each Object.keys({{ $.Singular }}) as key}
       <th>{key}</th>
     {/each}
   </thead>
   <tr>
-    {#each Object.keys(props) as key}
-      <td>{props[key]}</td>
+    {#each Object.keys({{ $.Singular }}) as key}
+      <td>{ {{- $.Singular }}[key]}</td>
     {/each}
   </tr>
 </table>

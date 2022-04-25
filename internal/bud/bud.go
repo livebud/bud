@@ -18,7 +18,6 @@ import (
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/parser"
-	"github.com/livebud/bud/package/trace"
 	"github.com/livebud/bud/runtime/bud"
 )
 
@@ -70,8 +69,6 @@ type Compiler struct {
 
 // Load the overlay
 func (c *Compiler) loadOverlay(ctx context.Context, module *gomod.Module) (fsys *overlay.FileSystem, err error) {
-	_, span := trace.Start(ctx, "load the overlay")
-	defer span.End(&err)
 	return overlay.Load(module)
 }
 
@@ -88,8 +85,6 @@ func (c *Compiler) writeImporter(ctx context.Context, overlay *overlay.FileSyste
 
 // Sync the generators to bud/.cli
 func (c *Compiler) sync(ctx context.Context, overlay *overlay.FileSystem) (err error) {
-	_, span := trace.Start(ctx, "sync cli", "dir", "bud/.cli")
-	defer span.End(&err)
 	if err := overlay.Sync("bud/.cli"); err != nil {
 		return err
 	}
@@ -98,8 +93,6 @@ func (c *Compiler) sync(ctx context.Context, overlay *overlay.FileSystem) (err e
 
 // Build the CLI
 func (c *Compiler) goBuild(ctx context.Context, module *gomod.Module, outPath string) (err error) {
-	_, span := trace.Start(ctx, "build cli", "from", "bud/.cli/main.go", "to", "bud/cli")
-	defer span.End(&err)
 	// Ensure that main.go exists
 	if _, err := fs.Stat(c.module, "bud/.cli/main.go"); err != nil {
 		return err
@@ -115,9 +108,6 @@ func (c *Compiler) goBuild(ctx context.Context, module *gomod.Module, outPath st
 }
 
 func (c *Compiler) Compile(ctx context.Context, flag *bud.Flag) (p *Project, err error) {
-	// Start the trace
-	ctx, span := trace.Start(ctx, "compile project cli")
-	defer span.End(&err)
 	// Load the overlay
 	overlay, err := c.loadOverlay(ctx, c.module)
 	if err != nil {

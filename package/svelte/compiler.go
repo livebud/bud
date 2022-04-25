@@ -1,6 +1,6 @@
 package svelte
 
-//go:generate esbuild compiler.ts --format=iife --global-name=__svelte__ --bundle --platform=node --inject:shimssr.ts --external:url --outfile=compiler.js --log-level=warning
+//go:generate go run github.com/evanw/esbuild/cmd/esbuild compiler.ts --format=iife --global-name=__svelte__ --bundle --platform=node --inject:shimssr.ts --external:url --outfile=compiler.js --log-level=warning
 
 import (
 	"encoding/json"

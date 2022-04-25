@@ -7,3 +7,4 @@ Notes on how to release safely:
 - Publishing a new release is done locally
   - Only when there are no unstaged changes
   - Only when main is in sync with the local environment
+  - Allow uncommitted data in version.txt and CHANGELOG.md

@@ -73,7 +73,7 @@ func TestRefresh(t *testing.T) {
 	td.NodeModules["svelte"] = `3.46.4`
 	td.NodeModules["livebud"] = "*"
 	dir := t.TempDir()
-	err := td.Write(dir, testdir.WithBackup(false))
+	err := td.Write(dir, testdir.WithBackup(true))
 	is.NoErr(err)
 	err = exists(os.DirFS(dir),
 		"controller/controller.go",
@@ -88,7 +88,7 @@ func TestRefresh(t *testing.T) {
 	td.Modules = map[string]modcache.Files{}
 	delete(td.Files, "controller/controller.go")
 	delete(td.BFiles, "public/favicon.ico")
-	err = td.Write(dir, testdir.WithBackup(false))
+	err = td.Write(dir, testdir.WithBackup(true))
 	is.NoErr(err)
 	is.NoErr(notExists(os.DirFS(dir),
 		"controller/controller.go",
@@ -117,7 +117,7 @@ func TestSkip(t *testing.T) {
 	td.NodeModules["svelte"] = `3.46.4`
 	td.NodeModules["livebud"] = "*"
 	dir := t.TempDir()
-	err := td.Write(dir, testdir.WithBackup(false))
+	err := td.Write(dir, testdir.WithBackup(true))
 	is.NoErr(err)
 	err = exists(os.DirFS(dir),
 		"controller/controller.go",
@@ -132,7 +132,7 @@ func TestSkip(t *testing.T) {
 	td.Modules = map[string]modcache.Files{}
 	delete(td.Files, "controller/controller.go")
 	delete(td.BFiles, "public/favicon.ico")
-	err = td.Write(dir, testdir.WithBackup(false), testdir.WithSkip(func(name string, isDir bool) bool {
+	err = td.Write(dir, testdir.WithBackup(true), testdir.WithSkip(func(name string, isDir bool) bool {
 		return (name == "controller" && isDir) || (name == ".mod" && isDir)
 	}))
 	is.NoErr(err)

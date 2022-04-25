@@ -12,5 +12,5 @@ type Command struct {
 }
 
 func (c *Command) Run(ctx context.Context) error {
-	return v8server.Serve(ctx)
+	return v8server.Serve()
 }

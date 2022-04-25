@@ -709,3 +709,23 @@ func TestArgsStrings(t *testing.T) {
 	is.Equal(args[1], "view")
 	isEqual(t, actual.String(), ``)
 }
+
+func TestUsageError(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return commander.Usage()
+	})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{})
+	is.NoErr(err)
+	is.NoErr(err)
+	isEqual(t, actual.String(), `
+  {bold}Usage:{reset}
+    cli
+
+`)
+}
