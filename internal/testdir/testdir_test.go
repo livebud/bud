@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/internal/testdir"
+	"github.com/livebud/bud/internal/version"
 	"github.com/livebud/bud/package/modcache"
 	"github.com/matryer/is"
 )
@@ -42,7 +43,7 @@ func TestDir(t *testing.T) {
 	}
 	td.Files["controller/controller.go"] = `package controller`
 	td.BFiles["public/favicon.ico"] = []byte{0x00}
-	td.NodeModules["svelte"] = `3.46.4`
+	td.NodeModules["svelte"] = version.Svelte
 	td.NodeModules["livebud"] = "*"
 	dir := t.TempDir()
 	err := td.Write(dir, testdir.WithBackup(false))
@@ -70,7 +71,7 @@ func TestRefresh(t *testing.T) {
 	}
 	td.Files["controller/controller.go"] = `package controller`
 	td.BFiles["public/favicon.ico"] = []byte{0x00}
-	td.NodeModules["svelte"] = `3.46.4`
+	td.NodeModules["svelte"] = version.Svelte
 	td.NodeModules["livebud"] = "*"
 	dir := t.TempDir()
 	err := td.Write(dir, testdir.WithBackup(true))
@@ -114,7 +115,7 @@ func TestSkip(t *testing.T) {
 	}
 	td.Files["controller/controller.go"] = `package controller`
 	td.BFiles["public/favicon.ico"] = []byte{0x00}
-	td.NodeModules["svelte"] = `3.46.4`
+	td.NodeModules["svelte"] = version.Svelte
 	td.NodeModules["livebud"] = "*"
 	dir := t.TempDir()
 	err := td.Write(dir, testdir.WithBackup(true))

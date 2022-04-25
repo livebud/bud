@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/internal/budtest"
+	"github.com/livebud/bud/internal/version"
 	"github.com/matryer/is"
 )
 
@@ -21,7 +22,7 @@ func TestHello(t *testing.T) {
 		func (c *Controller) Index() string { return "" }
 	`
 	bud.Files["view/index.svelte"] = `<h1>hello</h1>`
-	bud.NodeModules["svelte"] = "3.42.3"
+	bud.NodeModules["svelte"] = version.Svelte
 	bud.NodeModules["livebud"] = "*"
 	project, err := bud.Compile(ctx)
 	is.NoErr(err)
@@ -55,7 +56,7 @@ func TestHelloEmbed(t *testing.T) {
 		func (c *Controller) Index() string { return "" }
 	`
 	bud.Files["view/index.svelte"] = `<h1>hello</h1>`
-	bud.NodeModules["svelte"] = "3.42.3"
+	bud.NodeModules["svelte"] = version.Svelte
 	bud.NodeModules["livebud"] = "*"
 	project, err := bud.Compile(ctx)
 	is.NoErr(err)

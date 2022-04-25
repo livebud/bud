@@ -14,11 +14,14 @@ import (
 	"github.com/livebud/bud/internal/command/tool/di"
 	v8 "github.com/livebud/bud/internal/command/tool/v8"
 	v8client "github.com/livebud/bud/internal/command/tool/v8/client"
+	"github.com/livebud/bud/internal/command/version"
 
 	"github.com/livebud/bud/package/commander"
 
 	"github.com/livebud/bud/package/log/console"
 )
+
+//go:generate go run scripts/set-package-json/main.go
 
 func main() {
 	if err := do(); err != nil {
@@ -101,6 +104,13 @@ func do() error {
 			}
 		}
 	}
+
+	{ // $ bud version
+		cmd := &version.Command{}
+		cli := cli.Command("version", "Show package versions")
+		cli.Run(cmd.Run)
+	}
+
 	ctx := context.Background()
 	return cli.Parse(ctx, os.Args[1:])
 }

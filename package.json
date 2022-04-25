@@ -2,10 +2,10 @@
   "name": "bud",
   "private": true,
   "devDependencies": {
+    "svelte": "3.47.0"
+  },
+  "dependencies": {
     "js-confetti": "0.10.2",
-    "react": "17.0.2",
-    "react-dom": "17.0.2",
-    "svelte": "3.46.4",
-    "tailwindcss": "3.0.23"
+    "svelte": "3.47.0"
   }
 }

@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/livebud/bud/internal/version"
+
 	"github.com/Bowery/prompt"
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/package/gomod"
@@ -55,7 +57,7 @@ func (c *Command) generateGoMod(ctx context.Context, dir string) error {
 	state.Requires = []*Require{
 		{
 			Import:  "github.com/livebud/bud",
-			Version: "v0.0.0",
+			Version: "v" + version.Bud,
 		},
 	}
 	if c.Link {

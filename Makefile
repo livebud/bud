@@ -1,4 +1,4 @@
-BUD_VERSION := $(shell cat version.txt)
+# BUD_VERSION := $(shell cat version.txt)
 
 precommit: test.dev
 
@@ -45,7 +45,6 @@ example.hn.watch:
 ##
 
 GO_SOURCE := ./internal/... ./package/... ./runtime/...
-GO_FLAGS := -trimpath -ldflags="-s -w"
 
 go.tools:
 	@ go install \
@@ -72,7 +71,18 @@ go.fmt:
 
 # Use xgo to cross-compile for OSX, Linux and Windows
 go.build.darwin:
-	@ xgo --targets=darwin/amd64 --dest=release --out=bud-v$(BUD_VERSION) $(GO_FLAGS) ./ 1> /dev/null
+	@ xgo \
+		--targets=darwin/amd64 \
+		--dest=release \
+		--out=bud-v$(shell go run ./scripts/get-version version) \
+		--trimpath \
+		--ldflags="-s -w \
+			-X 'github.com/livebud/bud/internal/version.Bud=$(shell go run ./scripts/get-version version)' \
+			-X 'github.com/livebud/bud/internal/version.BudJS=$(shell go run ./scripts/get-version version)' \
+			-X 'github.com/livebud/bud/internal/version.Svelte=$(shell go run ./scripts/get-version devDependencies.svelte)' \
+			-X 'github.com/livebud/bud/internal/version.React=$(shell go run ./scripts/get-version devDependencies.react)' \
+		" \
+		./ 1> /dev/null
 
 go.build.linux:
 	@ xgo --targets=linux/amd64 --dest=release --out=bud-v$(BUD_VERSION) $(GO_FLAGS) ./ 1> /dev/null
@@ -122,6 +132,7 @@ ci.ubuntu: test.all
 
 # TODO windows support
 build:
+	@ rm -rf release
 	@ $(MAKE) --no-print-directory -j4 \
 		go.build.darwin \
 		go.build.linux

@@ -1,5 +1,4 @@
-@import "../../../node_modules/tailwindcss/lib/css/preflight.css";
-
+@import "../../generator/public/default.css";
 
 body {
   height: 100vh;

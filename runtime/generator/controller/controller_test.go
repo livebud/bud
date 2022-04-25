@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/internal/budtest"
+	"github.com/livebud/bud/internal/version"
 
 	"github.com/matryer/is"
 )
@@ -1267,7 +1268,7 @@ func TestViewRootResourceUnkeyed(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.NodeModules["svelte"] = "3.42.3"
+	bud.NodeModules["svelte"] = version.Svelte
 	bud.Files["view/index.svelte"] = `
 		<script>
 			export let users = []
@@ -1423,7 +1424,7 @@ func TestViewNestedResourceUnkeyed(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.NodeModules["svelte"] = "3.42.3"
+	bud.NodeModules["svelte"] = version.Svelte
 	bud.Files["view/users/index.svelte"] = `
 		<script>
 			export let users = []
@@ -1579,7 +1580,7 @@ func TestViewDeepResourceUnkeyed(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.NodeModules["svelte"] = "3.42.3"
+	bud.NodeModules["svelte"] = version.Svelte
 	bud.Files["view/teams/users/index.svelte"] = `
 		<script>
 			export let onlineUsers = []

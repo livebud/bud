@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/internal/testdir"
+	"github.com/livebud/bud/internal/version"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/js"
 	v8 "github.com/livebud/bud/package/js/v8"
@@ -25,7 +26,7 @@ func TestSvelteHello(t *testing.T) {
 	dir := t.TempDir()
 	td := testdir.New()
 	td.Files["view/index.svelte"] = `<h1>hi world</h1>`
-	td.NodeModules["svelte"] = "3.46.4"
+	td.NodeModules["svelte"] = version.Svelte
 	is.NoErr(td.Write(dir))
 	vm, err := v8.Load()
 	is.NoErr(err)
@@ -79,7 +80,7 @@ func TestSvelteAwait(t *testing.T) {
 			{/await}
 		</div>
 	`
-	td.NodeModules["svelte"] = "3.46.4"
+	td.NodeModules["svelte"] = version.Svelte
 	is.NoErr(td.Write(dir))
 	vm, err := v8.Load()
 	is.NoErr(err)
@@ -169,7 +170,7 @@ func TestSvelteProps(t *testing.T) {
 		</script>
 		<h6>{@html JSON.stringify(comment)}</h6>
 	`
-	td.NodeModules["svelte"] = "3.46.4"
+	td.NodeModules["svelte"] = version.Svelte
 	is.NoErr(td.Write(dir))
 	vm, err := v8.Load()
 	is.NoErr(err)
@@ -275,7 +276,7 @@ func TestSvelteLocalImports(t *testing.T) {
 			<Comment {comment} />
 		{/each}
 	`
-	td.NodeModules["svelte"] = "3.46.4"
+	td.NodeModules["svelte"] = version.Svelte
 	is.NoErr(td.Write(dir))
 	vm, err := v8.Load()
 	is.NoErr(err)

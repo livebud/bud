@@ -49,9 +49,10 @@ func newPackage(name, version string) *Package {
 }
 
 type Package struct {
-	Name         string            `json:"name,omitempty"`
-	Version      string            `json:"version,omitempty"`
-	Dependencies map[string]string `json:"dependencies,omitempty"`
+	Name            string            `json:"name,omitempty"`
+	Version         string            `json:"version,omitempty"`
+	Dependencies    map[string]string `json:"dependencies"`
+	DevDependencies map[string]string `json:"devDependencies"`
 }
 
 func (p *Package) URL() string {
@@ -133,6 +134,29 @@ func Link(from string, to string) error {
 	cmd.Stderr = stderr
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("npm link %q: %w\n\n%s", from, err, stderr)
+	}
+	return nil
+}
+
+// Set a some values in a package.json
+func Set(dir string, kvs map[string]string) error {
+	if len(kvs) == 0 {
+		return fmt.Errorf("npm set: must set one or more key values")
+	}
+	npm, err := exec.LookPath("npm")
+	if err != nil {
+		return err
+	}
+	args := []string{"pkg", "set"}
+	for key, value := range kvs {
+		args = append(args, fmt.Sprintf("%s=%s", key, value))
+	}
+	cmd := exec.Command(npm, args...)
+	cmd.Dir = dir
+	stderr := new(bytes.Buffer)
+	cmd.Stderr = stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("npm %s: %w\n\n%s", strings.Join(args, " "), err, stderr)
 	}
 	return nil
 }

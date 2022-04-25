@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"github.com/livebud/bud/internal/version"
 )
 
 func (c *Command) generatePackageJSON(ctx context.Context, dir, name string) error {
@@ -21,8 +23,8 @@ func (c *Command) generatePackageJSON(ctx context.Context, dir, name string) err
 	state.Name = name
 	state.Private = true
 	state.Dependencies = map[string]string{
-		"livebud": "0.0.0",
-		"svelte":  "3.44.1",
+		"livebud": version.Bud,
+		"svelte":  version.Svelte,
 	}
 	code, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
@@ -35,7 +37,7 @@ func (c *Command) generatePackageJSON(ctx context.Context, dir, name string) err
 	if err != nil {
 		return err
 	}
-	cmd := exec.CommandContext(ctx, npmPath, "install", "--loglevel=error", "--no-progress")
+	cmd := exec.CommandContext(ctx, npmPath, "install", "--loglevel=error", "--no-progress", "--save")
 	cmd.Dir = dir
 	cmd.Stderr = os.Stderr
 	cmd.Env = []string{
