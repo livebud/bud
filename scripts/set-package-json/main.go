@@ -25,7 +25,6 @@ func run() error {
 	}
 	// Update the dependencies in ./livebud/package.json
 	if err := npm.Set(filepath.Join(dir, "livebud"), map[string]string{
-		"version":                          version.Bud,
 		"dependencies.svelte":              version.Svelte,
 		"dependencies.react":               version.React,
 		"dependencies.react-dom":           version.React,

@@ -4,8 +4,8 @@ package version
 var Bud = "latest"
 
 // Svelte version used and tested across bud.
-var Svelte = "3.47.0"
+const Svelte = "3.47.0"
 
 // React version used and tested across bud.
 // Currently not fully baked in.
-var React = "18.0.0"
+const React = "18.0.0"

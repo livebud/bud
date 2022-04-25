@@ -1,4 +1,4 @@
-# BUD_VERSION := $(shell cat version.txt)
+BUD_VERSION := $(shell cat version.txt)
 
 precommit: test.dev
 
@@ -74,18 +74,23 @@ go.build.darwin:
 	@ xgo \
 		--targets=darwin/amd64 \
 		--dest=release \
-		--out=bud-v$(shell go run ./scripts/get-version version) \
+		--out=bud \
 		--trimpath \
 		--ldflags="-s -w \
-			-X 'github.com/livebud/bud/internal/version.Bud=$(shell go run ./scripts/get-version version)' \
-			-X 'github.com/livebud/bud/internal/version.BudJS=$(shell go run ./scripts/get-version version)' \
-			-X 'github.com/livebud/bud/internal/version.Svelte=$(shell go run ./scripts/get-version devDependencies.svelte)' \
-			-X 'github.com/livebud/bud/internal/version.React=$(shell go run ./scripts/get-version devDependencies.react)' \
+			-X 'github.com/livebud/bud/internal/version.Bud=$(BUD_VERSION)' \
 		" \
 		./ 1> /dev/null
 
 go.build.linux:
-	@ xgo --targets=linux/amd64 --dest=release --out=bud-v$(BUD_VERSION) $(GO_FLAGS) ./ 1> /dev/null
+	@ xgo \
+		--targets=linux/amd64 \
+		--dest=release \
+		--out=bud \
+		--trimpath \
+		--ldflags="-s -w \
+			-X 'github.com/livebud/bud/internal/version.Bud=$(BUD_VERSION)' \
+		" \
+		./ 1> /dev/null
 
 # v8go on Windows isn't supported at the moment.
 # You'll encounter: "/usr/bin/x86_64-w64-mingw32-ld: cannot find -lv8"
@@ -93,7 +98,15 @@ go.build.linux:
 # - https://github.com/rogchap/v8go#windows
 # - https://github.com/rogchap/v8go/pull/234
 go.build.windows:
-	@ xgo --targets=windows/amd64 --dest=release --out=bud-v$(BUD_VERSION) --trimpath --ldflags="-s -w" ./ 1> /dev/null
+	@ xgo \
+		--targets=windows/amd64 \
+		--dest=release \
+		--out=bud \
+		--trimpath \
+		--ldflags="-s -w \
+			-X 'github.com/livebud/bud/internal/version.Bud=$(BUD_VERSION)' \
+		" \
+		./ 1> /dev/null
 
 ##
 # BudJS
@@ -140,22 +153,41 @@ build:
 ##
 # Publish
 #
-# Adapted from esbuild's excellent publish task:
+# This publish rule has been adapted from esbuild's excellent publish task:
 # https://github.com/evanw/esbuild/blob/master/Makefile
-#
-# TODO: remove Makefile & docs/release.md from the excluded files
 ##
 publish:
 	@ npm --version > /dev/null || (echo "The 'npm' command must be in your path to publish" && false)
-	@ echo "Checking for uncommitted/untracked changes..." && test -z "`git status --porcelain | grep -vE 'M (CHANGELOG\.md|version\.txt|Makefile|docs/release.md)'`" || \
+
+	@ echo "Checking for uncommitted/untracked changes..." && test -z "`git status --porcelain | grep -vE 'M (CHANGELOG\.md|version\.txt)'`" || \
 		(echo "Refusing to publish with these uncommitted/untracked changes:" && \
-		git status --porcelain | grep -vE 'M (CHANGELOG\.md|version\.txt|Makefile|docs/release.md)' && false)
+		git status --porcelain | grep -vE 'M (CHANGELOG\.md|version\.txt)' && false)
 	@ echo "Checking for main branch..." && test main = "`git rev-parse --abbrev-ref HEAD`" || \
 		(echo "Refusing to publish from non-main branch `git rev-parse --abbrev-ref HEAD`" && false)
 	@ echo "Checking for unpushed commits..." && git fetch
 	@ test "" = "`git cherry`" || (echo "Refusing to publish with unpushed commits" && false)
 
-	# Build the releases
+	@ echo "Building binaries into release/..."
 	@$(MAKE) --no-print-directory build
+	@ echo "Checking for uncommitted/untracked changes after build..." && test -z "`git status --porcelain | grep -vE 'M (CHANGELOG\.md|version\.txt)'`" || \
+		(echo "Refusing to publish with these uncommitted/untracked changes:" && \
+		git status --porcelain | grep -vE 'M (CHANGELOG\.md|version\.txt)' && false)
 
+	@ git commit -am "Release v$(BUD_VERSION)"
+	@ # Note: If git tag fails, then the version number was likely not incremented before running this command
+	@ git tag "v$(ESBUILD_VERSION)"
+	@ test -z "`git status --porcelain`" || (echo "Aborting because git is somehow unclean after a commit" && false)
 
+	@ echo "Enter one-time password:"
+	@ read OTP && \
+		cd livebud && \
+		npm pkg set version=$(ESBUILD_VERSION) && \
+		npm pkg delete private && \
+		test -n "$$OTP" && \
+		npm publish --otp=$$OTP && \
+		npm pkg set version=main && \
+		npm pkg set private=true
+
+read:
+	@ echo "Enter one-time password:"
+	@ read OTP && echo "npm publish --otp=\"$$OTP\""
