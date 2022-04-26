@@ -189,8 +189,7 @@ publish:
 		npm pkg delete private && \
 		test -n "$$OTP" && \
 		npm publish --otp=$$OTP && \
-		npm pkg set version=main && \
-		npm pkg set private=true
+		git checkout livebud/package.json
 
 	@ echo "Publishing the release on Github"
 	@ git push origin main "v$(BUD_VERSION)"
