@@ -181,9 +181,6 @@ publish:
 	@ git tag "v$(BUD_VERSION)"
 	@ test -z "`git status --porcelain`" || (echo "Aborting because git is somehow unclean after a commit" && false)
 
-	@ echo "Uploading the binaries to a draft release..."
-	@ gh release create --draft=true --notes-file=release/changelog.md "v$(BUD_VERSION)" release/bud-*
-
 	@ echo "Publishing to NPM..."
 	@ echo "Enter one-time password:"
 	@ read OTP && \
@@ -195,9 +192,9 @@ publish:
 		npm pkg set version=main && \
 		npm pkg set private=true
 
-	@ echo "Pushing up to Github and publishing the release"
+	@ echo "Publishing the release on Github"
 	@ git push origin main "v$(BUD_VERSION)"
-	@ gh release edit "v$(BUD_VERSION)" --draft=false
+	@ gh release create --notes-file=release/changelog.md "v$(BUD_VERSION)" release/bud-*
 
 read:
 	@ echo "Enter one-time password:"
