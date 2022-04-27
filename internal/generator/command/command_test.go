@@ -39,7 +39,7 @@ func exists(fsys fs.FS, paths ...string) error {
 func TestNewController(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := "_tmp"
+	dir := t.TempDir()
 	bud := budtest.New(dir)
 	project, err := bud.Compile(ctx)
 	is.NoErr(err)

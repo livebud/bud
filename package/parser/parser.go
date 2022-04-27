@@ -59,9 +59,13 @@ func (p *Parser) Parse(dir string) (*Package, error) {
 
 // Import the package, taking into account build tags and file name conventions
 func (p *Parser) Import(dir string) (*build.Package, error) {
+	return Import(p.fsys, dir)
+}
+
+func Import(fsys fs.FS, dir string) (*build.Package, error) {
 	// TODO: figure out how to set the import path correctly to have better error
 	// messages
-	imported, err := buildContext(p.fsys).Import(".", dir, build.ImportMode(0))
+	imported, err := buildContext(fsys).Import(".", dir, build.ImportMode(0))
 	if err != nil {
 		return nil, fmt.Errorf("parser: unable to import package %q > %w", dir, err)
 	}

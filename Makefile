@@ -80,6 +80,9 @@ go.build.darwin:
 			-X 'github.com/livebud/bud/internal/version.Bud=$(BUD_VERSION)' \
 		" \
 		./ 1> /dev/null
+	@ mv release/bud-darwin-10.12-amd64 release/bud-darwin-amd64
+	@ tar -czf release/bud-darwin-amd64.tar.gz release/bud-darwin-amd64
+	@ rm release/bud-darwin-amd64
 
 go.build.linux:
 	@ xgo \
@@ -91,6 +94,8 @@ go.build.linux:
 			-X 'github.com/livebud/bud/internal/version.Bud=$(BUD_VERSION)' \
 		" \
 		./ 1> /dev/null
+	@ tar -czf release/bud-linux-amd64.tar.gz release/bud-linux-amd64
+	@ rm release/bud-linux-amd64
 
 # v8go on Windows isn't supported at the moment.
 # You'll encounter: "/usr/bin/x86_64-w64-mingw32-ld: cannot find -lv8"

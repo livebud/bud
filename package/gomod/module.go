@@ -65,6 +65,17 @@ func (m *Module) Open(name string) (fs.File, error) {
 	return os.Open(filepath.Join(m.dir, name))
 }
 
+var _ fs.StatFS = (*Module)(nil)
+var _ fs.ReadDirFS = (*Module)(nil)
+
+func (m *Module) Stat(name string) (fs.FileInfo, error) {
+	return os.Stat(filepath.Join(m.dir, name))
+}
+
+func (m *Module) ReadDir(name string) ([]fs.DirEntry, error) {
+	return os.ReadDir(filepath.Join(m.dir, name))
+}
+
 // ResolveImport returns an import path from a local directory.
 func (m *Module) ResolveImport(directory string) (importPath string, err error) {
 	relPath, err := filepath.Rel(m.dir, filepath.Clean(directory))

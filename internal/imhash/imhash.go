@@ -12,20 +12,19 @@ import (
 	"sync"
 
 	"github.com/cespare/xxhash"
-	"github.com/livebud/bud/package/parser"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/parser"
 )
 
 func find(module *gomod.Module, mainDir string) (*fileSet, error) {
-	parser := parser.New(module, module)
 	fset := newFileSet()
 	// Add the following if they exist
 	if err := addIfExist(module, fset, "go.mod", "package.json", "package-lock.json"); err != nil {
 		return nil, err
 	}
-	if err := findDeps(fset, module, parser, mainDir); err != nil {
+	if err := findDeps(fset, module, mainDir); err != nil {
 		return nil, err
 	}
 	return fset, nil
@@ -99,6 +98,13 @@ type fileSet struct {
 	m  map[string]struct{}
 }
 
+func (s *fileSet) Has(path string) bool {
+	s.mu.RLock()
+	_, ok := s.m[path]
+	s.mu.RUnlock()
+	return ok
+}
+
 func (s *fileSet) Add(path string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -147,8 +153,8 @@ func shouldWalk(module *gomod.Module, importPath string) bool {
 		strings.HasPrefix(importPath, "github.com/livebud/bud")
 }
 
-func findDeps(fset *fileSet, module *gomod.Module, parser *parser.Parser, dir string) (err error) {
-	imported, err := parser.Import(dir)
+func findDeps(fset *fileSet, module *gomod.Module, dir string) (err error) {
+	imported, err := parser.Import(module, dir)
 	if err != nil {
 		return err
 	}
@@ -164,6 +170,9 @@ func findDeps(fset *fileSet, module *gomod.Module, parser *parser.Parser, dir st
 	// Traverse imports and compute a hash
 	eg := new(errgroup.Group)
 	for _, importPath := range imported.Imports {
+		if fset.Has(importPath) {
+			continue
+		}
 		importPath := importPath
 		eg.Go(func() error {
 			if !shouldWalk(module, importPath) {
@@ -177,7 +186,7 @@ func findDeps(fset *fileSet, module *gomod.Module, parser *parser.Parser, dir st
 			if err != nil {
 				return err
 			}
-			if err := findDeps(fset, module, parser, relPath); err != nil {
+			if err := findDeps(fset, module, relPath); err != nil {
 				return err
 			}
 			return nil

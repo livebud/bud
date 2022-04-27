@@ -68,12 +68,14 @@ type Compiler struct {
 }
 
 func (c *Compiler) buildBud(ctx context.Context) (budPath string, err error) {
-	// Find the bud module
 	module, err := gomod.Find(".")
 	if err != nil {
 		return "", err
 	}
-	hash, err := imhash.Hash(module, ".")
+	// Note: we use internal/cli instead of main.go because .git's changing
+	// modtime (from a git prompt running `git status`) will cause tests to never
+	// cache. See: https://github.com/golang/go/issues/52573
+	hash, err := imhash.Hash(module, "internal/cli")
 	if err != nil {
 		return "", err
 	}
