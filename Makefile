@@ -196,12 +196,8 @@ publish:
 		npm pkg delete private && \
 		test -n "$$OTP" && \
 		npm publish --otp=$$OTP && \
-		git checkout livebud/package.json
+		git checkout package.json
 
 	@ echo "Publishing the release on Github"
 	@ git push origin main "v$(BUD_VERSION)"
-	@ gh release create --notes-file=release/changelog.md "v$(BUD_VERSION)" release/bud-* release/checksums.txt
-
-read:
-	@ echo "Enter one-time password:"
-	@ read OTP && echo "npm publish --otp=\"$$OTP\""
+	@ gh release create --notes-file=release/changelog.md "v$(BUD_VERSION)" release/bud_* release/checksums.txt
