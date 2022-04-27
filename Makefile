@@ -94,6 +94,7 @@ go.build.linux:
 			-X 'github.com/livebud/bud/internal/version.Bud=$(BUD_VERSION)' \
 		" \
 		./ 1> /dev/null
+	@ mv release/bud-linux-amd64 release/bud_linux_amd64
 	@ tar -czf release/bud_linux_amd64.tar.gz release/bud_linux_amd64
 	@ rm release/bud_linux_amd64
 
