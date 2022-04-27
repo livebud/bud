@@ -23,7 +23,7 @@ func main() {
 
 func run() error {
 	cmd := new(Command)
-	cli := commander.New("cache-diff")
+	cli := commander.New("test-cache-diff")
 	cli.Arg("left").String(&cmd.Left)
 	cli.Arg("right").String(&cmd.Right)
 	cli.Run(cmd.Run)

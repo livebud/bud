@@ -155,6 +155,7 @@ build:
 	@ $(MAKE) --no-print-directory -j4 \
 		go.build.darwin \
 		go.build.linux
+	@ go run scripts/generate-checksums/main.go
 
 ##
 # Publish
@@ -199,7 +200,7 @@ publish:
 
 	@ echo "Publishing the release on Github"
 	@ git push origin main "v$(BUD_VERSION)"
-	@ gh release create --notes-file=release/changelog.md "v$(BUD_VERSION)" release/bud-*
+	@ gh release create --notes-file=release/changelog.md "v$(BUD_VERSION)" release/bud-* release/checksums.txt
 
 read:
 	@ echo "Enter one-time password:"
