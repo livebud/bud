@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.0.5
+
+- Next attempt at fixing `bud run` after installing from Github
+
+  It turns out .go files are also required by the runtime. I've unignored them, but will think of better ways to handle this in the future.
+
 ## v0.0.4
 
 - Fix `bud run` after installing from Github
