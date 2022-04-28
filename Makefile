@@ -171,9 +171,9 @@ publish:
 	@ npm --version > /dev/null || (echo "The 'npm' command must be in your path to publish" && false)
 	@ gh --version > /dev/null || (echo "The 'gh' command must be in your path to publish" && false)
 
-	@ echo "Checking for uncommitted/untracked changes..." && test -z "`git status --porcelain | grep -vE 'M (CHANGELOG\.md|version\.txt)'`" || \
+	@ echo "Checking for uncommitted/untracked changes..." && test -z "`git status --porcelain | grep -vE 'M (Changelog\.md|version\.txt)'`" || \
 		(echo "Refusing to publish with these uncommitted/untracked changes:" && \
-		git status --porcelain | grep -vE 'M (CHANGELOG\.md|version\.txt)' && false)
+		git status --porcelain | grep -vE 'M (Changelog\.md|version\.txt)' && false)
 	@ echo "Checking for main branch..." && test main = "`git rev-parse --abbrev-ref HEAD`" || \
 		(echo "Refusing to publish from non-main branch `git rev-parse --abbrev-ref HEAD`" && false)
 	@ echo "Checking for unpushed commits..." && git fetch
@@ -182,9 +182,9 @@ publish:
 	@ echo "Building binaries into ./release..."
 	@ $(MAKE) --no-print-directory build
 	@ go run scripts/generate-changelog/main.go "v$(BUD_VERSION)" > release/changelog.md
-	@ echo "Checking for uncommitted/untracked changes after build..." && test -z "`git status --porcelain | grep -vE 'M (CHANGELOG\.md|version\.txt)'`" || \
+	@ echo "Checking for uncommitted/untracked changes after build..." && test -z "`git status --porcelain | grep -vE 'M (Changelog\.md|version\.txt)'`" || \
 		(echo "Refusing to publish with these uncommitted/untracked changes:" && \
-		git status --porcelain | grep -vE 'M (CHANGELOG\.md|version\.txt)' && false)
+		git status --porcelain | grep -vE 'M (Changelog\.md|version\.txt)' && false)
 
 	@ echo "Committing and tagging the release..."
 	@ git commit -am "Release v$(BUD_VERSION)"
