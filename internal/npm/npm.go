@@ -114,30 +114,6 @@ func rootless(fpath string) string {
 	return path.Join(parts[1:]...)
 }
 
-func Link(from string, to string) error {
-	npm, err := exec.LookPath("npm")
-	if err != nil {
-		return err
-	}
-	absFrom, err := filepath.Abs(from)
-	if err != nil {
-		return err
-	}
-	absTo, err := filepath.Abs(to)
-	if err != nil {
-		return err
-	}
-	cmd := exec.Command(npm, "link", absFrom)
-	cmd.Dir = absTo
-	cmd.Env = os.Environ()
-	stderr := new(bytes.Buffer)
-	cmd.Stderr = stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("npm link %q: %w\n\n%s", from, err, stderr)
-	}
-	return nil
-}
-
 // Set a some values in a package.json
 func Set(dir string, kvs map[string]string) error {
 	if len(kvs) == 0 {
