@@ -36,17 +36,17 @@ parse_args() {
 # network, either nothing will happen or will syntax error
 # out preventing half-done work
 execute() {
-  TMPDIR=$(mktmpdir)
+  tmp_dir=$(mktmpdir)
   echo "$PREFIX: downloading ${TARBALL_URL}"
-  http_download "${TMPDIR}/${TARBALL}" "${TARBALL_URL}"
+  http_download "${tmp_dir}/${TARBALL}" "${TARBALL_URL}"
 
   echo "$PREFIX: verifying checksums"
-  http_download "${TMPDIR}/${CHECKSUM}" "${CHECKSUM_URL}"
-  hash_sha256_verify "${TMPDIR}/${TARBALL}" "${TMPDIR}/${CHECKSUM}"
+  http_download "${tmp_dir}/${CHECKSUM}" "${CHECKSUM_URL}"
+  hash_sha256_verify "${tmp_dir}/${TARBALL}" "${tmp_dir}/${CHECKSUM}"
 
-  (cd "${TMPDIR}" && untar "${TARBALL}")
+  (cd "${tmp_dir}" && untar "${TARBALL}")
   install -d "${BINDIR}"
-  install "${TMPDIR}/${BINARY}" "${BINDIR}/"
+  install "${tmp_dir}/${NAME}/${BINARY}" "${BINDIR}/"
   echo "$PREFIX: installed as ${BINDIR}/${BINARY}"
 }
 is_supported_platform() {
@@ -179,9 +179,10 @@ untar() {
   esac
 }
 mktmpdir() {
-  test -z "$TMPDIR" && TMPDIR="$(mktemp -d)"
-  mkdir -p "${TMPDIR}"
-  echo "${TMPDIR}"
+  test -z "$TMP_DIR" && TMP_DIR="$(mktemp -d)"
+  TMP_DIR="$(mktemp -d)"
+  mkdir -p "${TMP_DIR}"
+  echo "${TMP_DIR}"
 }
 http_download() {
   local_file=$1
@@ -202,10 +203,8 @@ http_download() {
     return 1
   fi
   if [ -z "$header" ]; then
-    echo "$cmd" $destflag "$local_file" "$source_url"
     $cmd $destflag "$local_file" "$source_url"
   else
-    echo "$cmd"
     $cmd $headerflag "$header" $destflag "$local_file" "$source_url"
   fi
 }
