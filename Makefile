@@ -123,7 +123,7 @@ go.build.windows:
 ##
 
 budjs.ci:
-	@ (cd livebud && npm install)
+	@ (cd livebud && npm ci)
 
 budjs.check:
 	@ (cd livebud && ./node_modules/.bin/tsc)
@@ -136,8 +136,8 @@ budjs.test:
 ##
 
 test: test.dev
-test.dev: go.tools go.generate go.fmt go.vet budjs.ci budjs.check budjs.test go.test
-test.all: go.tools go.generate go.fmt go.vet budjs.ci budjs.check budjs.test go.test
+test.dev: go.tools go.generate go.fmt go.vet budjs.check budjs.test go.test
+test.all: go.tools go.generate go.fmt go.vet budjs.check budjs.test go.test
 
 ##
 # CI
