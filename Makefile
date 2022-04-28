@@ -123,7 +123,7 @@ go.build.windows:
 ##
 
 budjs.ci:
-	@ (cd livebud && npm ci)
+	@ (cd livebud && npm install)
 
 budjs.check:
 	@ (cd livebud && ./node_modules/.bin/tsc)
