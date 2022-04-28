@@ -2,7 +2,11 @@
   "name": "bud",
   "private": true,
   "devDependencies": {
+    "@types/react": "18.0.0",
+    "@types/react-dom": "18.0.0",
     "js-confetti": "0.10.2",
+    "react": "18.0.0",
+    "react-dom": "18.0.0",
     "svelte": "3.47.0"
   }
 }
