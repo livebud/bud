@@ -25,7 +25,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v1.4.4
         with:
-          node-version: 14
+          node-version: 16
           cache: 'npm'
           cache-dependency-path: |
             livebud/package-lock.json

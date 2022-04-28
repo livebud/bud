@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/internal/npm"
-	"github.com/livebud/bud/package/vfs"
 	"github.com/matryer/is"
 )
 
@@ -30,24 +29,4 @@ func TestInstallSvelte(t *testing.T) {
 	exists(t, filepath.Join("_tmp", "node_modules", "svelte", "package.json"))
 	exists(t, filepath.Join("_tmp", "node_modules", "uid", "package.json"))
 	exists(t, filepath.Join("_tmp", "node_modules", "svelte", "internal", "index.js"))
-}
-func TestLinkLiveBud(t *testing.T) {
-	is := is.New(t)
-	is.NoErr(os.RemoveAll("_tmp"))
-	defer func() {
-		if !t.Failed() {
-			is.NoErr(os.RemoveAll("_tmp"))
-		}
-	}()
-	err := vfs.WriteAll(".", "_tmp", vfs.Memory{
-		"package.json": &vfs.File{Data: []byte(`{}`)},
-	})
-	is.NoErr(err)
-	err = npm.Link("../../livebud", "_tmp")
-	is.NoErr(err)
-	exists(t, filepath.Join("_tmp", "node_modules", "livebud", "package.json"))
-	exists(t, filepath.Join("_tmp", "node_modules", "livebud", "runtime", "svelte", "index.ts"))
-	exists(t, filepath.Join("_tmp", "node_modules", "livebud", "runtime", "hot", "index.ts"))
-	exists(t, filepath.Join("_tmp", "node_modules", "livebud", "runtime", "index.ts"))
-	exists(t, filepath.Join("_tmp", "node_modules", "livebud", "runtime", "jsx", "index.ts"))
 }
