@@ -281,7 +281,7 @@ OS=$(uname_os)
 ARCH=$(uname_arch)
 PREFIX="$OWNER/$REPO"
 PLATFORM="${OS}/${ARCH}"
-GITHUB_DOWNLOAD=https://github.com/${OWNER}/${REPO}/releases/download
+GITHUB_DOWNLOAD="https://github.com/${OWNER}/${REPO}/releases/download"
 
 uname_os_check "$OS"
 uname_arch_check "$ARCH"
@@ -300,7 +300,7 @@ adjust_arch
 
 echo "$PREFIX: found version ${VERSION} for ${OS}/${ARCH}"
 
-NAME=${BINARY}_${VERSION}_${OS}_${ARCH}
+NAME=${BINARY}_${OS}_${ARCH}
 TARBALL=${NAME}.${FORMAT}
 TARBALL_URL=${GITHUB_DOWNLOAD}/v${VERSION}/${TARBALL}
 CHECKSUM=${BINARY}_${VERSION}_checksums.txt
