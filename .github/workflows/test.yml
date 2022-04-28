@@ -32,10 +32,10 @@ jobs:
             package-lock.json
 
       - name: Install bud node_modules
-        run: npm install
+        run: npm ci
 
-      - name: Install budjs node_modules
-        run: npm install
+      - name: Install livebud node_modules
+        run: npm ci
         working-directory: ./livebud
 
       # Get values for cache paths to be used in later steps
