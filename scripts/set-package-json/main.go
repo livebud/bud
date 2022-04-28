@@ -35,7 +35,11 @@ func run() error {
 	}
 	// Update the dependencies in .
 	if err := npm.Set(dir, map[string]string{
-		"devDependencies.svelte": version.Svelte,
+		"devDependencies.svelte":           version.Svelte,
+		"devDependencies.react":            version.React,
+		"devDependencies.react-dom":        version.React,
+		"devDependencies.@types/react":     version.React,
+		"devDependencies.@types/react-dom": version.React,
 	}); err != nil {
 		return err
 	}
