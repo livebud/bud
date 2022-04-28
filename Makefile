@@ -136,8 +136,8 @@ budjs.test:
 ##
 
 test: test.dev
-test.dev: go.tools go.generate go.fmt go.vet budjs.check go.test budjs.test
-test.all: go.tools go.generate go.fmt go.vet budjs.check go.test budjs.test
+test.dev: go.tools go.generate go.fmt go.vet budjs.ci budjs.check budjs.test go.test
+test.all: go.tools go.generate go.fmt go.vet budjs.ci budjs.check budjs.test go.test
 
 ##
 # CI
