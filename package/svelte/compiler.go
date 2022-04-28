@@ -6,17 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/livebud/bud/internal/ldflag"
-
 	_ "embed"
 
 	"github.com/livebud/bud/package/js"
 )
-
-type Input struct {
-	VM  js.VM
-	Dev bool
-}
 
 // compiler.js is used to compile .svelte files into JS & CSS
 //go:embed compiler.js
@@ -26,7 +19,8 @@ func Load(vm js.VM) (*Compiler, error) {
 	if err := vm.Script("svelte/compiler.js", compiler); err != nil {
 		return nil, err
 	}
-	return &Compiler{vm, ldflag.IsDevelopment()}, nil
+	// TODO make dev configurable
+	return &Compiler{vm, true}, nil
 }
 
 type Compiler struct {

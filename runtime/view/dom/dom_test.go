@@ -157,6 +157,7 @@ func TestGenerateDir(t *testing.T) {
 
 	code, err = fs.ReadFile(overlay, fmt.Sprintf("bud/view/%s", chunkName))
 	is.NoErr(err)
+	fmt.Println(string(code))
 	is.True(strings.Contains(string(code), `"SvelteDOMInsert"`))
 	is.True(strings.Contains(string(code), `"bud_props"`))
 }
