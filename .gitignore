@@ -17,9 +17,6 @@ example/*/bud
 example/scratch
 
 # Ignore generated files
-runtime/web/welcome/*.out.*
-package/svelte/compiler.js
-package/logfilter/filter.peg.go
 internal/urlx/parse.peg.go
 
 # Avoid accidental builds getting committed

@@ -2,7 +2,6 @@ package gomod
 
 import (
 	"fmt"
-	"go/build"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/cespare/xxhash"
 	"github.com/livebud/bud/internal/gois"
+	"github.com/livebud/bud/internal/goroot"
 	"github.com/livebud/bud/package/vfs"
 )
 
@@ -88,7 +88,7 @@ func (m *Module) ResolveImport(directory string) (importPath string, err error) 
 }
 
 // dir containing the standard libraries
-var stdDir = filepath.Join(build.Default.GOROOT, "src")
+var stdDir = filepath.Join(goroot.Find(), "src")
 
 // ResolveDirectory resolves an import to an absolute path
 func (m *Module) ResolveDirectory(importPath string) (directory string, err error) {

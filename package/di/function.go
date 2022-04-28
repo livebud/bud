@@ -100,17 +100,17 @@ func tryFunction(fn *parser.Function, importPath, dataType string) (*function, e
 		if gois.Builtin(pt.String()) {
 			return nil, ErrNoMatch
 		}
-		importPath, err := parser.ImportPath(pt)
+		imPath, err := parser.ImportPath(pt)
 		if err != nil {
 			return nil, err
 		}
 		def, err := param.Definition()
 		if err != nil {
-			return nil, fmt.Errorf("di: unable to find definition for %q.%s > %w", importPath, parser.Unqualify(pt).String(), err)
+			return nil, fmt.Errorf("di: unable to find definition for param %q.%s within %q.%s > %w", imPath, parser.Unqualify(pt).String(), importPath, dataType, err)
 		}
 		module := def.Package().Module()
 		function.Params = append(function.Params, &Type{
-			Import: importPath,
+			Import: imPath,
 			Type:   parser.Unqualify(pt).String(),
 			kind:   def.Kind(),
 			module: module,
@@ -122,13 +122,13 @@ func tryFunction(fn *parser.Function, importPath, dataType string) (*function, e
 		if name == "" {
 			name = parser.TypeName(rt)
 		}
-		importPath, err := parser.ImportPath(rt)
+		imPath, err := parser.ImportPath(rt)
 		if err != nil {
 			return nil, err
 		}
 		def, err := result.Definition()
 		if err != nil {
-			return nil, fmt.Errorf("di: unable to find definition for %q.%s > %w", importPath, parser.Unqualify(rt).String(), err)
+			return nil, fmt.Errorf("di: unable to find definition for result %q.%s within %q.%s > %w", imPath, parser.Unqualify(rt).String(), importPath, dataType, err)
 		}
 		unqualified := parser.Unqualify(rt)
 		function.Results = append(function.Results, &Type{
