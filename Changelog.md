@@ -1,12 +1,16 @@
 # Changelog
 
-## Unreleased
+## v0.0.4
 
 - Fix `bud run` after installing from Github
 
   When you build the binaries with --trimpath, it removes the import paths stored within the binary. This is preferable because you don't want to see my filepaths within the binary, but it also means that the downloaded binary was no longer able to find where the standard library packages were located. I fixed this by calling `go env` on boot. This adds about 7ms overhead on boot, so I'd like to find a way to do this without spawning, but we'll leave that as an exercise for the reader :)
 
   Another problem we encountered was that the runtime was missing some of the necessary embedded assets. I've removed them from .gitignore to fix the problem. Longer-term I think it makes sense to use bindata for this case to turn them into Go files that can be ignored in development but are built into the binary for production.
+
+- Add back missing node_modules
+
+  I overpruned the dependencies and that was causing failures in CI. I added them back in.
 
 ## v0.0.3
 
