@@ -16,9 +16,6 @@ example/*/bud
 # The scratch example is always built from scratch
 example/scratch
 
-# Ignore generated files
-internal/urlx/parse.peg.go
-
 # Avoid accidental builds getting committed
 /bud
 
