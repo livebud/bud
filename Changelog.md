@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.0.7
+
+- Download go modules after scaffolding
+
+  Hopefully fully fixing `bud create <dir>` this time. Bud now downloads the runtime modules upon create.
+
+- Add some getting started instructions
+
+  I've written up a bit of documentation on how to get started. There's a lot more to come here!
+
 ## v0.0.6
 
 - Fixed `bud create`
@@ -32,7 +42,7 @@
 
 - Bud is finally open source on Github!
 
-  I'm thrilled to finally share my side project with everyone! I first started working on this while in lockdown in Berlin on April 20th, 2019. A co-worker suggested I have a look at the Laracast videos about Laravel. I was just blown away by how productive you can be in Laravel.
+  I'm thrilled to finally share my side project with everyone! I first started working on this while in lockdown in Berlin on April 20th, 2020. A co-worker suggested I have a look at the Laracast videos about Laravel. I was just blown away by how productive you can be in Laravel.
 
   As a former solo developer, I place a lot of weight on having all the tools you need to build, launch and iterate on ideas as quickly as possible. Laravel provides a comprehensive and cohesive toolset for getting your ideas out there quickly.
 
