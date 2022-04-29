@@ -334,4 +334,8 @@
   // index.js
   var jsConfetti = new es_default();
   jsConfetti.addConfetti();
+  var sse = new EventSource("http://0.0.0.0:35729");
+  sse.addEventListener("message", () => {
+    location.reload();
+  });
 })();
