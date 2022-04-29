@@ -69,6 +69,13 @@ go.vet:
 go.fmt:
 	@ test -z "$(shell go fmt $(GO_SOURCE))"
 
+go.install:
+	@ go install --trimpath \
+		--ldflags="-s -w \
+			-X 'github.com/livebud/bud/internal/version.Bud=$(BUD_VERSION)' \
+		" \
+		.
+
 # Use xgo to cross-compile for OSX, Linux and Windows
 go.build.darwin:
 	@ xgo \

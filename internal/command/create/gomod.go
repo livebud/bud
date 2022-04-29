@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -85,6 +86,15 @@ func (c *Command) generateGoMod(ctx context.Context, dir string) error {
 		return err
 	}
 	if err := os.WriteFile(filepath.Join(dir, "go.mod"), code, 0644); err != nil {
+		return err
+	}
+	// Download the dependencies in go modules to GOMODCACHE
+	cmd := exec.Command("go", "mod", "download", "all")
+	cmd.Env = os.Environ()
+	cmd.Dir = dir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
 		return err
 	}
 	return nil
