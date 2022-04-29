@@ -52,15 +52,23 @@ func (c *Command) generateGoMod(ctx context.Context, dir string) error {
 		}
 	}
 	// Get the Go version
-	state.Version = strings.TrimPrefix(runtime.Version(), "go")
+	state.Version = strings.TrimPrefix(goVersion(runtime.Version()), "go")
 	// Add the required dependencies
-	state.Requires = []*Require{
-		{
-			Import:  "github.com/livebud/bud",
-			Version: "v" + version.Bud,
-		},
-	}
-	if c.Link {
+	if version.Bud != "latest" {
+		state.Requires = []*Require{
+			{
+				Import:  "github.com/livebud/bud",
+				Version: "v" + version.Bud,
+			},
+		}
+	} else {
+		// Link to local copy
+		state.Requires = []*Require{
+			{
+				Import:  "github.com/livebud/bud",
+				Version: "v0.0.0",
+			},
+		}
 		budModule, err := gomod.Find(wd)
 		if err != nil {
 			return err
@@ -80,4 +88,17 @@ func (c *Command) generateGoMod(ctx context.Context, dir string) error {
 		return err
 	}
 	return nil
+}
+
+// Version can be
+func goVersion(version string) string {
+	parts := strings.SplitN(version, ".", 3)
+	switch len(parts) {
+	case 1:
+		return parts[0] + ".0"
+	case 2:
+		return strings.Join(parts, ".")
+	default:
+		return strings.Join(parts[0:2], ".")
+	}
 }

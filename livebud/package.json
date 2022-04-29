@@ -1,7 +1,6 @@
 {
   "name": "livebud",
   "description": "JS Runtime for Bud",
-  "version": "main",
   "private": true,
   "type": "module",
   "keywords": [

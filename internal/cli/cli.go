@@ -39,7 +39,6 @@ func parse(args []string) error {
 	{ // $ bud create <app>
 		cmd := &create.Command{Bud: bud}
 		cli := cli.Command("create", "create a new project")
-		cli.Flag("link", "link for development").Bool(&cmd.Link).Default(false)
 		cli.Arg("dir").String(&cmd.Dir)
 		cli.Run(cmd.Run)
 	}
