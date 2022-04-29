@@ -106,7 +106,12 @@ func (m *Module) IsLocal(importPath string) bool {
 func (m *Module) ResolveDirectoryIn(localFS fs.FS, importPath string) (directory string, err error) {
 	// Handle standard library
 	if gois.StdLib(importPath) {
-		return filepath.Join(stdDir, importPath), nil
+		absdir := filepath.Join(stdDir, importPath)
+		// Ensure the resolved directory exists.
+		if _, err := os.Stat(absdir); err != nil {
+			return "", fmt.Errorf("mod: unable to resolve directory for replaced import path %q: %w", importPath, err)
+		}
+		return absdir, nil
 	}
 	// Handle local packages
 	modulePath := m.Import()
