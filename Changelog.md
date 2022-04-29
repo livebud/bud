@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.0.6
+
+- Fixed `bud create`
+
+  Now that bud is public and has versions, I did another pass over `bud create <dir>` to get it working as expected
+
+- Add live reload to the welcome page
+
+  In an effort to vanguish all page refreshes, needing to refresh the welcome page stuck out like a thorn. This release clips that thorn.
+
 ## v0.0.5
 
 - Next attempt at fixing `bud run` after installing from Github
