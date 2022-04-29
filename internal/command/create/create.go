@@ -66,7 +66,6 @@ func (c *Command) Run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println(dir, "link", "livebud", filepath.Join(budDir, "livebud"))
 		cmd := exec.CommandContext(ctx, npm, "link", "--loglevel=error", "livebud", filepath.Join(budDir, "livebud"))
 		cmd.Dir = dir
 		cmd.Stderr = os.Stderr
