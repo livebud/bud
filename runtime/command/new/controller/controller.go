@@ -198,8 +198,8 @@ func splitKeyAndResource(rel string) (p string, r string) {
 		}
 		return key, resource
 	}
-	key := controllerKey(parts[0])
-	return key, parts[1]
+	key := controllerKey(parts[1])
+	return key, parts[0]
 }
 
 func controllerKey(path string) string {
