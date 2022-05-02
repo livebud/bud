@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/default.css" />
+
+    <style>
+      body {
+        font-size: 16px;
+        --gray-50: #f8fafc;
+        background-color: var(--gray-50);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+      }
+      h1.svelte-107p9mm.svelte-107p9mm {
+        margin-top: 160px;
+        text-align: center;
+        font: var(--display-487);
+        letter-spacing: -0.02em;
+      }
+      .subheader.svelte-107p9mm.svelte-107p9mm {
+        margin: 0 auto;
+        text-align: center;
+        color: var(--gray-600);
+        font: var(--text-204);
+        max-width: 850px;
+      }
+      .cards.svelte-107p9mm.svelte-107p9mm {
+        list-style: none;
+        display: flex;
+        gap: 32px;
+        max-width: 1400px;
+        margin: var(--size-64) auto 0 auto;
+      }
+      .cards.svelte-107p9mm h2.svelte-107p9mm {
+        font: var(--text-206);
+        color: var(--gray-700);
+      }
+      .card.svelte-107p9mm.svelte-107p9mm {
+        padding: var(--size-32);
+      }
+      .card.svelte-107p9mm .arrow.svelte-107p9mm {
+        display: none;
+      }
+      .card.svelte-107p9mm:hover .arrow.svelte-107p9mm {
+        display: initial;
+      }
+      .cards.svelte-107p9mm p.svelte-107p9mm {
+        font: var(--text-204);
+        color: var(--gray-600);
+      }
+      footer.svelte-107p9mm.svelte-107p9mm {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        left: 0;
+        padding: var(--size-16);
+        text-align: center;
+        z-index: -1;
+      }
+      footer.svelte-107p9mm a.svelte-107p9mm {
+        color: var(--gray-400);
+        text-decoration: none;
+        padding: var(--size-32);
+      }
+      footer.svelte-107p9mm a.svelte-107p9mm:hover {
+        text-decoration: underline;
+      }
+      footer.svelte-107p9mm .version.svelte-107p9mm {
+        font-weight: bold;
+      }
+      .default.svelte-xc64fh {
+        --white: #fff;
+        --green-50: #edfcf2;
+        --green-100: #d3f8df;
+        --green-500: #16b364;
+        --blue-50: #eff8ff;
+        --blue-100: #d1e9ff;
+        --blue-500: #2e90fa;
+        --orange-50: #fef6ee;
+        --orange-100: #fdead7;
+        --orange-500: #ef6820;
+        --gray-50: #f8fafc;
+        --gray-400: #9aa4b2;
+        --gray-600: #4b5565;
+        --gray-700: #364152;
+        --font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji",
+          "Segoe UI Emoji", "Segoe UI Symbol";
+        --display-487: bold 3rem/1.25 var(--font-family);
+        --text-204: normal 1.25rem/1.5 var(--font-family);
+        --text-206: 600 1.25rem/1.5 var(--font-family);
+        --text-207: bold 1.25rem/1.5 var(--font-family);
+        --text-165: medium 1rem/1.5 var(--font-family);
+        --text-167: bold 1rem/1.5 var(--font-family);
+        --size-4: 0.25rem;
+        --size-8: 0.5rem;
+        --size-12: 0.75rem;
+        --size-16: 1rem;
+        --size-20: 1.25rem;
+        --size-24: 1.5rem;
+        --size-32: 2rem;
+        --size-40: 2.5rem;
+        --size-48: 3rem;
+        --size-64: 4rem;
+        --size-80: 5rem;
+        --size-96: 6rem;
+        --size-128: 8rem;
+        --size-160: 10rem;
+        --size-192: 12rem;
+        --size-224: 14rem;
+        --size-256: 16rem;
+        --shadow-small: 0px 1px 3px rgba(16, 24, 40, 0.1),
+          0px 1px 2px rgba(16, 24, 40, 0.06);
+        --shadow-medium: 0px 4px 8px -2px rgba(16, 24, 40, 0.1),
+          0px 2px 4px -2px rgba(16, 24, 40, 0.06);
+        --shadow-large: 0px 12px 16px -4px rgba(16, 24, 40, 0.08),
+          0px 4px 6px -2px rgba(16, 24, 40, 0.03);
+        --radius-8: 8px;
+      }
+      .card.svelte-1abdbu7 {
+        display: block;
+        text-decoration: none;
+        background: var(--white);
+        box-shadow: var(--shadow-medium);
+        border-radius: var(--radius-8);
+      }
+      .card.svelte-1abdbu7:hover {
+        box-shadow: var(--shadow-small);
+      }
+      .outer.svelte-5c796b {
+        width: var(--size-64);
+        height: var(--size-64);
+        display: flex;
+        background: var(--orange-50);
+        align-items: center;
+        border-radius: 50%;
+        box-shadow: var(--shadow-small);
+      }
+      .inner.svelte-5c796b {
+        width: var(--size-48);
+        height: var(--size-48);
+        display: flex;
+        align-items: center;
+        margin: 0 auto;
+        background: var(--orange-100);
+        border-radius: 50%;
+        color: var(--orange-500);
+        font: var(--text-medium-bold);
+      }
+      .icon.svelte-5c796b {
+        margin: 0 auto;
+      }
+      .outer.svelte-1qz3xuj {
+        width: var(--size-64);
+        height: var(--size-64);
+        display: flex;
+        background: var(--blue-50);
+        align-items: center;
+        border-radius: 50%;
+        box-shadow: var(--shadow-small);
+      }
+      .inner.svelte-1qz3xuj {
+        width: var(--size-48);
+        height: var(--size-48);
+        margin: 0 auto;
+        background: var(--blue-100);
+        display: flex;
+        align-items: center;
+        border-radius: 50%;
+      }
+      svg.svelte-1qz3xuj {
+        margin: 0 auto;
+        color: var(--blue-500);
+      }
+      .outer.svelte-17y2oxs {
+        width: var(--size-64);
+        height: var(--size-64);
+        display: flex;
+        background: var(--green-50);
+        align-items: center;
+        border-radius: 50%;
+        box-shadow: var(--shadow-small);
+      }
+      .inner.svelte-17y2oxs {
+        width: var(--size-48);
+        height: var(--size-48);
+        margin: 0 auto;
+        background: var(--green-100);
+        display: flex;
+        align-items: center;
+        border-radius: 50%;
+      }
+      svg.svelte-17y2oxs {
+        margin: 0 auto;
+        color: var(--green-500);
+      }
+    </style>
+    <script id="bud_props" type="text/template" defer>
+      {"_string":""}
+    </script>
+    <script type="module" src="/bud/view/_index.svelte.js" defer></script>
+  </head>
+  <body>
+    <div id="bud_target">
+      <div class="default svelte-xc64fh">
+        <h1 class="svelte-107p9mm">👋 Welcome to Bud</h1>
+
+        <p class="subheader svelte-107p9mm">
+          I&#39;m just thrilled that you&#39;re trying out the beta version. Get
+          started with the quick links below or simply create an index
+          controller and view to go on your own adventure.
+        </p>
+
+        <div class="cards svelte-107p9mm">
+          <a href="" class="card svelte-1abdbu7"
+            ><div class="card svelte-107p9mm">
+              <div class="outer svelte-5c796b">
+                <div class="inner svelte-5c796b">
+                  <div class="icon svelte-5c796b">HN</div>
+                </div>
+              </div>
+              <h2 class="svelte-107p9mm">
+                Hacker News Demo <span class="arrow svelte-107p9mm">→</span>
+              </h2>
+              <p class="svelte-107p9mm">
+                Create your very own minimal Hacker News clone in 15 minutes
+                with Bud.
+              </p>
+            </div></a
+          >
+          <a href="" class="card svelte-1abdbu7"
+            ><div class="card svelte-107p9mm">
+              <div class="outer svelte-1qz3xuj">
+                <div class="inner svelte-1qz3xuj">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="svelte-1qz3xuj"
+                  >
+                    <polygon
+                      points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"
+                    ></polygon>
+                    <line x1="8" y1="2" x2="8" y2="18"></line>
+                    <line x1="16" y1="6" x2="16" y2="22"></line>
+                  </svg>
+                </div>
+              </div>
+              <h2 class="svelte-107p9mm">
+                Read the Documentation
+                <span class="arrow svelte-107p9mm">→</span>
+              </h2>
+              <p class="svelte-107p9mm">
+                Learn about all the things you can do with Bud in our
+                comprehensive guide.
+              </p>
+            </div></a
+          >
+          <a href="" class="card svelte-1abdbu7"
+            ><div class="card svelte-107p9mm">
+              <div class="outer svelte-17y2oxs">
+                <div class="inner svelte-17y2oxs">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="svelte-17y2oxs"
+                  >
+                    <path
+                      d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
+              <h2 class="svelte-107p9mm">
+                Schedule a 15 minute call
+                <span class="arrow svelte-107p9mm">→</span>
+              </h2>
+              <p class="svelte-107p9mm">
+                For the more personal touch, jump on a call with Matt for
+                questions and a demo.
+              </p>
+            </div></a
+          >
+        </div>
+
+        <footer class="svelte-107p9mm">
+          <a href="/" class="svelte-107p9mm">Github</a>
+          <a href="/" class="svelte-107p9mm">Twitter</a>
+          <a href="/" class="version svelte-107p9mm">Bud v0.0.2</a>
+          <a href="/" class="svelte-107p9mm">Roadmap</a>
+          <a href="/" class="svelte-107p9mm">Email</a>
+        </footer>
+      </div>
+    </div>
+  </body>
+</html>

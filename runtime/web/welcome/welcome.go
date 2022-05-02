@@ -1,49 +1,30 @@
 package welcome
 
 import (
-	"bytes"
+	"embed"
 	_ "embed"
+	"io/fs"
 	"net/http"
-	"time"
 
 	"github.com/livebud/bud/package/middleware"
-	"github.com/livebud/bud/package/router"
 )
 
-//go:generate esbuild --bundle --log-level=error --outfile=index.out.css index.css
-//go:generate esbuild --bundle --log-level=error --outfile=index.out.js index.js
+// Files are built in https://github.com/livebud/welcome and manually copied
+// over.
+//go:embed build/index.html build/default.css build/bud/view/_index.svelte.js
+var embeds embed.FS
 
-// Compute the modTime once when loaded
-// TODO: can we do better here?
-var modTime = time.Now()
-
-func New() Middleware {
-	router := router.New()
-	router.Get("/", http.HandlerFunc(serveHTML))
-	router.Get("/index.css", http.HandlerFunc(serveCSS))
-	router.Get("/index.js", http.HandlerFunc(serveJS))
-	return router
+func Load() (Middleware, error) {
+	fsys, err := fs.Sub(embeds, "build")
+	if err != nil {
+		return nil, err
+	}
+	server := http.FileServer(http.FS(fsys))
+	return middleware.Function(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			server.ServeHTTP(w, r)
+		})
+	}), nil
 }
 
 type Middleware = middleware.Middleware
-
-//go:embed index.html
-var indexHtml []byte
-
-func serveHTML(w http.ResponseWriter, r *http.Request) {
-	http.ServeContent(w, r, "index.html", modTime, bytes.NewReader(indexHtml))
-}
-
-//go:embed index.out.css
-var indexCSS []byte
-
-func serveCSS(w http.ResponseWriter, r *http.Request) {
-	http.ServeContent(w, r, "index.out.css", modTime, bytes.NewReader(indexCSS))
-}
-
-//go:embed index.out.js
-var indexJS []byte
-
-func serveJS(w http.ResponseWriter, r *http.Request) {
-	http.ServeContent(w, r, "index.out.js", modTime, bytes.NewReader(indexJS))
-}

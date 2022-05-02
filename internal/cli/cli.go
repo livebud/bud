@@ -103,6 +103,7 @@ func parse(args []string) error {
 	{ // $ bud version
 		cmd := &version.Command{}
 		cli := cli.Command("version", "Show package versions")
+		cli.Arg("key").String(&cmd.Key).Default("")
 		cli.Run(cmd.Run)
 	}
 
