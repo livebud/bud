@@ -70,7 +70,7 @@ func (c *Command) generateGoMod(ctx context.Context, dir string) error {
 				Version: "v0.0.0",
 			},
 		}
-		budModule, err := gomod.Find(wd)
+		budModule, err := findBudModule()
 		if err != nil {
 			return err
 		}

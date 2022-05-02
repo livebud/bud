@@ -2,9 +2,6 @@ BUD_VERSION := $(shell cat version.txt)
 
 precommit: test.dev
 
-install:
-	@ go install
-
 ##
 # Examples
 ##
@@ -70,10 +67,11 @@ go.fmt:
 	@ test -z "$(shell go fmt $(GO_SOURCE))"
 
 go.install:
-	@ go install --trimpath \
+	@ go build --trimpath \
 		--ldflags="-s -w \
-			-X 'github.com/livebud/bud/internal/version.Bud=$(BUD_VERSION)' \
+			-X 'github.com/livebud/bud/internal/version.Bud=latest' \
 		" \
+		-o /usr/local/bin/bud \
 		.
 
 # Use xgo to cross-compile for OSX, Linux and Windows
