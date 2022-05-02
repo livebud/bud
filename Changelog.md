@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.0.9
+
+- Add support for `bud create .`
+- Fix `bud create` for the development binary when outside the source tree.
+- Reverse `bud new controller` from route:resource (e.g. `/:stories`) to resource:route (e.g. `stories:/`) to avoid confusion with URL params.
+- Correct the "Ready" message
+
 ## v0.0.8
 
 - Give the welcome page a fresh coat of paint.
