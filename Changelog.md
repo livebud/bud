@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.0.8
+
+- Give the welcome page a fresh coat of paint.
+- Support `bud version [key]` to make it easier to script getting the version of bud.
+
 ## v0.0.7
 
 - Download go modules after scaffolding
