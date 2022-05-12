@@ -56,23 +56,8 @@ $ bud run
 
 Click on the link to open the browser. You'll be greeted with bud's welcome page.
 
-Congrats! You're running your first server with bud's help.
+Congrats! You're running your first web server with Bud.
 
-## Hello World
+## Going Further
 
-The welcome page is cute, but it's time to make this web app our own.
-
-Fire up your editor and create a `controller/controller.go` file. Inside this file, add the following code:
-
-```go
-package controller
-
-type Controller struct {
-}
-
-func (c *Controller) Index() string {
-  return "hello world!"
-}
-```
-
-Then if you glance back at your browser, you should see hello world. Now we're getting somewhere!
+Use the quick links on the welcome page to learn more about how to go further with Bud.
