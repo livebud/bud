@@ -43,6 +43,7 @@ func (c *Command) Run(ctx context.Context) error {
 	}
 	fn.Target = target.ImportPath()
 	fn.Name = target.TypeName()
+	fn.Aliases = di.Aliases{}
 	// Add the type mapping
 	for from, to := range c.Map {
 		fromDep, err := c.toDependency(module, from)
