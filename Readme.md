@@ -8,7 +8,7 @@ Bud writes the boring code for you, helping you launch your website faster.
 
 Watch a video demonstrating how to build a minimal HN clone in 15 minutes with Bud.
 
-[![](https://user-images.githubusercontent.com/170299/168357550-23d1a539-0a6e-4b4f-a51a-b17b81b70d76.png)](https://www.youtube.com/watch?v=LoypcRqn-xA)
+[![](https://user-images.githubusercontent.com/170299/168361927-9165c2f9-55d4-4fa0-a53e-966028a79b39.png)](https://www.youtube.com/watch?v=LoypcRqn-xA)
 
 ## Documentation
 
