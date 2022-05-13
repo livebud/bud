@@ -4,6 +4,12 @@ The Fullstack Go Framework for Prolific Web Developers.
 
 Bud writes the boring code for you, helping you launch your website faster.
 
+## Video Demo
+
+Watch a video demonstrating how to build a minimal HN clone in 15 minutes with Bud.
+
+[![](https://user-images.githubusercontent.com/170299/168357550-23d1a539-0a6e-4b4f-a51a-b17b81b70d76.png)](https://www.youtube.com/watch?v=LoypcRqn-xA)
+
 ## Documentation
 
 Read [the documentation](https://denim-cub-301.notion.site/Hey-Bud-4d81622cc49942f9917c5033e5205c69) to learn how to get started with Bud.
