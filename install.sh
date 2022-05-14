@@ -45,10 +45,19 @@ execute() {
   hash_sha256_verify "${tmp_dir}/${TARBALL}" "${tmp_dir}/${CHECKSUM}"
 
   (cd "${tmp_dir}" && untar "${TARBALL}")
-  install -d "${BINDIR}"
-  install "${tmp_dir}/${NAME}/${BINARY}" "${BINDIR}/"
+
+  if [ -w "$BINDIR" ]; then
+  log_info "Installing $out to $prefix"
+    install -d "${BINDIR}"
+    install "${tmp_dir}/${NAME}/${BINARY}" "${BINDIR}/"
+  else
+    sudo install -d "${BINDIR}"
+    sudo install "${tmp_dir}/${NAME}/${BINARY}" "${BINDIR}/"
+  fi
+  
   echo "$PREFIX: installed as ${BINDIR}/${BINARY}"
 }
+
 is_supported_platform() {
   platform=$1
   found=1
