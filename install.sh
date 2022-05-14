@@ -46,6 +46,14 @@ execute() {
 
   (cd "${tmp_dir}" && untar "${TARBALL}")
 
+  # we check if the directory we plan to store the binary in is actually writable by
+  # the current user. If not , we request for sudo permissions  
+  # this is done by -w in the if condition 
+  # -w - write 
+  # -r - read 
+  # -x - execution 
+  # -x is avoided here since the assumption is that the user will install 
+  # the binary in a directory already in the PATH env var 
   if [ -w "$BINDIR" ]; then
     install -d "${BINDIR}"
     install "${tmp_dir}/${NAME}/${BINARY}" "${BINDIR}/"
