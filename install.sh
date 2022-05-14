@@ -47,10 +47,10 @@ execute() {
   (cd "${tmp_dir}" && untar "${TARBALL}")
 
   if [ -w "$BINDIR" ]; then
-  log_info "Installing $out to $prefix"
     install -d "${BINDIR}"
     install "${tmp_dir}/${NAME}/${BINARY}" "${BINDIR}/"
   else
+    echo "Elevated permissions required to install the binary"
     sudo install -d "${BINDIR}"
     sudo install "${tmp_dir}/${NAME}/${BINARY}" "${BINDIR}/"
   fi
