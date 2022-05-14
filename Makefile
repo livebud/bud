@@ -75,7 +75,7 @@ go.install:
 		.
 
 # Use xgo to cross-compile for OSX, Linux and Windows
-go.build.darwin:
+go.build.darwin.amd64:
 	@ xgo \
 		--targets=darwin/amd64 \
 		--dest=release \
@@ -90,6 +90,23 @@ go.build.darwin:
 	@ cp {Changelog,License,Readme}.md release/bud_darwin_amd64
 	@ tar -czf release/bud_darwin_amd64.tar.gz -C release bud_darwin_amd64
 	@ rm -rf release/bud_darwin_amd64
+
+# Use xgo to cross-compile for OSX (arm64)
+go.build.darwin.arm64:
+	@ xgo \
+		--targets=darwin/arm64 \
+		--dest=release \
+		--out=bud \
+		--trimpath \
+		--ldflags="-s -w \
+			-X 'github.com/livebud/bud/internal/version.Bud=$(BUD_VERSION)' \
+		" \
+		./ 1> /dev/null
+	@ mkdir -p release/bud_darwin_arm64
+	@ mv release/bud-darwin-10.12-arm64 release/bud_darwin_arm64/bud
+	@ cp {Changelog,License,Readme}.md release/bud_darwin_arm64
+	@ tar -czf release/bud_darwin_arm64.tar.gz -C release bud_darwin_arm64
+	@ rm -rf release/bud_darwin_arm64
 
 go.build.linux:
 	@ xgo \
@@ -162,7 +179,8 @@ ci.ubuntu: test.all
 build:
 	@ rm -rf release
 	@ $(MAKE) --no-print-directory -j4 \
-		go.build.darwin \
+		go.build.darwin.amd64 \
+		go.build.darwin.arm64 \
 		go.build.linux
 	@ go run scripts/generate-checksums/main.go
 
