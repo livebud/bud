@@ -34,10 +34,12 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	c.generateGoMod(ctx, tmpDir)
+
 	eg, ctx2 := errgroup.WithContext(ctx)
-	eg.Go(func() error { return c.generatePackageJSON(ctx2, tmpDir, filepath.Base(dir)) })
 	eg.Go(func() error { return c.generateGitIgnore(ctx2, tmpDir) })
-	eg.Go(func() error { return c.generateGoMod(ctx2, tmpDir) })
+	eg.Go(func() error { return c.generatePackageJSON(ctx2, tmpDir, filepath.Base(dir)) })
 	if err := eg.Wait(); err != nil {
 		return err
 	}
