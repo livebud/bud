@@ -2,6 +2,7 @@ package gotemplate
 
 import (
 	"bytes"
+	"go/format"
 	"text/template"
 )
 
@@ -37,6 +38,9 @@ func (t *gotemplate) Generate(state interface{}) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	if err := t.tpl.Execute(buf, state); err != nil {
 		return nil, err
+	}
+	if val, err := format.Source(buf.Bytes()); err == nil {
+		return val, nil
 	}
 	return buf.Bytes(), nil
 }
