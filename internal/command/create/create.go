@@ -35,7 +35,10 @@ func (c *Command) Run(ctx context.Context) error {
 		return err
 	}
 
-	c.generateGoMod(ctx, tmpDir)
+	err = c.generateGoMod(ctx, tmpDir)
+	if err != nil {
+		return err
+	}
 
 	eg, ctx2 := errgroup.WithContext(ctx)
 	eg.Go(func() error { return c.generateGitIgnore(ctx2, tmpDir) })
