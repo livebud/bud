@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.1.0
+
+This release wraps up the [v0.1](https://github.com/livebud/bud/discussions/17) milestone 🎉
+
+- Add initial darwin/arm64 (aka Apple M1) Support (please test!)
+- Update the welcome page to include all the links.
+
+I'm completely overwhelmed by all the love. As I write this, we're still on the front page of [Hacker News](https://news.ycombinator.com/item?id=31371340) (13 hours in!):
+
+![HN](https://user-images.githubusercontent.com/170299/168419120-83faf09c-f5c8-406c-a98c-4c694fab5c2e.png)
+
+And we're at the top of the [Go subreddit](https://www.reddit.com/r/golang).
+
+![Reddit](https://user-images.githubusercontent.com/170299/168419117-a2b1a033-0f87-498d-8a8b-71d608c6dd57.png)
+
 ## v0.0.9
 
 - Add support for `bud create .`
