@@ -49,6 +49,10 @@ Commands:
   version  Show package versions
 ```
 
+### `go` version
+
+Bud relies heavily on `io/fs` and will take advantage of generics in the future, so we suggest running Go 1.18+.
+
 # Your First Project
 
 With bud installed, you can now scaffold a new project:
