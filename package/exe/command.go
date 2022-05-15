@@ -26,7 +26,7 @@ func (c *Cmd) Close() error {
 		}
 	}
 	if err := cmd.Wait(); err != nil {
-		if !isExitStatus(err) && !isWaitError(err) {
+		if !canIgnore(err) {
 			return err
 		}
 	}
@@ -37,8 +37,24 @@ func (c *Cmd) Wait() error {
 	return c.cmd().Wait()
 }
 
+// Errors we can safely ignore when closing the process
+func canIgnore(err error) bool {
+	return isExitStatus(err) ||
+		isInterrupt(err) ||
+		isKilled(err) ||
+		isWaitError(err)
+}
+
 func isExitStatus(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "exit status ")
+}
+
+func isInterrupt(err error) bool {
+	return err != nil && err.Error() == `signal: interrupt`
+}
+
+func isKilled(err error) bool {
+	return err != nil && err.Error() == `signal: killed`
 }
 
 func isWaitError(err error) bool {
