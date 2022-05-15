@@ -19,13 +19,17 @@ import (
 	"github.com/livebud/bud/package/gomod"
 )
 
+func New(bud *command.Bud) *Command {
+	return &Command{bud: bud}
+}
+
 type Command struct {
-	Bud *command.Bud
+	bud *command.Bud
 	Dir string
 }
 
 func (c *Command) Run(ctx context.Context) error {
-	dir := filepath.Join(c.Bud.Dir, c.Dir)
+	dir := filepath.Join(c.bud.Dir, c.Dir)
 	// Check if we can write into the directory
 	if err := checkDir(dir); err != nil {
 		return err

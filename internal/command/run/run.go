@@ -10,8 +10,12 @@ import (
 	"github.com/livebud/bud/package/socket"
 )
 
+func New(bud *command.Bud) *Command {
+	return &Command{bud: bud}
+}
+
 type Command struct {
-	Bud  *command.Bud
+	bud  *command.Bud
 	Port string
 }
 
@@ -32,12 +36,12 @@ func (c *Command) Run(ctx context.Context) error {
 	}
 	console.Info("Listening on http://" + host + ":" + port)
 	// Load the compiler
-	compiler, err := bud.Find(c.Bud.Dir)
+	compiler, err := bud.Find(c.bud.Dir)
 	if err != nil {
 		return err
 	}
 	// Compiler the project CLI
-	project, err := compiler.Compile(ctx, &c.Bud.Flag)
+	project, err := compiler.Compile(ctx, &c.bud.Flag)
 	if err != nil {
 		return err
 	}

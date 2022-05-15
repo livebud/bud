@@ -8,6 +8,10 @@ import (
 	runtime_bud "github.com/livebud/bud/runtime/bud"
 )
 
+func New() *Bud {
+	return &Bud{}
+}
+
 // Bud command
 type Bud struct {
 	Flag runtime_bud.Flag

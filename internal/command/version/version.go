@@ -9,6 +9,10 @@ import (
 	"github.com/livebud/bud/internal/version"
 )
 
+func New() *Command {
+	return &Command{}
+}
+
 type Command struct {
 	Key string
 }

@@ -14,8 +14,12 @@ import (
 	"github.com/livebud/bud/package/parser"
 )
 
+func New(bud *command.Bud) *Command {
+	return &Command{bud: bud}
+}
+
 type Command struct {
-	Bud          *command.Bud
+	bud          *command.Bud
 	Target       string
 	Map          map[string]string
 	Dependencies []string
@@ -25,7 +29,7 @@ type Command struct {
 }
 
 func (c *Command) Run(ctx context.Context) error {
-	module, err := gomod.Find(c.Bud.Dir)
+	module, err := gomod.Find(c.bud.Dir)
 	if err != nil {
 		return err
 	}

@@ -30,21 +30,21 @@ func Parse(args []string) int {
 
 func parse(args []string) error {
 	// $ bud
-	bud := new(command.Bud)
+	bud := command.New()
 	cli := commander.New("bud")
 	cli.Flag("chdir", "Change the working directory").Short('C').String(&bud.Dir).Default(".")
 	cli.Args("args").Strings(&bud.Args)
 	cli.Run(bud.Run)
 
 	{ // $ bud create <app>
-		cmd := &create.Command{Bud: bud}
+		cmd := create.New(bud)
 		cli := cli.Command("create", "create a new project")
 		cli.Arg("dir").String(&cmd.Dir)
 		cli.Run(cmd.Run)
 	}
 
 	{ // $ bud run
-		cmd := &run.Command{Bud: bud}
+		cmd := run.New(bud)
 		cli := cli.Command("run", "run the development server")
 		cli.Flag("embed", "embed the assets").Bool(&bud.Flag.Embed).Default(false)
 		cli.Flag("hot", "hot reload the frontend").Bool(&bud.Flag.Hot).Default(true)
@@ -54,7 +54,7 @@ func parse(args []string) error {
 	}
 
 	{ // $ bud build
-		cmd := &build.Command{Bud: bud}
+		cmd := build.New(bud)
 		cli := cli.Command("build", "build the production server")
 		cli.Flag("embed", "embed the assets").Bool(&bud.Flag.Embed).Default(true)
 		cli.Flag("hot", "hot reload the frontend").Bool(&bud.Flag.Hot).Default(false)
@@ -66,7 +66,7 @@ func parse(args []string) error {
 		cli := cli.Command("tool", "extra tools")
 
 		{ // $ bud tool di
-			cmd := &di.Command{Bud: bud}
+			cmd := di.New(bud)
 			cli := cli.Command("di", "dependency injection generator")
 			cli.Flag("dependency", "generate dependency provider").Short('d').Strings(&cmd.Dependencies)
 			cli.Flag("external", "mark dependency as external").Short('e').Strings(&cmd.Externals).Optional()
@@ -78,19 +78,19 @@ func parse(args []string) error {
 		}
 
 		{ // $ bud tool v8
-			cmd := &v8.Command{Bud: bud}
+			cmd := v8.New()
 			cli := cli.Command("v8", "Execute Javascript with V8 from stdin")
 			cli.Run(cmd.Run)
 
 			{ // $ bud tool v8 client
-				cmd := &v8client.Command{Bud: bud}
+				cmd := v8client.New()
 				cli := cli.Command("client", "V8 client used during development")
 				cli.Run(cmd.Run)
 			}
 		}
 
 		{ // $ bud tool cache
-			cmd := &cache.Command{}
+			cmd := cache.New(bud)
 			cli := cli.Command("cache", "Manage the build cache")
 
 			{ // $ bud tool cache clean
@@ -101,7 +101,7 @@ func parse(args []string) error {
 	}
 
 	{ // $ bud version
-		cmd := &version.Command{}
+		cmd := version.New()
 		cli := cli.Command("version", "Show package versions")
 		cli.Arg("key").String(&cmd.Key).Default("")
 		cli.Run(cmd.Run)
