@@ -115,5 +115,6 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 }
 
 func (c *Command) startHot(ctx context.Context, hotServer *hot.Server) error {
-	return hotServer.ListenAndServe(ctx, ":35729")
+	// TODO: host should be dynamic
+	return hotServer.ListenAndServe(ctx, "127.0.0.1:35729")
 }
