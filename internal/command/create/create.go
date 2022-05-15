@@ -17,6 +17,7 @@ import (
 	"github.com/livebud/bud/internal/command"
 	"github.com/livebud/bud/internal/version"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/otiai10/copy"
 )
 
 func New(bud *command.Bud) *Command {
@@ -56,7 +57,7 @@ func (c *Command) Run(ctx context.Context) error {
 		return err
 	}
 	// Try moving the temporary build path to the project directory
-	if err := os.Rename(tmpDir, dir); err != nil {
+	if err := move(tmpDir, dir); err != nil {
 		// Can't rename on top of an existing directory
 		if !errors.Is(err, fs.ErrExist) {
 			return err
@@ -67,7 +68,7 @@ func (c *Command) Run(ctx context.Context) error {
 			return err
 		}
 		for _, fi := range fis {
-			if err := os.Rename(filepath.Join(tmpDir, fi.Name()), filepath.Join(dir, fi.Name())); err != nil {
+			if err := move(filepath.Join(tmpDir, fi.Name()), filepath.Join(dir, fi.Name())); err != nil {
 				return err
 			}
 		}
@@ -148,4 +149,24 @@ func findBudModule() (*gomod.Module, error) {
 		return nil, err
 	}
 	return gomod.Find(dir)
+}
+
+// move first tries to rename `from` a directory from one location `to` another
+// directory. If `from` is on a different partition than `to`, the underlying
+// os.Rename can fail with an "invalid cross-device link" error. If this occurs
+// we'll fallback to copying all the files over recursively.
+func move(from, to string) error {
+	if err := os.Rename(from, to); err != nil {
+		// If it's not an invalid cross-device link error, return the error
+		if !isInvalidCrossLink(err) {
+			return err
+		}
+		// Fallback to copying files recursively
+		return copy.Copy(from, to)
+	}
+	return nil
+}
+
+func isInvalidCrossLink(err error) bool {
+	return err.Error() == "invalid cross-device link"
 }
