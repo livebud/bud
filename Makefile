@@ -3,6 +3,15 @@ BUD_VERSION := $(shell cat version.txt)
 precommit: test.dev
 
 ##
+# Setup bud for development
+##
+
+install:
+	go mod tidy
+	npm install
+	(cd livebud && npm install)
+
+##
 # Examples
 ##
 

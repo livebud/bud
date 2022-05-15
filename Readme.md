@@ -81,3 +81,7 @@ Congrats! You're running your first web server with Bud. The welcome server is y
 ![CleanShot 2022-05-12 at 22.00.19@2x.png](https://denim-cub-301.notion.site/image/https%3A%2F%2Fs3-us-west-2.amazonaws.com%2Fsecure.notion-static.com%2Fdb7f750b-a699-4117-ac07-303124e5d2f4%2FCleanShot_2022-05-12_at_22.00.192x.png?table=block&id=9488d91f-b72d-4c6d-9ce0-358c31f7f964&spaceId=faf0f409-6e25-40a4-871e-3b311037350f&width=2000&userId=&cache=v2)
 
 Check out the [Hacker News demo](https://www.youtube.com/watch?v=LoypcRqn-xA), [read the documentation](https://denim-cub-301.notion.site/Hey-Bud-4d81622cc49942f9917c5033e5205c69#156ea69b8d044bacb65fc2897f3e52b8), [schedule a quick call](https://cal.com/d/5iDN6qWZCLGMipwhFqhY3i/30min) or go on your own adventure. The only limit is your imagination.
+
+## Contributing
+
+Please refer to the [Contributing Guide](./Contributing.md) to learn how to run and test Bud locally.
