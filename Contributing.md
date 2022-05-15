@@ -37,6 +37,33 @@ After running `go run main.go`, you should see the following:
 
 If you run into any problems, please [open an issue](https://github.com/livebud/bud/issues/new).
 
+## Developing Bud with a Project
+
+Now that you have Bud running locally, you can use the `-C, --chdir` functionality to test Bud against different projects.
+
+You can use one of the projects in `example/`
+
+```sh
+# Run the development server on the example/hn application
+go run main.go -C example/hn run
+
+# Build a binary for the example/hn application
+go run main.go -C example/hn build
+```
+
+Or you can create your own project:
+
+```sh
+# Scaffold a new hello application
+go run main.go create hello
+
+# Run the development server for the hello application
+go run main.go -C hello run
+
+# Build a binary for the hello application
+go run main.go -C hello build
+```
+
 ## Running Tests
 
 You can use the following commands to run all the tests:
