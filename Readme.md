@@ -71,7 +71,7 @@ Start the development server with `bud run`:
 
 ```bash
 $ bud run
-| Listening on http://0.0.0.0:3000
+| Listening on http://127.0.0.1:3000
 ```
 
 Click on the link to open the browser. You'll be greeted with bud's welcome page.

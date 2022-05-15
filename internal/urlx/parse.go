@@ -14,7 +14,7 @@ import (
 
 var ErrParsing = errors.New("urlx: unable to parse")
 
-var defaultHost = "0.0.0.0"
+var defaultHost = "127.0.0.1"
 var defaultPort = "3000"
 
 func Parse(input string) (*url.URL, error) {
@@ -61,7 +61,7 @@ func Parse(input string) (*url.URL, error) {
 	if hasHost && hasPort {
 		u.Host = parser.url.host + ":" + parser.url.port
 	} else if hasPort {
-		u.Host = defaultHost + ":" + parser.url.port // default to 0.0.0.0
+		u.Host = defaultHost + ":" + parser.url.port // default to 127.0.0.1
 	} else if hasHost {
 		u.Host = parser.url.host + ":" + port
 	} else if !hasPath { // Only append default host:port if there's no path

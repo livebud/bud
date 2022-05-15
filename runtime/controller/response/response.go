@@ -142,7 +142,8 @@ func wrapHTML(body string) string {
 		<body>
 			` + body + `
 			<script>
-				const sse = new EventSource("http://0.0.0.0:35729")
+				// TODO: host should be dynamic
+				const sse = new EventSource("http://127.0.0.1:35729")
 				sse.addEventListener("message", () => { location.reload() })
 			</script>
 		</body>

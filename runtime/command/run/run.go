@@ -65,7 +65,8 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 				console.Error(err.Error())
 				return nil
 			}
-			console.Info("Ready on http://0.0.0.0" + c.Port)
+			// TODO: host should be dynamic
+			console.Info("Ready on http://127.0.0.1" + c.Port)
 			return watcher.Stop
 		}); err != nil {
 			return err
@@ -96,7 +97,8 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 				console.Error(err.Error())
 				return nil
 			}
-			console.Info("Ready on http://0.0.0.0" + c.Port)
+			// TODO: host should be dynamic
+			console.Info("Ready on http://127.0.0.1" + c.Port)
 			return nil
 		// Hot reload the page
 		default:
