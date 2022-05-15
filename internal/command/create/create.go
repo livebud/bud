@@ -35,8 +35,9 @@ func (c *Command) Run(ctx context.Context) error {
 		return err
 	}
 
-	err = c.generateGoMod(ctx, tmpDir)
-	if err != nil {
+	// This is run synchronously because if the module path can't be inferred, it
+	// will prompt the user to provide one manually.
+	if err := c.generateGoMod(ctx, tmpDir); err != nil {
 		return err
 	}
 
