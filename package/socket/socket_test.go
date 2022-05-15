@@ -114,7 +114,7 @@ func TestTCPPassthrough(t *testing.T) {
 		listener, err := socket.Listen(":0")
 		is.NoErr(err)
 		is.Equal(listener.Addr().Network(), "tcp")
-		is.True(strings.HasPrefix(listener.Addr().String(), "[::]:"))
+		is.True(strings.HasPrefix(listener.Addr().String(), "127.0.0.1:"))
 		extras, env, err := socket.Files(listener)
 		is.NoErr(err)
 		is.Equal(len(extras), 1)

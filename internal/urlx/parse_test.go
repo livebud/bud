@@ -27,15 +27,15 @@ var tests = []struct {
 }{
 	{
 		input:  "5000",
-		expect: "http://0.0.0.0:5000",
+		expect: "http://127.0.0.1:5000",
 	},
 	{
 		input:  ":5000",
-		expect: "http://0.0.0.0:5000",
+		expect: "http://127.0.0.1:5000",
 	},
 	{
 		input:  "0",
-		expect: "http://0.0.0.0:0",
+		expect: "http://127.0.0.1:0",
 	},
 	{
 		input:  "0.0.0.0",
@@ -67,7 +67,7 @@ var tests = []struct {
 	},
 	{
 		input:  "https:",
-		expect: "https://0.0.0.0:443",
+		expect: "https://127.0.0.1:443",
 	},
 	{
 		input:  "https://localhost:8000/a/b/c",
