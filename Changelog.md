@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.1.1
+
+- Improve the installation script (thanks @barelyhuman!)
+
+  For cases where `/usr/local/bin` is not writable, the install script will now prompt you to escalate your privileges.
+
+- Run Go's formatter on generated template files (thanks @codenoid!)
+
+  Now the Go files generated into `bud/` will be formatted with the same formatter as `go fmt`.
+
+- Fix `bud create` when working outside of `$GOPATH` (thanks @barelyhuman!)
+
+  If you tried created a Bud project outside of `$GOPATH`, Bud would be unable to infer the Go module path and will prompt you to provide a module path. This prompt was being clobbered by NPM's progress bar. Now the prompt happens before running `npm install`.
+
+- Add a [Contributor's Guide](./Contributing.md)
+
+  Wrote an initial guide on how to contribute to Bud. Please have a look and let me know if you'd like to see anything else in that guide.
+
+- Switch the default from 0.0.0.0 to 127.0.0.1 (#35)
+
+  On the latest OSX you'll get a security prompt when you try binding to 0.0.0.0. On WSL, bud will just stall. This release switches the default to localhost (aka 127.0.0.1). Many thanks to @alecthomas, @theEyeD and @kevwan for helping me understand this issue better.
+
 ## v0.1.0
 
 This release wraps up the [v0.1](https://github.com/livebud/bud/discussions/17) milestone 🎉
