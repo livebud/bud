@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.2
+
+- Fix live reload for Windows Subsystem for Linux (WSL) users (thanks @theEyeD!)
+
 ## v0.1.1
 
 - Improve the installation script (thanks @barelyhuman!)
