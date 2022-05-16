@@ -11,21 +11,27 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"golang.org/x/sync/errgroup"
 
 	"github.com/livebud/bud/internal/command"
 	"github.com/livebud/bud/internal/version"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/otiai10/copy"
 )
 
+func New(bud *command.Bud) *Command {
+	return &Command{bud: bud}
+}
+
 type Command struct {
-	Bud *command.Bud
+	bud *command.Bud
 	Dir string
 }
 
 func (c *Command) Run(ctx context.Context) error {
-	dir := filepath.Join(c.Bud.Dir, c.Dir)
+	dir := filepath.Join(c.bud.Dir, c.Dir)
 	// Check if we can write into the directory
 	if err := checkDir(dir); err != nil {
 		return err
@@ -52,7 +58,7 @@ func (c *Command) Run(ctx context.Context) error {
 		return err
 	}
 	// Try moving the temporary build path to the project directory
-	if err := os.Rename(tmpDir, dir); err != nil {
+	if err := move(tmpDir, dir); err != nil {
 		// Can't rename on top of an existing directory
 		if !errors.Is(err, fs.ErrExist) {
 			return err
@@ -63,7 +69,7 @@ func (c *Command) Run(ctx context.Context) error {
 			return err
 		}
 		for _, fi := range fis {
-			if err := os.Rename(filepath.Join(tmpDir, fi.Name()), filepath.Join(dir, fi.Name())); err != nil {
+			if err := move(filepath.Join(tmpDir, fi.Name()), filepath.Join(dir, fi.Name())); err != nil {
 				return err
 			}
 		}
@@ -144,4 +150,24 @@ func findBudModule() (*gomod.Module, error) {
 		return nil, err
 	}
 	return gomod.Find(dir)
+}
+
+// Move first tries to rename a directory `from` one location `to` another.
+// If `from` is on a different partition than `to`, the underlying os.Rename can
+// fail with an "invalid cross-device link" error. If this occurs we'll fallback
+// to copying the files over recursively.
+func move(from, to string) error {
+	if err := os.Rename(from, to); err != nil {
+		// If it's not an invalid cross-device link error, return the error
+		if !isInvalidCrossLink(err) {
+			return err
+		}
+		// Fallback to copying files recursively
+		return copy.Copy(from, to)
+	}
+	return nil
+}
+
+func isInvalidCrossLink(err error) bool {
+	return strings.Contains(err.Error(), "invalid cross-device link")
 }

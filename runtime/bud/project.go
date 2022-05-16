@@ -16,7 +16,7 @@ func New(fsys *overlay.FileSystem, module *gomod.Module) *Project {
 	return &Project{
 		fsys:   fsys,
 		module: module,
-		bcache: buildcache.Default(),
+		bcache: buildcache.Default(module),
 		Env:    os.Environ(),
 		Stderr: os.Stderr,
 		Stdout: os.Stdout,

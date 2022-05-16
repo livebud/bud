@@ -6,7 +6,8 @@
 
 <style>
   h1 {
-    background: red;
+    background: blue;
+    padding: 20px;
     color: white;
   }
 </style>

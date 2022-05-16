@@ -51,7 +51,7 @@ func Load(module *gomod.Module) (*Compiler, error) {
 	}
 	return &Compiler{
 		module: module,
-		bcache: buildcache.Default(),
+		bcache: buildcache.Default(module),
 		Env:    env,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,

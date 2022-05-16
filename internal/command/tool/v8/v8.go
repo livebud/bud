@@ -9,13 +9,15 @@ import (
 	"os"
 	"strings"
 
-	"github.com/livebud/bud/internal/command"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/mattn/go-isatty"
 )
 
+func New() *Command {
+	return &Command{}
+}
+
 type Command struct {
-	Bud *command.Bud
 }
 
 func (c *Command) Run(ctx context.Context) error {

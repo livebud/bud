@@ -14,11 +14,9 @@ import (
 	"github.com/livebud/bud/package/gomod"
 )
 
-func Default() *Cache {
+func Default(module *gomod.Module) *Cache {
 	return &Cache{
-		// TODO: make this configurable
-		// TODO: use the user cache, once we have a way to clean up
-		Dir: filepath.Join(os.TempDir(), "bud", "cache"),
+		Dir: filepath.Join(module.Directory(), "bud", "cache"),
 	}
 }
 
