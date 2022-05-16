@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.1.3
+
+- Move build caching from $TMPDIR/bud/cache to $YOUR_APP/bud/cache
+
+  This should fix https://github.com/livebud/bud/issues/27 issue on M1 Macs.
+
+- Fallback to copying if renaming a directory fails
+
+  This change fixes a `invalid cross-device link` error WSL users were encountering.
+
 ## v0.1.2
 
 - Fix live reload for Windows Subsystem for Linux (WSL) users (thanks @theEyeD!)
