@@ -49,9 +49,14 @@ Commands:
   version  Show package versions
 ```
 
-### `go` version
+# Requirements
 
-Bud relies heavily on `io/fs` and will take advantage of generics in the future, so we suggest running Go 1.18+.
+The following software is required to use Bud.
+
+- Node v14+ 
+   This is a temporary requirement that we plan to remove in [v0.3](https://github.com/livebud/bud/discussions/21)   
+- Go v1.16+
+   Bud relies heavily on `io/fs` and will take advantage of generics in the future, so while v1.16 will work, we suggest running Go v1.18+ if you can.
 
 # Your First Project
 
