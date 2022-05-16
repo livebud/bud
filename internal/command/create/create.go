@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"golang.org/x/sync/errgroup"
 
@@ -151,10 +152,10 @@ func findBudModule() (*gomod.Module, error) {
 	return gomod.Find(dir)
 }
 
-// move first tries to rename `from` a directory from one location `to` another
-// directory. If `from` is on a different partition than `to`, the underlying
-// os.Rename can fail with an "invalid cross-device link" error. If this occurs
-// we'll fallback to copying all the files over recursively.
+// Move first tries to rename a directory `from` one location `to` another.
+// If `from` is on a different partition than `to`, the underlying os.Rename can
+// fail with an "invalid cross-device link" error. If this occurs we'll fallback
+// to copying the files over recursively.
 func move(from, to string) error {
 	if err := os.Rename(from, to); err != nil {
 		// If it's not an invalid cross-device link error, return the error
@@ -168,5 +169,5 @@ func move(from, to string) error {
 }
 
 func isInvalidCrossLink(err error) bool {
-	return err.Error() == "invalid cross-device link"
+	return strings.Contains(err.Error(), "invalid cross-device link")
 }
