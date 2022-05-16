@@ -1,8 +1,6 @@
 # Bud
 
-The Fullstack Go Framework for Prolific Web Developers.
-
-Bud writes the boring code for you, helping you launch your website faster.
+The Full-Stack Web Framework for Go. Bud writes the boring code for you, helping you launch your website faster.
 
 ## Video Demo
 
