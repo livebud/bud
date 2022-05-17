@@ -112,7 +112,7 @@ The goals are now:
 
 ## Next Steps
 
-Check out the Hacker News [demo](https://www.youtube.com/watch?v=LoypcRqn-xA), read the [documentation](https://denim-cub-301.notion.site/Hey-Bud-4d81622cc49942f9917c5033e5205c69#156ea69b8d044bacb65fc2897f3e52b8), [schedule a quick call](https://cal.com/d/5iDN6qWZCLGMipwhFqhY3i/30min) or go on your own adventure. The only limit is your imagination.
+Check out the Hacker News [demo](https://www.youtube.com/watch?v=LoypcRqn-xA), read the [documentation](https://denim-cub-301.notion.site/Hey-Bud-4d81622cc49942f9917c5033e5205c69#156ea69b8d044bacb65fc2897f3e52b8), [schedule a quick call](https://cal.com/mattmueller/30min) or go on your own adventure. The only limit is your imagination.
 
 Recent discussions: [Reddit](https://www.reddit.com/r/golang/comments/uoxocj/bud_the_fullstack_web_framework_for_go_developers/), [Hacker News](https://news.ycombinator.com/item?id=31371340), [Twitter](https://twitter.com/golivebud)
 
