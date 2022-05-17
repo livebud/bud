@@ -94,11 +94,11 @@ go.build.darwin.amd64:
 			-X 'github.com/livebud/bud/internal/version.Bud=$(BUD_VERSION)' \
 		" \
 		./ 1> /dev/null
-	@ mkdir -p release/bud_darwin_amd64
-	@ mv release/bud-darwin-10.12-amd64 release/bud_darwin_amd64/bud
-	@ cp {Changelog,License,Readme}.md release/bud_darwin_amd64
-	@ tar -czf release/bud_darwin_amd64.tar.gz -C release bud_darwin_amd64
-	@ rm -rf release/bud_darwin_amd64
+	@ mkdir -p release/bud_v$(BUD_VERSION)_darwin_amd64
+	@ mv release/bud-darwin-10.12-amd64 release/bud_v$(BUD_VERSION)_darwin_amd64/bud
+	@ cp {Changelog,License,Readme}.md release/bud_v$(BUD_VERSION)_darwin_amd64
+	@ tar -czf release/bud_v$(BUD_VERSION)_darwin_amd64.tar.gz -C release bud_v$(BUD_VERSION)_darwin_amd64
+	@ rm -rf release/bud_v$(BUD_VERSION)_darwin_amd64
 
 # Use xgo to cross-compile for OSX (arm64)
 go.build.darwin.arm64:
@@ -111,11 +111,11 @@ go.build.darwin.arm64:
 			-X 'github.com/livebud/bud/internal/version.Bud=$(BUD_VERSION)' \
 		" \
 		./ 1> /dev/null
-	@ mkdir -p release/bud_darwin_arm64
-	@ mv release/bud-darwin-10.12-arm64 release/bud_darwin_arm64/bud
-	@ cp {Changelog,License,Readme}.md release/bud_darwin_arm64
-	@ tar -czf release/bud_darwin_arm64.tar.gz -C release bud_darwin_arm64
-	@ rm -rf release/bud_darwin_arm64
+	@ mkdir -p release/bud_v$(BUD_VERSION)_darwin_arm64
+	@ mv release/bud-darwin-10.12-arm64 release/bud_v$(BUD_VERSION)_darwin_arm64/bud
+	@ cp {Changelog,License,Readme}.md release/bud_v$(BUD_VERSION)_darwin_arm64
+	@ tar -czf release/bud_v$(BUD_VERSION)_darwin_arm64.tar.gz -C release bud_v$(BUD_VERSION)_darwin_arm64
+	@ rm -rf release/bud_v$(BUD_VERSION)_darwin_arm64
 
 go.build.linux:
 	@ xgo \
@@ -127,11 +127,11 @@ go.build.linux:
 			-X 'github.com/livebud/bud/internal/version.Bud=$(BUD_VERSION)' \
 		" \
 		./ 1> /dev/null
-	@ mkdir -p release/bud_linux_amd64
-	@ mv release/bud-linux-amd64 release/bud_linux_amd64/bud
-	@ cp {Changelog,License,Readme}.md release/bud_linux_amd64
-	@ tar -czf release/bud_linux_amd64.tar.gz -C release bud_linux_amd64
-	@ rm -rf release/bud_linux_amd64
+	@ mkdir -p release/bud_v$(BUD_VERSION)_linux_amd64
+	@ mv release/bud-linux-amd64 release/bud_v$(BUD_VERSION)_linux_amd64/bud
+	@ cp {Changelog,License,Readme}.md release/bud_v$(BUD_VERSION)_linux_amd64
+	@ tar -czf release/bud_v$(BUD_VERSION)_linux_amd64.tar.gz -C release bud_v$(BUD_VERSION)_linux_amd64
+	@ rm -rf release/bud_v$(BUD_VERSION)_linux_amd64
 
 # v8go on Windows isn't supported at the moment.
 # You'll encounter: "/usr/bin/x86_64-w64-mingw32-ld: cannot find -lv8"
