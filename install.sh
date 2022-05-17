@@ -38,22 +38,24 @@ parse_args() {
 execute() {
   tmp_dir=$(mktmpdir)
   echo "$PREFIX: downloading ${TARBALL_URL}"
+  # cp -R "release/${NAME}.${FORMAT}" "${tmp_dir}/${TARBALL}"
   http_download "${tmp_dir}/${TARBALL}" "${TARBALL_URL}"
 
   echo "$PREFIX: verifying checksums"
+  # cp -R "release/checksums.txt" "${tmp_dir}/${CHECKSUM}"
   http_download "${tmp_dir}/${CHECKSUM}" "${CHECKSUM_URL}"
   hash_sha256_verify "${tmp_dir}/${TARBALL}" "${tmp_dir}/${CHECKSUM}"
 
   (cd "${tmp_dir}" && untar "${TARBALL}")
 
   # we check if the directory we plan to store the binary in is actually writable by
-  # the current user. If not , we request for sudo permissions  
-  # this is done by -w in the if condition 
-  # -w - write 
-  # -r - read 
-  # -x - execution 
-  # -x is avoided here since the assumption is that the user will install 
-  # the binary in a directory already in the PATH env var 
+  # the current user. If not , we request for sudo permissions
+  # this is done by -w in the if condition
+  # -w - write
+  # -r - read
+  # -x - execution
+  # -x is avoided here since the assumption is that the user will install
+  # the binary in a directory already in the PATH env var
   if [ -w "$BINDIR" ]; then
     install -d "${BINDIR}"
     install "${tmp_dir}/${NAME}/${BINARY}" "${BINDIR}/"
@@ -62,7 +64,7 @@ execute() {
     sudo install -d "${BINDIR}"
     sudo install "${tmp_dir}/${NAME}/${BINARY}" "${BINDIR}/"
   fi
-  
+
   echo "$PREFIX: installed as ${BINDIR}/${BINARY}"
 }
 
@@ -316,7 +318,17 @@ adjust_arch
 
 echo "$PREFIX: found version ${VERSION} for ${OS}/${ARCH}"
 
+# The tarball path should include the version for v0.1.4+
+# See: https://github.com/livebud/bud/issues/52
+case "$VERSION" in
+0.0.[0-9]* | 0.1.[0-3])
 NAME=${BINARY}_${OS}_${ARCH}
+;;
+*)
+NAME=${BINARY}_v${VERSION}_${OS}_${ARCH}
+;;
+esac
+
 TARBALL=${NAME}.${FORMAT}
 TARBALL_URL=${GITHUB_DOWNLOAD}/v${VERSION}/${TARBALL}
 CHECKSUM=checksums.txt
