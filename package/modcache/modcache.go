@@ -15,7 +15,6 @@ import (
 	"testing/fstest"
 	"time"
 
-	cp "github.com/otiai10/copy"
 	"golang.org/x/sync/errgroup"
 
 	"golang.org/x/mod/modfile"
@@ -44,8 +43,8 @@ func (c *Cache) Directory(subpaths ...string) string {
 	return filepath.Join(append([]string{c.cacheDir}, subpaths...)...)
 }
 
-type Files = map[string]string
-type Modules = map[string]Files
+// type Files = map[string]string
+// type Modules = map[string]Files
 
 // Write modules directly into the cache directory in an acceptable format so
 // that Go thinks these files are cached and doesn't try reading them from the
@@ -56,15 +55,15 @@ type Modules = map[string]Files
 // contexts.
 //
 // Based on: https://github.com/golang/go/blob/master/src/cmd/go/internal/modfetch/fetch.go
-func WriteFS(modules Modules) (fs.FS, error) {
-	mapfs := fstest.MapFS{}
-	for pv, files := range modules {
-		if err := writeModuleFS(mapfs, pv, files); err != nil {
-			return nil, err
-		}
-	}
-	return mapfs, nil
-}
+// func WriteFS(modules Modules) (fs.FS, error) {
+// 	mapfs := fstest.MapFS{}
+// 	for pv, files := range modules {
+// 		if err := writeModuleFS(mapfs, pv, files); err != nil {
+// 			return nil, err
+// 		}
+// 	}
+// 	return mapfs, nil
+// }
 
 // SplitPathVersion splits a path@version into path & version
 func SplitPathVersion(pathVersion string) (path, version string, err error) {
@@ -193,14 +192,14 @@ func hashZip(r io.ReaderAt, size int64, hash dirhash.Hash) (string, error) {
 // contexts.
 //
 // Based on: https://github.com/golang/go/blob/master/src/cmd/go/internal/modfetch/fetch.go
-func (c *Cache) Write(modules Modules) error {
-	eg := new(errgroup.Group)
-	for modulePathVersion, files := range modules {
-		modulePathVersion, files := modulePathVersion, files
-		eg.Go(func() error { return c.writeModule(modulePathVersion, files) })
-	}
-	return eg.Wait()
-}
+// func (c *Cache) Write(modules Modules) error {
+// 	eg := new(errgroup.Group)
+// 	for modulePathVersion, files := range modules {
+// 		modulePathVersion, files := modulePathVersion, files
+// 		eg.Go(func() error { return c.writeModule(modulePathVersion, files) })
+// 	}
+// 	return eg.Wait()
+// }
 
 func (c *Cache) writeModule(modulePathVersion string, files map[string]string) error {
 	moduleParts := strings.SplitN(modulePathVersion, "@", 2)
@@ -355,21 +354,21 @@ func (c *Cache) ResolveDirectory(modulePath, version string) (string, error) {
 // }
 
 // Import from a directory
-func (c *Cache) Import(from string) error {
-	return cp.Copy(from, c.cacheDir, cp.Options{})
-}
+// func (c *Cache) Import(from string) error {
+// 	return cp.Copy(from, c.cacheDir, cp.Options{})
+// }
 
-// Export to a directory
-func (c *Cache) Export(to string) error {
-	return cp.Copy(c.cacheDir, to, cp.Options{
-		Skip: func(src string) (bool, error) {
-			if src == filepath.Join(c.cacheDir, "cache", "vcs") {
-				return true, nil
-			}
-			return false, nil
-		},
-	})
-}
+// // Export to a directory
+// func (c *Cache) Export(to string) error {
+// 	return cp.Copy(c.cacheDir, to, cp.Options{
+// 		Skip: func(src string) (bool, error) {
+// 			if src == filepath.Join(c.cacheDir, "cache", "vcs") {
+// 				return true, nil
+// 			}
+// 			return false, nil
+// 		},
+// 	})
+// }
 
 // Cache for faster subsequent requests
 var modDir string

@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/internal/budtest"
-	"github.com/livebud/bud/package/modcache"
+	"github.com/livebud/bud/internal/testplugin"
 	"github.com/matryer/is"
 )
 
@@ -92,12 +92,9 @@ func TestPlugin(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	preflight := `/* tailwind */`
-	bud.Modules = map[string]modcache.Files{
-		"github.com/livebud/bud-tailwind@v0.0.1": modcache.Files{
-			"public/tailwind/preflight.css": preflight,
-		},
-	}
+	dep, err := testplugin.Plugin()
+	is.NoErr(err)
+	bud.Modules[dep.Path] = dep.Version
 	project, err := bud.Compile(ctx)
 	is.NoErr(err)
 	app, err := project.Build(ctx)
@@ -112,7 +109,7 @@ func TestPlugin(t *testing.T) {
 	is.Equal(200, res.StatusCode)
 	body, err := io.ReadAll(res.Body)
 	is.NoErr(err)
-	is.Equal(preflight, string(body))
+	is.Equal(string(body), `/* tailwind */`)
 }
 
 func TestGetChangeGet(t *testing.T) {

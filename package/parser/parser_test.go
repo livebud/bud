@@ -11,6 +11,8 @@ import (
 	"github.com/livebud/bud/package/modcache"
 	"github.com/livebud/bud/package/parser"
 
+	"github.com/livebud/bud/internal/testdir"
+	"github.com/livebud/bud/internal/testplugin"
 	"github.com/livebud/bud/internal/txtar"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/vfs"
@@ -184,42 +186,21 @@ func TestNetHTTP(t *testing.T) {
 
 func TestGenerate(t *testing.T) {
 	is := is.New(t)
-	cacheDir := t.TempDir()
-	modCache := modcache.New(cacheDir)
-	err := modCache.Write(modcache.Modules{
-		"mod.test/two@v0.0.1": modcache.Files{
-			"go.mod":   "module mod.test/two",
-			"const.go": "package two\ntype Answer = int",
-		},
-		"mod.test/two@v0.0.2": modcache.Files{
-			"go.mod":   "module mod.test/two",
-			"const.go": "package two\ntype Answer = string",
-		},
-		"mod.test/module@v1.2.3": modcache.Files{
-			"go.mod":   "module mod.test/module",
-			"const.go": "package module\ntype Answer = string",
-		},
-		"mod.test/module@v1.2.4": modcache.Files{
-			"go.mod":   "module mod.test/module\nrequire mod.test/two v0.0.2",
-			"const.go": "package module\nimport \"mod.test/two\"\ntype Answer = two.Answer",
-		},
-	})
-	is.NoErr(err)
-	appDir := t.TempDir()
-	err = vfs.Write(appDir, vfs.Map{
-		"go.mod": []byte("module app.com\nrequire mod.test/module v1.2.4"),
-		"app.go": []byte("package app\nimport \"mod.test/module\"\nvar a = module.Answer"),
-	})
-	is.NoErr(err)
+	modCache := modcache.Default()
+	dir := t.TempDir()
+	plugin, err := testplugin.Plugin()
+	td := testdir.New()
+	td.Modules[plugin.Path] = plugin.Version
+	is.NoErr(td.Write(dir))
 	cfs := conjure.New()
-	merged := merged.Merge(os.DirFS(appDir), cfs)
+	merged := merged.Merge(os.DirFS(dir), cfs)
 	cfs.GenerateFile("hello/hello.go", func(file *conjure.File) error {
-		file.Data = []byte("package hello\nimport \"mod.test/module\"\ntype A struct { module.Answer }")
+		file.Data = []byte("package hello\nimport plugin \"" + plugin.Path + "\"\ntype A struct { plugin.Answer }")
 		return nil
 	})
-	module, err := gomod.Find(appDir, gomod.WithModCache(modCache))
+	module, err := gomod.Find(dir, gomod.WithModCache(modCache))
 	is.NoErr(err)
-	is.Equal(module.Directory(), appDir)
+	is.Equal(module.Directory(), dir)
 	p := parser.New(merged, module)
 	// Parse a virtual package
 	pkg, err := p.Parse("hello")
@@ -236,10 +217,10 @@ func TestGenerate(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(def.Name(), "Answer")
 	pkg = def.Package()
-	is.Equal(pkg.Name(), "module")
+	is.Equal(pkg.Name(), "plugin")
 	importPath, err := pkg.Import()
 	is.NoErr(err)
-	is.Equal(importPath, "mod.test/module")
+	is.Equal(importPath, "github.com/livebud/bud-test-plugin")
 	alias := pkg.Alias("Answer")
 	is.True(alias != nil)
 	is.Equal(alias.Name(), "Answer")
@@ -247,10 +228,10 @@ func TestGenerate(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(def.Name(), "Answer")
 	pkg = def.Package()
-	is.Equal(pkg.Name(), "two")
+	is.Equal(pkg.Name(), "plugin")
 	importPath, err = pkg.Import()
 	is.NoErr(err)
-	is.Equal(importPath, "mod.test/two")
+	is.Equal(importPath, "github.com/livebud/bud-test-nested-plugin")
 	alias = pkg.Alias("Answer")
 	is.True(alias != nil)
 	is.Equal(alias.Name(), "Answer")

@@ -13,6 +13,8 @@ require (
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/gitchander/permutation v0.0.0-20201214100618-1f3e7285f953
 	github.com/lithammer/dedent v1.1.0
+	github.com/livebud/bud-test-nested-plugin v0.0.5
+	github.com/livebud/bud-test-plugin v0.0.8
 	github.com/matryer/is v1.4.0
 	github.com/matthewmueller/diff v0.0.0-20220104030700-cb2fe910d90c
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac

@@ -6,6 +6,8 @@ package bud
 
 import (
 	_ "github.com/evanw/esbuild/cmd/esbuild"
+	_ "github.com/livebud/bud-test-nested-plugin"
+	_ "github.com/livebud/bud-test-plugin"
 	_ "github.com/pointlander/peg"
 	_ "src.techknowlogick.com/xgo"
 )

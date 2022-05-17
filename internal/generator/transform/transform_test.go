@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/internal/budtest"
-	"github.com/livebud/bud/package/modcache"
 	"github.com/matryer/is"
 )
 
@@ -40,18 +39,7 @@ func TestMarkdownPlugin(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
-	bud.Modules = map[string]modcache.Files{
-		"github.com/livebud/bud-markdown@v0.0.1": modcache.Files{
-			"transform/markdown/transform.go": `
-				package markdown
-				import "github.com/livebud/bud/runtime/transform"
-				type Transform struct {}
-				func (t *Transform) MdToSvelte(file *transform.File) error {
-					file.Code = "<h1>hello</h1>"
-				}
-			`,
-		},
-	}
+	bud.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.6"
 	bud.Files["view/index.md"] = `# hello`
 	project, err := bud.Compile(ctx)
 	is.NoErr(err)

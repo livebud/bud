@@ -11,10 +11,14 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing/fstest"
 	"time"
+
+	"github.com/livebud/bud/internal/dirhash"
+	"github.com/livebud/bud/internal/gitignore"
+
+	"github.com/livebud/bud/internal/current"
 
 	"github.com/livebud/bud/internal/fstree"
 
@@ -40,7 +44,7 @@ const goMod = `
 
 func New() *Dir {
 	return &Dir{
-		Modules:     modcache.Modules{},
+		Modules:     map[string]string{},
 		NodeModules: map[string]string{},
 		BFiles:      map[string][]byte{},
 		Files:       map[string]string{},
@@ -50,7 +54,7 @@ func New() *Dir {
 type Dir struct {
 	Files       map[string]string // String files (convenient)
 	BFiles      map[string][]byte // Byte files (for images and binaries)
-	Modules     modcache.Modules  // name@version[path[data]]
+	Modules     map[string]string // name[version]
 	NodeModules map[string]string // name[version]
 }
 
@@ -104,7 +108,7 @@ func (d *Dir) mapfs() (fstest.MapFS, error) {
 	if err != nil {
 		return nil, err
 	}
-	currentDir, err := dirname()
+	currentDir, err := current.Directory()
 	if err != nil {
 		return nil, err
 	}
@@ -114,24 +118,9 @@ func (d *Dir) mapfs() (fstest.MapFS, error) {
 		return nil, err
 	}
 	modFile.AddReplace("github.com/livebud/bud", "", budDir, "")
-	// Merge the go modules in
-	if len(d.Modules) > 0 {
-		fsys, err := modcache.WriteFS(d.Modules)
-		if err != nil {
-			return nil, err
-		}
-		// Add requires to go.mod
-		for pv := range d.Modules {
-			path, version, err := modcache.SplitPathVersion(pv)
-			if err != nil {
-				return nil, err
-			}
-			// Add require to the go.mod
-			if err := modFile.AddRequire(path, version); err != nil {
-				return nil, err
-			}
-		}
-		if err := merge(mapfs, fsys, ".mod"); err != nil {
+	// Add requires to go.mod
+	for path, version := range d.Modules {
+		if err := modFile.AddRequire(path, version); err != nil {
 			return nil, err
 		}
 	}
@@ -144,25 +133,9 @@ func (d *Dir) mapfs() (fstest.MapFS, error) {
 		}
 		for name, version := range d.NodeModules {
 			if name == "livebud" && version == "*" {
-				tarPath, err := packLiveBud(budDir)
-				if err != nil {
+				if err := copyLiveBud(mapfs, budDir); err != nil {
 					return nil, err
 				}
-				stat, err := os.Stat(tarPath)
-				if err != nil {
-					return nil, err
-				}
-				data, err := os.ReadFile(tarPath)
-				if err != nil {
-					return nil, err
-				}
-				mapfs[".npm/livebud.tgz"] = &fstest.MapFile{
-					Data:    data,
-					ModTime: stat.ModTime(),
-					Mode:    stat.Mode(),
-					Sys:     stat.Sys,
-				}
-				continue
 			}
 			nodePackage.Dependencies[name] = version
 		}
@@ -183,10 +156,28 @@ func (d *Dir) mapfs() (fstest.MapFS, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Hack to ensure changes to replaced modules trigger snapshot changes
+	// TODO: cleanup this mess
+	var hashes []byte
+	for _, rep := range modFile.Replace {
+		var skips []func(name string, isDir bool) bool
+		// Handle
+		if rep.New.Path == budDir {
+			skips = append(skips, gitignore.From(budDir))
+		}
+		hash, err := dirhash.Hash(os.DirFS(rep.New.Path), dirhash.WithSkip(skips...))
+		if err != nil {
+			return nil, err
+		}
+		hashes = append(hashes, []byte(hash)...)
+	}
 	mapfs["go.mod"] = &fstest.MapFile{
 		Data:    formatted,
 		ModTime: time.Now(),
 		Mode:    0644,
+	}
+	if len(hashes) > 0 {
+		mapfs["go.mod"].Data = append(mapfs["go.mod"].Data, append([]byte("// "), hashes...)...)
 	}
 	return mapfs, nil
 }
@@ -253,21 +244,16 @@ func (d *Dir) Write(dir string, options ...Option) error {
 	}
 	// Load the module cache
 	modCache := modcache.Default()
-	if _, ok := fsys[".mod"]; ok {
-		modCache = modcache.New(filepath.Join(dir, ".mod"))
-	}
 	modCacheDir, err := filepath.Abs(modCache.Directory())
 	if err != nil {
 		return err
 	}
-
 	eg, ctx := errgroup.WithContext(context.Background())
 	// Download modules that aren't in the module cache
 	if _, ok := fsys["go.mod"]; ok {
 		// Use "all" to extract cached directories into GOMODCACHE, so there's not
 		// a "go: downloading ..." step during go build.
-		// TODO: speed this call up, it takes around 60s right now
-		cmd := exec.CommandContext(ctx, "go", "mod", "download", "-modcacherw", "all")
+		cmd := exec.CommandContext(ctx, "go", "mod", "download", "all")
 		cmd.Dir = dir
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
@@ -301,28 +287,8 @@ func (d *Dir) Write(dir string, options ...Option) error {
 		})
 	}
 
-	// Copy livebud.tgz into node_modules and install any dependencies
-	if _, ok := fsys[".npm/livebud.tgz"]; ok {
-		cmd := exec.CommandContext(ctx, "npm", "install", "--loglevel=error", ".npm/livebud.tgz")
-		cmd.Dir = dir
-		cmd.Stderr = os.Stderr
-		cmd.Env = []string{
-			"HOME=" + os.Getenv("HOME"),
-			"PATH=" + os.Getenv("PATH"),
-			"NO_COLOR=1",
-		}
-		eg.Go(func() error {
-			err := cmd.Run()
-			return err
-		})
-	}
-
 	// Wait for both commands to finish
 	if err := eg.Wait(); err != nil {
-		return err
-	}
-	// Delete .mod/cache/vcs, it's slow to unzip and unnecessary
-	if os.RemoveAll(filepath.Join(dir, ".mod", "cache", "vcs")); err != nil {
 		return err
 	}
 	// Backing the snapshot up
@@ -342,12 +308,35 @@ func Tree(dir string) (string, error) {
 	return tree.String(), nil
 }
 
-func ModCache(dir string) *modcache.Cache {
-	modDir := filepath.Join(dir, ".mod")
-	if _, err := os.Stat(modDir); err != nil {
-		return modcache.Default()
-	}
-	return modcache.New(modDir)
+func copyLiveBud(mapfs fstest.MapFS, budDir string) error {
+	liveBudDir := filepath.Join(budDir, "livebud")
+	return filepath.WalkDir(liveBudDir, func(path string, de fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		stat, err := de.Info()
+		if err != nil {
+			return err
+		}
+		relPath, err := filepath.Rel(liveBudDir, path)
+		if err != nil {
+			return err
+		}
+		mapfs[relPath] = &fstest.MapFile{
+			ModTime: stat.ModTime(),
+			Mode:    stat.Mode(),
+			Sys:     stat.Sys(),
+		}
+		if stat.IsDir() {
+			return nil
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		mapfs[relPath].Data = data
+		return nil
+	})
 }
 
 func packLiveBud(budDir string) (string, error) {
@@ -371,13 +360,4 @@ func packLiveBud(budDir string) (string, error) {
 	}
 	tarPath := filepath.Join(tmpDir, strings.TrimSpace(tarName.String()))
 	return tarPath, nil
-}
-
-// dirname gets the directory of this file
-func dirname() (string, error) {
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		return "", errors.New("unable to get the current filename")
-	}
-	return filepath.Dir(filename), nil
 }

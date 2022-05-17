@@ -40,7 +40,7 @@ func New(dir string) *Compiler {
 		},
 		Files:       map[string]string{},
 		BFiles:      map[string][]byte{},
-		Modules:     modcache.Modules{},
+		Modules:     map[string]string{},
 		NodeModules: map[string]string{},
 		Env: bud.Env{
 			"HOME":       os.Getenv("HOME"),
@@ -61,7 +61,7 @@ type Compiler struct {
 	Flag        runtime_bud.Flag
 	Files       map[string]string // String files (convenient)
 	BFiles      map[string][]byte // Byte files (for images and binaries)
-	Modules     modcache.Modules  // name@version[path[data]]
+	Modules     map[string]string // name[version]
 	NodeModules map[string]string // name[version]
 	Env         bud.Env
 	CacheDir    string
@@ -110,7 +110,7 @@ func (c *Compiler) Compile(ctx context.Context) (p *Project, err error) {
 	}
 	c.Env["BUD_PATH"] = budPath
 	// Get the modCache
-	modCache := testdir.ModCache(dir)
+	modCache := modcache.Default()
 	c.Env["GOMODCACHE"] = modCache.Directory()
 	// Find go.mod
 	module, err := gomod.Find(dir, gomod.WithModCache(modCache))
@@ -145,7 +145,7 @@ type Project struct {
 	// Used to adjust files over time
 	Files       map[string]string // String files (convenient)
 	BFiles      map[string][]byte // Byte files (for images and binaries)
-	Modules     modcache.Modules  // name@version[path[data]]
+	Modules     map[string]string // name[version]
 	NodeModules map[string]string // name[version]
 }
 

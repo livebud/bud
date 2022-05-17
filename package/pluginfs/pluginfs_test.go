@@ -4,8 +4,9 @@ import (
 	"io/fs"
 	"testing"
 
+	"github.com/livebud/bud/internal/testplugin"
+
 	"github.com/livebud/bud/package/gomod"
-	"github.com/livebud/bud/package/modcache"
 	"github.com/livebud/bud/package/pluginfs"
 	"github.com/livebud/bud/package/vfs"
 	"github.com/matryer/is"
@@ -13,22 +14,18 @@ import (
 
 func TestMergeModules(t *testing.T) {
 	is := is.New(t)
-	cacheDir := t.TempDir()
-	modCache := modcache.New(cacheDir)
-	preflight := `/* tailwind */`
-	err := modCache.Write(map[string]modcache.Files{
-		"github.com/livebud/bud-tailwind@v0.0.1": modcache.Files{
-			"public/tailwind/preflight.css": preflight,
-		},
-	})
-	is.NoErr(err)
 	appDir := t.TempDir()
+	dep, err := testplugin.Plugin()
+	is.NoErr(err)
 	err = vfs.Write(appDir, vfs.Map{
 		"public/normalize.css": []byte(`/* normalize */`),
-		"go.mod":               []byte("module app.com\nrequire github.com/livebud/bud-tailwind v0.0.1"),
+		"go.mod": []byte(`
+			module app.com
+			require ` + dep.Path + ` ` + dep.Version + `
+		`),
 	})
 	is.NoErr(err)
-	module, err := gomod.Find(appDir, gomod.WithModCache(modCache))
+	module, err := gomod.Find(appDir)
 	is.NoErr(err)
 	pfs, err := pluginfs.Load(module)
 	is.NoErr(err)
@@ -71,7 +68,7 @@ func TestMergeModules(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(fi.IsDir(), true)
 	is.True(!fi.ModTime().IsZero())
-	is.Equal(fi.Mode(), fs.FileMode(0755|fs.ModeDir))
+	is.Equal(fi.Mode(), fs.FileMode(0555|fs.ModeDir))
 	is.Equal(fi.Name(), "tailwind")
 	is.True(fi.Size() != 0)
 	is.True(fi.Sys() != nil)
@@ -79,7 +76,7 @@ func TestMergeModules(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(fi.IsDir(), true)
 	is.True(!fi.ModTime().IsZero())
-	is.Equal(fi.Mode(), fs.FileMode(0755|fs.ModeDir))
+	is.Equal(fi.Mode(), fs.FileMode(0555|fs.ModeDir))
 	is.Equal(fi.Name(), "tailwind")
 	is.True(fi.Size() != 0)
 	is.True(fi.Sys() != nil)
@@ -96,7 +93,7 @@ func TestMergeModules(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(fi.IsDir(), false)
 	is.True(!fi.ModTime().IsZero())
-	is.Equal(fi.Mode(), fs.FileMode(0644))
+	is.Equal(fi.Mode(), fs.FileMode(0444))
 	is.Equal(fi.Name(), "preflight.css")
 	is.Equal(fi.Size(), int64(14))
 	is.True(fi.Sys() != nil)
@@ -104,7 +101,7 @@ func TestMergeModules(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(fi.IsDir(), false)
 	is.True(!fi.ModTime().IsZero())
-	is.Equal(fi.Mode(), fs.FileMode(0644))
+	is.Equal(fi.Mode(), fs.FileMode(0444))
 	is.Equal(fi.Name(), "preflight.css")
 	is.Equal(fi.Size(), int64(14))
 	is.True(fi.Sys() != nil)
@@ -113,6 +110,37 @@ func TestMergeModules(t *testing.T) {
 	is.Equal(string(code), `/* tailwind */`)
 }
 
-func TestPlugin(t *testing.T) {
+func TestMultiple(t *testing.T) {
+	is := is.New(t)
+	appDir := t.TempDir()
+	dep, err := testplugin.Plugin()
+	is.NoErr(err)
+	nested, err := testplugin.NestedPlugin()
+	is.NoErr(err)
+	err = vfs.Write(appDir, vfs.Map{
+		"go.mod": []byte(`
+			module app.com
+			require ` + dep.Path + ` ` + dep.Version + `
+			require ` + nested.Path + ` ` + nested.Version + `
+		`),
+	})
+	is.NoErr(err)
+	module, err := gomod.Find(appDir)
+	is.NoErr(err)
+	pfs, err := pluginfs.Load(module)
+	is.NoErr(err)
+
+	// From bud-test-plugin
+	code, err := fs.ReadFile(pfs, "public/tailwind/preflight.css")
+	is.NoErr(err)
+	is.Equal(string(code), `/* tailwind */`)
+
+	// From bud-test-nested-plugin
+	code, err = fs.ReadFile(pfs, "public/admin.css")
+	is.NoErr(err)
+	is.Equal(string(code), `/* admin.css */`)
+}
+
+func TestPluginDir(t *testing.T) {
 	t.SkipNow()
 }

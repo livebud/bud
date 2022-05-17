@@ -147,149 +147,49 @@ func TestModuleFindStdlib(t *testing.T) {
 	is.Equal(imp, "std")
 }
 
-func TestAddRequire(t *testing.T) {
-	is := is.New(t)
-	modPath := filepath.Join(t.TempDir(), "go.mod")
-	module, err := gomod.Parse(modPath, []byte(`module app.test`))
-	is.NoErr(err)
-	modFile := module.File()
-	modFile.AddRequire("mod.test/two", "v2")
-	modFile.AddRequire("mod.test/one", "v1.2.4")
-	is.Equal(string(modFile.Format()), `module app.test
-
-require (
-	mod.test/two v2
-	mod.test/one v1.2.4
-)
-`)
-}
-
-func TestAddReplace(t *testing.T) {
-	is := is.New(t)
-	modPath := filepath.Join(t.TempDir(), "go.mod")
-	module, err := gomod.Parse(modPath, []byte(`module app.test`))
-	is.NoErr(err)
-	modFile := module.File()
-	modFile.AddReplace("mod.test/two", "", "mod.test/twotwo", "")
-	modFile.AddReplace("mod.test/one", "", "mod.test/oneone", "")
-	is.Equal(string(modFile.Format()), `module app.test
-
-replace mod.test/two => mod.test/twotwo
-
-replace mod.test/one => mod.test/oneone
-`)
-}
-
-func TestLocalResolveDirectory(t *testing.T) {
-	is := is.New(t)
-	cacheDir := t.TempDir()
-	modCache := modcache.New(cacheDir)
-	err := modCache.Write(modcache.Modules{
-		"mod.test/module@v1.2.3": modcache.Files{
-			"go.mod":   "module mod.test/module\n\ngo 1.12",
-			"const.go": "package module\n\nconst Answer = 42",
-		},
-		"mod.test/module@v1.2.4": modcache.Files{
-			"go.mod":   "module mod.test/module\n\ngo 1.12",
-			"const.go": "package module\n\nconst Answer = 43",
-		},
-	})
-	is.NoErr(err)
-	appDir := t.TempDir()
-	modPath := filepath.Join(appDir, "go.mod")
-	modData := []byte(`module app.test`)
-	module, err := gomod.Parse(modPath, modData, gomod.WithModCache(modCache))
-	is.NoErr(err)
-	modFile := module.File()
-	modFile.AddRequire("mod.test/module", "v1.2.4")
-	dir, err := module.ResolveDirectory("mod.test/module")
-	is.NoErr(err)
-	is.Equal(dir, filepath.Join(cacheDir, "mod.test", "module@v1.2.4"))
-}
-
 func TestFindNested(t *testing.T) {
 	is := is.New(t)
-	cacheDir := t.TempDir()
-	modCache := modcache.New(cacheDir)
-	err := modCache.Write(modcache.Modules{
-		"mod.test/module@v1.2.3": modcache.Files{
-			"go.mod":   "module mod.test/module",
-			"const.go": "package module\nconst Answer = 42",
-		},
-		"mod.test/module@v1.2.4": modcache.Files{
-			"go.mod":   "module mod.test/module",
-			"const.go": "package module\nconst Answer = 43",
-		},
-	})
-	is.NoErr(err)
+	modCache := modcache.Default()
 	appDir := t.TempDir()
-	err = vfs.Write(appDir, vfs.Map{
-		"go.mod": []byte("module app.com\nrequire mod.test/module v1.2.4"),
-		"app.go": []byte("package app\nimport \"mod.test/module\"\nvar a = module.Answer"),
+	err := vfs.Write(appDir, vfs.Map{
+		"go.mod": []byte("module app.com\nrequire github.com/livebud/bud-test-plugin v0.0.3"),
 	})
 	is.NoErr(err)
 	module1, err := gomod.Find(appDir, gomod.WithModCache(modCache))
 	is.NoErr(err)
+	data, err := fs.ReadFile(module1, "go.mod")
+	is.NoErr(err)
+	m1, err := gomod.Parse("go.mod", data)
+	is.NoErr(err)
+	is.Equal(m1.Import(), "app.com")
 
-	module2, err := module1.Find("mod.test/module")
+	module2, err := module1.Find("github.com/livebud/bud-test-plugin")
 	is.NoErr(err)
-	is.Equal(module2.Import(), "mod.test/module")
-	is.Equal(module2.Directory(), modCache.Directory("mod.test", "module@v1.2.4"))
+	is.Equal(module2.Import(), "github.com/livebud/bud-test-plugin")
+	is.Equal(module2.Directory(), modCache.Directory("github.com/livebud", "bud-test-plugin@v0.0.3"))
+	data, err = fs.ReadFile(module2, "go.mod")
+	is.NoErr(err)
+	m2, err := gomod.Parse("go.mod", data)
+	is.NoErr(err)
+	is.Equal(m2.Import(), "github.com/livebud/bud-test-plugin")
 
-	// Ensure module1 is not overriden
-	is.Equal(module1.Import(), "app.com")
-	is.Equal(module1.Directory(), appDir)
-}
-
-func TestFindNestedFS(t *testing.T) {
-	is := is.New(t)
-	cacheDir := t.TempDir()
-	modCache := modcache.New(cacheDir)
-	err := modCache.Write(modcache.Modules{
-		"mod.test/two@v0.0.1": modcache.Files{
-			"go.mod":   "module mod.test/two",
-			"const.go": "package two\nconst Answer = 10",
-		},
-		"mod.test/two@v0.0.2": modcache.Files{
-			"go.mod":   "module mod.test/two",
-			"const.go": "package two\nconst Answer = 20",
-		},
-		"mod.test/module@v1.2.3": modcache.Files{
-			"go.mod":   "module mod.test/module",
-			"const.go": "package module\nconst Answer = 42",
-		},
-		"mod.test/module@v1.2.4": modcache.Files{
-			"go.mod":   "module mod.test/module\nrequire mod.test/two v0.0.2",
-			"const.go": "package module\nimport \"mod.test/two\"\nconst Answer = two.Answer",
-		},
-	})
+	module3, err := module2.Find("github.com/livebud/bud-test-nested-plugin")
 	is.NoErr(err)
-	appDir := t.TempDir()
-	err = vfs.Write(appDir, vfs.Map{
-		"go.mod": []byte("module app.com\nrequire mod.test/module v1.2.4"),
-		"app.go": []byte("package app\nimport \"mod.test/module\"\nvar a = module.Answer"),
-	})
+	is.Equal(module3.Import(), "github.com/livebud/bud-test-nested-plugin")
+	is.Equal(module3.Directory(), modCache.Directory("github.com/livebud", "bud-test-nested-plugin@v0.0.1"))
+	data, err = fs.ReadFile(module3, "go.mod")
 	is.NoErr(err)
-	module1, err := gomod.Find(appDir, gomod.WithModCache(modCache))
+	m3, err := gomod.Parse("go.mod", data)
 	is.NoErr(err)
-
-	module2, err := module1.Find("mod.test/module")
-	is.NoErr(err)
-	is.Equal(module2.Import(), "mod.test/module")
-	is.Equal(module2.Directory(), modCache.Directory("mod.test", "module@v1.2.4"))
-
-	module3, err := module2.Find("mod.test/two")
-	is.NoErr(err)
-	is.Equal(module3.Import(), "mod.test/two")
-	is.Equal(module3.Directory(), modCache.Directory("mod.test", "two@v0.0.2"))
+	is.Equal(m3.Import(), "github.com/livebud/bud-test-nested-plugin")
 
 	// Ensure module1 is not overriden
 	is.Equal(module1.Import(), "app.com")
 	is.Equal(module1.Directory(), appDir)
 
 	// Ensure module2 is not overriden
-	is.Equal(module2.Import(), "mod.test/module")
-	is.Equal(module2.Directory(), modCache.Directory("mod.test", "module@v1.2.4"))
+	is.Equal(module2.Import(), "github.com/livebud/bud-test-plugin")
+	is.Equal(module2.Directory(), modCache.Directory("github.com/livebud", "bud-test-plugin@v0.0.3"))
 }
 
 func TestOpen(t *testing.T) {

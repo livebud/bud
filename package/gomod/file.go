@@ -50,6 +50,16 @@ func (f *File) Requires() (reqs []*Require) {
 	return reqs
 }
 
+// Require finds a required package within go.mod
+func (f *File) Require(path string) *module.Version {
+	for _, req := range f.file.Require {
+		if req.Mod.Path == path {
+			return &req.Mod
+		}
+	}
+	return nil
+}
+
 func (f *File) Format() []byte {
 	return modfile.Format(f.file.Syntax)
 }
