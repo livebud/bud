@@ -318,7 +318,7 @@ adjust_arch
 
 echo "$PREFIX: found version ${VERSION} for ${OS}/${ARCH}"
 
-# The tarball path includes the version for v0.1.3+
+# The tarball path should include the version for v0.1.4+
 # See: https://github.com/livebud/bud/issues/52
 case "$VERSION" in
 0.0.[0-9]* | 0.1.[0-3])
