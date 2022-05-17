@@ -92,23 +92,23 @@ Congrats! You're running your first web server with Bud. The welcome server is y
 
 ## How did Bud come into existence?
 
-I started working on Bud two years ago after seeing how productive people could be in [Laravel](https://laravel.com/), and I wanted the same for Go, so I decided to try creating Laravel for the Go ecosystem. However, my first version after 6 months needed to scaffold many files just to get started. If you are coming from [Rails](https://github.com/rails/rails) or Laravel you may shrug and consider this as pretty normal. 
+I started working on Bud two years ago after seeing how productive people could be in [Laravel](https://laravel.com/). I wanted the same for Go, so I decided to try creating Laravel for the Go ecosystem. However, my first version after 6 months needed to scaffold many files just to get started. If you are coming from [Rails](https://github.com/rails/rails) or Laravel you may shrug and consider this as pretty normal.
 
-Unfortunately, I have also been spoiled by the renaissance in frontend frameworks like [Next.js](https://nextjs.org/) that start barebones and then every file you add incrementally enhances your web application. This keeps the initial complexity under control.
+Unfortunately, I have been spoiled by the renaissance in frontend frameworks like [Next.js](https://nextjs.org/) that start barebones and then every file you add incrementally enhances your web application. This keeps the initial complexity under control.
 
-With this additional inspiration, I worked on the next iteration for the ensuing 18 months. 
+With this additional inspiration, I worked on the next iteration for the ensuing 18 months.
 
 The goals are now:
 
-* Generate files only as you need them. Keep these generated files away from your application code and give developers the choice to keep them out of source control.
+- Generate files only as you need them. Keep these generated files away from your application code and give developers the choice to keep them out of source control.
 
-* Feel like using a modern JS framework. This means it should work with [multiple](https://github.com/livebud/bud/discussions/8) modern frontend frameworks like [Svelte](https://svelte.dev/) and [React](https://reactjs.org/), support [live reload](https://denim-cub-301.notion.site/Hey-Bud-4d81622cc49942f9917c5033e5205c69#4c7dff15ef3e458587b81fb9b1819afb), and have [server-side rendering](https://www.reddit.com/r/golang/comments/uoxocj/bud_the_fullstack_web_framework_for_go_developers/i8ke92h/?utm_source=reddit&utm_medium=web2x&context=3) for better performance and SEO.
+- Feel like using a modern JS framework. This means it should work with [multiple](https://github.com/livebud/bud/discussions/8) modern frontend frameworks like [Svelte](https://svelte.dev/) and [React](https://reactjs.org/), support [live reload](https://denim-cub-301.notion.site/Hey-Bud-4d81622cc49942f9917c5033e5205c69#4c7dff15ef3e458587b81fb9b1819afb), and have [server-side rendering](https://www.reddit.com/r/golang/comments/uoxocj/bud_the_fullstack_web_framework_for_go_developers/i8ke92h/?utm_source=reddit&utm_medium=web2x&context=3) for better performance and SEO.
 
-* The framework should be extensible from Day 1. Bud is too ambitious for one person. We're going to need an ambitious community behind this framework.
+- The framework should be extensible from Day 1. Bud is too ambitious for one person. We're going to need an ambitious community behind this framework.
 
-* Bud should provide high-level APIs for developers while using performant low-level Go code under the covers.
+- Bud should provide high-level, type-safe APIs for developers but generate performant, low-level Go code under the covers.
 
-* Bud should compile to a single binary that contains the entire web app and can be copied to a server that doesn't even have Go installed.
+- Bud should compile to a single binary that contains your entire web app and can be copied to a server that doesn't even have Go installed.
 
 ## Next Steps
 
