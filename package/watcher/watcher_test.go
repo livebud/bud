@@ -196,7 +196,7 @@ func TestWithScaffold(t *testing.T) {
 	is.True(paths["view/show.svelte"])
 	// While there should be no more events, testing this can be flaky in CI.
 	// Instead test that we don't have any events with unexpected paths.
-	// An extra event isn't the end of the world, it's just reload one more time.
+	// An extra event isn't the end of the world, it'll just reload one more time.
 	select {
 	case path := <-event:
 		rel, err := filepath.Rel(dir, path)
