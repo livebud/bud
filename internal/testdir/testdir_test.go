@@ -9,7 +9,6 @@ import (
 
 	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/internal/version"
-	"github.com/livebud/bud/package/modcache"
 	"github.com/matryer/is"
 )
 
@@ -36,11 +35,7 @@ func notExists(fsys fs.FS, paths ...string) error {
 func TestDir(t *testing.T) {
 	is := is.New(t)
 	td := testdir.New()
-	td.Modules = map[string]modcache.Files{
-		"github.com/livebud/bud-tailwind@v0.0.1": modcache.Files{
-			"public/tailwind/preflight.css": `/* tailwind */`,
-		},
-	}
+	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.2"
 	td.Files["controller/controller.go"] = `package controller`
 	td.BFiles["public/favicon.ico"] = []byte{0x00}
 	td.NodeModules["svelte"] = version.Svelte
@@ -51,8 +46,6 @@ func TestDir(t *testing.T) {
 	err = exists(os.DirFS(dir),
 		"controller/controller.go",
 		"public/favicon.ico",
-		".mod/github.com/livebud/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
-		".npm/livebud.tgz",
 		"node_modules/svelte/package.json",
 		"node_modules/livebud/package.json",
 		"package.json",
@@ -62,14 +55,9 @@ func TestDir(t *testing.T) {
 }
 
 func TestRefresh(t *testing.T) {
-	t.SkipNow()
 	is := is.New(t)
 	td := testdir.New()
-	td.Modules = map[string]modcache.Files{
-		"github.com/livebud/bud-tailwind@v0.0.1": modcache.Files{
-			"public/tailwind/preflight.css": `/* tailwind */`,
-		},
-	}
+	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.2"
 	td.Files["controller/controller.go"] = `package controller`
 	td.BFiles["public/favicon.ico"] = []byte{0x00}
 	td.NodeModules["svelte"] = version.Svelte
@@ -80,14 +68,12 @@ func TestRefresh(t *testing.T) {
 	err = exists(os.DirFS(dir),
 		"controller/controller.go",
 		"public/favicon.ico",
-		".mod/github.com/livebud/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
-		".npm/livebud.tgz",
 		"node_modules/svelte/package.json",
 		"node_modules/livebud/package.json",
 		"package.json",
 		"go.mod",
 	)
-	td.Modules = map[string]modcache.Files{}
+	td.Modules = map[string]string{}
 	delete(td.Files, "controller/controller.go")
 	delete(td.BFiles, "public/favicon.ico")
 	err = td.Write(dir, testdir.WithBackup(true))
@@ -95,10 +81,8 @@ func TestRefresh(t *testing.T) {
 	is.NoErr(notExists(os.DirFS(dir),
 		"controller/controller.go",
 		"public/favicon.ico",
-		".mod/github.com/livebud/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
 	))
 	is.NoErr(exists(os.DirFS(dir),
-		".npm/livebud.tgz",
 		"node_modules/livebud/package.json",
 		"node_modules/svelte/package.json",
 		"package.json",
@@ -107,14 +91,9 @@ func TestRefresh(t *testing.T) {
 }
 
 func TestSkip(t *testing.T) {
-	t.SkipNow()
 	is := is.New(t)
 	td := testdir.New()
-	td.Modules = map[string]modcache.Files{
-		"github.com/livebud/bud-tailwind@v0.0.1": modcache.Files{
-			"public/tailwind/preflight.css": `/* tailwind */`,
-		},
-	}
+	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.2"
 	td.Files["controller/controller.go"] = `package controller`
 	td.BFiles["public/favicon.ico"] = []byte{0x00}
 	td.NodeModules["svelte"] = version.Svelte
@@ -125,18 +104,16 @@ func TestSkip(t *testing.T) {
 	err = exists(os.DirFS(dir),
 		"controller/controller.go",
 		"public/favicon.ico",
-		".mod/github.com/livebud/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
-		".npm/livebud.tgz",
 		"node_modules/svelte/package.json",
 		"node_modules/livebud/package.json",
 		"package.json",
 		"go.mod",
 	)
-	td.Modules = map[string]modcache.Files{}
+	td.Modules = map[string]string{}
 	delete(td.Files, "controller/controller.go")
 	delete(td.BFiles, "public/favicon.ico")
 	err = td.Write(dir, testdir.WithBackup(true), testdir.WithSkip(func(name string, isDir bool) bool {
-		return (name == "controller" && isDir) || (name == ".mod" && isDir)
+		return (name == "controller" && isDir)
 	}))
 	is.NoErr(err)
 	is.NoErr(notExists(os.DirFS(dir),
@@ -144,8 +121,6 @@ func TestSkip(t *testing.T) {
 	))
 	is.NoErr(exists(os.DirFS(dir),
 		"controller/controller.go",
-		".mod/github.com/livebud/bud-tailwind@v0.0.1/public/tailwind/preflight.css",
-		".npm/livebud.tgz",
 		"node_modules/livebud/package.json",
 		"node_modules/svelte/package.json",
 		"package.json",

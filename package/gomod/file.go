@@ -2,6 +2,7 @@ package gomod
 
 import (
 	"path"
+	"sort"
 
 	"golang.org/x/mod/modfile"
 	"golang.org/x/mod/module"
@@ -38,6 +39,10 @@ func (f *File) Replaces() (reps []*Replace) {
 	for i, rep := range f.file.Replace {
 		reps[i] = rep
 	}
+	// Consistent ordering regardless of modfile formatting
+	sort.Slice(reps, func(i, j int) bool {
+		return reps[i].Old.Path < reps[j].Old.Path
+	})
 	return reps
 }
 
@@ -47,7 +52,28 @@ func (f *File) Requires() (reqs []*Require) {
 	for i, req := range f.file.Require {
 		reqs[i] = req
 	}
+	// Consistent ordering regardless of modfile formatting
+	sort.Slice(reqs, func(i, j int) bool {
+		switch {
+		case reqs[i].Indirect && !reqs[j].Indirect:
+			return false
+		case !reqs[i].Indirect && reqs[j].Indirect:
+			return true
+		default:
+			return reqs[i].Mod.Path < reqs[j].Mod.Path
+		}
+	})
 	return reqs
+}
+
+// Require finds a required package within go.mod
+func (f *File) Require(path string) *module.Version {
+	for _, req := range f.file.Require {
+		if req.Mod.Path == path {
+			return &req.Mod
+		}
+	}
+	return nil
 }
 
 func (f *File) Format() []byte {

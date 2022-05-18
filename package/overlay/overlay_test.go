@@ -1,75 +1,37 @@
 package overlay_test
 
 import (
-	"context"
-	"os"
-	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/livebud/bud/internal/testdir"
 
 	"io/fs"
 
 	"github.com/livebud/bud/package/overlay"
 
 	"github.com/livebud/bud/package/gomod"
-	"github.com/livebud/bud/package/modcache"
 	"github.com/matryer/is"
 )
 
-const modFile = `
-module app.com
-
-require github.com/livebud/bud-tailwind v0.0.1
-require github.com/livebud/bud-lambda v1.0.0
-`
-
 func TestPlugins(t *testing.T) {
 	is := is.New(t)
-	cacheDir := t.TempDir()
-	modCache := modcache.New(cacheDir)
-	err := modCache.Write(map[string]modcache.Files{
-		"github.com/livebud/bud-tailwind@v0.0.1": modcache.Files{
-			"public/tailwind/preflight.css": `/* tailwind */`,
-		},
-		"github.com/livebud/bud-lambda@v1.0.0": modcache.Files{
-			"command/lambda/lambda.go": `package lambda`,
-		},
-	})
+	dir := t.TempDir()
+	td := testdir.New()
+	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.8"
+	td.Modules["github.com/livebud/bud-test-nested-plugin"] = "v0.0.5"
+	err := td.Write(dir)
 	is.NoErr(err)
-	appDir := t.TempDir()
-	err = os.WriteFile(filepath.Join(appDir, "go.mod"), []byte(modFile), 0644)
+	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	module, err := gomod.Find(appDir, gomod.WithModCache(modCache))
-	is.NoErr(err)
+	// Load the overlay
 	ofs, err := overlay.Load(module)
 	is.NoErr(err)
-	code, err := fs.ReadFile(ofs, "public/tailwind/preflight.css")
+	// Test that we can read files from the overlay
+	code, err := fs.ReadFile(ofs, "view/index.svelte")
 	is.NoErr(err)
-	is.Equal(string(code), `/* tailwind */`)
-	code, err = fs.ReadFile(ofs, "command/lambda/lambda.go")
+	is.Equal(strings.TrimSpace(string(code)), `<h2>Welcome</h2>`)
+	code, err = fs.ReadFile(ofs, "public/admin.css")
 	is.NoErr(err)
-	is.Equal(string(code), `package lambda`)
-}
-
-type ctxKey string
-
-func TestContextPropagation(t *testing.T) {
-	t.SkipNow()
-	is := is.New(t)
-	appDir := t.TempDir()
-	err := os.WriteFile(filepath.Join(appDir, "go.mod"), []byte(`module app.com`), 0644)
-	is.NoErr(err)
-	module, err := gomod.Find(appDir)
-	is.NoErr(err)
-	ofs, err := overlay.Load(module)
-	is.NoErr(err)
-	ofs.GenerateFile("public/normalize.css", func(ctx context.Context, fsys overlay.F, file *overlay.File) error {
-		test := ctx.Value(ctxKey("test")).(string)
-		is.Equal(test, "test")
-		file.Data = []byte("/* normalize */")
-		return nil
-	})
-	// ctx := context.WithValue(context.Background(), ctxKey("test"), "test")
-	code, err := fs.ReadFile(ofs, "public/normalize.css")
-	is.NoErr(err)
-	is.Equal(string(code), `/* normalize */`)
+	is.True(strings.Contains(string(code), `/* admin.css */`))
 }

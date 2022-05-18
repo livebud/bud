@@ -1,3 +1,13 @@
+// Package plugin provides a virtual filesystem that merges your local
+// application directory structure with all required modules that start with
+// bud-.
+//
+// When there are conflicts, bud prefers your local files over module
+// files. When there are conflicts between modules, bud prioritizes modules that
+// are alphanumerically higher. For example: github.com/livebud/bud-tailwind <
+// github.com/livebud/bud-preflight.
+//
+// The plugin system doesn't recursively load or merge indirect dependencies.
 package pluginfs
 
 import (
@@ -6,36 +16,19 @@ import (
 
 	"io/fs"
 
-	"github.com/livebud/bud/internal/fscache"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/merged"
 	"golang.org/x/sync/errgroup"
 )
 
-type Option = func(o *option)
-
-type option struct {
-	fsCache *fscache.Cache // can be nil
-}
-
-// WithFSCache uses a custom mod cache instead of the default
-func WithFSCache(cache *fscache.Cache) func(o *option) {
-	return func(opt *option) {
-		opt.fsCache = cache
-	}
-}
-
-func Load(module *gomod.Module, options ...Option) (fs.FS, error) {
-	opt := &option{
-		fsCache: nil,
-	}
+// Load the virtual filesytem
+func Load(module *gomod.Module) (fs.FS, error) {
 	plugins, err := loadPlugins(module)
 	if err != nil {
 		return nil, err
 	}
 	merged := merged.Merge(append([]fs.FS{module}, plugins...)...)
 	return &FS{
-		opt:    opt,
 		merged: merged,
 	}, nil
 }
@@ -45,6 +38,11 @@ func loadPlugins(module *gomod.Module) (plugins []fs.FS, err error) {
 	modfile := module.File()
 	var importPaths []string
 	for _, req := range modfile.Requires() {
+		// Plugins must be directly imported, they cannot come indirectly through
+		// another dependency
+		if req.Indirect {
+			continue
+		}
 		// The last path in the module path needs to start with "bud-"
 		if !strings.HasPrefix(path.Base(req.Mod.Path), "bud-") {
 			continue
@@ -73,30 +71,9 @@ func loadPlugins(module *gomod.Module) (plugins []fs.FS, err error) {
 }
 
 type FS struct {
-	opt    *option
 	merged *merged.FS
 }
 
 func (f *FS) Open(name string) (fs.File, error) {
-	if f.opt.fsCache == nil {
-		return f.merged.Open(name)
-	}
-	return f.cachedOpen(f.opt.fsCache, name)
-}
-
-func (f *FS) cachedOpen(fmap *fscache.Cache, name string) (fs.File, error) {
-	if fmap.Has(name) {
-		return fmap.Open(name)
-	}
-	file, err := f.merged.Open(name)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	vfile, err := fscache.From(file)
-	if err != nil {
-		return nil, err
-	}
-	fmap.Set(name, vfile)
-	return fmap.Open(name)
+	return f.merged.Open(name)
 }

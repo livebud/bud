@@ -10,12 +10,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"golang.org/x/sync/errgroup"
 
 	"github.com/livebud/bud/internal/command"
+	"github.com/livebud/bud/internal/current"
 	"github.com/livebud/bud/internal/version"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/otiai10/copy"
@@ -121,25 +121,10 @@ func checkDir(dir string) error {
 	return nil
 }
 
-// dirname gets the directory of this file
-func dirname() (string, error) {
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		return "", errors.New("unable to get the current filename")
-	}
-	return filepath.Dir(filename), nil
-}
-
 func findBudDir() (string, error) {
-	currentDir, err := dirname()
+	currentDir, err := current.Directory()
 	if err != nil {
 		return "", err
-	}
-	if !filepath.IsAbs(currentDir) {
-		// Attempt to find it within $GOPATH/src
-		if gopath := os.Getenv("GOPATH"); gopath != "" {
-			currentDir = filepath.Join(gopath, "src", currentDir)
-		}
 	}
 	return gomod.Absolute(currentDir)
 }
