@@ -300,13 +300,12 @@ func TestDirFS(t *testing.T) {
 
 func TestHash(t *testing.T) {
 	is := is.New(t)
-	modPath := filepath.Join(t.TempDir(), "go.mod")
-	m1, err := gomod.Parse(modPath, []byte(`module app.test`))
+	m1, err := gomod.Parse("go.mod", []byte(`module app.test`))
 	is.NoErr(err)
-	m2, err := gomod.Parse(modPath, []byte(`module app.test`))
+	m2, err := gomod.Parse("go.mod", []byte(`module app.test`))
 	is.NoErr(err)
 	is.Equal(string(m1.Hash()), string(m2.Hash()))
-	m3, err := gomod.Parse(modPath, []byte(`module apptest`))
+	m3, err := gomod.Parse("go.mod", []byte(`module apptest`))
 	is.NoErr(err)
 	is.True(string(m2.Hash()) != string(m3.Hash()))
 }

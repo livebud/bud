@@ -12,7 +12,6 @@ import (
 	"github.com/livebud/bud/package/parser"
 
 	"github.com/livebud/bud/internal/testdir"
-	"github.com/livebud/bud/internal/testplugin"
 	"github.com/livebud/bud/internal/txtar"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/vfs"
@@ -26,7 +25,7 @@ func TestStructLookup(t *testing.T) {
 	dir := t.TempDir()
 	err = vfs.Write(dir, testfile)
 	is.NoErr(err)
-	modCache := modcache.New(filepath.Join(dir, "mod"))
+	modCache := modcache.Default()
 	appDir := filepath.Join(dir, "app")
 	module, err := gomod.Find(appDir, gomod.WithModCache(modCache))
 	is.NoErr(err)
@@ -188,14 +187,17 @@ func TestGenerate(t *testing.T) {
 	is := is.New(t)
 	modCache := modcache.Default()
 	dir := t.TempDir()
-	plugin, err := testplugin.Plugin()
 	td := testdir.New()
-	td.Modules[plugin.Path] = plugin.Version
+	td.Modules["github.com/livebud/bud-test-plugin"] = `v0.0.8`
 	is.NoErr(td.Write(dir))
 	cfs := conjure.New()
 	merged := merged.Merge(os.DirFS(dir), cfs)
 	cfs.GenerateFile("hello/hello.go", func(file *conjure.File) error {
-		file.Data = []byte("package hello\nimport plugin \"" + plugin.Path + "\"\ntype A struct { plugin.Answer }")
+		file.Data = []byte(`
+			package hello
+			import plugin "github.com/livebud/bud-test-plugin"
+			type A struct { plugin.Answer }
+		`)
 		return nil
 	})
 	module, err := gomod.Find(dir, gomod.WithModCache(modCache))

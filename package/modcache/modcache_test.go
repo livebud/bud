@@ -6,11 +6,10 @@ import (
 	"go/build"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"testing"
 
-	"github.com/livebud/bud/internal/testplugin"
+	"github.com/livebud/bud/internal/testdir"
 
 	"github.com/livebud/bud/package/modcache"
 	"github.com/matryer/is"
@@ -49,13 +48,14 @@ func TestDirectory(t *testing.T) {
 
 func TestResolveDirectoryFromCache(t *testing.T) {
 	is := is.New(t)
+	dir := t.TempDir()
+	td := testdir.New()
+	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.8"
+	is.NoErr(td.Write(dir))
 	modCache := modcache.Default()
-	is.True(modCache.Directory() != "")
-	dep, err := testplugin.Plugin()
+	dir, err := modCache.ResolveDirectory("github.com/livebud/bud-test-plugin", "v0.0.8")
 	is.NoErr(err)
-	dir, err := modCache.ResolveDirectory(dep.Path, dep.Version)
-	is.NoErr(err)
-	is.Equal(dir, modCache.Directory(path.Dir(dep.Path), path.Base(dep.Path)+"@"+dep.Version))
+	is.Equal(dir, modCache.Directory(`github.com/livebud`, `bud-test-plugin@v0.0.8`))
 }
 
 // func TestWriteModule(t *testing.T) {

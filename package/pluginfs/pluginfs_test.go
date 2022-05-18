@@ -4,28 +4,23 @@ import (
 	"io/fs"
 	"testing"
 
-	"github.com/livebud/bud/internal/testplugin"
+	"github.com/livebud/bud/internal/testdir"
 
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/pluginfs"
-	"github.com/livebud/bud/package/vfs"
 	"github.com/matryer/is"
 )
 
 func TestMergeModules(t *testing.T) {
 	is := is.New(t)
-	appDir := t.TempDir()
-	dep, err := testplugin.Plugin()
+	dir := t.TempDir()
+	td := testdir.New()
+	td.Files["public/normalize.css"] = `/* normalize */`
+	td.Modules["github.com/livebud/bud-test-plugin"] = `v0.0.8`
+	err := td.Write(dir)
 	is.NoErr(err)
-	err = vfs.Write(appDir, vfs.Map{
-		"public/normalize.css": []byte(`/* normalize */`),
-		"go.mod": []byte(`
-			module app.com
-			require ` + dep.Path + ` ` + dep.Version + `
-		`),
-	})
-	is.NoErr(err)
-	module, err := gomod.Find(appDir)
+
+	module, err := gomod.Find(dir)
 	is.NoErr(err)
 	pfs, err := pluginfs.Load(module)
 	is.NoErr(err)
@@ -112,28 +107,24 @@ func TestMergeModules(t *testing.T) {
 
 func TestMultiple(t *testing.T) {
 	is := is.New(t)
-	appDir := t.TempDir()
-	dep, err := testplugin.Plugin()
+	dir := t.TempDir()
+
+	td := testdir.New()
+	td.Files["public/normalize.css"] = `/* normalize */`
+	td.Modules["github.com/livebud/bud-test-plugin"] = `v0.0.9`
+	td.Modules["github.com/livebud/bud-test-nested-plugin"] = `v0.0.5`
+	err := td.Write(dir)
 	is.NoErr(err)
-	nested, err := testplugin.NestedPlugin()
-	is.NoErr(err)
-	err = vfs.Write(appDir, vfs.Map{
-		"go.mod": []byte(`
-			module app.com
-			require ` + dep.Path + ` ` + dep.Version + `
-			require ` + nested.Path + ` ` + nested.Version + `
-		`),
-	})
-	is.NoErr(err)
-	module, err := gomod.Find(appDir)
+
+	module, err := gomod.Find(dir)
 	is.NoErr(err)
 	pfs, err := pluginfs.Load(module)
 	is.NoErr(err)
 
 	// From bud-test-plugin
-	code, err := fs.ReadFile(pfs, "public/tailwind/preflight.css")
+	code, err := fs.ReadFile(pfs, "public/base.css")
 	is.NoErr(err)
-	is.Equal(string(code), `/* tailwind */`)
+	is.Equal(string(code), `/* base */`)
 
 	// From bud-test-nested-plugin
 	code, err = fs.ReadFile(pfs, "public/admin.css")
@@ -141,6 +132,40 @@ func TestMultiple(t *testing.T) {
 	is.Equal(string(code), `/* admin.css */`)
 }
 
-func TestPluginDir(t *testing.T) {
+func TestConflicts(t *testing.T) {
+	is := is.New(t)
+	dir := t.TempDir()
+
+	td := testdir.New()
+	td.Files["public/admin.css"] = `/* app admin.css */`
+	td.Modules["github.com/livebud/bud-test-plugin"] = `v0.0.9`
+	td.Modules["github.com/livebud/bud-test-nested-plugin"] = `v0.0.5`
+	err := td.Write(dir)
+	is.NoErr(err)
+
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	pfs, err := pluginfs.Load(module)
+	is.NoErr(err)
+
+	// 1. Prefer application files
+	code, err := fs.ReadFile(pfs, "public/admin.css")
+	is.NoErr(err)
+	is.Equal(string(code), `/* app admin.css */`)
+
+	// 2. Prefer modules that are higher on the list alphanumerically.
+	// In this case, `github.com/livebud/bud-test-nested-plugin` has priority over
+	// `github.com/livebud/bud-test-plugin`.
+	code, err = fs.ReadFile(pfs, "public/tailwind/preflight.css")
+	is.NoErr(err)
+	is.Equal(string(code), `/* conflicting preflight */`)
+
+	// 3. Finally, ensure that non-conflicting files are still readable
+	code, err = fs.ReadFile(pfs, "public/base.css")
+	is.NoErr(err)
+	is.Equal(string(code), `/* base */`)
+}
+
+func TestLocalPluginDir(t *testing.T) {
 	t.SkipNow()
 }

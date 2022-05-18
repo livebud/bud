@@ -1,12 +1,10 @@
 package overlay_test
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/livebud/bud/internal/testplugin"
+	"github.com/livebud/bud/internal/testdir"
 
 	"io/fs"
 
@@ -18,20 +16,13 @@ import (
 
 func TestPlugins(t *testing.T) {
 	is := is.New(t)
-	// Create a gomod with some dependencies
-	dep1, err := testplugin.Plugin()
+	dir := t.TempDir()
+	td := testdir.New()
+	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.8"
+	td.Modules["github.com/livebud/bud-test-nested-plugin"] = "v0.0.5"
+	err := td.Write(dir)
 	is.NoErr(err)
-	dep2, err := testplugin.NestedPlugin()
-	is.NoErr(err)
-	modFile := `
-		module app.com
-		require ` + dep1.Path + ` ` + dep1.Version + `
-		require ` + dep2.Path + ` ` + dep2.Version + `
-	`
-	appDir := t.TempDir()
-	err = os.WriteFile(filepath.Join(appDir, "go.mod"), []byte(modFile), 0644)
-	is.NoErr(err)
-	module, err := gomod.Find(appDir)
+	module, err := gomod.Find(dir)
 	is.NoErr(err)
 	// Load the overlay
 	ofs, err := overlay.Load(module)
