@@ -331,7 +331,14 @@ func (t *SelectorType) Unqualify() Type {
 	}
 }
 
-// Definition returns the type definition
+// Definition returns the type definition. If we're in the application
+// directory, we use the virtual filesystem which may contain Go files in
+// memory.
+//
+// If we're in any other Go module, we're likely somewhere in $GOMODCACHE
+// and we should use the underlying filesytem.
+//
+// TODO: abstract out the resolution logic, it's complicated and nuanced.
 func (t *SelectorType) Definition() (Declaration, error) {
 	left, ok := t.n.X.(*ast.Ident)
 	if !ok {

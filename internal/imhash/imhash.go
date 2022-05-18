@@ -14,8 +14,8 @@ import (
 	"github.com/cespare/xxhash"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/livebud/bud/internal/goimport"
 	"github.com/livebud/bud/package/gomod"
-	"github.com/livebud/bud/package/parser"
 )
 
 func find(module *gomod.Module, mainDir string) (*fileSet, error) {
@@ -154,7 +154,7 @@ func shouldWalk(module *gomod.Module, importPath string) bool {
 }
 
 func findDeps(fset *fileSet, module *gomod.Module, dir string) (err error) {
-	imported, err := parser.Import(module, dir)
+	imported, err := goimport.New(module).Import(dir)
 	if err != nil {
 		return err
 	}
