@@ -40,7 +40,7 @@ func TestDir(t *testing.T) {
 	td.BFiles["public/favicon.ico"] = []byte{0x00}
 	td.NodeModules["svelte"] = version.Svelte
 	td.NodeModules["livebud"] = "*"
-	dir := "_tmp"
+	dir := t.TempDir()
 	err := td.Write(dir, testdir.WithBackup(false))
 	is.NoErr(err)
 	err = exists(os.DirFS(dir),

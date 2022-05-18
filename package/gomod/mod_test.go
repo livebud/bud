@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/internal/fscache"
+	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/modcache"
 	"github.com/livebud/bud/package/vfs"
@@ -149,13 +150,13 @@ func TestModuleFindStdlib(t *testing.T) {
 
 func TestFindNested(t *testing.T) {
 	is := is.New(t)
-	modCache := modcache.Default()
-	appDir := t.TempDir()
-	err := vfs.Write(appDir, vfs.Map{
-		"go.mod": []byte("module app.com\nrequire github.com/livebud/bud-test-plugin v0.0.3"),
-	})
+	dir := t.TempDir()
+	td := testdir.New()
+	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.8"
+	err := td.Write(dir)
 	is.NoErr(err)
-	module1, err := gomod.Find(appDir, gomod.WithModCache(modCache))
+	modCache := modcache.Default()
+	module1, err := gomod.Find(dir)
 	is.NoErr(err)
 	data, err := fs.ReadFile(module1, "go.mod")
 	is.NoErr(err)
@@ -166,17 +167,20 @@ func TestFindNested(t *testing.T) {
 	module2, err := module1.Find("github.com/livebud/bud-test-plugin")
 	is.NoErr(err)
 	is.Equal(module2.Import(), "github.com/livebud/bud-test-plugin")
-	is.Equal(module2.Directory(), modCache.Directory("github.com/livebud", "bud-test-plugin@v0.0.3"))
+	is.Equal(module2.Directory(), modCache.Directory("github.com/livebud", "bud-test-plugin@v0.0.8"))
 	data, err = fs.ReadFile(module2, "go.mod")
 	is.NoErr(err)
 	m2, err := gomod.Parse("go.mod", data)
 	is.NoErr(err)
 	is.Equal(m2.Import(), "github.com/livebud/bud-test-plugin")
 
+	// Find the nested module from bud-test-plugin
+	req := module2.File().Require("github.com/livebud/bud-test-nested-plugin")
+	is.True(req != nil)
 	module3, err := module2.Find("github.com/livebud/bud-test-nested-plugin")
 	is.NoErr(err)
 	is.Equal(module3.Import(), "github.com/livebud/bud-test-nested-plugin")
-	is.Equal(module3.Directory(), modCache.Directory("github.com/livebud", "bud-test-nested-plugin@v0.0.1"))
+	is.Equal(module3.Directory(), modCache.Directory("github.com/livebud", "bud-test-nested-plugin@"+req.Version))
 	data, err = fs.ReadFile(module3, "go.mod")
 	is.NoErr(err)
 	m3, err := gomod.Parse("go.mod", data)
@@ -185,11 +189,11 @@ func TestFindNested(t *testing.T) {
 
 	// Ensure module1 is not overriden
 	is.Equal(module1.Import(), "app.com")
-	is.Equal(module1.Directory(), appDir)
+	is.Equal(module1.Directory(), dir)
 
 	// Ensure module2 is not overriden
 	is.Equal(module2.Import(), "github.com/livebud/bud-test-plugin")
-	is.Equal(module2.Directory(), modCache.Directory("github.com/livebud", "bud-test-plugin@v0.0.3"))
+	is.Equal(module2.Directory(), modCache.Directory("github.com/livebud", "bud-test-plugin@v0.0.8"))
 }
 
 func TestOpen(t *testing.T) {

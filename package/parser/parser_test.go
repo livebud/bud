@@ -18,6 +18,7 @@ import (
 	"github.com/matryer/is"
 )
 
+// TODO: replace txtar with testdir
 func TestStructLookup(t *testing.T) {
 	is := is.New(t)
 	testfile, err := txtar.ParseFile("testdata/struct-lookup.txt")
@@ -25,7 +26,7 @@ func TestStructLookup(t *testing.T) {
 	dir := t.TempDir()
 	err = vfs.Write(dir, testfile)
 	is.NoErr(err)
-	modCache := modcache.Default()
+	modCache := modcache.New(filepath.Join(dir, "mod"))
 	appDir := filepath.Join(dir, "app")
 	module, err := gomod.Find(appDir, gomod.WithModCache(modCache))
 	is.NoErr(err)
@@ -60,6 +61,7 @@ func TestStructLookup(t *testing.T) {
 	is.Equal(modFile.Import(), "mod.test/three")
 }
 
+// TODO: replace txtar with testdir
 func TestInterfaceLookup(t *testing.T) {
 	is := is.New(t)
 	testfile, err := txtar.ParseFile("testdata/interface-lookup.txt")
@@ -107,6 +109,7 @@ func TestInterfaceLookup(t *testing.T) {
 	is.Equal(module.Import(), "mod.test/three")
 }
 
+// TODO: replace txtar with testdir
 func TestAliasLookup(t *testing.T) {
 	is := is.New(t)
 	testfile, err := txtar.ParseFile("testdata/alias-lookup.txt")
@@ -146,21 +149,20 @@ func TestAliasLookup(t *testing.T) {
 
 func TestNetHTTP(t *testing.T) {
 	is := is.New(t)
-	appDir := t.TempDir()
-	err := vfs.Write(appDir, vfs.Map{
-		"go.mod": []byte(`module app.com/app`),
-		"app.go": []byte(`
-			package app
+	dir := t.TempDir()
+	td := testdir.New()
+	td.Files["app.go"] = `
+		package app
 
-			import "net/http"
+		import "net/http"
 
-			type A struct {
-				*http.Request
-			}
-		`),
-	})
+		type A struct {
+			*http.Request
+		}
+	`
+	err := td.Write(dir)
 	is.NoErr(err)
-	module, err := gomod.Find(appDir)
+	module, err := gomod.Find(dir)
 	is.NoErr(err)
 	p := parser.New(module, module)
 	pkg, err := p.Parse(".")
@@ -185,7 +187,6 @@ func TestNetHTTP(t *testing.T) {
 
 func TestGenerate(t *testing.T) {
 	is := is.New(t)
-	modCache := modcache.Default()
 	dir := t.TempDir()
 	td := testdir.New()
 	td.Modules["github.com/livebud/bud-test-plugin"] = `v0.0.8`
@@ -200,7 +201,7 @@ func TestGenerate(t *testing.T) {
 		`)
 		return nil
 	})
-	module, err := gomod.Find(dir, gomod.WithModCache(modCache))
+	module, err := gomod.Find(dir)
 	is.NoErr(err)
 	is.Equal(module.Directory(), dir)
 	p := parser.New(merged, module)
