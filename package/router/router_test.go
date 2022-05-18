@@ -184,8 +184,8 @@ func TestTrailingSlash(t *testing.T) {
 func TestInsensitive(t *testing.T) {
 	ok(t, &test{
 		routes: []*route{
-			{method: "GET", route: "/HI", err: `route "/HI": uppercase letters are not allowed "H"`},
-			{method: "GET", route: "/hi"},
+			{method: "GET", route: "/HI"},
+			{method: "GET", route: "/hi", err: `radix: "/hi" is already in the tree`},
 		},
 		requests: []*request{
 			{method: "GET", path: "/HI", status: 308, location: "/hi", body: "<a href=\"/hi\">Permanent Redirect</a>.\n\n"},

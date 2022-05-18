@@ -75,7 +75,7 @@ type tree struct {
 }
 
 func (t *tree) Insert(route string, handler http.Handler) error {
-	lexer := lex.New(route)
+	lexer := lex.New(strings.ToLower(route))
 	var tokens lex.Tokens
 	for {
 		token := lexer.Next()
