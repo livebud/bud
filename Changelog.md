@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.1.4
+
+- Add support for custom actions (thanks @theEyeD!)
+
+  This release adds support for defining custom actions on controllers that get mapped to GET requests. This feature closes: https://github.com/livebud/bud/pull/67.
+
+  For example, given the following users controller in `controller/users/users.go`:
+
+  ```go
+  package users
+  type Controller struct {}
+  func (c *Controller) Deactivate() error { return nil }
+  ```
+
+  The `Deactivate` method would get mapped to `GET /users/deactivate`. Learn more in [the documentation](https://www.notion.so/Hey-Bud-4d81622cc49942f9917c5033e5205c69#cc536e505a7349e08c68a65aef266726).
+
+- Speed up tests by using existing `GOMODCACHE`
+
+  Some of the test suite used an empty `GOMODCACHE` to test plugin support. This turned added about a 1-minute overhead to those tests while dependencies were downloaded and the cache was populated.
+
+  We now rely on real module fixtures: https://github.com/livebud/bud-test-plugin and https://github.com/livebud/bud-test-plugin.
+
+- Add a version number to released assets
+
+  This will make it easier to add Bud to other package managers like the Arch User Repository (AUR) for Arch Linux users. This feature fixes: https://github.com/livebud/bud/issues/52.
+
+- Added a background section to the Readme (thanks @thepudds!)
+
+  @thepudds re-wrote the Reddit post, simplifying and condensing it for the Readme. I always like when projects include a "why", so I really appreciate @thepudds adding this for Bud!
+
 ## v0.1.3
 
 - Move build caching from $TMPDIR/bud/cache to $YOUR_APP/bud/cache
