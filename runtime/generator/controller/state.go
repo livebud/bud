@@ -199,6 +199,11 @@ func (results ActionResults) Error() string {
 	return ""
 }
 
+// Error expression is only return
+func (results ActionResults) IsOnlyError() bool {
+	return len(results) == 1 && results[0].IsError
+}
+
 // ActionResult struct
 type ActionResult struct {
 	Name     string
