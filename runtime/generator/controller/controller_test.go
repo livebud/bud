@@ -1926,3 +1926,46 @@ func TestEmptyActionWithView(t *testing.T) {
 	`))
 	is.NoErr(res.ContainsBody(`<h1>hello</h1>`))
 }
+
+func TestCustomActions(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := "_tmp"
+	bud := budtest.New(dir)
+	bud.Files["controller/controller.go"] = `
+		package controller
+		type Controller struct {}
+		func (c *Controller) About() string { return "about" }
+	`
+	bud.Files["controller/users/users.go"] = `
+		package users
+		type Controller struct {}
+		func (c *Controller) Deactivate() string { return "deactivate" }
+	`
+	project, err := bud.Compile(ctx)
+	is.NoErr(err)
+	app, err := project.Build(ctx)
+	is.NoErr(err)
+	is.NoErr(app.Exists("bud/.app/main.go"))
+	server, err := app.Start(ctx)
+	is.NoErr(err)
+	defer server.Close()
+	res, err := server.Get("/about")
+	is.NoErr(err)
+	// HTML response
+	is.NoErr(res.ExpectHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`))
+	is.NoErr(res.ContainsBody(`about`))
+	res, err = server.Get("/users/deactivate")
+	is.NoErr(err)
+	// HTML response
+	is.NoErr(res.ExpectHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+		Date: Fri, 31 Dec 2021 00:00:00 GMT
+	`))
+	is.NoErr(res.ContainsBody(`deactivate`))
+}

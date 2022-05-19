@@ -267,6 +267,10 @@ func insertWild(parent *node, child *node) error {
 
 // Match the path to a route in the tree
 func (t *tree) Match(path string) (*Match, bool) {
+	// A tree without any routes shouldn't panic
+	if t.root == nil {
+		return nil, false
+	}
 	match := t.match(t.root, path, Slots{})
 	if match == nil {
 		return nil, false

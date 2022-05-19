@@ -337,3 +337,12 @@ func TestWildcard(t *testing.T) {
 		},
 	})
 }
+
+func TestNoRoutes(t *testing.T) {
+	ok(t, &test{
+		requests: []*request{
+			{path: "/", nomatch: true},
+			{path: "/a", nomatch: true},
+		},
+	})
+}
