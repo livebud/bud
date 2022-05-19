@@ -1,5 +1,11 @@
 # Changelog
 
+Get the latest release of Bud by running the following in your terminal:
+
+```sh
+curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
+```
+
 ## v0.1.4
 
 - Add support for custom actions (thanks @theEyeD!)
