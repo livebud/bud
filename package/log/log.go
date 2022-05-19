@@ -42,7 +42,7 @@ type Flusher interface {
 	Flush()
 }
 
-type Logger interface {
+type Interface interface {
 	Debug(message string, args ...interface{})
 	Info(message string, args ...interface{})
 	Notice(message string, args ...interface{})
@@ -72,7 +72,7 @@ func WithPath(includePath bool) Option {
 }
 
 // New logger
-func New(handler Handler, options ...Option) Logger {
+func New(handler Handler, options ...Option) Interface {
 	logger := &logger{
 		Handler:     handler,
 		includePath: false,
@@ -124,7 +124,7 @@ func (l *logger) keyValues(kvs ...interface{}) (list Fields) {
 }
 
 // New sub logger
-func (l *logger) New(fields ...interface{}) Logger {
+func (l *logger) New(fields ...interface{}) Interface {
 	return &logger{
 		Handler:     l.Handler,
 		includePath: l.includePath,
