@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/livebud/bud/internal/buildcache"
@@ -22,9 +23,24 @@ import (
 )
 
 func defaultEnv(module *gomod.Module) (Env, error) {
-	budPath, err := os.Executable()
+	// Lookup `bud` from the $PATH. Used instead of os.Executable() because
+	// when running tests, os.Executable() refers to the test package, leading
+	// to an infinite loop.
+	//
+	// WARNING: this can be out of sync with `bud/main.go`. You'll need to run
+	// `go install` if you make changes to `bud tool v8 client` or any of its
+	// dependencies.
+	//
+	// TODO: switch to passing the V8 client through a file pipe during
+	// development similar to how we're passing the TCP connection through
+	// the subprocesses.
+	budPath, err := exec.LookPath("bud")
 	if err != nil {
-		return nil, err
+		// Fallback to the current executable
+		budPath, err = os.Executable()
+		if err != nil {
+			return nil, err
+		}
 	}
 	return Env{
 		"HOME":       os.Getenv("HOME"),
@@ -67,25 +83,66 @@ type Compiler struct {
 	ModCacheRW bool
 }
 
-// Load the overlay
-func (c *Compiler) loadOverlay(ctx context.Context, module *gomod.Module) (fsys *overlay.FileSystem, err error) {
-	return overlay.Load(module)
+func (c *Compiler) Compile(ctx context.Context, flag *bud.Flag) (p *Project, err error) {
+	// Load the overlay
+	overlay, err := c.loadOverlay(ctx, flag)
+	if err != nil {
+		return nil, err
+	}
+	// Sync the generators
+	if err := c.sync(ctx, overlay); err != nil {
+		return nil, err
+	}
+	// Write the import generator
+	if err := c.writeImporter(ctx, overlay); err != nil {
+		return nil, err
+	}
+	// Build the binary
+	if err := c.goBuild(ctx, c.module, filepath.Join("bud", "cli")); err != nil {
+		return nil, err
+	}
+	return &Project{
+		Module: c.module,
+		Env:    c.Env,
+		Stdout: c.Stdout,
+		Stderr: c.Stderr,
+	}, nil
 }
 
+// Load the overlay
+func (c *Compiler) loadOverlay(ctx context.Context, flag *bud.Flag) (fsys *overlay.FileSystem, err error) {
+	overlay, err := overlay.Load(c.module)
+	if err != nil {
+		return nil, err
+	}
+	// Initialize dependencies
+	parser := parser.New(overlay, c.module)
+	injector := di.New(overlay, c.module, parser)
+	// Setup the generators
+	overlay.FileGenerator("bud/import.go", importfile.New(c.module))
+	overlay.FileGenerator("bud/.cli/main.go", mainfile.New(c.module))
+	overlay.FileGenerator("bud/.cli/program/program.go", program.New(flag, injector, c.module))
+	overlay.FileGenerator("bud/.cli/command/command.go", command.New(overlay, c.module, parser))
+	overlay.FileGenerator("bud/.cli/generator/generator.go", generator.New(overlay, c.module, parser))
+	overlay.FileGenerator("bud/.cli/transform/transform.go", transform.New(c.module))
+	return overlay, nil
+}
+
+// Sync the generators to bud/.cli
+func (c *Compiler) sync(ctx context.Context, overlay *overlay.FileSystem) (err error) {
+	if err := overlay.Sync("bud/.cli"); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Write the importer
 func (c *Compiler) writeImporter(ctx context.Context, overlay *overlay.FileSystem) error {
 	importFile, err := fs.ReadFile(overlay, "bud/import.go")
 	if err != nil {
 		return err
 	}
 	if err := c.module.DirFS().WriteFile("bud/import.go", importFile, 0644); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Sync the generators to bud/.cli
-func (c *Compiler) sync(ctx context.Context, overlay *overlay.FileSystem) (err error) {
-	if err := overlay.Sync("bud/.cli"); err != nil {
 		return err
 	}
 	return nil
@@ -105,40 +162,4 @@ func (c *Compiler) goBuild(ctx context.Context, module *gomod.Module, outPath st
 		return err
 	}
 	return nil
-}
-
-func (c *Compiler) Compile(ctx context.Context, flag *bud.Flag) (p *Project, err error) {
-	// Load the overlay
-	overlay, err := c.loadOverlay(ctx, c.module)
-	if err != nil {
-		return nil, err
-	}
-	// Initialize dependencies
-	parser := parser.New(overlay, c.module)
-	injector := di.New(overlay, c.module, parser)
-	// Setup the generators
-	overlay.FileGenerator("bud/import.go", importfile.New(c.module))
-	overlay.FileGenerator("bud/.cli/main.go", mainfile.New(c.module))
-	overlay.FileGenerator("bud/.cli/program/program.go", program.New(flag, injector, c.module))
-	overlay.FileGenerator("bud/.cli/command/command.go", command.New(overlay, c.module, parser))
-	overlay.FileGenerator("bud/.cli/generator/generator.go", generator.New(overlay, c.module, parser))
-	overlay.FileGenerator("bud/.cli/transform/transform.go", transform.New(c.module))
-	// Sync the generators
-	if err := c.sync(ctx, overlay); err != nil {
-		return nil, err
-	}
-	// Write the import generator
-	if err := c.writeImporter(ctx, overlay); err != nil {
-		return nil, err
-	}
-	// Build the binary
-	if err := c.goBuild(ctx, c.module, filepath.Join("bud", "cli")); err != nil {
-		return nil, err
-	}
-	return &Project{
-		Module: c.module,
-		Env:    c.Env,
-		Stdout: c.Stdout,
-		Stderr: c.Stderr,
-	}, nil
 }

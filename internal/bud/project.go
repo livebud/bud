@@ -2,6 +2,7 @@ package bud
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 
@@ -47,9 +48,11 @@ func (p *Project) Builder(ctx context.Context) *exe.Cmd {
 
 func (p *Project) Build(ctx context.Context) (*bud.App, error) {
 	cmd := p.Builder(ctx)
+	fmt.Println("running cmd")
 	if err := cmd.Run(); err != nil {
 		return nil, err
 	}
+	fmt.Println("ran cmd")
 	return &bud.App{
 		Module: p.Module,
 		Env:    p.Env.List(),
