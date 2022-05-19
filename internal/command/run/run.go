@@ -2,12 +2,12 @@ package run
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"time"
 
 	"github.com/livebud/bud/internal/bud"
 	"github.com/livebud/bud/internal/command"
-	"github.com/livebud/bud/internal/version"
 	"github.com/livebud/bud/package/log/console"
 	"github.com/livebud/bud/package/socket"
 )
@@ -21,30 +21,19 @@ type Command struct {
 	Port string
 }
 
-func frontEnd() string {
-	// TODO: Change to the corresponding front end in next releases
-	return "Svelte " + version.Svelte
+func handleTime(time time.Duration) string {
+	return fmt.Sprintf("%d", time.Milliseconds())
 }
 
 func displayDashboard(host, port string, timeElapsed time.Duration) {
 	/*
-		The dashboard should looks something like this:
-			|   bud dev server is running:
-			|
-			| > Listening on: http://127.0.0.1:3000
-			| > Front end: Svelte 3.47.0
-			|
-			|   Ready in 270.131758ms
-			|
+		The dashboard should looks like this:
+			| Listening on: http://127.0.0.1:3000
+			| Ready in 270ms
 	*/
 	address := "http://" + host + ":" + port
-	console.Info("  bud dev server is running:")
-	console.Info("")
-	console.Info("> Listening on: " + address)
-	console.Info("> Front end: " + frontEnd())
-	console.Info("")
-	console.Info("  Ready in " + timeElapsed.String())
-	console.Info("")
+	console.Info("Listening on: " + address)
+	console.Info("Ready in " + handleTime(timeElapsed) + "ms")
 }
 
 func (c *Command) Run(ctx context.Context) error {
@@ -69,7 +58,7 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	// Compiler the project CLI
+	// Compile the project CLI
 	project, err := compiler.Compile(ctx, &c.bud.Flag)
 	if err != nil {
 		return err
