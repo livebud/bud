@@ -159,14 +159,13 @@ func isList(dataType string) bool {
 
 func (results ActionResults) ViewResult() string {
 	propsKey := results.propsKey()
-	if propsKey == "" {
-		return results.Result()
-	}
 	out := new(strings.Builder)
 	out.WriteString(`map[string]interface{}{`)
-	out.WriteString(strconv.Quote(propsKey))
-	out.WriteString(":")
-	out.WriteString(results.Result())
+	if propsKey != "" {
+		out.WriteString(strconv.Quote(propsKey))
+		out.WriteString(":")
+		out.WriteString(results.Result())
+	}
 	out.WriteString(`},`)
 	return out.String()
 }
