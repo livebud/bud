@@ -9,13 +9,10 @@ import (
 	"path/filepath"
 
 	"github.com/livebud/bud/internal/buildcache"
-	"github.com/livebud/bud/internal/generator/command"
 	"github.com/livebud/bud/internal/generator/generator"
 	"github.com/livebud/bud/internal/generator/importfile"
 	"github.com/livebud/bud/internal/generator/mainfile"
-	"github.com/livebud/bud/internal/generator/program"
 	"github.com/livebud/bud/internal/generator/transform"
-	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/parser"
@@ -117,12 +114,12 @@ func (c *Compiler) loadOverlay(ctx context.Context, flag *bud.Flag) (fsys *overl
 	}
 	// Initialize dependencies
 	parser := parser.New(overlay, c.module)
-	injector := di.New(overlay, c.module, parser)
+	// injector := di.New(overlay, c.module, parser)
 	// Setup the generators
 	overlay.FileGenerator("bud/import.go", importfile.New(c.module))
 	overlay.FileGenerator("bud/.cli/main.go", mainfile.New(c.module))
-	overlay.FileGenerator("bud/.cli/program/program.go", program.New(flag, injector, c.module))
-	overlay.FileGenerator("bud/.cli/command/command.go", command.New(overlay, c.module, parser))
+	// overlay.FileGenerator("bud/.cli/program/program.go", program.New(flag, injector, c.module))
+	// overlay.FileGenerator("bud/.cli/command/command.go", command.New(overlay, c.module, parser))
 	overlay.FileGenerator("bud/.cli/generator/generator.go", generator.New(overlay, c.module, parser))
 	overlay.FileGenerator("bud/.cli/transform/transform.go", transform.New(c.module))
 	return overlay, nil

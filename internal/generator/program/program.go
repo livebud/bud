@@ -8,10 +8,10 @@ import (
 
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/bud"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/overlay"
-	"github.com/livebud/bud/runtime/bud"
 )
 
 //go:embed program.gotext

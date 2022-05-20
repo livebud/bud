@@ -17,12 +17,15 @@ import (
 )
 
 // Launch the process and return a client
-func Launch(ctx context.Context) (*Client, error) {
+func Launch(ctx context.Context) (c *Client, err error) {
 	// Get the BUD_PATH that's been passed in or fail. This should always be set
 	// by the compiler
 	budPath := os.Getenv("BUD_PATH")
 	if budPath == "" {
-		return nil, fmt.Errorf("v8client: $BUD_PATH must be set")
+		budPath, err = exec.LookPath("bud")
+		if err != nil {
+			return nil, err
+		}
 	}
 	cmd := exec.CommandContext(ctx, budPath, "tool", "v8", "client")
 	cmd.Env = os.Environ()
@@ -57,6 +60,36 @@ func Launch(ctx context.Context) (*Client, error) {
 		closer: closer,
 	}, nil
 }
+
+// // Load files if the V8_FDS and V8_FDS_START environment variables are set.
+// func loadFiles() (files []*os.File) {
+// 	nfds, err := strconv.Atoi(os.Getenv("V8_FDS"))
+// 	if err != nil || nfds == 0 {
+// 		return nil
+// 	}
+// 	startAt, err := strconv.Atoi(os.Getenv("V8_FDS_START"))
+// 	if err != nil || startAt == 0 {
+// 		return nil
+// 	}
+// 	files = make([]*os.File, 0, nfds)
+// 	for fd := startAt; fd < startAt+nfds; fd++ {
+// 		syscall.CloseOnExec(fd)
+// 		name := "V8_FD_" + strconv.Itoa(fd)
+// 		files = append(files, os.NewFile(uintptr(fd), name))
+// 	}
+// 	return files
+// }
+
+// // FromFiles loads a V8 client from extra files passed into the command.
+// // This requires V8_FDS and V8_FDS_START to be set on the child, along with
+// // extra files to be passed in through cmd.ExtraFiles.
+// func FromFiles() (*Client, error) {
+// 	files := loadFiles()
+// 	if len(files) == 0 {
+// 		return nil, fmt.Errorf("v8client: unable to load passed in files")
+// 	}
+// 	return New(files[0], files[1]), nil
+// }
 
 // New client for testing
 func New(reader io.Reader, writer io.Writer) *Client {
@@ -97,6 +130,7 @@ func (c *Client) Script(path, script string) error {
 func (c *Client) Eval(path, expr string) (value string, err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	fmt.Println("evaling", path, expr)
 	if err := c.writer.Encode(Input{Type: "eval", Path: path, Code: expr}); err != nil {
 		return "", err
 	}

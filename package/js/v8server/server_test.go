@@ -18,7 +18,7 @@ func TestClient(t *testing.T) {
 	r1, w1 := io.Pipe()
 	r2, w2 := io.Pipe()
 	client := v8client.New(r1, w2)
-	server := &v8server.Server{r2, w1}
+	server := v8server.New(r2, w1)
 	eg := new(errgroup.Group)
 	eg.Go(func() error { return server.Serve() })
 	val, err := client.Eval("input.js", "2+2")

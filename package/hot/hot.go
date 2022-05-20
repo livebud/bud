@@ -1,13 +1,9 @@
 package hot
 
 import (
-	"context"
 	"fmt"
-	"net"
 	"net/http"
 	"time"
-
-	"github.com/livebud/bud/runtime/web"
 
 	"github.com/livebud/bud/internal/pubsub"
 )
@@ -22,15 +18,6 @@ type Server struct {
 
 func (s *Server) Reload(path string) {
 	s.ps.Publish(path, nil)
-}
-
-// Start listening on addr
-func (s *Server) ListenAndServe(ctx context.Context, addr string) error {
-	listener, err := net.Listen("tcp", addr)
-	if err != nil {
-		return err
-	}
-	return web.Serve(ctx, listener, s)
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {

@@ -71,6 +71,27 @@ func (f *FileSystem) Open(name string) (fs.File, error) {
 
 var _ fs.FS = (*FileSystem)(nil)
 
+// func FileGenerators(path string, generator FileGenerator) Generator {
+// 	return &fileGenerators{path, generator}
+// }
+
+// type fileGenerators struct {
+// 	path      string
+// 	generator FileGenerator
+// }
+
+// func (fg *fileGenerators) use(f *FileSystem) {
+// 	f.FileGenerator(fg.path, fg.generator)
+// }
+
+// type Generator interface {
+// 	use(f *FileSystem)
+// }
+
+// func (f *FileSystem) Add(generator Generator) {
+// 	generator.use(f)
+// }
+
 type GenerateFile func(ctx context.Context, fsys F, file *File) error
 
 func (fn GenerateFile) GenerateFile(ctx context.Context, fsys F, file *File) error {
