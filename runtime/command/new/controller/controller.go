@@ -75,8 +75,13 @@ type Action struct {
 	Route  string
 	Result string
 
-	Index bool
-	Show  bool
+	Index  bool
+	New    bool
+	Create bool
+	Show   bool
+	Edit   bool
+	Update bool
+	Delete bool
 }
 
 type View struct {
@@ -137,10 +142,25 @@ func (c *Command) controllerAction(controller *Controller, a string) *Action {
 		// 	Template: index,
 		// }
 		action.Result = gotext.Camel(controller.Plural)
+	case "new":
+		action.New = true
+		action.Route = path.Join(controller.Route, "/new")
+	case "create":
+		action.Create = true
+		action.Route = controller.Route
 	case "show":
 		action.Show = true
 		action.Route = path.Join(controller.Route, "/:id")
 		action.Result = gotext.Camel(controller.Singular)
+	case "edit":
+		action.Edit = true
+		action.Route = path.Join(controller.Route, "/:id/edit")
+	case "update":
+		action.Update = true
+		action.Route = path.Join(controller.Route, "/:id")
+	case "delete":
+		action.Delete = true
+		action.Route = path.Join(controller.Route, "/:id")
 	default:
 		c.Bail(fmt.Errorf("invalid path:resource %q", a))
 	}
