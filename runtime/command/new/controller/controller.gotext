@@ -60,7 +60,7 @@ func (c *Controller) Show(ctx context.Context, id int) ({{ $action.Result }} *{{
 
 // Edit {{ $.Singular }}
 // GET {{ $.Route }}
-func (c *Controller) Edit(ctx context.Context) ({{ $action.Result }} {{ $.Struct }}, err error) {
+func (c *Controller) Edit(ctx context.Context, id int) ({{ $action.Result }} {{ $.Struct }}, err error) {
 	return {{ $.Struct }}{}, nil
 }
 
@@ -69,7 +69,7 @@ func (c *Controller) Edit(ctx context.Context) ({{ $action.Result }} {{ $.Struct
 
 // Update {{ $.Singular }}
 // PATCH {{ $.Route }}
-func (c *Controller) Update(ctx context.Context) ({{ $action.Result }} {{ $.Struct }}, err error) {
+func (c *Controller) Update(ctx context.Context, id int) ({{ $action.Result }} {{ $.Struct }}, err error) {
 	return {{ $.Struct }}{}, nil
 }
 
@@ -78,7 +78,7 @@ func (c *Controller) Update(ctx context.Context) ({{ $action.Result }} {{ $.Stru
 
 // Delete {{ $.Singular }}
 // DELETE {{ $.Route }}
-func (c *Controller) Delete(ctx context.Context) ({{ $action.Result }} {{ $.Struct }}, err error) {
+func (c *Controller) Delete(ctx context.Context, id int) ({{ $action.Result }} {{ $.Struct }}, err error) {
 	return {{ $.Struct }}{}, nil
 }
 {{- end }}
