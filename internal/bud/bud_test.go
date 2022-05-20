@@ -48,7 +48,11 @@ func TestEmpty(t *testing.T) {
 	fmt.Println("loaded compiler")
 	ctx := context.Background()
 	fmt.Println("compiling")
-	project, err := compiler.Compile(ctx, &runtime_bud.Flag{})
+	project, err := compiler.Compile(ctx, &runtime_bud.Flag{
+		Hot:    false,
+		Minify: true,
+		Embed:  true,
+	})
 	is.NoErr(err)
 	is.NoErr(exists(filepath.Join(dir, "bud", "cli")))
 	is.NoErr(notExists(filepath.Join(dir, "bud", "app")))
