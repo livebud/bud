@@ -78,8 +78,8 @@ func (c *Controller) Update(ctx context.Context, id int) ({{ $action.Result }} {
 
 // Delete {{ $.Singular }}
 // DELETE {{ $.Route }}
-func (c *Controller) Delete(ctx context.Context, id int) ({{ $action.Result }} {{ $.Struct }}, err error) {
-	return {{ $.Struct }}{}, nil
+func (c *Controller) Delete(ctx context.Context, id int) (err error) {
+	return nil
 }
 {{- end }}
 
