@@ -145,9 +145,11 @@ func (c *Command) controllerAction(controller *Controller, a string) *Action {
 	case "new":
 		action.New = true
 		action.Route = path.Join(controller.Route, "/new")
+		action.Result = gotext.Camel(controller.Singular)
 	case "create":
 		action.Create = true
 		action.Route = controller.Route
+		action.Result = gotext.Camel(controller.Singular)
 	case "show":
 		action.Show = true
 		action.Route = path.Join(controller.Route, "/:id")
@@ -155,12 +157,15 @@ func (c *Command) controllerAction(controller *Controller, a string) *Action {
 	case "edit":
 		action.Edit = true
 		action.Route = path.Join(controller.Route, "/:id/edit")
+		action.Result = gotext.Camel(controller.Singular)
 	case "update":
 		action.Update = true
 		action.Route = path.Join(controller.Route, "/:id")
+		action.Result = gotext.Camel(controller.Singular)
 	case "delete":
 		action.Delete = true
 		action.Route = path.Join(controller.Route, "/:id")
+		action.Result = gotext.Camel(controller.Singular)
 	default:
 		c.Bail(fmt.Errorf("invalid path:resource %q", a))
 	}

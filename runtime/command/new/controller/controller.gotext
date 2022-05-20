@@ -28,6 +28,24 @@ func (c *Controller) Index(ctx context.Context) ({{ $action.Result }} []*{{ $.St
 	return []*{{ $.Struct }}{}, nil
 }
 
+{{/* New action */}}
+{{- else if $action.New }}
+
+// New {{ $.Singular }}
+// GET {{ $.Route }}
+func (c *Controller) New(ctx context.Context) ({{ $action.Result }} {{ $.Struct }}, err error) {
+	return {{ $.Struct }}{}, nil
+}
+
+{{/* Create action */}}
+{{- else if $action.Create }}
+
+// Create {{ $.Singular }}
+// POST {{ $.Route }}
+func (c *Controller) Create(ctx context.Context) ({{ $action.Result }} {{ $.Struct }}, err error) {
+	return {{ $.Struct }}{}, nil
+}
+
 {{/* Show action */}}
 {{- else if $action.Show }}
 
@@ -35,6 +53,33 @@ func (c *Controller) Index(ctx context.Context) ({{ $action.Result }} []*{{ $.St
 // GET {{ $action.Route }}
 func (c *Controller) Show(ctx context.Context, id int) ({{ $action.Result }} *{{ $.Struct }}, err error) {
 	return &{{ $.Struct }}{}, nil
+}
+
+{{/* Edit action */}}
+{{- else if $action.Edit }}
+
+// Edit {{ $.Singular }}
+// GET {{ $.Route }}
+func (c *Controller) Edit(ctx context.Context) ({{ $action.Result }} {{ $.Struct }}, err error) {
+	return {{ $.Struct }}{}, nil
+}
+
+{{/* Update action */}}
+{{- else if $action.Update }}
+
+// Update {{ $.Singular }}
+// PATCH {{ $.Route }}
+func (c *Controller) Update(ctx context.Context) ({{ $action.Result }} {{ $.Struct }}, err error) {
+	return {{ $.Struct }}{}, nil
+}
+
+{{/* Delete action */}}
+{{- else if $action.Delete }}
+
+// Delete {{ $.Singular }}
+// DELETE {{ $.Route }}
+func (c *Controller) Delete(ctx context.Context) ({{ $action.Result }} {{ $.Struct }}, err error) {
+	return {{ $.Struct }}{}, nil
 }
 {{- end }}
 
