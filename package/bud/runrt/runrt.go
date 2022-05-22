@@ -5,27 +5,44 @@ import (
 	"io/fs"
 	"os"
 
+	"github.com/livebud/bud/package/overlay"
+
+	"github.com/livebud/bud/package/bud"
 	"github.com/livebud/bud/package/exe"
 
 	"github.com/livebud/bud/package/socket"
 
 	"github.com/livebud/bud/internal/buildcache"
 	"github.com/livebud/bud/package/hot"
-	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/runtime/web"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/livebud/bud/package/bud"
 	"github.com/livebud/bud/package/gomod"
 )
 
+// New run command
+func New(module *gomod.Module) *Command {
+	return &Command{
+		module: module,
+		// Default flags
+		Flag: &bud.Flag{
+			Embed:  false,
+			Hot:    ":35729",
+			Minify: false,
+		},
+	}
+}
+
+// Command to run the project at runtime
 type Command struct {
-	Module *gomod.Module       // TODO: replace with dir
-	FS     *overlay.FileSystem // TODO: construct from list of generators
+	module *gomod.Module
+	// Below are filled in by the CLI
+	FS     *overlay.FileSystem
 	Flag   *bud.Flag
 	Listen string
 }
 
+// Run is triggered by `bud/cli run`
 func (c *Command) Run(ctx context.Context) error {
 	// Load the hot server
 	hotServer := hot.New()
@@ -39,7 +56,7 @@ func (c *Command) Run(ctx context.Context) error {
 	// eg, ctx := errgroup.WithContext(ctx)
 	// Initialize the hot server
 	// var hotServer *hot.Server
-	// if c.Flag.Hot {
+	// if c.Hot {
 	// 	hotServer = hot.New()
 	// 	// Start the hot reload server
 	// 	eg.Go(func() error { return c.startHot(ctx, hotServer) })
@@ -55,12 +72,12 @@ func (c *Command) compile(ctx context.Context) error {
 		return err
 	}
 	// Ensure that main.go exists
-	if _, err := fs.Stat(c.Module, "bud/.app/main.go"); err != nil {
+	if _, err := fs.Stat(c.module, "bud/.app/main.go"); err != nil {
 		return err
 	}
 	// Build the application binary
-	bcache := buildcache.Default(c.Module)
-	if err := bcache.Build(ctx, c.Module, "bud/.app/main.go", "bud/app"); err != nil {
+	bcache := buildcache.Default(c.module)
+	if err := bcache.Build(ctx, c.module, "bud/.app/main.go", "bud/app"); err != nil {
 		return err
 	}
 	return nil
@@ -85,7 +102,7 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Env = os.Environ()
-	cmd.Dir = c.Module.Directory()
+	cmd.Dir = c.module.Directory()
 	if err := cmd.Run(); err != nil {
 		return err
 	}

@@ -722,10 +722,89 @@ func TestUsageError(t *testing.T) {
 	ctx := context.Background()
 	err := cli.Parse(ctx, []string{})
 	is.NoErr(err)
-	is.NoErr(err)
 	isEqual(t, actual.String(), `
   {bold}Usage:{reset}
     cli
+
+`)
+}
+
+func TestIdempotent(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	cli := commander.New("cli").Writer(actual)
+	var f1 string
+	cmd := cli.Command("run", "run command")
+	cmd.Flag("f1", "cli flag").Short('f').String(&f1)
+	var f2 string
+	cmd.Flag("f2", "cli flag").String(&f2)
+	var f3 string
+	cmd.Flag("f3", "cli flag").String(&f3)
+	ctx := context.Background()
+	args := []string{"run", "--f1=a", "--f2=b", "--f3", "c"}
+	err := cli.Parse(ctx, args)
+	is.NoErr(err)
+	is.Equal(f1, "a")
+	is.Equal(f2, "b")
+	is.Equal(f3, "c")
+	f1 = ""
+	f2 = ""
+	f3 = ""
+	err = cli.Parse(ctx, args)
+	is.NoErr(err)
+	is.Equal(f1, "a")
+	is.Equal(f2, "b")
+	is.Equal(f3, "c")
+}
+
+func TestManualHelp(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	cli := commander.New("cli").Writer(actual)
+	var help bool
+	var dir string
+	cli.Flag("help", "help menu").Short('h').Bool(&help).Default(false)
+	cli.Flag("chdir", "change directory").Short('C').String(&dir)
+	called := 0
+	cli.Run(func(ctx context.Context) error {
+		is.Equal(help, true)
+		is.Equal(dir, "somewhere")
+		called++
+		return nil
+	})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"--help", "--chdir", "somewhere"})
+	is.NoErr(err)
+	is.Equal(actual.String(), "")
+	is.Equal(called, 1)
+}
+
+func TestManualHelpUsage(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	cli := commander.New("cli").Writer(actual)
+	var help bool
+	var dir string
+	cli.Flag("help", "help menu").Short('h').Bool(&help).Default(false)
+	cli.Flag("chdir", "change directory").Short('C').String(&dir)
+	called := 0
+	cli.Run(func(ctx context.Context) error {
+		is.Equal(help, true)
+		is.Equal(dir, "somewhere")
+		called++
+		return commander.Usage()
+	})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"--help", "--chdir", "somewhere"})
+	is.NoErr(err)
+	is.Equal(called, 1)
+	isEqual(t, actual.String(), `
+  {bold}Usage:{reset}
+    cli {dim}[flags]{reset}
+
+  {bold}Flags:{reset}
+    -C, --chdir  {dim}change directory{reset}
+    -h, --help   {dim}help menu{reset}
 
 `)
 }

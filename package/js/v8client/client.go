@@ -9,7 +9,6 @@ import (
 	"context"
 	"encoding/gob"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -130,7 +129,6 @@ func (c *Client) Script(path, script string) error {
 func (c *Client) Eval(path, expr string) (value string, err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	fmt.Println("evaling", path, expr)
 	if err := c.writer.Encode(Input{Type: "eval", Path: path, Code: expr}); err != nil {
 		return "", err
 	}

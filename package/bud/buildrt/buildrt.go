@@ -1,13 +1,14 @@
-package build
+package buildrt
 
 import (
 	"context"
 	"io/fs"
 
-	"github.com/livebud/bud/internal/buildcache"
-	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/overlay"
-	"github.com/livebud/bud/runtime/bud"
+
+	"github.com/livebud/bud/internal/buildcache"
+	"github.com/livebud/bud/package/bud"
+	"github.com/livebud/bud/package/gomod"
 )
 
 func New(module *gomod.Module) *Command {

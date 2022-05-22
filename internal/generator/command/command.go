@@ -5,26 +5,29 @@ import (
 	"io/fs"
 
 	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/overlay"
 	goparse "github.com/livebud/bud/package/parser"
 )
 
-func New(module *gomod.Module, parser *goparse.Parser) *Command {
-	return &Command{module, parser}
+func New(injector *di.Injector, module *gomod.Module, parser *goparse.Parser) *Command {
+	return &Command{injector, module, parser}
 }
 
 type Command struct {
-	module *gomod.Module
-	parser *goparse.Parser
+	injector *di.Injector
+	module   *gomod.Module
+	parser   *goparse.Parser
 }
 
 func (c *Command) Parse(ctx context.Context, fsys fs.FS) (*State, error) {
 	return (&parser{
-		fs:      fsys,
-		module:  c.module,
-		parser:  c.parser,
-		imports: imports.New(),
+		fs:       fsys,
+		imports:  imports.New(),
+		injector: c.injector,
+		module:   c.module,
+		parser:   c.parser,
 	}).Parse(ctx)
 }
 

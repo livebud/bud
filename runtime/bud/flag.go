@@ -1,6 +1,8 @@
 package bud
 
-import "strconv"
+import (
+	"strconv"
+)
 
 type Flag struct {
 	Embed  bool

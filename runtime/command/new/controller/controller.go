@@ -14,21 +14,19 @@ import (
 
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/imports"
-	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/scaffold"
 	"github.com/matthewmueller/text"
 )
 
-func New(module *gomod.Module) *Command {
+func New() *Command {
 	return &Command{
-		module:   module,
 		template: scaffold.Template{},
 	}
 }
 
 type Command struct {
 	bail.Struct
-	module   *gomod.Module
+	// module   *gomod.Module
 	template scaffold.Template
 	Path     string
 	Actions  []string
@@ -90,11 +88,13 @@ type View struct {
 }
 
 func (c *Command) Run(ctx context.Context) (err error) {
-	state, err := c.Load()
-	if err != nil {
-		return err
-	}
-	return Generate(c.module.DirFS(), state)
+	fmt.Println("running new command!")
+	return nil
+	// state, err := c.Load()
+	// if err != nil {
+	// 	return err
+	// }
+	// return Generate(c.module.DirFS(), state)
 }
 
 func (c *Command) Load() (state *State, err error) {

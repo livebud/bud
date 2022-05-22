@@ -32,6 +32,7 @@ type Command struct {
 	config *config
 	fset   *flag.FlagSet
 	run    func(ctx context.Context) error
+	parsed bool
 
 	// state for the template
 	name     string
@@ -129,14 +130,23 @@ type value interface {
 	verify(displayName string) error
 }
 
-func (c *Command) parse(ctx context.Context, args []string) error {
-	// Set flags
+// Set flags only once
+func (c *Command) setFlags() {
+	if c.parsed {
+		return
+	}
+	c.parsed = true
 	for _, flag := range c.flags {
 		c.fset.Var(flag.value, flag.name, flag.usage)
 		if flag.short != 0 {
 			c.fset.Var(flag.value, string(flag.short), flag.usage)
 		}
 	}
+}
+
+func (c *Command) parse(ctx context.Context, args []string) error {
+	// Set flags
+	c.setFlags()
 	// Parse the arguments
 	if err := c.fset.Parse(args); err != nil {
 		// Print usage if the developer used -h or --help

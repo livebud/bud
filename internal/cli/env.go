@@ -1,8 +1,6 @@
-package bud
+package cli
 
-import (
-	"sort"
-)
+import "sort"
 
 // Env is an environment helper type
 type Env map[string]string
