@@ -9,7 +9,13 @@ precommit: test.dev
 install:
 	go mod tidy
 	npm install
+ifeq ($(OS), Windows_NT)
+	cd livebud
+	npm install
+	cd ..
+else
 	(cd livebud && npm install)
+endif
 
 ##
 # Examples
