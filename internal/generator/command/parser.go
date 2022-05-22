@@ -32,7 +32,7 @@ type parser struct {
 func (p *parser) Parse(ctx context.Context) (state *State, err error) {
 	defer p.Recover2(&err, "command: unable to parse")
 	// Default imports
-	p.imports.AddStd("context")
+	p.imports.AddStd("context", "os")
 	p.imports.AddNamed("commander", "github.com/livebud/bud/package/commander")
 	// p.imports.AddNamed("command", "github.com/livebud/bud/runtime/command")
 	p.imports.AddNamed("gomod", "github.com/livebud/bud/package/gomod")

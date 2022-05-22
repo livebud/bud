@@ -6,18 +6,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
-	"strings"
 
 	v8 "github.com/livebud/bud/package/js/v8"
-	"github.com/mattn/go-isatty"
 )
 
-func New() *Command {
-	return &Command{}
-}
-
 type Command struct {
+	Stdin  io.Reader
+	Stdout io.Writer
 }
 
 func (c *Command) Run(ctx context.Context) error {
@@ -33,12 +28,12 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintln(os.Stdout, result)
+	fmt.Fprintln(c.Stdout, result)
 	return nil
 }
 
 func (c *Command) getScript() (string, error) {
-	code, err := ioutil.ReadAll(stdin())
+	code, err := ioutil.ReadAll(c.Stdin)
 	if err != nil {
 		return "", err
 	}
@@ -47,12 +42,4 @@ func (c *Command) getScript() (string, error) {
 		return "", errors.New("missing script to evaluate")
 	}
 	return script, nil
-}
-
-// input from stdin or empty object by default.
-func stdin() io.Reader {
-	if isatty.IsTerminal(os.Stdin.Fd()) {
-		return strings.NewReader("")
-	}
-	return os.Stdin
 }

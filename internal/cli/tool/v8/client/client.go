@@ -6,10 +6,6 @@ import (
 	"github.com/livebud/bud/package/js/v8server"
 )
 
-func New() *Command {
-	return &Command{}
-}
-
 type Command struct {
 }
 

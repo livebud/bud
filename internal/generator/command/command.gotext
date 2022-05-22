@@ -31,8 +31,8 @@ type CLI struct {
 }
 
 func (c *CLI) Parse(ctx context.Context, args ...string) error {
-	cli := commander.New("cli")
-
+	cli := commander.New("cli").Writer(os.Stdout)
+	println("HER?E?!?!?")
 	{ // cli run
 		cli := cli.Command("run", "run command")
 		cli.Flag("embed", "embed assets").Bool(&c.runCmd.Flag.Embed).Default(false)

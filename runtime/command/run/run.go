@@ -2,6 +2,7 @@ package run
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"net"
 	"os"
@@ -45,6 +46,7 @@ type Command struct {
 }
 
 func (c *Command) Run(ctx context.Context) error {
+	fmt.Println("RUNNING!!")
 	eg, ctx := errgroup.WithContext(ctx)
 	// Load the hot server
 	hotServer := hot.New()
@@ -103,6 +105,7 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 		}
 	}
 	defer process.Close()
+	fmt.Println("compiled and started!")
 	// Start watching
 	if err := watcher.Watch(ctx, ".", func(path string) error {
 		switch filepath.Ext(path) {

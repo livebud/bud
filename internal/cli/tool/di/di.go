@@ -1,4 +1,4 @@
-package cli
+package di
 
 import (
 	"context"
@@ -13,12 +13,8 @@ import (
 	"github.com/livebud/bud/package/parser"
 )
 
-func diCommand(bud *budCmd) *diCmd {
-	return &diCmd{Bud: bud}
-}
-
-type diCmd struct {
-	Bud          *budCmd
+type Command struct {
+	Dir          string
 	Target       string
 	Map          map[string]string
 	Dependencies []string
@@ -27,8 +23,8 @@ type diCmd struct {
 	Verbose      bool
 }
 
-func (c *diCmd) Run(ctx context.Context) error {
-	module, err := gomod.Find(c.Bud.Dir)
+func (c *Command) Run(ctx context.Context) error {
+	module, err := gomod.Find(c.Dir)
 	if err != nil {
 		return err
 	}
@@ -90,7 +86,7 @@ func (c *diCmd) Run(ctx context.Context) error {
 
 // This should handle both stdlib (e.g. "net/http"), directories (e.g. "web"),
 // and dependencies
-func (c *diCmd) toImportPath(module *gomod.Module, importPath string) (string, error) {
+func (c *Command) toImportPath(module *gomod.Module, importPath string) (string, error) {
 	importPath = strings.Trim(importPath, "\"")
 	maybeDir := module.Directory(importPath)
 	if _, err := os.Stat(maybeDir); err == nil {
@@ -102,7 +98,7 @@ func (c *diCmd) toImportPath(module *gomod.Module, importPath string) (string, e
 	return importPath, nil
 }
 
-func (c *diCmd) toDependency(module *gomod.Module, dependency string) (di.Dependency, error) {
+func (c *Command) toDependency(module *gomod.Module, dependency string) (di.Dependency, error) {
 	i := strings.LastIndex(dependency, ".")
 	if i < 0 {
 		return nil, fmt.Errorf("di: external must have form '<import>.<type>'. got %q ", dependency)

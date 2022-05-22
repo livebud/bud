@@ -14,26 +14,19 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/livebud/bud/internal/command"
 	"github.com/livebud/bud/internal/current"
 	"github.com/livebud/bud/internal/version"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/otiai10/copy"
 )
 
-func New(bud *command.Bud) *Command {
-	return &Command{bud: bud}
-}
-
 type Command struct {
-	bud *command.Bud
 	Dir string
 }
 
 func (c *Command) Run(ctx context.Context) error {
-	dir := filepath.Join(c.bud.Dir, c.Dir)
 	// Check if we can write into the directory
-	if err := checkDir(dir); err != nil {
+	if err := checkDir(c.Dir); err != nil {
 		return err
 	}
 	tmpDir, err := ioutil.TempDir("", "bud-create-*")
@@ -49,16 +42,16 @@ func (c *Command) Run(ctx context.Context) error {
 
 	eg, ctx2 := errgroup.WithContext(ctx)
 	eg.Go(func() error { return c.generateGitIgnore(ctx2, tmpDir) })
-	eg.Go(func() error { return c.generatePackageJSON(ctx2, tmpDir, filepath.Base(dir)) })
+	eg.Go(func() error { return c.generatePackageJSON(ctx2, tmpDir, filepath.Base(c.Dir)) })
 	if err := eg.Wait(); err != nil {
 		return err
 	}
 	// Create the project directory
-	if err := os.MkdirAll(filepath.Dir(dir), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(c.Dir), 0755); err != nil {
 		return err
 	}
 	// Try moving the temporary build path to the project directory
-	if err := move(tmpDir, dir); err != nil {
+	if err := move(tmpDir, c.Dir); err != nil {
 		// Can't rename on top of an existing directory
 		if !errors.Is(err, fs.ErrExist) {
 			return err
@@ -69,7 +62,7 @@ func (c *Command) Run(ctx context.Context) error {
 			return err
 		}
 		for _, fi := range fis {
-			if err := move(filepath.Join(tmpDir, fi.Name()), filepath.Join(dir, fi.Name())); err != nil {
+			if err := move(filepath.Join(tmpDir, fi.Name()), filepath.Join(c.Dir, fi.Name())); err != nil {
 				return err
 			}
 		}
@@ -87,7 +80,7 @@ func (c *Command) Run(ctx context.Context) error {
 			return err
 		}
 		cmd := exec.CommandContext(ctx, npm, "link", "--loglevel=error", "livebud", filepath.Join(budDir, "livebud"))
-		cmd.Dir = dir
+		cmd.Dir = c.Dir
 		cmd.Stderr = os.Stderr
 		cmd.Env = []string{
 			"HOME=" + os.Getenv("HOME"),

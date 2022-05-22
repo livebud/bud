@@ -18,7 +18,7 @@ func (c *Cmd) cmd() *exec.Cmd {
 }
 
 func (c *Cmd) Close() error {
-	cmd := c.cmd()
+	cmd := (*exec.Cmd)(c)
 	sp := cmd.Process
 	if sp != nil {
 		if err := sp.Signal(os.Interrupt); err != nil {
@@ -34,7 +34,7 @@ func (c *Cmd) Close() error {
 }
 
 func (c *Cmd) Wait() error {
-	return c.cmd().Wait()
+	return (*exec.Cmd)(c).Wait()
 }
 
 // Errors we can safely ignore when closing the process
@@ -62,11 +62,11 @@ func isWaitError(err error) bool {
 }
 
 func (c *Cmd) Run() error {
-	return c.cmd().Run()
+	return (*exec.Cmd)(c).Run()
 }
 
 func (c *Cmd) Start() error {
-	return c.cmd().Start()
+	return (*exec.Cmd)(c).Start()
 }
 
 func (c *Cmd) Restart(ctx context.Context) error {
@@ -74,7 +74,7 @@ func (c *Cmd) Restart(ctx context.Context) error {
 	if err := c.Close(); err != nil {
 		return err
 	}
-	cmd := c.cmd()
+	cmd := (*exec.Cmd)(c)
 	// Re-run the command again. cmd.Args[0] is the path, so we skip that.
 	next := Command(ctx, cmd.Path, cmd.Args[1:]...)
 	next.Env = cmd.Env
