@@ -951,15 +951,14 @@ func TestNestedResource(t *testing.T) {
 	res, err = server.PatchJSON("/users/10", bytes.NewBufferString(`{"name": "matt", "age": 10}`))
 	is.NoErr(err)
 	is.NoErr(res.Expect(`
-		HTTP/1.1 200 OK
-		Content-Type: application/json
+		HTTP/1.1 204 No Content
+		Content-Length: 0
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
 	`))
 	res, err = server.DeleteJSON("/users/10", nil)
 	is.NoErr(err)
 	is.NoErr(res.Expect(`
-		HTTP/1.1 200 OK
-		Content-Type: application/json
+		HTTP/1.1 204 No Content
 		Date: Fri, 31 Dec 2021 00:00:00 GMT
 	`))
 }
@@ -1896,11 +1895,11 @@ func TestWorkingChangeWorking(t *testing.T) {
 }
 
 func TestEmptyActionWithView(t *testing.T) {
-	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
+	bud.NodeModules["svelte"] = version.Svelte
 	bud.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -1912,6 +1911,7 @@ func TestEmptyActionWithView(t *testing.T) {
 	app, err := project.Build(ctx)
 	is.NoErr(err)
 	is.NoErr(app.Exists("bud/.app/view/view.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)

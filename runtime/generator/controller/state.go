@@ -159,14 +159,13 @@ func isList(dataType string) bool {
 
 func (results ActionResults) ViewResult() string {
 	propsKey := results.propsKey()
-	if propsKey == "" {
-		return results.Result()
-	}
 	out := new(strings.Builder)
 	out.WriteString(`map[string]interface{}{`)
-	out.WriteString(strconv.Quote(propsKey))
-	out.WriteString(":")
-	out.WriteString(results.Result())
+	if propsKey != "" {
+		out.WriteString(strconv.Quote(propsKey))
+		out.WriteString(":")
+		out.WriteString(results.Result())
+	}
 	out.WriteString(`},`)
 	return out.String()
 }
@@ -197,6 +196,11 @@ func (results ActionResults) Error() string {
 		}
 	}
 	return ""
+}
+
+// Error expression is only return
+func (results ActionResults) IsOnlyError() bool {
+	return len(results) == 1 && results[0].IsError
 }
 
 // ActionResult struct
