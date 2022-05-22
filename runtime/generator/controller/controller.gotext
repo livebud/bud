@@ -118,6 +118,8 @@ func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpReq
 		{{- if $action.RespondJSON }}
 		{{- if $action.Results.Result }}
 		JSON: response.JSON({{ $action.Results.Result }}),
+		{{- else if $action.Results.IsOnlyError }}
+		JSON: response.Status(204),
 		{{- else }}
 		JSON: response.Status(200).Set("Content-Type", "application/json"),
 		{{- end }}
