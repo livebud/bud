@@ -1895,11 +1895,11 @@ func TestWorkingChangeWorking(t *testing.T) {
 }
 
 func TestEmptyActionWithView(t *testing.T) {
-	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
 	bud := budtest.New(dir)
+	bud.NodeModules["svelte"] = version.Svelte
 	bud.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -1911,6 +1911,7 @@ func TestEmptyActionWithView(t *testing.T) {
 	app, err := project.Build(ctx)
 	is.NoErr(err)
 	is.NoErr(app.Exists("bud/.app/view/view.go"))
+	is.NoErr(app.Exists("bud/.app/controller/controller.go"))
 	is.NoErr(app.Exists("bud/.app/main.go"))
 	server, err := app.Start(ctx)
 	is.NoErr(err)
