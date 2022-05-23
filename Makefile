@@ -1,5 +1,10 @@
 BUD_VERSION := $(shell cat version.txt)
 
+## Variables for getting current directory to 
+#  allow for Windows support
+mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
+current_dir := $(notdir $(patsubst %/,%,$(dir $(mkfile_path))))
+
 precommit: test.dev
 
 ##
@@ -19,7 +24,9 @@ install:
 ##
 
 example.basic:
-	@ (cd example/basic && npm link ../../livebud)
+	@ cd example/basic
+	@ npm link
+	@ npm link ../livebud
 	@ go run main.go -C example/basic run
 
 example.basic.watch:
@@ -30,18 +37,24 @@ example.scratch:
 	@ go run main.go create --link=true example/scratch
 	@ go run main.go -C example/scratch new controller / index show
 	@ go run main.go -C example/scratch new controller users/admin:admin index show
-	@ (cd example/scratch && npm link ../../livebud)
+	@ cd example/scratch
+	@ npm link
+	@ npm link ../livebud
 	@ go run main.go -C example/scratch run
 
 example.scratch.watch:
 	@ watch -- $(MAKE) example.scratch
 
 example.hn:
-	@ (cd example/hn && npm link ../../livebud)
+	@ cd example/hn
+	@ npm link
+	@ npm link ../livebud
 	@ go run main.go -C example/hn run
 
 example.hn.embed:
-	@ (cd example/hn && npm link ../../livebud)
+	@ cd example/hn
+	@ npm link
+	@ npm link ../livebud
 	@ go run main.go -C example/hn build --embed
 	@ mv example/hn/bud/app $(TMPDIR)/bud_app
 	@ $(TMPDIR)/bud_app
@@ -157,13 +170,16 @@ go.build.windows:
 ##
 
 budjs.ci:
-	@ (cd livebud && npm ci)
+	@ cd livebud
+	@ npm ci
 
 budjs.check:
-	@ (cd livebud && ./node_modules/.bin/tsc)
+	@ cd livebud
+	@ ./node_modules/.bin/tsc
 
 budjs.test:
-	@ (cd livebud && ./node_modules/.bin/mocha -r ts-eager/register **/*_test.ts)
+	@ cd livebud
+	@ ./node_modules/.bin/mocha -r ts-eager/register **/*_test.ts
 
 ##
 # Test
