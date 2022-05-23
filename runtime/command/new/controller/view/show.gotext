@@ -19,7 +19,7 @@
 
 <br />
 
-<a href="..">Back</a>
+<a href="{{ $.Controller.Route }}">Back</a>
 
 <style>
   table {
