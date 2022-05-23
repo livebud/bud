@@ -2,6 +2,7 @@ package run
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"net"
@@ -46,17 +47,20 @@ type Command struct {
 }
 
 func (c *Command) Run(ctx context.Context) error {
-	fmt.Println("RUNNING!!")
 	eg, ctx := errgroup.WithContext(ctx)
-	// Load the hot server
+	// Start the live reload server
 	hotServer := hot.New()
 	eg.Go(func() error { return c.startHot(ctx, hotServer) })
-	// Start the web server
+	// Start the app server
 	eg.Go(func() error { return c.startApp(ctx, hotServer) })
-	return eg.Wait()
+	// Wait until either the hot or web server exists
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (c *Command) compileAndStart(ctx context.Context, ln net.Listener) (*exe.Cmd, error) {
+func (c *Command) compileAndStart(ctx context.Context, listener net.Listener) (*exe.Cmd, error) {
 	// Sync the application
 	if err := c.FS.Sync("bud/.app"); err != nil {
 		return nil, err
@@ -70,11 +74,20 @@ func (c *Command) compileAndStart(ctx context.Context, ln net.Listener) (*exe.Cm
 	if err := bcache.Build(ctx, c.module, "bud/.app/main.go", "bud/app"); err != nil {
 		return nil, err
 	}
+	// Turn the listener back into files to be passed through
+	// TODO: During tests, os.Environ() already contains what env provides, yet
+	// we're appending it on additionally to process.Env. We should de-dupe it.
+	files, env, err := socket.Files(listener)
+	if err != nil {
+		return nil, err
+	}
+	// Start the web server
 	process := exe.Command(ctx, "bud/app")
 	process.Stdout = os.Stdout
 	process.Stderr = os.Stderr
-	process.Env = os.Environ()
+	process.Env = append(os.Environ(), string(env))
 	process.Dir = c.module.Directory()
+	process.ExtraFiles = append(process.ExtraFiles, files...)
 	if err := process.Start(); err != nil {
 		return nil, err
 	}
@@ -86,26 +99,40 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 	if err != nil {
 		return err
 	}
+	console.Info("Listening on " + formatAddress(listener))
 	// Compile and start the project
 	process, err := c.compileAndStart(ctx, listener)
 	if err != nil {
-		// TODO: de-duplicate with the watcher above
+		// Exit without logging if the context has been cancelled. This can
+		// occur when the hot reload server failed to start or exits early.
+		if errors.Is(err, context.Canceled) {
+			return err
+		}
+		// TODO: de-duplicate with the watcher below
 		console.Error(err.Error())
 		if err := watcher.Watch(ctx, ".", func(path string) error {
 			process, err = c.compileAndStart(ctx, listener)
 			if err != nil {
+				// Exit without logging if the context has been cancelled. This can
+				// occur when the hot reload server failed to start or exits early.
+				if errors.Is(err, context.Canceled) {
+					return err
+				}
 				console.Error(err.Error())
 				return nil
 			}
-			// TODO: host should be dynamic
-			console.Info("Ready on " + listener.Addr().String())
+			console.Info("Ready on " + formatAddress(listener))
 			return watcher.Stop
 		}); err != nil {
 			return err
 		}
+		// The watcher has been cancelled before we ever got an active process, so
+		// we'll return the original error.
+		if process == nil {
+			return err
+		}
 	}
 	defer process.Close()
-	fmt.Println("compiled and started!")
 	// Start watching
 	if err := watcher.Watch(ctx, ".", func(path string) error {
 		switch filepath.Ext(path) {
@@ -138,9 +165,7 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 	}); err != nil {
 		return err
 	}
-	fmt.Println("HERE?")
-	return nil
-	// return process.Wait()
+	return process.Wait()
 }
 
 func (c *Command) startHot(ctx context.Context, hotServer *hot.Server) error {
@@ -155,5 +180,19 @@ func (c *Command) startHot(ctx context.Context, hotServer *hot.Server) error {
 }
 
 func formatAddress(l net.Listener) string {
-	return l.Addr().String()
+	address := l.Addr().String()
+	if l.Addr().Network() == "unix" {
+		return address
+	}
+	host, port, err := net.SplitHostPort(address)
+	if err != nil {
+		// Give up trying to format.
+		// TODO: figure out if this can occur.
+		return address
+	}
+	// https://serverfault.com/a/444557
+	if host == "::" {
+		host = "0.0.0.0"
+	}
+	return fmt.Sprintf("http://%s:%s", host, port)
 }

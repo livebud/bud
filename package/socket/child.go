@@ -47,9 +47,9 @@ const (
 	listenFdsStart = 3
 )
 
-// Load files if the LISTEN_FDS environment variable is set.
-// This is the same environment variable that systemd uses to support socket
-// activation.
+// loadFiles returns a list of files if the LISTEN_FDS environment variable is
+// set. This is the same environment variable that systemd uses to support
+// socket activation.
 //
 // See:
 // - https://man.archlinux.org/man/sd_listen_fds.3.en

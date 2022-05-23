@@ -86,7 +86,7 @@ func (c *CLI) Trap(signals ...os.Signal) {
 }
 
 func (c *CLI) Parse(ctx context.Context, args []string) error {
-	ctx, _ = sig.Trap(ctx, c.config.signals...)
+	ctx = sig.Trap(ctx, c.config.signals...)
 	if err := c.root.parse(ctx, args); err != nil {
 		return err
 	}

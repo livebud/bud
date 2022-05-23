@@ -50,7 +50,7 @@ func New(dir string) *CLI {
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
 		Stdin:  stdin(),
-		Env: Env{
+		Env: exe.Env{
 			"HOME":       os.Getenv("HOME"),
 			"PATH":       os.Getenv("PATH"),
 			"GOPATH":     os.Getenv("GOPATH"),
@@ -67,7 +67,7 @@ type CLI struct {
 	Stdout     io.Writer
 	Stderr     io.Writer
 	Stdin      io.Reader
-	Env        Env
+	Env        exe.Env
 	ExtraFiles []*os.File
 }
 
@@ -221,7 +221,7 @@ func (c *CLI) compile(ctx context.Context) (*exe.Cmd, error) {
 	}
 
 	// Run the project CLI `bud/cli [args...]`
-	cmd := exe.Command(context.Background(), "bud/cli", c.args...)
+	cmd := exe.Command(ctx, "bud/cli", c.args...)
 	cmd.Dir = c.dir
 	cmd.Env = c.Env.List()
 	cmd.Stdin = c.Stdin

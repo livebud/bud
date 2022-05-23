@@ -7,7 +7,7 @@ import (
 )
 
 // Trap cancels the context based on a signal
-func Trap(ctx context.Context, signals ...os.Signal) (context.Context, context.CancelFunc) {
+func Trap(ctx context.Context, signals ...os.Signal) context.Context {
 	ret, cancel := context.WithCancel(ctx)
 	ch := make(chan os.Signal, len(signals))
 	go func() {
@@ -16,5 +16,5 @@ func Trap(ctx context.Context, signals ...os.Signal) (context.Context, context.C
 		cancel()
 	}()
 	signal.Notify(ch, signals...)
-	return ret, cancel
+	return ret
 }

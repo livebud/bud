@@ -2,6 +2,7 @@ package exe
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"strings"
@@ -22,22 +23,31 @@ func (c *Cmd) Close() error {
 	sp := cmd.Process
 	if sp != nil {
 		if err := sp.Signal(os.Interrupt); err != nil {
+			if isProcessDone(err) {
+				return nil
+			}
 			sp.Kill()
 		}
 	}
-	if err := cmd.Wait(); err != nil {
-		if !canIgnore(err) {
-			return err
-		}
+	if err := c.Wait(); err != nil {
+		return err
 	}
 	return nil
 }
 
 func (c *Cmd) Wait() error {
-	return (*exec.Cmd)(c).Wait()
+	if err := (*exec.Cmd)(c).Wait(); err != nil {
+		if canIgnore(err) {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 // Errors we can safely ignore when closing the process
+// TODO: if we find ourselves squelching real errors, we will want to revisit
+// this as it might be overly aggressive.
 func canIgnore(err error) bool {
 	return isExitStatus(err) ||
 		isInterrupt(err) ||
@@ -47,6 +57,10 @@ func canIgnore(err error) bool {
 
 func isExitStatus(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "exit status ")
+}
+
+func isProcessDone(err error) bool {
+	return errors.Is(err, os.ErrProcessDone)
 }
 
 func isInterrupt(err error) bool {
@@ -62,7 +76,13 @@ func isWaitError(err error) bool {
 }
 
 func (c *Cmd) Run() error {
-	return (*exec.Cmd)(c).Run()
+	if err := (*exec.Cmd)(c).Run(); err != nil {
+		if canIgnore(err) {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 func (c *Cmd) Start() error {

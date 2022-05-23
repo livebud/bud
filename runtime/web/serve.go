@@ -39,8 +39,7 @@ func shutdown(ctx context.Context, server *http.Server) <-chan error {
 	go func() {
 		<-ctx.Done()
 		// Wait for one more interrupt to force an immediate shutdown
-		forceCtx, cancel := sig.Trap(ctx, os.Interrupt)
-		defer cancel()
+		forceCtx := sig.Trap(ctx, os.Interrupt)
 		if err := server.Shutdown(forceCtx); err != nil {
 			shutdown <- err
 		}

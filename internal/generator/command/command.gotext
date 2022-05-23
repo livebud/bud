@@ -32,7 +32,7 @@ type CLI struct {
 
 func (c *CLI) Parse(ctx context.Context, args ...string) error {
 	cli := commander.New("cli").Writer(os.Stdout)
-	println("HER?E?!?!?")
+
 	{ // cli run
 		cli := cli.Command("run", "run command")
 		cli.Flag("embed", "embed assets").Bool(&c.runCmd.Flag.Embed).Default(false)
@@ -67,6 +67,7 @@ func (c *CLI) Parse(ctx context.Context, args ...string) error {
 // Before run loads and attaches the generators before running.
 func (c *CLI) beforeRun(cmd *run.Command) (func(ctx context.Context) error) {
 	return func(ctx context.Context) (err error) {
+		// Attach the generators
 		cmd.FS, err = {{ $.Provider.Name }}(cmd.Flag, ctx, c.module)
 		if err != nil {
 			return err
@@ -78,6 +79,7 @@ func (c *CLI) beforeRun(cmd *run.Command) (func(ctx context.Context) error) {
 // beforeBuilds loads and attaches the generators before building.
 func (c *CLI) beforeBuild(cmd *build.Command) (func(ctx context.Context) error) {
 	return func(ctx context.Context) (err error) {
+		// Attach the generators
 		cmd.FS, err = {{ $.Provider.Name }}(cmd.Flag, ctx, c.module)
 		if err != nil {
 			return err

@@ -23,7 +23,6 @@ func raise(sig os.Signal) error {
 func TestInterrupt(t *testing.T) {
 	is := is.New(t)
 	ctx := sig.Trap(context.Background(), os.Interrupt)
-	// defer cancel()
 	// Should not have received signal
 	select {
 	case <-ctx.Done():

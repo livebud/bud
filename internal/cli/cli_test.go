@@ -58,6 +58,7 @@ type file interface {
 func setupCLI(t testing.TB, cli *cli.CLI) (stdout, stderr *bytes.Buffer) {
 	stdout = new(bytes.Buffer)
 	stderr = new(bytes.Buffer)
+	// Write to stdio as well so debugging doesn't become too confusing
 	cli.Stdout = io.MultiWriter(stdout, os.Stdout)
 	cli.Stderr = io.MultiWriter(stderr, os.Stderr)
 	cli.Env["TMPDIR"] = t.TempDir()
@@ -97,7 +98,7 @@ func startCLI(t testing.TB, cli *cli.CLI, args ...string) func() {
 	}
 	return func() {
 		if err := process.Close(); err != nil {
-			t.Fatalf("unable error while closing cli: %s", err)
+			t.Fatalf("error while closing cli: %s", err)
 		}
 	}
 }
@@ -251,44 +252,35 @@ func TestRunWelcome(t *testing.T) {
 	is.NoErr(err)
 	is.True(strings.Contains(string(body), "Hey Bud"))
 	is.Equal(stdout.String(), "")
-	is.Equal(stderr.String(), "")
+	is.True(strings.Contains(stderr.String(), "info: Listening on "))
 }
 
-// func TestRunController(t *testing.T) {
-// 	is := is.New(t)
-// 	ctx := context.Background()
-// 	dir := t.TempDir()
-// 	td := testdir.New()
-// 	td.Files["controller/controller.go"] = `
-// 		package controller
-// 		type Controller struct {}
-// 		func (c *Controller) Index() string { return "from index" }
-// 	`
-// 	err := td.Write(dir)
-// 	is.NoErr(err)
-// 	listener, client, err := listenUnix(t.TempDir())
-// 	is.NoErr(err)
-// 	defer func() { is.NoErr(listener.Close()) }()
-// 	stdout := new(bytes.Buffer)
-// 	stderr := new(bytes.Buffer)
-// 	cmd := &run.Command{
-// 		Dir:      dir,
-// 		Listener: listener,
-// 		Stdout:   stdout,
-// 		Stderr:   stderr,
-// 		Env: bud.Env{
-// 			"TMPDIR": t.TempDir(),
-// 		},
-// 	}
-// 	process, err := cmd.Start(ctx)
-// 	is.NoErr(err)
-// 	defer func() { is.NoErr(process.Close()) }()
-// 	is.Equal(stdout.String(), "")
-// 	is.Equal(stderr.String(), "")
-// 	res, err := client.Get("http://host/")
-// 	is.NoErr(err)
-// 	is.Equal(res.StatusCode, 200)
-// 	body, err := io.ReadAll(res.Body)
-// 	is.NoErr(err)
-// 	is.True(strings.Contains(string(body), "from index"))
-// }
+func TestRunController(t *testing.T) {
+	is := is.New(t)
+	dir := t.TempDir()
+	td := testdir.New()
+	td.Files["controller/controller.go"] = `
+		package controller
+		type Controller struct {}
+		func (c *Controller) Index() string { return "from index" }
+	`
+	err := td.Write(dir)
+	is.NoErr(err)
+	cli := cli.New(dir)
+	cli.Stdout = os.Stdout
+	cli.Stderr = os.Stderr
+	stdout, stderr := setupCLI(t, cli)
+	client, close := injectListener(t, cli)
+	defer close()
+	cleanup := startCLI(t, cli, "run")
+	defer cleanup()
+	res, err := client.Get("http://host/")
+	is.NoErr(err)
+	defer res.Body.Close()
+	is.Equal(res.StatusCode, 200)
+	body, err := io.ReadAll(res.Body)
+	is.NoErr(err)
+	is.True(strings.Contains(string(body), "from index"))
+	is.Equal(stdout.String(), "")
+	is.True(strings.Contains(stderr.String(), "info: Listening on "))
+}
