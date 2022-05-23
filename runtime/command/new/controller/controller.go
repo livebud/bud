@@ -80,12 +80,13 @@ type Action struct {
 }
 
 type View struct {
-	template string
-	Path     string
-	Title    string
-	Variable string
-	Singular string
-	Plural   string
+	template   string
+	Controller *Controller
+	Path       string
+	Title      string
+	Variable   string
+	Singular   string
+	Plural     string
 }
 
 func (c *Command) Run(ctx context.Context) (err error) {
@@ -160,12 +161,13 @@ func (c *Command) view(controller *Controller, action *Action) *View {
 		template = defaultView
 	}
 	return &View{
-		template: template,
-		Path:     filepath.Join("view", controller.key, action.Name+".svelte"),
-		Title:    text.Title(controller.Struct),
-		Variable: text.Camel(action.Result),
-		Singular: text.Camel(text.Singular(action.Result)),
-		Plural:   text.Camel(text.Plural(action.Result)),
+		template:   template,
+		Controller: controller,
+		Path:       filepath.Join("view", controller.key, action.Name+".svelte"),
+		Title:      text.Title(controller.Struct),
+		Variable:   text.Camel(action.Result),
+		Singular:   text.Camel(text.Singular(action.Result)),
+		Plural:     text.Camel(text.Plural(action.Result)),
 	}
 }
 
