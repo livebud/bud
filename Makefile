@@ -9,7 +9,10 @@ precommit: test.dev
 install:
 	go mod tidy
 	npm install
-	(cd livebud && npm install)
+	@ # Note: We don't use a subshell here to support Windows. See #79.
+	cd livebud
+	npm install
+	cd ..
 
 ##
 # Examples
