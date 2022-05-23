@@ -138,7 +138,9 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 	}); err != nil {
 		return err
 	}
-	return process.Wait()
+	fmt.Println("HERE?")
+	return nil
+	// return process.Wait()
 }
 
 func (c *Command) startHot(ctx context.Context, hotServer *hot.Server) error {

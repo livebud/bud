@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -83,27 +82,20 @@ func (c *CLI) Run(ctx context.Context, args ...string) error {
 	})
 }
 
-// Start the CLI but don't wait for the command to finish.
+// Start the CLI but don't wait for the command to finish. This is typically
+// used for testing purposes.
 func (c *CLI) Start(ctx context.Context, args ...string) (cmd *exe.Cmd, err error) {
 	err = c.parse(ctx, args, func(ctx context.Context) error {
 		cmd, err = c.compile(ctx)
 		if err != nil {
 			return err
 		}
-		fmt.Println("starting...")
-		if err := cmd.Start(); err != nil {
-			return err
-		}
-		return nil
+		return cmd.Start()
 	})
 	if err != nil {
 		return nil, err
 	}
-	if err := cmd.Wait(); err != nil {
-		fmt.Println("wait error", err)
-	}
 	return cmd, nil
-	// return cmd, nil
 }
 
 func (c *CLI) parse(ctx context.Context, args []string, fn func(ctx context.Context) error) error {

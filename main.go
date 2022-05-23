@@ -11,5 +11,5 @@ import (
 
 // main bud entrypoint. Intentionally simple.
 func main() {
-	os.Exit(cli.Parse(context.Background(), os.Args[1:]...))
+	os.Exit(cli.Run(context.Background(), os.Args[1:]...))
 }

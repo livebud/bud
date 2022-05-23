@@ -38,7 +38,7 @@ func listenUnix(socketPath string) (net.Listener, *http.Client, error) {
 		return nil, nil, err
 	}
 	client := &http.Client{
-		Timeout:   10 * time.Second,
+		Timeout:   5 * time.Second,
 		Transport: transport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
@@ -238,12 +238,11 @@ func TestRunWelcome(t *testing.T) {
 	cli := cli.New(dir)
 	cli.Stdout = os.Stdout
 	cli.Stderr = os.Stderr
-	// stdout, stderr := setupCLI(t, cli)
+	stdout, stderr := setupCLI(t, cli)
 	client, close := injectListener(t, cli)
 	defer close()
 	cleanup := startCLI(t, cli, "run")
 	defer cleanup()
-	time.Sleep(10 * time.Second)
 	res, err := client.Get("http://host/")
 	is.NoErr(err)
 	defer res.Body.Close()
@@ -251,8 +250,8 @@ func TestRunWelcome(t *testing.T) {
 	body, err := io.ReadAll(res.Body)
 	is.NoErr(err)
 	is.True(strings.Contains(string(body), "Hey Bud"))
-	// is.Equal(stdout.String(), "")
-	// is.Equal(stderr.String(), "")
+	is.Equal(stdout.String(), "")
+	is.Equal(stderr.String(), "")
 }
 
 // func TestRunController(t *testing.T) {

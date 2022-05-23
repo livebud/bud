@@ -808,3 +808,24 @@ func TestManualHelpUsage(t *testing.T) {
 
 `)
 }
+
+func TestAfterRun(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	cli := commander.New("cli").Writer(actual)
+	called := 0
+	var ctx context.Context
+	cli.Run(func(c context.Context) error {
+		called++
+		ctx = c
+		return nil
+	})
+	err := cli.Parse(context.Background(), []string{})
+	is.NoErr(err)
+	is.Equal(called, 1)
+	select {
+	case <-ctx.Done():
+		is.Fail() // Context shouldn't have been cancelled
+	default:
+	}
+}

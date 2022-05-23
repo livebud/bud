@@ -3,6 +3,7 @@ package watcher
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -137,6 +138,7 @@ func Watch(ctx context.Context, dir string, fn func(path string) error) error {
 		for {
 			select {
 			case <-ctx.Done():
+				fmt.Println("CONTEXT CANCELED?")
 				return nil
 			case err := <-watcher.Errors:
 				return err

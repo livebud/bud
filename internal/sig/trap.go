@@ -12,8 +12,8 @@ func Trap(ctx context.Context, signals ...os.Signal) (context.Context, context.C
 	ch := make(chan os.Signal, len(signals))
 	go func() {
 		<-ch
-		cancel()
 		signal.Stop(ch)
+		cancel()
 	}()
 	signal.Notify(ch, signals...)
 	return ret, cancel
