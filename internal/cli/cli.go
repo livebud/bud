@@ -71,6 +71,11 @@ type CLI struct {
 	ExtraFiles []*os.File
 }
 
+// Dir returns the configured directory
+func (c *CLI) Dir() string {
+	return c.dir
+}
+
 // Run the CLI and wait for the command to finish
 func (c *CLI) Run(ctx context.Context, args ...string) error {
 	return c.parse(ctx, args, func(ctx context.Context) error {

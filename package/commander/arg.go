@@ -17,13 +17,8 @@ func (a *Arg) String(target *string) *String {
 	return value
 }
 
-func (a *Arg) Strings(target *[]string) *Strings {
-	value := &Strings{target: target}
-	a.value = &stringsValue{inner: value}
-	return value
-}
-
 func (a *Arg) StringMap(target *map[string]string) *StringMap {
+	*target = map[string]string{}
 	value := &StringMap{target: target}
 	a.value = &stringMapValue{inner: value}
 	return value

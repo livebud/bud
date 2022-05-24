@@ -25,12 +25,14 @@ func (f *Flag) String(target *string) *String {
 }
 
 func (f *Flag) Strings(target *[]string) *Strings {
+	*target = []string{}
 	value := &Strings{target: target}
 	f.value = &stringsValue{inner: value}
 	return value
 }
 
 func (f *Flag) StringMap(target *map[string]string) *StringMap {
+	*target = map[string]string{}
 	value := &StringMap{target: target}
 	f.value = &stringMapValue{inner: value}
 	return value

@@ -829,3 +829,85 @@ func TestAfterRun(t *testing.T) {
 	default:
 	}
 }
+
+func TestArgsClearSlice(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	args := []string{"a", "b"}
+	cli.Args("custom").Strings(&args)
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"c", "d"})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(len(args), 2)
+	is.Equal(args[0], "c")
+	is.Equal(args[1], "d")
+	isEqual(t, actual.String(), ``)
+}
+
+func TestArgClearMap(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	args := map[string]string{"a": "a"}
+	cli.Arg("custom").StringMap(&args)
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"b:b"})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(len(args), 1)
+	is.Equal(args["b"], "b")
+	isEqual(t, actual.String(), ``)
+}
+
+func TestFlagClearSlice(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	args := []string{"a", "b"}
+	cli.Flag("f", "flag").Strings(&args)
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"-f", "c", "-f", "d"})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(len(args), 2)
+	is.Equal(args[0], "c")
+	is.Equal(args[1], "d")
+	isEqual(t, actual.String(), ``)
+}
+
+func TestFlagClearMap(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	args := map[string]string{"a": "a"}
+	cli.Flag("f", "flag").StringMap(&args)
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"-f", "b:b"})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(len(args), 1)
+	is.Equal(args["b"], "b")
+	isEqual(t, actual.String(), ``)
+}
