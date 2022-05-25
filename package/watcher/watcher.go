@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 
@@ -133,6 +134,8 @@ func Watch(ctx context.Context, dir string, fn func(path string) error) error {
 	// Note: The FAQ currently says it needs to be in a separate Go routine
 	// https://github.com/fsnotify/fsnotify#faq, so we'll do that.
 	eg, ctx := errgroup.WithContext(ctx)
+	// Start timer
+	startTime := time.Now().Add(-1 * time.Millisecond)
 	eg.Go(func() error {
 		for {
 			select {
@@ -162,11 +165,17 @@ func Watch(ctx context.Context, dir string, fn func(path string) error) error {
 					}
 
 				// Handle write events
-				case op&fsnotify.Write != 0:
+				// Currently, there is an issue with fsnotify which may register multiple events
+				// in a single change, so we have to ignore events that is triggered too
+				// closely together (details in #70)
+				// If there are multiple events in one file change, this only accept the first one.
+				case op&fsnotify.Write != 0 && time.Since(startTime).Milliseconds() > 1:
 					if err := write(evt.Name); err != nil {
 						return err
 					}
 				}
+
+				startTime = time.Now()
 			}
 		}
 	})
