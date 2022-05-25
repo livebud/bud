@@ -2,6 +2,7 @@ package socket
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -46,6 +47,10 @@ func listen(path string) (net.Listener, error) {
 	}
 	// Empty host means the path is a unix domain socket
 	if url.Host == "" {
+		// Unix domain socket path can't be more than 103 characters long
+		if len(path) > 103 {
+			return nil, fmt.Errorf("socket: unix path too long %q", path)
+		}
 		addr, err := net.ResolveUnixAddr("unix", path)
 		if err != nil {
 			return nil, err

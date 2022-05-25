@@ -12,9 +12,9 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"testing"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/livebud/bud/internal/cli"
 	"github.com/livebud/bud/internal/errs"
 	"github.com/livebud/bud/internal/once"
@@ -46,7 +46,11 @@ func (c *TestCLI) stdio() (stdout, stderr *bytes.Buffer) {
 // makeTemp creates a temporary directory exactly once per run
 func (c *TestCLI) makeTemp() (dir string, err error) {
 	return c.mkTemp.Do(func() (string, error) {
-		tmpDir := filepath.Join(c.cli.Dir(), "bud", "tmp")
+		absPath, err := filepath.Abs(c.cli.Dir())
+		if err != nil {
+			return "", err
+		}
+		tmpDir := filepath.Join(absPath, "bud", "tmp")
 		if err := os.MkdirAll(tmpDir, 0755); err != nil {
 			return "", err
 		}
@@ -79,7 +83,7 @@ func listenUnix(socketPath string) (net.Listener, *http.Client, error) {
 		return nil, nil, err
 	}
 	client := &http.Client{
-		Timeout:   5 * time.Second,
+		Timeout:   10 * time.Second,
 		Transport: transport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
@@ -90,30 +94,6 @@ func listenUnix(socketPath string) (net.Listener, *http.Client, error) {
 		return nil, nil, err
 	}
 	return listener, client, nil
-}
-
-func injectListener(t testing.TB, cli *cli.CLI) (*http.Client, func()) {
-	t.Helper()
-	// Start listening on a unix domain socket
-	socketPath := filepath.Join(t.TempDir(), "unix.sock")
-	listener, client, err := listenUnix(socketPath)
-	if err != nil {
-		t.Fatalf("unable to listen on socket path %q: %s", socketPath, err)
-	}
-	// Pull the files and environment from the listener
-	files, env, err := socket.Files(listener)
-	if err != nil {
-		t.Fatalf("unable to derive *os.File from net.Listener: %s", err)
-	}
-	// Inject into CLI
-	cli.ExtraFiles = append(cli.ExtraFiles, files...)
-	cli.Env[env.Key()] = env.Value()
-	// Return the client and a way to shutdown the listener
-	return client, func() {
-		if err := listener.Close(); err != nil {
-			t.Fatalf("unexpected error while closing listener: %s", err)
-		}
-	}
 }
 
 func (c *TestCLI) Start(ctx context.Context, args ...string) (app *App, stdout *bytes.Buffer, stderr *bytes.Buffer, err error) {
@@ -383,4 +363,13 @@ func (r *Response) Dump() *bytes.Buffer {
 // Header gets a value from a key
 func (r *Response) Header(key string) string {
 	return r.res.Header.Get(key)
+}
+
+// Query a selector on the page using goquery
+func (r *Response) Query(selector string) (*goquery.Selection, error) {
+	doc, err := goquery.NewDocumentFromReader(r.Body())
+	if err != nil {
+		return nil, err
+	}
+	return doc.Find(selector), nil
 }

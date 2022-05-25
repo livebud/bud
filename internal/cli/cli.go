@@ -81,7 +81,12 @@ func (c *CLI) Run(ctx context.Context, args ...string) error {
 	return c.parse(ctx, args, func(ctx context.Context) error {
 		cmd, err := c.compile(ctx)
 		if err != nil {
-			return err
+			if errors.Is(err, fs.ErrNotExist) {
+				// When we're outside a go module, we're outside a bud application.
+				// In this case, show the bud cli's usage, not your project cli's usage.
+				return commander.Usage()
+			}
+			return nil
 		}
 		return cmd.Run()
 	})
@@ -179,11 +184,6 @@ func (c *CLI) compile(ctx context.Context) (*exe.Cmd, error) {
 	// Find the go.mod
 	module, err := gomod.Find(c.dir)
 	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			// When we're outside a go module, we're outside a bud application.
-			// In this case, show the bud cli's usage, not your project cli's usage.
-			return nil, commander.Usage()
-		}
 		return nil, err
 	}
 
@@ -209,10 +209,13 @@ func (c *CLI) compile(ctx context.Context) (*exe.Cmd, error) {
 	}
 
 	// Write the import generator
-	// TODO: add import writer back in
-	// if err := c.writeImporter(ctx, overlay); err != nil {
-	// 	return err
-	// }
+	importFile, err := fs.ReadFile(genfs, "bud/import.go")
+	if err != nil {
+		return nil, err
+	}
+	if err := module.DirFS().WriteFile("bud/import.go", importFile, 0644); err != nil {
+		return nil, err
+	}
 
 	// Ensure that main.go exists
 	if _, err := fs.Stat(module, "bud/.cli/main.go"); err != nil {

@@ -2,6 +2,8 @@ package testdir_test
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/livebud/bud/internal/is"
@@ -12,7 +14,8 @@ import (
 func TestDir(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	td := testdir.New(t.TempDir())
+	dir := t.TempDir()
+	td := testdir.New(dir)
 	td.Backup = false
 	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.2"
 	td.Files["controller/controller.go"] = `package controller`
@@ -28,12 +31,19 @@ func TestDir(t *testing.T) {
 		"package.json",
 		"go.mod",
 	))
+	// Ensure livebud doesn't leak into dir
+	is.NoErr(td.NotExists(
+		"qs",
+		"url",
+		"tsconfig.json",
+	))
 }
 
 func TestRefresh(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	td := testdir.New(t.TempDir())
+	dir := t.TempDir()
+	td := testdir.New(dir)
 	td.Backup = true
 	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.2"
 	td.Files["controller/controller.go"] = `package controller`
@@ -49,56 +59,20 @@ func TestRefresh(t *testing.T) {
 		"package.json",
 		"go.mod",
 	))
-	td.Modules = map[string]string{}
-	delete(td.Files, "controller/controller.go")
-	delete(td.BFiles, "public/favicon.ico")
-	is.NoErr(td.Write(ctx))
-	is.NoErr(td.NotExists(
-		"controller/controller.go",
-		"public/favicon.ico",
-	))
-	is.NoErr(td.Exists(
-		"node_modules/livebud/package.json",
-		"node_modules/svelte/package.json",
-		"package.json",
-		"go.mod",
-	))
-}
-
-func TestSkip(t *testing.T) {
-	is := is.New(t)
-	ctx := context.Background()
-	td := testdir.New(t.TempDir())
-	td.Backup = true
-	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.2"
-	td.Files["controller/controller.go"] = `package controller`
-	td.BFiles["public/favicon.ico"] = []byte{0x00}
-	td.NodeModules["svelte"] = version.Svelte
-	td.NodeModules["livebud"] = "*"
+	favicon := []byte{0x01}
+	td.BFiles["public/favicon.ico"] = favicon
+	td.NodeModules["uid"] = "2.0.0"
 	is.NoErr(td.Write(ctx))
 	is.NoErr(td.Exists(
 		"controller/controller.go",
 		"public/favicon.ico",
-		"node_modules/svelte/package.json",
 		"node_modules/livebud/package.json",
+		"node_modules/svelte/package.json",
+		"node_modules/uid/package.json",
 		"package.json",
 		"go.mod",
 	))
-	td.Skip = func(name string, isDir bool) bool {
-		return (name == "controller" && isDir)
-	}
-	td.Modules = map[string]string{}
-	delete(td.Files, "controller/controller.go")
-	delete(td.BFiles, "public/favicon.ico")
-	is.NoErr(td.Write(ctx))
-	is.NoErr(td.NotExists(
-		"public/favicon.ico",
-	))
-	is.NoErr(td.Exists(
-		"controller/controller.go",
-		"node_modules/livebud/package.json",
-		"node_modules/svelte/package.json",
-		"package.json",
-		"go.mod",
-	))
+	fav, err := os.ReadFile(filepath.Join(dir, "public/favicon.ico"))
+	is.NoErr(err)
+	is.Equal(favicon, fav)
 }

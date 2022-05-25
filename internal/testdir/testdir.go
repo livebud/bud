@@ -1,18 +1,15 @@
 package testdir
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
-	"strings"
 	"testing/fstest"
 	"time"
 
@@ -25,13 +22,11 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/snapshot"
 
 	"github.com/livebud/bud/internal/npm"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/modcache"
-	"github.com/livebud/bud/package/vfs"
 	"golang.org/x/mod/modfile"
 )
 
@@ -205,6 +200,37 @@ func (d *Dir) Hash() (string, error) {
 	return snapshot.Hash(fsys)
 }
 
+func (d *Dir) writeAll(fsys fs.FS, to string) error {
+	return fs.WalkDir(fsys, ".", func(path string, de fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		toPath := filepath.Join(to, path)
+		if de.IsDir() {
+			mode := de.Type()
+			if mode == fs.ModeDir {
+				mode = fs.FileMode(0755)
+			}
+			if err := os.MkdirAll(toPath, mode); err != nil {
+				return err
+			}
+			return nil
+		}
+		data, err := fs.ReadFile(fsys, path)
+		if err != nil {
+			return err
+		}
+		mode := de.Type()
+		if mode == 0 {
+			mode = fs.FileMode(0644)
+		}
+		if err := os.WriteFile(toPath, data, mode); err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
 // Write testdir into dir
 func (d *Dir) Write(ctx context.Context) error {
 	// Map out the filesystem
@@ -221,12 +247,16 @@ func (d *Dir) Write(ctx context.Context) error {
 	if d.Backup {
 		cachedFS, err := snapshot.Restore(hash)
 		if nil == err {
-			return dsync.Dir(cachedFS, ".", vfs.OS(d.dir), ".", dsync.WithSkip(d.Skip))
+			// Write the cache to dir
+			if err := d.writeAll(cachedFS, d.dir); err != nil {
+				return err
+			}
 		} else if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
 	}
-	if err := dsync.Dir(fsys, ".", vfs.OS(d.dir), ".", dsync.WithSkip(d.Skip)); err != nil {
+	// Write all the files in the filesystem out
+	if err := d.writeAll(fsys, d.dir); err != nil {
 		return err
 	}
 	// Load the module cache
@@ -260,7 +290,8 @@ func (d *Dir) Write(ctx context.Context) error {
 	}
 
 	if _, ok := fsys["package.json"]; ok {
-		cmd := exec.CommandContext(ctx, "npm", "install", "--loglevel=error")
+		// Avoid symlinking in node_modules/.bin to avoid symlink issues downstream
+		cmd := exec.CommandContext(ctx, "npm", "install", "--loglevel=error", "--no-bin-links")
 		cmd.Dir = d.dir
 		cmd.Stderr = os.Stderr
 		cmd.Env = []string{
@@ -297,7 +328,8 @@ func Tree(dir string) (string, error) {
 
 func copyLiveBud(mapfs fstest.MapFS, budDir string) error {
 	liveBudDir := filepath.Join(budDir, "livebud")
-	return filepath.WalkDir(liveBudDir, func(path string, de fs.DirEntry, err error) error {
+	liveBudModules := path.Join("node_modules", "livebud")
+	return filepath.WalkDir(liveBudDir, func(fpath string, de fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -305,11 +337,17 @@ func copyLiveBud(mapfs fstest.MapFS, budDir string) error {
 		if err != nil {
 			return err
 		}
-		relPath, err := filepath.Rel(liveBudDir, path)
+		// Ignore symlinks since they cause write issues later and so far aren't
+		// relevant.
+		if stat.Mode()&fs.ModeSymlink != 0 {
+			return nil
+		}
+		relPath, err := filepath.Rel(liveBudDir, fpath)
 		if err != nil {
 			return err
 		}
-		mapfs[relPath] = &fstest.MapFile{
+		nodePath := path.Join(liveBudModules, relPath)
+		mapfs[nodePath] = &fstest.MapFile{
 			ModTime: stat.ModTime(),
 			Mode:    stat.Mode(),
 			Sys:     stat.Sys(),
@@ -317,36 +355,13 @@ func copyLiveBud(mapfs fstest.MapFS, budDir string) error {
 		if stat.IsDir() {
 			return nil
 		}
-		data, err := os.ReadFile(path)
+		data, err := os.ReadFile(fpath)
 		if err != nil {
 			return err
 		}
-		mapfs[relPath].Data = data
+		mapfs[nodePath].Data = data
 		return nil
 	})
-}
-
-func packLiveBud(budDir string) (string, error) {
-	liveBudDir := filepath.Join(budDir, "livebud")
-	tmpDir, err := ioutil.TempDir("", "testdir-livebud-*")
-	if err != nil {
-		return "", err
-	}
-	cmd := exec.Command("npm", "pack", liveBudDir, "--loglevel=error")
-	cmd.Dir = tmpDir
-	cmd.Stderr = os.Stderr
-	tarName := new(bytes.Buffer)
-	cmd.Stdout = tarName
-	cmd.Env = []string{
-		"HOME=" + os.Getenv("HOME"),
-		"PATH=" + os.Getenv("PATH"),
-		"NO_COLOR=1",
-	}
-	if err := cmd.Run(); err != nil {
-		return "", err
-	}
-	tarPath := filepath.Join(tmpDir, strings.TrimSpace(tarName.String()))
-	return tarPath, nil
 }
 
 // Exists returns nil if path exists. Should be called after Write.

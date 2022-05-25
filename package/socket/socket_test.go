@@ -222,3 +222,20 @@ func TestLoadNumberOnly(t *testing.T) {
 	is.Equal(string(body), "/hello")
 	server.Shutdown(context.Background())
 }
+
+// This test is used to determine waht the maximum socket length is.
+// It should always fail.
+func TestSocketLength(t *testing.T) {
+	t.SkipNow()
+	tmpDir := t.TempDir()
+	for i := 1; i < 1000; i++ {
+		socketPath := filepath.Join(tmpDir, strings.Repeat("a", i)+".sock")
+		listener, err := socket.Load(socketPath)
+		if err != nil {
+			t.Fatalf("failed at %d: %s", len(socketPath), err)
+		}
+		if err := listener.Close(); err != nil {
+			t.Fatalf("unable to close listener: %s", err)
+		}
+	}
+}

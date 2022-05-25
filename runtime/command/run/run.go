@@ -147,11 +147,12 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 				console.Error(err.Error())
 				return nil
 			}
-			process, err = c.compileAndStart(ctx, listener)
+			p, err := c.compileAndStart(ctx, listener)
 			if err != nil {
 				console.Error(err.Error())
 				return nil
 			}
+			process = p
 			console.Info("Ready on " + formatAddress(listener))
 			return nil
 		// Hot reload the page
