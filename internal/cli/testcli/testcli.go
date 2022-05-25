@@ -1,6 +1,7 @@
 package testcli
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -187,17 +188,83 @@ func getURL(path string) string {
 	return "http://host" + path
 }
 
-func (a *App) Get(url string) (*Response, error) {
-	res, err := a.client.Get(getURL(url))
+func (a *App) Get(path string) (*Response, error) {
+	req, err := http.NewRequest(http.MethodGet, getURL(path), nil)
+	if err != nil {
+		return nil, err
+	}
+	return a.Request(req)
+}
+
+func (a *App) GetJSON(path string) (*Response, error) {
+	req, err := http.NewRequest(http.MethodGet, getURL(path), nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+	return a.Request(req)
+}
+
+func (a *App) Post(path string, body io.Reader) (*Response, error) {
+	req, err := http.NewRequest(http.MethodPost, getURL(path), body)
+	if err != nil {
+		return nil, err
+	}
+	return a.Request(req)
+}
+
+func (a *App) PostJSON(path string, body io.Reader) (*Response, error) {
+	req, err := http.NewRequest(http.MethodPost, getURL(path), body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	return a.Request(req)
+}
+
+func (a *App) Patch(path string, body io.Reader) (*Response, error) {
+	req, err := http.NewRequest(http.MethodPatch, getURL(path), body)
+	if err != nil {
+		return nil, err
+	}
+	return a.Request(req)
+}
+
+func (a *App) PatchJSON(path string, body io.Reader) (*Response, error) {
+	req, err := http.NewRequest(http.MethodPatch, getURL(path), body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	return a.Request(req)
+}
+
+func (a *App) Delete(path string, body io.Reader) (*Response, error) {
+	req, err := http.NewRequest(http.MethodDelete, getURL(path), body)
+	if err != nil {
+		return nil, err
+	}
+	return a.Request(req)
+}
+
+func (a *App) DeleteJSON(path string, body io.Reader) (*Response, error) {
+	req, err := http.NewRequest(http.MethodDelete, getURL(path), body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	return a.Request(req)
+}
+
+func (a *App) Request(req *http.Request) (*Response, error) {
+	res, err := a.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	body, err := bufferBody(res)
-	if err != nil {
-		return nil, err
-	}
-	// Dump the response
-	headers, err := bufferHeaders(res)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +278,12 @@ func (a *App) Get(url string) (*Response, error) {
 		return nil, err
 	}
 	res.Header.Del("Date")
-	return &Response{res, body, headers}, nil
+	// Buffer the headers response
+	headers, err := bufferHeaders(res, body)
+	if err != nil {
+		return nil, err
+	}
+	return &Response{res, headers, body}, nil
 }
 
 // bufferBody allows the response body to be read multiple times
@@ -225,8 +297,27 @@ func bufferBody(res *http.Response) ([]byte, error) {
 	return body, nil
 }
 
-func bufferHeaders(res *http.Response) ([]byte, error) {
-	return httputil.DumpResponse(res, false)
+func bufferHeaders(res *http.Response, body []byte) ([]byte, error) {
+	dump, err := httputil.DumpResponse(res, false)
+	if err != nil {
+		return nil, err
+	}
+	// httputil.DumpResponse() always attaches a Content-Length, regardless of
+	// whether or not you remove it. This scanner removes the Content-Lenght
+	// manually.
+	s := bufio.NewScanner(bytes.NewBuffer(dump))
+	b := new(bytes.Buffer)
+	for s.Scan() {
+		if bytes.Contains(s.Bytes(), []byte("Content-Length")) {
+			continue
+		}
+		b.WriteByte('\n')
+		b.Write(s.Bytes())
+	}
+	if s.Err() != nil {
+		return nil, s.Err()
+	}
+	return b.Bytes(), nil
 }
 
 func checkContentLength(res *http.Response, body []byte) error {
@@ -263,8 +354,8 @@ func checkDate(res *http.Response) error {
 
 type Response struct {
 	res     *http.Response
-	body    []byte
 	headers []byte
+	body    []byte
 }
 
 // Status returns the response status
@@ -282,10 +373,11 @@ func (r *Response) Body() *bytes.Buffer {
 
 // Diff the response the expected HTTP response
 func (r *Response) Dump() *bytes.Buffer {
-	return bytes.NewBuffer(bytes.Join(
-		[][]byte{r.headers, r.body},
-		[]byte{'\r', '\n'},
-	))
+	b := new(bytes.Buffer)
+	b.Write(r.headers)
+	b.WriteByte('\n')
+	b.Write(r.body)
+	return b
 }
 
 // Header gets a value from a key

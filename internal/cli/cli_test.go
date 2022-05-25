@@ -10,6 +10,7 @@ import (
 	"github.com/livebud/bud/internal/cli/testcli"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
+	"github.com/matthewmueller/diff"
 )
 
 func TestBuildEmpty(t *testing.T) {
@@ -209,13 +210,15 @@ func TestRunController(t *testing.T) {
 	app, stdout, stderr, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
-	res, err := app.Get("/")
+	res, err := app.GetJSON("/")
 	is.NoErr(err)
 	is.Equal(res.Status(), 200)
-	is.In(res.Headers().String(), "HTTP/1.1 200 OK")
-	is.In(res.Headers().String(), "Content-Length: 300")
-	is.In(res.Headers().String(), "Content-Type: text/html")
-	is.In(res.Body().String(), "from index")
+	diff.TestHTTP(t, res.Dump().String(), `
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		"from index"
+	`)
 	is.Equal(stdout.String(), "")
 	is.In(stderr.String(), "Listening on")
 }
