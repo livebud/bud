@@ -1,11 +1,10 @@
-package clitest
+package testcli
 
 import (
 	"bytes"
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -54,6 +53,17 @@ func (c *TestCLI) makeTemp() (dir string, err error) {
 	})
 }
 
+// Env sets an environment variable, overriding any existing key.
+func (c *TestCLI) Env(key, value string) {
+	c.cli.Env[key] = value
+}
+
+// Stdin adds a reader as standard input.
+func (c *TestCLI) Stdin(stdin io.Reader) {
+	c.cli.Stdin = stdin
+}
+
+// Run the CLI with the provided args
 func (c *TestCLI) Run(ctx context.Context, args ...string) (stdout, stderr *bytes.Buffer, err error) {
 	stdout, stderr = c.stdio()
 	if err := c.cli.Run(ctx, args...); err != nil {
@@ -177,11 +187,12 @@ func (a *App) Get(url string) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := bufferBody(res); err != nil {
+	body, err := bufferBody(res)
+	if err != nil {
 		return nil, err
 	}
 	// Verify content-length, then remove it to make tests less fragile
-	if err := checkContentLength(res); err != nil {
+	if err := checkContentLength(res, body); err != nil {
 		return nil, err
 	}
 	res.Header.Del("Content-Length")
@@ -190,21 +201,21 @@ func (a *App) Get(url string) (*Response, error) {
 		return nil, err
 	}
 	res.Header.Del("Date")
-	return &Response{res}, nil
+	return &Response{res, body}, nil
 }
 
 // bufferBody allows the response body to be read multiple times
 // https://gist.github.com/franchb/d38fd9271e225a105a26c6859df1ce9b
-func bufferBody(res *http.Response) error {
+func bufferBody(res *http.Response) ([]byte, error) {
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	res.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-	return nil
+	res.Body.Close()
+	return body, nil
 }
 
-func checkContentLength(res *http.Response) error {
+func checkContentLength(res *http.Response, body []byte) error {
 	cl := res.Header.Get("Content-Length")
 	if cl == "" {
 		return nil
@@ -213,13 +224,8 @@ func checkContentLength(res *http.Response) error {
 	if err != nil {
 		return err
 	}
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return err
-	}
-	bodyLen := len(body)
 	if clen != len(body) {
-		return fmt.Errorf("Content-Length (%d) doesn't match the body length (%d)", clen, bodyLen)
+		return fmt.Errorf("Content-Length (%d) doesn't match the body length (%d)", clen, len(body))
 	}
 	return nil
 }
@@ -229,14 +235,33 @@ func checkDate(res *http.Response) error {
 	if date == "" {
 		return nil
 	}
-	fmt.Println("GOT DATE", date)
+	dt, err := time.Parse(time.RFC1123, date)
+	if err != nil {
+		return err
+	}
+	// Date should be within 1 minute. In reality, it should be almost instant
+	elapsed := time.Now().Sub(dt)
+	if elapsed > time.Minute {
+		return fmt.Errorf("Date header is too old %s", elapsed)
+	}
 	return nil
 }
 
 type Response struct {
-	res *http.Response
+	res  *http.Response
+	body []byte
 }
 
+// Status returns the response status
+func (r *Response) Status() int {
+	return r.res.StatusCode
+}
+
+func (r *Response) Body() *bytes.Buffer {
+	return bytes.NewBuffer(r.body)
+}
+
+// Diff the response the expected HTTP response
 func (r *Response) Diff(expect string) error {
 	dump, err := httputil.DumpResponse(r.res, true)
 	if err != nil {

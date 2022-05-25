@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -42,8 +43,11 @@ const goMod = `
 	)
 `
 
-func New() *Dir {
+func New(dir string) *Dir {
 	return &Dir{
+		dir:         dir,
+		Backup:      false, // TODO: re-enable and store snapshots in ./bud/tmp
+		Skip:        func(string, bool) bool { return false },
 		Modules:     map[string]string{},
 		NodeModules: map[string]string{},
 		BFiles:      map[string][]byte{},
@@ -52,6 +56,9 @@ func New() *Dir {
 }
 
 type Dir struct {
+	dir         string
+	Backup      bool
+	Skip        func(name string, isDir bool) (skip bool)
 	Files       map[string]string // String files (convenient)
 	BFiles      map[string][]byte // Byte files (for images and binaries)
 	Modules     map[string]string // name[version]
@@ -182,25 +189,12 @@ func (d *Dir) mapfs() (fstest.MapFS, error) {
 	return mapfs, nil
 }
 
-type Option func(o *option)
-
-type option struct {
-	backup bool
-	skips  []func(name string, isDir bool) (skip bool)
+// Dir returns the directory
+func (d *Dir) Dir() string {
+	return d.dir
 }
 
-func WithBackup(backup bool) Option {
-	return func(o *option) {
-		o.backup = backup
-	}
-}
-
-func WithSkip(skips ...func(name string, isDir bool) (skip bool)) Option {
-	return func(o *option) {
-		o.skips = skips
-	}
-}
-
+// Hash returns a file hash of our mapped file system
 func (d *Dir) Hash() (string, error) {
 	// Map out the filesystem
 	fsys, err := d.mapfs()
@@ -212,14 +206,7 @@ func (d *Dir) Hash() (string, error) {
 }
 
 // Write testdir into dir
-func (d *Dir) Write(dir string, options ...Option) error {
-	// Load the options
-	opt := &option{
-		backup: true,
-	}
-	for _, option := range options {
-		option(opt)
-	}
+func (d *Dir) Write(ctx context.Context) error {
 	// Map out the filesystem
 	fsys, err := d.mapfs()
 	if err != nil {
@@ -231,15 +218,15 @@ func (d *Dir) Write(dir string, options ...Option) error {
 		return err
 	}
 	// Try restoring from cache
-	if opt.backup {
+	if d.Backup {
 		cachedFS, err := snapshot.Restore(hash)
 		if nil == err {
-			return dsync.Dir(cachedFS, ".", vfs.OS(dir), ".", dsync.WithSkip(opt.skips...))
+			return dsync.Dir(cachedFS, ".", vfs.OS(d.dir), ".", dsync.WithSkip(d.Skip))
 		} else if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
 	}
-	if err := dsync.Dir(fsys, ".", vfs.OS(dir), ".", dsync.WithSkip(opt.skips...)); err != nil {
+	if err := dsync.Dir(fsys, ".", vfs.OS(d.dir), ".", dsync.WithSkip(d.Skip)); err != nil {
 		return err
 	}
 	// Load the module cache
@@ -248,13 +235,13 @@ func (d *Dir) Write(dir string, options ...Option) error {
 	if err != nil {
 		return err
 	}
-	eg, ctx := errgroup.WithContext(context.Background())
+	eg, ctx := errgroup.WithContext(ctx)
 	// Download modules that aren't in the module cache
 	if _, ok := fsys["go.mod"]; ok {
 		// Use "all" to extract cached directories into GOMODCACHE, so there's not
 		// a "go: downloading ..." step during go build.
 		cmd := exec.CommandContext(ctx, "go", "mod", "download", "all")
-		cmd.Dir = dir
+		cmd.Dir = d.dir
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 		cmd.Env = []string{
@@ -274,7 +261,7 @@ func (d *Dir) Write(dir string, options ...Option) error {
 
 	if _, ok := fsys["package.json"]; ok {
 		cmd := exec.CommandContext(ctx, "npm", "install", "--loglevel=error")
-		cmd.Dir = dir
+		cmd.Dir = d.dir
 		cmd.Stderr = os.Stderr
 		cmd.Env = []string{
 			"HOME=" + os.Getenv("HOME"),
@@ -292,8 +279,8 @@ func (d *Dir) Write(dir string, options ...Option) error {
 		return err
 	}
 	// Backing the snapshot up
-	if opt.backup {
-		if err := snapshot.Backup(hash, os.DirFS(dir)); err != nil {
+	if d.Backup {
+		if err := snapshot.Backup(hash, os.DirFS(d.dir)); err != nil {
 			return err
 		}
 	}
@@ -360,4 +347,46 @@ func packLiveBud(budDir string) (string, error) {
 	}
 	tarPath := filepath.Join(tmpDir, strings.TrimSpace(tarName.String()))
 	return tarPath, nil
+}
+
+// Exists returns nil if path exists. Should be called after Write.
+func (d *Dir) Exists(paths ...string) error {
+	eg := new(errgroup.Group)
+	for _, path := range paths {
+		path := path
+		eg.Go(func() error { return d.exist(path) })
+	}
+	return eg.Wait()
+}
+
+func (d *Dir) exist(path string) error {
+	if _, err := d.Stat(path); err != nil {
+		return err
+	}
+	return nil
+}
+
+// NotExists returns nil if path doesn't exist. Should be called after Write.
+func (d *Dir) NotExists(paths ...string) error {
+	eg := new(errgroup.Group)
+	for _, path := range paths {
+		path := path
+		eg.Go(func() error { return d.notExist(path) })
+	}
+	return eg.Wait()
+}
+
+func (d *Dir) notExist(path string) error {
+	if _, err := d.Stat(path); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+	return fmt.Errorf("%s exists: %w", path, fs.ErrExist)
+}
+
+// Stat return the file info of path. Should be called after Write.
+func (d *Dir) Stat(path string) (fs.FileInfo, error) {
+	return os.Stat(filepath.Join(d.dir, path))
 }
