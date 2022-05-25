@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/vfs"
 
 	"github.com/matthewmueller/gotext"
@@ -18,15 +19,16 @@ import (
 	"github.com/matthewmueller/text"
 )
 
-func New() *Command {
+func New(module *gomod.Module) *Command {
 	return &Command{
+		module:   module,
 		template: scaffold.Template{},
 	}
 }
 
 type Command struct {
 	bail.Struct
-	// module   *gomod.Module
+	module   *gomod.Module
 	template scaffold.Template
 	Path     string
 	Actions  []string
@@ -35,13 +37,13 @@ type Command struct {
 //go:embed controller.gotext
 var controller string
 
-//go:embed view/default.gotext
+//go:embed view_default.gotext
 var defaultView string
 
-//go:embed view/index.gotext
+//go:embed view_index.gotext
 var indexView string
 
-//go:embed view/show.gotext
+//go:embed view_show.gotext
 var showView string
 
 var views = map[string]string{
@@ -88,13 +90,11 @@ type View struct {
 }
 
 func (c *Command) Run(ctx context.Context) (err error) {
-	fmt.Println("running new command!")
-	return nil
-	// state, err := c.Load()
-	// if err != nil {
-	// 	return err
-	// }
-	// return Generate(c.module.DirFS(), state)
+	state, err := c.Load()
+	if err != nil {
+		return err
+	}
+	return Generate(c.module.DirFS(), state)
 }
 
 func (c *Command) Load() (state *State, err error) {

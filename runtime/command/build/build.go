@@ -7,14 +7,14 @@ import (
 	"github.com/livebud/bud/internal/buildcache"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/overlay"
-	"github.com/livebud/bud/runtime/bud"
+	"github.com/livebud/bud/runtime/command"
 )
 
 func New(module *gomod.Module) *Command {
 	return &Command{
 		module: module,
 		// Default flags
-		Flag: &bud.Flag{
+		Flag: &command.Flag{
 			Embed:  true,
 			Hot:    "",
 			Minify: true,
@@ -27,7 +27,7 @@ type Command struct {
 	module *gomod.Module
 
 	// Below are filled in by the CLI
-	Flag *bud.Flag
+	Flag *command.Flag
 	FS   *overlay.FileSystem
 }
 

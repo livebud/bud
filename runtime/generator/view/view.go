@@ -9,7 +9,7 @@ import (
 	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/overlay"
-	"github.com/livebud/bud/runtime/bud"
+	"github.com/livebud/bud/runtime/command"
 	"github.com/livebud/bud/runtime/transform"
 )
 
@@ -19,7 +19,7 @@ var template string
 var generator = gotemplate.MustParse("view.gotext", template)
 
 type Compiler struct {
-	Flag      *bud.Flag
+	Flag      *command.Flag
 	Module    *gomod.Module
 	Transform *transform.Map
 }

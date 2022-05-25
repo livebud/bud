@@ -46,7 +46,11 @@ func (d *Dir) DirGenerator(path string, generator DirGenerator) {
 func (d *Dir) open(rel string) (fs.File, error) {
 	// Exact submatch, open generator
 	if generator, ok := d.radix.Get(rel); ok {
-		return generator.Generate(d.tpath)
+		file, err := generator.Generate(d.tpath)
+		if err != nil {
+			return nil, err
+		}
+		return file, nil
 	}
 	// Get the generator with the longest matching prefix and open that.
 	if _, generator, ok := d.radix.GetByPrefix(rel); ok {

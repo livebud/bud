@@ -118,7 +118,7 @@ func (m *Module) ResolveDirectoryIn(localFS fs.FS, importPath string) (directory
 		}
 		// Check if the package path exists
 		if _, err := fs.Stat(localFS, rel); err != nil {
-			return "", fmt.Errorf("mod: unable to resolve directory for package path %q: %w", importPath, err)
+			return "", fmt.Errorf("mod: unable to resolve directory for package path %q.\n\t%w", importPath, err)
 		}
 		absdir := filepath.Join(m.dir, rel)
 		return absdir, nil
@@ -134,7 +134,7 @@ func (m *Module) ResolveDirectoryIn(localFS fs.FS, importPath string) (directory
 			}
 			// Ensure the resolved directory exists.
 			if _, err := os.Stat(absdir); err != nil {
-				return "", fmt.Errorf("mod: unable to resolve directory for replaced import path %q: %w", importPath, err)
+				return "", fmt.Errorf("mod: unable to resolve directory for replaced import path %q.\n\t%w", importPath, err)
 			}
 			return absdir, nil
 		}
@@ -150,12 +150,12 @@ func (m *Module) ResolveDirectoryIn(localFS fs.FS, importPath string) (directory
 			absdir := filepath.Join(dir, relPath)
 			// Ensure the resolved directory exists.
 			if _, err := os.Stat(absdir); err != nil {
-				return "", fmt.Errorf("mod: unable to resolve directory for required import path %q: %w", importPath, err)
+				return "", fmt.Errorf("mod: unable to resolve directory for required import path %q.\n\t%w", importPath, err)
 			}
 			return absdir, nil
 		}
 	}
-	return "", fmt.Errorf("mod: unable to resolve directory for import path %q: %w", importPath, fs.ErrNotExist)
+	return "", fmt.Errorf("mod: unable to resolve directory for import path %q.\n\t%w", importPath, fs.ErrNotExist)
 }
 
 // Hash the module

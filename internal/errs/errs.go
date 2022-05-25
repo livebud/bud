@@ -13,7 +13,7 @@ func Join(errors ...error) error {
 			agg = err
 			continue
 		} else {
-			agg = fmt.Errorf("%s: %s", agg, err)
+			agg = fmt.Errorf("%s\n%s", agg, err)
 		}
 	}
 	return agg

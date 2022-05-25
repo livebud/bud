@@ -6,9 +6,9 @@ import (
 
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/overlay"
+	"github.com/livebud/bud/runtime/command"
 
 	"github.com/livebud/bud/internal/gotemplate"
-	"github.com/livebud/bud/runtime/bud"
 )
 
 //go:embed public.gotext
@@ -16,7 +16,7 @@ var template string
 
 var generator = gotemplate.MustParse("public", template)
 
-func New(flag *bud.Flag, module *gomod.Module) *Generator {
+func New(flag *command.Flag, module *gomod.Module) *Generator {
 	return &Generator{
 		flag:   flag,
 		module: module,
@@ -24,7 +24,7 @@ func New(flag *bud.Flag, module *gomod.Module) *Generator {
 }
 
 type Generator struct {
-	flag   *bud.Flag
+	flag   *command.Flag
 	module *gomod.Module
 }
 

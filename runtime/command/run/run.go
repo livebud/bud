@@ -21,7 +21,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/livebud/bud/package/socket"
-	"github.com/livebud/bud/runtime/bud"
+	"github.com/livebud/bud/runtime/command"
 	"github.com/livebud/bud/runtime/web"
 )
 
@@ -29,7 +29,7 @@ func New(module *gomod.Module) *Command {
 	return &Command{
 		module: module,
 		// Default flags
-		Flag: &bud.Flag{
+		Flag: &command.Flag{
 			Embed:  false,
 			Hot:    ":35729",
 			Minify: false,
@@ -42,7 +42,7 @@ type Command struct {
 	module *gomod.Module
 	// Below are filled in by the CLI
 	FS     *overlay.FileSystem
-	Flag   *bud.Flag
+	Flag   *command.Flag
 	Listen string
 }
 

@@ -166,6 +166,11 @@ type App struct {
 	resources []*resource
 }
 
+// Wait for the app to finish. This isn't typically necessary
+func (a *App) Wait() error {
+	return a.process.Wait()
+}
+
 // Close cleans up resources exactly once
 func (a *App) Close() (err error) {
 	return a.once.Do(func() (err error) {
@@ -191,6 +196,11 @@ func (a *App) Get(url string) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Dump the response
+	headers, err := bufferHeaders(res)
+	if err != nil {
+		return nil, err
+	}
 	// Verify content-length, then remove it to make tests less fragile
 	if err := checkContentLength(res, body); err != nil {
 		return nil, err
@@ -201,7 +211,7 @@ func (a *App) Get(url string) (*Response, error) {
 		return nil, err
 	}
 	res.Header.Del("Date")
-	return &Response{res, body}, nil
+	return &Response{res, body, headers}, nil
 }
 
 // bufferBody allows the response body to be read multiple times
@@ -213,6 +223,10 @@ func bufferBody(res *http.Response) ([]byte, error) {
 	}
 	res.Body.Close()
 	return body, nil
+}
+
+func bufferHeaders(res *http.Response) ([]byte, error) {
+	return httputil.DumpResponse(res, false)
 }
 
 func checkContentLength(res *http.Response, body []byte) error {
@@ -248,8 +262,9 @@ func checkDate(res *http.Response) error {
 }
 
 type Response struct {
-	res  *http.Response
-	body []byte
+	res     *http.Response
+	body    []byte
+	headers []byte
 }
 
 // Status returns the response status
@@ -257,18 +272,20 @@ func (r *Response) Status() int {
 	return r.res.StatusCode
 }
 
+func (r *Response) Headers() *bytes.Buffer {
+	return bytes.NewBuffer(r.headers)
+}
+
 func (r *Response) Body() *bytes.Buffer {
 	return bytes.NewBuffer(r.body)
 }
 
 // Diff the response the expected HTTP response
-func (r *Response) Diff(expect string) error {
-	dump, err := httputil.DumpResponse(r.res, true)
-	if err != nil {
-		return err
-	}
-	fmt.Println(string(dump), expect)
-	return fmt.Errorf("Not done yet!")
+func (r *Response) Dump() *bytes.Buffer {
+	return bytes.NewBuffer(bytes.Join(
+		[][]byte{r.headers, r.body},
+		[]byte{'\r', '\n'},
+	))
 }
 
 // Header gets a value from a key

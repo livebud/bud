@@ -1930,7 +1930,7 @@ func TestEmptyActionWithView(t *testing.T) {
 func TestCustomActions(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := "_tmp"
+	dir := t.TempDir()
 	bud := budtest.New(dir)
 	bud.Files["controller/controller.go"] = `
 		package controller

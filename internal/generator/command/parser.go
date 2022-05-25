@@ -36,7 +36,7 @@ func (p *parser) Parse(ctx context.Context) (state *State, err error) {
 	p.imports.AddNamed("commander", "github.com/livebud/bud/package/commander")
 	// p.imports.AddNamed("command", "github.com/livebud/bud/runtime/command")
 	p.imports.AddNamed("gomod", "github.com/livebud/bud/package/gomod")
-	p.imports.AddNamed("bud", "github.com/livebud/bud/runtime/bud")
+	// p.imports.AddNamed("command", "github.com/livebud/bud/runtime/command")
 	p.imports.AddNamed("run", "github.com/livebud/bud/runtime/command/run")
 	p.imports.AddNamed("new_controller", "github.com/livebud/bud/runtime/command/new/controller")
 	p.imports.AddNamed("build", "github.com/livebud/bud/runtime/command/build")
@@ -97,11 +97,12 @@ func (p *parser) loadCommand2(parent *Cmd, base, dir string) *Cmd {
 
 func (p *parser) loadProvider() *di.Provider {
 	provider, err := p.injector.Wire(&di.Function{
-		Name: "loadGenerator",
+		Name:   "loadGenerator",
+		Target: p.module.Import("bud/.cli/command"),
 		Params: []di.Dependency{
 			di.ToType("github.com/livebud/bud/package/gomod", "*Module"),
 			di.ToType("context", "Context"),
-			di.ToType("github.com/livebud/bud/runtime/bud", "*Flag"),
+			di.ToType("github.com/livebud/bud/runtime/command", "*Flag"),
 		},
 		Results: []di.Dependency{
 			di.ToType(p.module.Import("bud/.cli/generator"), "*FileSystem"),

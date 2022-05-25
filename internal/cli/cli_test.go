@@ -194,31 +194,28 @@ func TestRunWelcome(t *testing.T) {
 	is.In(stderr.String(), "Listening on")
 }
 
-// func TestRunController(t *testing.T) {
-// 	is := is.New(t)
-// 	dir := t.TempDir()
-// 	td := testdir.New(dir)
-// 	td.Files["controller/controller.go"] = `
-// 		package controller
-// 		type Controller struct {}
-// 		func (c *Controller) Index() string { return "from index" }
-// 	`
-// 	is.NoErr(td.Write(ctx))
-// 	cli := cli.New(dir)
-// 	cli.Stdout = os.Stdout
-// 	cli.Stderr = os.Stderr
-// 	stdout, stderr := setupCLI(t, cli)
-// 	client, close := injectListener(t, cli)
-// 	defer close()
-// 	cleanup := startCLI(t, cli, "run")
-// 	defer cleanup()
-// 	res, err := client.Get("http://host/")
-// 	is.NoErr(err)
-// 	defer res.Body.Close()
-// 	is.Equal(res.StatusCode, 200)
-// 	body, err := io.ReadAll(res.Body)
-// 	is.NoErr(err)
-// 	is.True(strings.Contains(string(body), "from index"))
-// 	is.Equal(stdout.String(), "")
-// 	is.True(strings.Contains(stderr.String(), "info: Listening on "))
-// }
+func TestRunController(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["controller/controller.go"] = `
+		package controller
+		type Controller struct {}
+		func (c *Controller) Index() string { return "from index" }
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(cli.New(dir))
+	app, stdout, stderr, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	res, err := app.Get("/")
+	is.NoErr(err)
+	is.Equal(res.Status(), 200)
+	is.In(res.Headers().String(), "HTTP/1.1 200 OK")
+	is.In(res.Headers().String(), "Content-Length: 300")
+	is.In(res.Headers().String(), "Content-Type: text/html")
+	is.In(res.Body().String(), "from index")
+	is.Equal(stdout.String(), "")
+	is.In(stderr.String(), "Listening on")
+}

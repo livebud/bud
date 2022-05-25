@@ -92,3 +92,6 @@ func TestRestoreNotExist(t *testing.T) {
 	is.True(errors.Is(err, fs.ErrNotExist))
 	is.Equal(fsys, nil)
 }
+
+// TODO: test changed files within replaced modules
+// triggering hash changes

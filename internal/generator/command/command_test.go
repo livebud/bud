@@ -2,69 +2,25 @@ package command_test
 
 import (
 	"context"
-	"io/fs"
-	"os"
 	"testing"
 
-	"github.com/livebud/bud/internal/budtest"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/cli"
+	"github.com/livebud/bud/internal/cli/testcli"
+	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/internal/testdir"
 )
-
-func TestHelp(t *testing.T) {
-	is := is.New(t)
-	ctx := context.Background()
-	dir := t.TempDir()
-	bud := budtest.New(dir)
-	project, err := bud.Compile(ctx)
-	is.NoErr(err)
-	stdout, stderr, err := project.Execute(ctx, "-h")
-	is.NoErr(err)
-	is.NoErr(stdout.Contains("Usage:")) // Should contain Usage
-	is.NoErr(stdout.Contains("build"))  // Should contain build
-	is.NoErr(stdout.Contains("run"))    // Should contain run
-	is.NoErr(stderr.Expect(""))         // Should be empty
-}
-
-func exists(fsys fs.FS, paths ...string) error {
-	for _, path := range paths {
-		if _, err := fs.Stat(fsys, path); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// TODO: this test didn't discover the bud that "bud new" was no longer exposed
-// top-level, because project.Execute uses the inner CLI
-func TestNewController(t *testing.T) {
-	is := is.New(t)
-	ctx := context.Background()
-	dir := t.TempDir()
-	bud := budtest.New(dir)
-	project, err := bud.Compile(ctx)
-	is.NoErr(err)
-	stdout, stderr, err := project.Execute(ctx, "new", "controller", "/", "index", "show")
-	is.NoErr(err)
-	is.NoErr(stdout.Expect(""))
-	is.NoErr(stderr.Expect(""))
-	is.NoErr(exists(os.DirFS(dir),
-		"controller/controller.go",
-		"view/index.svelte",
-		"view/show.svelte",
-	))
-}
 
 func TestCommandMigrate(t *testing.T) {
 	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
-	bud := budtest.New(dir)
-	bud.Files["internal/pg/pg.go"] = `
+	td := testdir.New(dir)
+	td.Files["internal/pg/pg.go"] = `
 		package pg
 		type Database struct {}
 	`
-	bud.Files["command/migrate/migrate.go"] = `
+	td.Files["command/migrate/migrate.go"] = `
 		package migrate
 
 		import "app.com/internal/pg"
@@ -112,24 +68,10 @@ func TestCommandMigrate(t *testing.T) {
 			return nil
 		}
 	`
-	project, err := bud.Compile(ctx)
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(cli.New(dir))
+	stdout, stderr, err := cli.Run(ctx, "-h")
 	is.NoErr(err)
-	stdout, stderr, err := project.Execute(ctx, "-h")
-	is.NoErr(err)
-	is.NoErr(stdout.Expect(""))
-	is.NoErr(stderr.Expect(""))
-}
-
-func TestBuild(t *testing.T) {
-	t.SkipNow()
-	is := is.New(t)
-	ctx := context.Background()
-	dir := t.TempDir()
-	bud := budtest.New(dir)
-	project, err := bud.Compile(ctx)
-	is.NoErr(err)
-	stdout, stderr, err := project.Execute(ctx, "build")
-	is.NoErr(err)
-	is.NoErr(stdout.Expect(""))
-	is.NoErr(stderr.Expect(""))
+	is.Equal(stdout.String(), "")
+	is.Equal(stderr.String(), "TODO")
 }

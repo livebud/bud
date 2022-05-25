@@ -5,6 +5,9 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"io/fs"
+
+	"github.com/livebud/bud/package/vfs"
 
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/internal/imports"
@@ -41,7 +44,11 @@ type Program struct {
 	module   *gomod.Module
 }
 
-func (p *Program) Parse(ctx context.Context) (*State, error) {
+func (p *Program) Parse(ctx context.Context, fsys fs.FS) (*State, error) {
+	// Program depends on bud/.cli/command existing
+	if err := vfs.Exist(fsys, "bud/.cli/command"); err != nil {
+		return nil, err
+	}
 	// Default  imports
 	imports := imports.New()
 	imports.AddStd("errors", "context")
@@ -82,7 +89,7 @@ func (p *Program) Parse(ctx context.Context) (*State, error) {
 }
 
 func (p *Program) GenerateFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
-	state, err := p.Parse(ctx)
+	state, err := p.Parse(ctx, fsys)
 	if err != nil {
 		return err
 	}
