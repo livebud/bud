@@ -1769,7 +1769,7 @@ func TestResourceContext(t *testing.T) {
 	is.In(stderr.String(), "Listening on")
 }
 
-func TestWorkingChangeWorking(t *testing.T) {
+func TestOkChangeOk(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()

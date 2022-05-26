@@ -70,7 +70,7 @@ type notExists struct {
 
 // Error implements error and joins all the errors together
 func (n *notExists) Error() string {
-	return fmt.Errorf("merged: open %q.\n\t%w", n.path, errs.Join(n.errors...)).Error()
+	return fmt.Errorf("merged: open %q. %w", n.path, errs.Join(n.errors...)).Error()
 }
 
 // This type of error should be an fs.ErrNotExist because all underlying errors

@@ -39,7 +39,7 @@ func TestMulti(t *testing.T) {
 	is := is.New(t)
 	e1 := errors.New("one")
 	e2 := errors.New("two")
-	is.Equal(errs.Join(nil, e1, e2).Error(), "one\ntwo")
+	is.Equal(errs.Join(nil, e1, e2).Error(), "one. two")
 }
 
 func TestCompose(t *testing.T) {
@@ -49,7 +49,7 @@ func TestCompose(t *testing.T) {
 	e3 := errs.Join(e1, e2)
 	e4 := errors.New("four")
 	e5 := errs.Join(e3, nil, e4)
-	is.Equal(e5.Error(), "one\ntwo\nfour")
+	is.Equal(e5.Error(), "one. two. four")
 }
 
 func TestFuncNil(t *testing.T) {
@@ -75,5 +75,5 @@ func TestFuncLoop(t *testing.T) {
 	}
 	err := fn()
 	is.True(err != nil)
-	is.Equal(err.Error(), "b\nc")
+	is.Equal(err.Error(), "b. c")
 }

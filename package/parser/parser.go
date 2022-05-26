@@ -67,7 +67,7 @@ func Import(fsys fs.FS, dir string) (*build.Package, error) {
 	// messages
 	imported, err := buildContext(fsys).Import(".", dir, build.ImportMode(0))
 	if err != nil {
-		return nil, fmt.Errorf("parser: unable to import package %q.\n\t%w", dir, err)
+		return nil, fmt.Errorf("parser: unable to import package %q. %w", dir, err)
 	}
 	return imported, nil
 }

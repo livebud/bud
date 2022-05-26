@@ -35,7 +35,7 @@ func find(module *gomod.Module, mainDir string) (*fileSet, error) {
 func Hash(module *gomod.Module, mainDir string) (string, error) {
 	hsh, err := hash(module, mainDir)
 	if err != nil {
-		return "", fmt.Errorf("imhash: unable to hash %q.\n\t%w", mainDir, err)
+		return "", fmt.Errorf("imhash: unable to hash %q. %w", mainDir, err)
 	}
 	return hsh, err
 }
@@ -194,7 +194,7 @@ func findDeps(fset *fileSet, module *gomod.Module, dir string) (err error) {
 func findImport(fset *fileSet, module *gomod.Module, from, importPath string) error {
 	dir, err := module.ResolveDirectory(importPath)
 	if err != nil {
-		return fmt.Errorf("imhash: error finding import %q from %q.\n\t%w", importPath, from, err)
+		return fmt.Errorf("imhash: error finding import %q from %q. %w", importPath, from, err)
 	}
 	relPath, err := filepath.Rel(module.Directory(), dir)
 	if err != nil {

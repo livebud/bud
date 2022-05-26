@@ -108,7 +108,7 @@ func (i *Injector) load(externals map[string]bool, aliases map[string]Dependency
 func (i *Injector) Wire(fn *Function) (*Provider, error) {
 	node, err := i.Load(fn)
 	if err != nil {
-		return nil, fmt.Errorf("di: unable to wire %q.%s function.\n\t%w", fn.Target, fn.Name, err)
+		return nil, fmt.Errorf("di: unable to wire %q.%s function. %w", fn.Target, fn.Name, err)
 	}
 	if fn.Imports == nil {
 		fn.Imports = imports.New()

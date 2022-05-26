@@ -48,10 +48,11 @@ func TestDirectory(t *testing.T) {
 
 func TestResolveDirectoryFromCache(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	dir := t.TempDir()
-	td := testdir.New()
+	td := testdir.New(dir)
 	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.8"
-	is.NoErr(td.Write(dir))
+	is.NoErr(td.Write(ctx))
 	modCache := modcache.Default()
 	dir, err := modCache.ResolveDirectory("github.com/livebud/bud-test-plugin", "v0.0.8")
 	is.NoErr(err)

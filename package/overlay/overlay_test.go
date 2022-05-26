@@ -1,6 +1,7 @@
 package overlay_test
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -16,11 +17,12 @@ import (
 
 func TestPlugins(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	dir := t.TempDir()
-	td := testdir.New()
+	td := testdir.New(dir)
 	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.8"
 	td.Modules["github.com/livebud/bud-test-nested-plugin"] = "v0.0.5"
-	err := td.Write(dir)
+	err := td.Write(ctx)
 	is.NoErr(err)
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
