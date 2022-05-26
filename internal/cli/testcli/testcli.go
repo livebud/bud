@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/http/httputil"
 	"os"
@@ -17,6 +16,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/livebud/bud/internal/cli"
 	"github.com/livebud/bud/internal/errs"
+	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/once"
 	"github.com/livebud/bud/package/exe"
 	"github.com/livebud/bud/package/socket"
@@ -77,8 +77,12 @@ func (c *TestCLI) Run(ctx context.Context, args ...string) (stdout, stderr *byte
 	return stdout, stderr, nil
 }
 
-func listenUnix(socketPath string) (net.Listener, *http.Client, error) {
-	transport, err := socket.Transport(socketPath)
+func listen(path string) (socket.Listener, *http.Client, error) {
+	listener, err := socket.Listen(path)
+	if err != nil {
+		return nil, nil, err
+	}
+	transport, err := socket.Transport(listener.Addr().String())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -89,11 +93,14 @@ func listenUnix(socketPath string) (net.Listener, *http.Client, error) {
 			return http.ErrUseLastResponse
 		},
 	}
-	listener, err := socket.Listen(socketPath)
-	if err != nil {
-		return nil, nil, err
-	}
 	return listener, client, nil
+}
+
+func inject(cli *cli.CLI, prefix string, listener extrafile.File) error {
+	if err := cli.Inject(prefix, listener); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *TestCLI) Start(ctx context.Context, args ...string) (app *App, stdout *bytes.Buffer, stderr *bytes.Buffer, err error) {
@@ -102,20 +109,24 @@ func (c *TestCLI) Start(ctx context.Context, args ...string) (app *App, stdout *
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	// Start listening on a unix domain socket
-	socketPath := filepath.Join(tmpDir, "app.sock")
-	listener, client, err := listenUnix(socketPath)
+	// Start listening on a unix domain socket for the app
+	appSocketPath := filepath.Join(tmpDir, "app.sock")
+	appListener, appClient, err := listen(appSocketPath)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("unable to listen on socket path %q: %s", socketPath, err)
+		return nil, nil, nil, fmt.Errorf("unable to listen on socket path %q: %s", appSocketPath, err)
 	}
-	// Pull the files and environment from the listener
-	files, env, err := socket.Files(listener)
+	if err := c.cli.Inject("APP", appListener); err != nil {
+		return nil, nil, nil, err
+	}
+	// Start listening on a unix domain socket for the hot
+	hotSocketPath := filepath.Join(tmpDir, "hot.sock")
+	hotListener, hotClient, err := listen(hotSocketPath)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("unable to derive *os.File from net.Listener: %s", err)
+		return nil, nil, nil, fmt.Errorf("unable to listen on socket path %q: %s", hotSocketPath, err)
 	}
-	// Inject into CLI
-	c.cli.ExtraFiles = append(c.cli.ExtraFiles, files...)
-	c.cli.Env[env.Key()] = env.Value()
+	if err := c.cli.Inject("HOT", hotListener); err != nil {
+		return nil, nil, nil, err
+	}
 	// Attach to stdout and stderr
 	stdout, stderr = c.stdio()
 	// Start the process
@@ -125,12 +136,14 @@ func (c *TestCLI) Start(ctx context.Context, args ...string) (app *App, stdout *
 	}
 	// Create a process
 	return &App{
-		process: process,
-		client:  client,
+		process:   process,
+		appClient: appClient,
+		hotClient: hotClient,
 		// Add resources to be cleaned up in order once
 		resources: []*resource{
 			&resource{"app process", process.Close},
-			&resource{"app socket", listener.Close},
+			&resource{"app socket", appListener.Close},
+			&resource{"hot socket", hotListener.Close},
 		},
 	}, stdout, stderr, nil
 }
@@ -142,7 +155,8 @@ type resource struct {
 
 type App struct {
 	process   *exe.Cmd
-	client    *http.Client
+	appClient *http.Client
+	hotClient *http.Client
 	once      once.Error
 	resources []*resource
 }
@@ -240,7 +254,7 @@ func (a *App) DeleteJSON(path string, body io.Reader) (*Response, error) {
 }
 
 func (a *App) Request(req *http.Request) (*Response, error) {
-	res, err := a.client.Do(req)
+	res, err := a.appClient.Do(req)
 	if err != nil {
 		return nil, err
 	}

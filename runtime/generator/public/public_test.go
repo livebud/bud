@@ -98,7 +98,7 @@ func TestPublic(t *testing.T) {
 	is.Equal(res.Header("Content-Type"), "image/gif")
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestPlugin(t *testing.T) {
@@ -117,7 +117,7 @@ func TestPlugin(t *testing.T) {
 	is.Equal(200, res.Status())
 	is.Equal(res.Body().String(), `/* tailwind */`)
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestGetChangeGet(t *testing.T) {
@@ -146,7 +146,7 @@ func TestGetChangeGet(t *testing.T) {
 	is.Equal(200, res.Status())
 	is.Equal(res.Body().Bytes(), favicon2)
 	// is.Equal(stdout.String(), "")
-	// is.In(stderr.String(), "Listening on")
+	// is.Equal(stderr.String(), "")
 }
 
 func TestEmbedFavicon(t *testing.T) {
@@ -174,7 +174,7 @@ func TestEmbedFavicon(t *testing.T) {
 	is.Equal(200, res.Status())
 	is.Equal(res.Body().Bytes(), favicon)
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestAppPluginOverlap(t *testing.T) {
@@ -213,5 +213,5 @@ func TestDefaults(t *testing.T) {
 	is.Equal(200, res.Status())
 	is.Equal(res.Body().Bytes(), defaultCSS)
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }

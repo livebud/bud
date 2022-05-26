@@ -3,25 +3,43 @@ package web
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
 
+	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/sig"
+	"github.com/livebud/bud/package/log/console"
+	"github.com/livebud/bud/package/socket"
 )
 
-func Serve(ctx context.Context, ln net.Listener, handler http.Handler) error {
-	return serve(ctx, ln.Addr().String(), handler, ln)
+// listen first tries pulling the connection from a passed in file descriptor.
+// If that fails, it will start listening on a path.
+func Listen(prefix, path string) (socket.Listener, error) {
+	files := extrafile.Load(prefix)
+	if len(files) > 0 {
+		return socket.From(files[0])
+	}
+	if path == "" {
+		path = "localhost:3000"
+	}
+	listener, err := socket.Listen(path)
+	if err != nil {
+		return nil, err
+	}
+	console.Info("Listening on %s", Format(listener))
+	return listener, nil
 }
 
-// Serve the handler on the listener
-func serve(ctx context.Context, addr string, h http.Handler, l net.Listener) error {
+// Serve the handler at address
+func Serve(ctx context.Context, listener net.Listener, handler http.Handler) error {
 	// Create the HTTP server
-	server := &http.Server{Addr: addr, Handler: h}
+	server := &http.Server{Addr: listener.Addr().String(), Handler: handler}
 	// Make the server shutdownable
 	shutdown := shutdown(ctx, server)
 	// Serve requests
-	if err := server.Serve(l); err != nil {
+	if err := server.Serve(listener); err != nil {
 		if !errors.Is(err, http.ErrServerClosed) {
 			return err
 		}
@@ -46,4 +64,23 @@ func shutdown(ctx context.Context, server *http.Server) <-chan error {
 		close(shutdown)
 	}()
 	return shutdown
+}
+
+// Format a listener
+func Format(l net.Listener) string {
+	address := l.Addr().String()
+	if l.Addr().Network() == "unix" {
+		return address
+	}
+	host, port, err := net.SplitHostPort(address)
+	if err != nil {
+		// Give up trying to format.
+		// TODO: figure out if this can occur.
+		return address
+	}
+	// https://serverfault.com/a/444557
+	if host == "::" {
+		host = "0.0.0.0"
+	}
+	return fmt.Sprintf("http://%s:%s", host, port)
 }

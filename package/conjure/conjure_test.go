@@ -315,7 +315,7 @@ func TestGenerateFileError(t *testing.T) {
 	})
 	code, err := fs.ReadFile(cfs, "duo/main.go")
 	is.True(err != nil)
-	is.Equal(err.Error(), `conjure: generate "duo/main.go" > file does not exist`)
+	is.Equal(err.Error(), `conjure: generate "duo/main.go". file does not exist`)
 	is.True(errors.Is(err, fs.ErrNotExist))
 	is.Equal(code, nil)
 }

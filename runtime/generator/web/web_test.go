@@ -39,5 +39,5 @@ func TestEmptyProject(t *testing.T) {
 	is.In(res.Body().String(), "Hey Bud")
 	is.NoErr(td.Exists("bud/.app/web/web.go"))
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }

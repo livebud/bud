@@ -16,6 +16,8 @@ import (
 	tool_v8 "github.com/livebud/bud/internal/cli/tool/v8"
 	tool_v8_client "github.com/livebud/bud/internal/cli/tool/v8/client"
 	"github.com/livebud/bud/internal/cli/version"
+	"github.com/livebud/bud/internal/envs"
+	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/generator/command"
 	"github.com/livebud/bud/internal/generator/generator"
 	"github.com/livebud/bud/internal/generator/importfile"
@@ -50,7 +52,7 @@ func New(dir string) *CLI {
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
 		Stdin:  stdin(),
-		Env: exe.Env{
+		Env: envs.Map{
 			"HOME":       os.Getenv("HOME"),
 			"PATH":       os.Getenv("PATH"),
 			"GOPATH":     os.Getenv("GOPATH"),
@@ -67,13 +69,24 @@ type CLI struct {
 	Stdout     io.Writer
 	Stderr     io.Writer
 	Stdin      io.Reader
-	Env        exe.Env
+	Env        envs.Map
 	ExtraFiles []*os.File
 }
 
 // Dir returns the configured directory
 func (c *CLI) Dir() string {
 	return c.dir
+}
+
+// Inject extra files into the command
+func (c *CLI) Inject(prefix string, files ...extrafile.File) error {
+	extras, env, err := extrafile.Prepare(prefix, len(c.ExtraFiles), files...)
+	if err != nil {
+		return err
+	}
+	c.ExtraFiles = append(c.ExtraFiles, extras...)
+	c.Env = c.Env.Append(env...)
+	return nil
 }
 
 // Run the CLI and wait for the command to finish

@@ -3,24 +3,24 @@ package run
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io/fs"
-	"net"
 	"os"
 	"path/filepath"
 
 	"github.com/livebud/bud/internal/buildcache"
+	"github.com/livebud/bud/internal/envs"
+	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/package/exe"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log/console"
 	"github.com/livebud/bud/package/overlay"
+	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/package/watcher"
 
 	"github.com/livebud/bud/package/hot"
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/runtime/command"
 	"github.com/livebud/bud/runtime/web"
 )
@@ -60,7 +60,7 @@ func (c *Command) Run(ctx context.Context) error {
 	return nil
 }
 
-func (c *Command) compileAndStart(ctx context.Context, listener net.Listener) (*exe.Cmd, error) {
+func (c *Command) compileAndStart(ctx context.Context, listener socket.Listener) (*exe.Cmd, error) {
 	// Sync the application
 	if err := c.FS.Sync("bud/.app"); err != nil {
 		return nil, err
@@ -74,10 +74,8 @@ func (c *Command) compileAndStart(ctx context.Context, listener net.Listener) (*
 	if err := bcache.Build(ctx, c.module, "bud/.app/main.go", "bud/app"); err != nil {
 		return nil, err
 	}
-	// Turn the listener back into files to be passed through
-	// TODO: During tests, os.Environ() already contains what env provides, yet
-	// we're appending it on additionally to process.Env. We should de-dupe it.
-	files, env, err := socket.Files(listener)
+	// Forward existing APP file descriptor to bud/app if it exists.
+	files, env, err := extrafile.Prepare("APP", 0, listener)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +83,7 @@ func (c *Command) compileAndStart(ctx context.Context, listener net.Listener) (*
 	process := exe.Command(ctx, "bud/app")
 	process.Stdout = os.Stdout
 	process.Stderr = os.Stderr
-	process.Env = append(os.Environ(), string(env))
+	process.Env = envs.From(os.Environ()).Append(env...).List()
 	process.Dir = c.module.Directory()
 	process.ExtraFiles = append(process.ExtraFiles, files...)
 	if err := process.Start(); err != nil {
@@ -95,11 +93,10 @@ func (c *Command) compileAndStart(ctx context.Context, listener net.Listener) (*
 }
 
 func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
-	listener, err := socket.Load(c.Listen)
+	listener, err := web.Listen("APP", c.Listen)
 	if err != nil {
 		return err
 	}
-	console.Info("Listening on " + formatAddress(listener))
 	// Compile and start the project
 	process, err := c.compileAndStart(ctx, listener)
 	if err != nil {
@@ -121,7 +118,7 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 				console.Error(err.Error())
 				return nil
 			}
-			console.Info("Ready on " + formatAddress(listener))
+			console.Info("Ready on " + web.Format(listener))
 			return watcher.Stop
 		}); err != nil {
 			return err
@@ -153,7 +150,7 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 				return nil
 			}
 			process = p
-			console.Info("Ready on " + formatAddress(listener))
+			console.Info("Ready on " + web.Format(listener))
 			return nil
 		// Hot reload the page
 		default:
@@ -173,27 +170,9 @@ func (c *Command) startHot(ctx context.Context, hotServer *hot.Server) error {
 	if c.Flag.Hot == "" {
 		return nil
 	}
-	listener, err := socket.Listen(c.Flag.Hot)
+	listener, err := web.Listen("HOT", c.Flag.Hot)
 	if err != nil {
 		return err
 	}
 	return web.Serve(ctx, listener, hotServer)
-}
-
-func formatAddress(l net.Listener) string {
-	address := l.Addr().String()
-	if l.Addr().Network() == "unix" {
-		return address
-	}
-	host, port, err := net.SplitHostPort(address)
-	if err != nil {
-		// Give up trying to format.
-		// TODO: figure out if this can occur.
-		return address
-	}
-	// https://serverfault.com/a/444557
-	if host == "::" {
-		host = "0.0.0.0"
-	}
-	return fmt.Sprintf("http://%s:%s", host, port)
 }

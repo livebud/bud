@@ -47,7 +47,7 @@ func (l *loader) Load() (state *State, err error) {
 		return nil, err
 	}
 	// Add initial imports
-	l.imports.AddStd("net", "net/http", "context")
+	l.imports.AddStd("net/http", "context")
 	l.imports.AddNamed("middleware", "github.com/livebud/bud/package/middleware")
 	l.imports.AddNamed("web", "github.com/livebud/bud/runtime/web")
 	l.imports.AddNamed("router", "github.com/livebud/bud/package/router")

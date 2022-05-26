@@ -50,7 +50,7 @@ func TestHello(t *testing.T) {
 		`)
 	is.In(res.Body().String(), "<h1>hi</h1>")
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.In(stderr.String(), "info: Ready on")
 }
 
 func TestHelloEmbed(t *testing.T) {
@@ -90,5 +90,5 @@ func TestHelloEmbed(t *testing.T) {
 	`)
 	is.In(res.Body().String(), "<h1>hello</h1>")
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }

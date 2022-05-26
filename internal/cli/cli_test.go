@@ -192,7 +192,7 @@ func TestRunWelcome(t *testing.T) {
 	is.In(res.Body().String(), "Hey Bud")
 	is.In(res.Body().String(), "Hey Bud") // should work multiple times
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestRunController(t *testing.T) {
@@ -220,5 +220,5 @@ func TestRunController(t *testing.T) {
 		"from index"
 	`)
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }

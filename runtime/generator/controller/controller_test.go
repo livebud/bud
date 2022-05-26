@@ -98,7 +98,7 @@ func TestIndexString(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestCreateRedirect(t *testing.T) {
@@ -152,7 +152,7 @@ func TestCreateRedirect(t *testing.T) {
 	is.Equal(res.Body().Len(), 0)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestNoContent(t *testing.T) {
@@ -265,7 +265,7 @@ func TestNoContent(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestIndex500(t *testing.T) {
@@ -297,7 +297,7 @@ func TestIndex500(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestIndexList500(t *testing.T) {
@@ -328,7 +328,7 @@ func TestIndexList500(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestIndexList200(t *testing.T) {
@@ -358,7 +358,7 @@ func TestIndexList200(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestIndexListObject500(t *testing.T) {
@@ -389,7 +389,7 @@ func TestIndexListObject500(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestIndexListObject200(t *testing.T) {
@@ -419,7 +419,7 @@ func TestIndexListObject200(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestIndexStructs200(t *testing.T) {
@@ -453,7 +453,7 @@ func TestIndexStructs200(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestJSONCreate204(t *testing.T) {
@@ -478,7 +478,7 @@ func TestJSONCreate204(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestJSONCreate500(t *testing.T) {
@@ -509,7 +509,7 @@ func TestJSONCreate500(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestDependencyHoist(t *testing.T) {
@@ -547,7 +547,7 @@ func TestDependencyHoist(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestDependencyRequest(t *testing.T) {
@@ -585,7 +585,7 @@ func TestDependencyRequest(t *testing.T) {
 	is.In(res.Body().String(), `/`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestShareStruct(t *testing.T) {
@@ -623,7 +623,7 @@ func TestShareStruct(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestJSONCreateNested(t *testing.T) {
@@ -720,7 +720,7 @@ func TestJSONCreateNested(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestJSONDelete500(t *testing.T) {
@@ -751,7 +751,7 @@ func TestJSONDelete500(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestJSONDelete200(t *testing.T) {
@@ -785,7 +785,7 @@ func TestJSONDelete200(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestJSONMultipleActions(t *testing.T) {
@@ -827,7 +827,7 @@ func TestJSONMultipleActions(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestJSONUpdate500(t *testing.T) {
@@ -858,7 +858,7 @@ func TestJSONUpdate500(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestJSONUpdate200(t *testing.T) {
@@ -892,7 +892,7 @@ func TestJSONUpdate200(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestNestedResource(t *testing.T) {
@@ -980,7 +980,7 @@ func TestNestedResource(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestDeepNestedResource(t *testing.T) {
@@ -1085,7 +1085,7 @@ func TestDeepNestedResource(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestRedirectResource(t *testing.T) {
@@ -1229,7 +1229,7 @@ func TestRedirectResource(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestViewUnnamed(t *testing.T) {
@@ -1377,7 +1377,7 @@ func TestViewUnnamed(t *testing.T) {
 
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestViewNestedUnnamed(t *testing.T) {
@@ -1525,7 +1525,7 @@ func TestViewNestedUnnamed(t *testing.T) {
 
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestViewDeepUnnamed(t *testing.T) {
@@ -1676,7 +1676,7 @@ func TestViewDeepUnnamed(t *testing.T) {
 
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestResourceContext(t *testing.T) {
@@ -1766,7 +1766,7 @@ func TestResourceContext(t *testing.T) {
 	`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestOkChangeOk(t *testing.T) {
@@ -1812,7 +1812,7 @@ func TestOkChangeOk(t *testing.T) {
 	is.In(res.Body().String(), `Hello Humans!`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.In(stderr.String(), "info: Ready on")
 }
 
 func TestEmptyActionWithView(t *testing.T) {
@@ -1842,7 +1842,7 @@ func TestEmptyActionWithView(t *testing.T) {
 	is.In(res.Body().String(), `<h1>hello</h1>`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
 
 func TestCustomActions(t *testing.T) {
@@ -1884,5 +1884,5 @@ func TestCustomActions(t *testing.T) {
 
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "Listening on")
+	is.Equal(stderr.String(), "")
 }
