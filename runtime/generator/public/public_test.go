@@ -77,7 +77,9 @@ func TestPublic(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(200, res.Status())
 	is.Equal(res.Body().Bytes(), favicon)
-	is.Equal(res.Header("Content-Type"), "image/x-icon")
+	// Ubuntu CI reports a different MIME type than OSX
+	is.In(res.Header("Content-Type"), "image/")
+	is.In(res.Header("Content-Type"), "icon")
 	// /ga.js
 	res, err = app.Get("/ga.js")
 	is.NoErr(err)
