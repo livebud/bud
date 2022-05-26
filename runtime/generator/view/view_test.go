@@ -90,5 +90,5 @@ func TestHelloEmbed(t *testing.T) {
 	`)
 	is.In(res.Body().String(), "<h1>hello</h1>")
 	is.Equal(stdout.String(), "")
-	is.Equal(stderr.String(), "")
+	is.In(stderr.String(), "info: Ready on")
 }
