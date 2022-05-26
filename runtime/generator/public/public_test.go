@@ -85,19 +85,20 @@ func TestPublic(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(200, res.Status())
 	is.Equal(res.Body().String(), ga)
-	is.Equal(res.Header("Content-Type"), "application/javascript")
+	is.In(res.Header("Content-Type"), "javascript")
 	// /normalize/normalize.css
 	res, err = app.Get("/normalize/normalize.css")
 	is.NoErr(err)
 	is.Equal(200, res.Status())
 	is.Equal(res.Body().String(), css)
-	is.Equal(res.Header("Content-Type"), "text/css; charset=utf-8")
+	is.In(res.Header("Content-Type"), "css")
 	// /normalize/normalize.css
 	res, err = app.Get("/lol.gif")
 	is.NoErr(err)
 	is.Equal(200, res.Status())
 	is.Equal(res.Body().Bytes(), gif)
-	is.Equal(res.Header("Content-Type"), "image/gif")
+	is.In(res.Header("Content-Type"), "image/")
+	is.In(res.Header("Content-Type"), "gif")
 	// Test stdio
 	is.Equal(stdout.String(), "")
 	is.Equal(stderr.String(), "")
