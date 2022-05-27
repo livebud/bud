@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -13,30 +14,15 @@ import (
 	"github.com/livebud/bud/internal/once"
 )
 
-// Dial creates a server-sent event (SSE) client. This client has been adapted
-// from the following minimal eventsource client:
+// Dial creates a server-sent event (SSE) stream. This stream has been adapted
+// from the following minimal eventsource stream:
 // - https://github.com/neelance/eventsource/blob/master/client/client.go
 // Thanks Richard!
 func Dial(url string) (*Stream, error) {
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Accept", "text/event-stream")
-	req.Close = true
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	stream := &Stream{
-		res:     res,
-		eventCh: make(chan *Event, 1),
-		errorCh: make(chan error),
-	}
-	go stream.loop()
-	return stream, nil
+	return DialWith(http.DefaultClient, url)
 }
 
+// DialWith creates a server-sent event (SSE) stream with a custom HTTP client.
 func DialWith(client *http.Client, url string) (*Stream, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -120,6 +106,7 @@ func (s *Stream) Close() error {
 
 func (s *Stream) close() (err error) {
 	err = errs.Join(err, s.res.Body.Close())
+	fmt.Println(s.closeCh)
 	close(s.closeCh)
 	// Drain event channel
 	if err := <-s.errorCh; err != nil {
@@ -128,6 +115,8 @@ func (s *Stream) close() (err error) {
 			err = errs.Join(err, err)
 		}
 	}
+	fmt.Println(s.errorCh)
+	fmt.Println(s.eventCh)
 	close(s.errorCh)
 	close(s.eventCh)
 	return err

@@ -45,7 +45,7 @@ func (c *CLI) Parse(ctx context.Context, args ...string) error {
 	{ // cli build
 		cli := cli.Command("build", "build command")
 		cli.Flag("embed", "embed assets").Bool(&c.buildCmd.Flag.Embed).Default(true)
-		cli.Flag("hot", "hot reloading").String(&c.buildCmd.Flag.Hot).Default("")
+		cli.Flag("hot", "hot reloading").String(&c.buildCmd.Flag.Hot).Default("false")
 		cli.Flag("minify", "minify assets").Bool(&c.buildCmd.Flag.Minify).Default(true)
 		cli.Run(c.beforeBuild(c.buildCmd))
 	}

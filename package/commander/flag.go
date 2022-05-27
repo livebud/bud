@@ -44,6 +44,13 @@ func (f *Flag) Bool(target *bool) *Bool {
 	return value
 }
 
+// Custom allows you to define a custom parsing function
+func (f *Flag) Custom(fn func(string) error) *Custom {
+	value := &Custom{target: fn}
+	f.value = &customValue{inner: value}
+	return value
+}
+
 func (f *Flag) verify(name string) error {
 	return f.value.verify("--" + name)
 }

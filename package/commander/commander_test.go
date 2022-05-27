@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -910,4 +911,103 @@ func TestFlagClearMap(t *testing.T) {
 	is.Equal(len(args), 1)
 	is.Equal(args["b"], "b")
 	isEqual(t, actual.String(), ``)
+}
+
+func TestFlagCustom(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	hot := ""
+	cli.Flag("hot", "hot server").Custom(func(v string) error {
+		hot = v
+		return nil
+	})
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"--hot=:35729"})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(hot, ":35729")
+}
+
+func TestFlagCustomError(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Flag("hot", "hot server").Custom(func(v string) error {
+		return fmt.Errorf("unable to parse")
+	})
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"--hot=:35729"})
+	is.True(err != nil)
+	is.Equal(err.Error(), `invalid value ":35729" for flag -hot: unable to parse`)
+}
+
+func TestFlagCustomMissing(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Flag("hot", "hot server").Custom(func(v string) error {
+		return nil
+	})
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{})
+	is.True(err != nil)
+	is.Equal(err.Error(), `missing --hot`)
+}
+
+func TestFlagCustomMissingDefault(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	hot := ""
+	cli.Flag("hot", "hot server").Custom(func(v string) error {
+		hot = v
+		return nil
+	}).Default(":35729")
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(hot, ":35729")
+}
+
+func TestFlagCustomDefault(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	hot := ""
+	cli.Flag("hot", "hot server").Custom(func(v string) error {
+		hot = v
+		return nil
+	}).Default(":35729")
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"--hot=false"})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(hot, "false")
 }

@@ -125,7 +125,7 @@ func (c *Command) printUsage() error {
 }
 
 type value interface {
-	flag.Getter
+	flag.Value
 	verify(displayName string) error
 }
 

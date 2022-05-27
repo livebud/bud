@@ -33,15 +33,6 @@ func (v *boolValue) verify(displayName string) error {
 	return fmt.Errorf("missing %s", displayName)
 }
 
-func (v *boolValue) Get() interface{} {
-	if v.set {
-		return *v.inner.target
-	} else if v.inner.defval != nil {
-		return *v.inner.defval
-	}
-	return nil
-}
-
 func (v *boolValue) Set(val string) (err error) {
 	*v.inner.target, err = strconv.ParseBool(val)
 	if err != nil {
