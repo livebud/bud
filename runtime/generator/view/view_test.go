@@ -3,6 +3,7 @@ package view_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/livebud/bud/internal/cli"
 	"github.com/livebud/bud/internal/cli/testcli"
@@ -71,6 +72,9 @@ func TestHelloEmbed(t *testing.T) {
 	app, stdout, stderr, err := cli.Start(ctx, "run", "--embed")
 	is.NoErr(err)
 	defer app.Close()
+	hot, err := app.Hot("/bud/view/index.svelte")
+	is.NoErr(err)
+	defer hot.Close()
 	res, err := app.Get("/")
 	is.NoErr(err)
 	diff.TestHTTP(t, res.Headers().String(), `
@@ -81,6 +85,12 @@ func TestHelloEmbed(t *testing.T) {
 	// Change svelte file
 	td.Files["view/index.svelte"] = `<h1>hi</h1>`
 	is.NoErr(td.Write(ctx))
+	// Wait for the change event
+	eventCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	event, err := hot.Next(eventCtx)
+	is.NoErr(err)
+	is.Equal(string(event.Data), `{"reload":true}`)
 	// Shouldn't be any change
 	res, err = app.Get("/")
 	is.NoErr(err)

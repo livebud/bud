@@ -19,6 +19,7 @@ import (
 	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/once"
 	"github.com/livebud/bud/package/exe"
+	"github.com/livebud/bud/package/hot"
 	"github.com/livebud/bud/package/socket"
 )
 
@@ -278,6 +279,11 @@ func (a *App) Request(req *http.Request) (*Response, error) {
 		return nil, err
 	}
 	return &Response{res, headers, body}, nil
+}
+
+// Hot connects to the event stream
+func (a *App) Hot(path string) (*hot.Stream, error) {
+	return hot.DialWith(a.hotClient, getURL(path))
 }
 
 // bufferBody allows the response body to be read multiple times

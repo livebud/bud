@@ -19,16 +19,23 @@ import (
 func Listen(prefix, path string) (socket.Listener, error) {
 	files := extrafile.Load(prefix)
 	if len(files) > 0 {
+		// Turn the passed in file descriptor into a listener
 		return socket.From(files[0])
 	}
 	if path == "" {
 		path = "localhost:3000"
 	}
+	// Listen on a path
 	listener, err := socket.Listen(path)
 	if err != nil {
 		return nil, err
 	}
-	console.Info("Listening on %s", Format(listener))
+	// This is done to avoid logging the live-reload server.
+	// TODO: clean this up.
+	if prefix == "APP" {
+		// Log here because this is the first time we've bound to a resource.
+		console.Info("Listening on " + Format(listener))
+	}
 	return listener, nil
 }
 
