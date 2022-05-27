@@ -2,6 +2,10 @@
 
 Thank you for your interest in helping to make Bud better! Bud is and forever will be a driven by the community. We depend on volunteers lending their time and expertise to make Bud better for everyone.
 
+## Note for Developing with Bud on Windows
+
+Currently, Bud must be developed using WSL/WSL2 if developing on Windows. While there is a desire to get native Windows development supported, the effort to get there will be a HEAVY lift, as we will need to work closely with the [v8go](https://github.com/rogchap/v8go) team to get their Windows support added back in to v8go, as well as a handful of other large effort-intensive tasks, such as finding a consistent way to identify file descriptors in Windows. There are some efforts working towards accomplishing these goals, but as they are such large tasks, it has been decided that they will be placed on the back burner. If anyone wants to contribute to these efforts, you can find a beginning list of tasks [here](https://github.com/livebud/bud/discussions/81).
+
 ## Requirements
 
 - Node 14
