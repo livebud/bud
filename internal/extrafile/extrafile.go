@@ -70,16 +70,3 @@ func Load(prefix string) []*os.File {
 	}
 	return files
 }
-
-// Forward forwards existing file descriptors onto the next subprocess
-func Forward(prefixes ...string) (files []*os.File, envs []string) {
-	offset := 0
-	for _, prefix := range prefixes {
-		osFiles := Load(prefix)
-		env := prepareEnv(prefix, offset, osFiles)
-		files = append(files, osFiles...)
-		envs = append(envs, env...)
-		offset += len(osFiles)
-	}
-	return files, envs
-}

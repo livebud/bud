@@ -3,7 +3,7 @@ package create
 import (
 	"testing"
 
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 )
 
 func TestGoVersion(t *testing.T) {

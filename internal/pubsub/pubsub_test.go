@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/internal/pubsub"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 	"golang.org/x/sync/errgroup"
 )
 

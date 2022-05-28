@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/internal/imports"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 )
 
 func TestAdd(t *testing.T) {

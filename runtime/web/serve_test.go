@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/livebud/bud/runtime/web"

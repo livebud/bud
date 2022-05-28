@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/package/commander"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 	"github.com/matthewmueller/diff"
 )
 

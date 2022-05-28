@@ -16,7 +16,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/livebud/bud/internal/cli"
 	"github.com/livebud/bud/internal/errs"
-	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/once"
 	"github.com/livebud/bud/package/exe"
 	"github.com/livebud/bud/package/hot"
@@ -95,13 +94,6 @@ func listen(path string) (socket.Listener, *http.Client, error) {
 		},
 	}
 	return listener, client, nil
-}
-
-func inject(cli *cli.CLI, prefix string, listener extrafile.File) error {
-	if err := cli.Inject(prefix, listener); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (c *TestCLI) Start(ctx context.Context, args ...string) (app *App, stdout *bytes.Buffer, stderr *bytes.Buffer, err error) {
@@ -259,7 +251,8 @@ func (a *App) Request(req *http.Request) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	body, err := bufferBody(res)
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -284,17 +277,6 @@ func (a *App) Request(req *http.Request) (*Response, error) {
 // Hot connects to the event stream
 func (a *App) Hot(path string) (*hot.Stream, error) {
 	return hot.DialWith(a.hotClient, getURL(path))
-}
-
-// bufferBody allows the response body to be read multiple times
-// https://gist.github.com/franchb/d38fd9271e225a105a26c6859df1ce9b
-func bufferBody(res *http.Response) ([]byte, error) {
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-	res.Body.Close()
-	return body, nil
 }
 
 func bufferHeaders(res *http.Response, body []byte) ([]byte, error) {

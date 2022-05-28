@@ -12,7 +12,7 @@ import (
 	"github.com/livebud/bud/internal/testdir"
 
 	"github.com/livebud/bud/package/modcache"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 )
 
 // Run calls `go run -mod=mod main.go ...`

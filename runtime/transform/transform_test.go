@@ -11,7 +11,7 @@ import (
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/runtime/transform"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 )
 
 func TestTransform(t *testing.T) {

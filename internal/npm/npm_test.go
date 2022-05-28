@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/internal/npm"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 )
 
 func exists(t testing.TB, path string) {

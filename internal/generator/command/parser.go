@@ -34,13 +34,10 @@ func (p *parser) Parse(ctx context.Context) (state *State, err error) {
 	// Default imports
 	p.imports.AddStd("context", "os")
 	p.imports.AddNamed("commander", "github.com/livebud/bud/package/commander")
-	// p.imports.AddNamed("command", "github.com/livebud/bud/runtime/command")
 	p.imports.AddNamed("gomod", "github.com/livebud/bud/package/gomod")
-	// p.imports.AddNamed("command", "github.com/livebud/bud/runtime/command")
 	p.imports.AddNamed("run", "github.com/livebud/bud/runtime/command/run")
 	p.imports.AddNamed("new_controller", "github.com/livebud/bud/runtime/command/new/controller")
 	p.imports.AddNamed("build", "github.com/livebud/bud/runtime/command/build")
-	// p.imports.AddNamed("generator", p.module.Import("bud/.cli/generator"))
 	state = new(State)
 	state.Provider = p.loadProvider()
 	state.Imports = p.imports.List()

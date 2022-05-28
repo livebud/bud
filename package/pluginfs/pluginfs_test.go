@@ -9,7 +9,7 @@ import (
 
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/pluginfs"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 )
 
 func TestMergeModules(t *testing.T) {

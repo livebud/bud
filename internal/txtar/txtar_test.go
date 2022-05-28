@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/internal/txtar"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 )
 
 func TestParseFile(t *testing.T) {

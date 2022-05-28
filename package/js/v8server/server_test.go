@@ -9,7 +9,7 @@ import (
 
 	"github.com/livebud/bud/package/js/v8client"
 	"github.com/livebud/bud/package/js/v8server"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 	"golang.org/x/sync/errgroup"
 )
 

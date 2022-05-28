@@ -10,7 +10,7 @@ Currently, Bud must be developed using WSL/WSL2 if developing on Windows. While 
 
 - Node 14
 - Go 1.18
-- C++ Compiler in your $PATH (for cgo to compile V8)
+- C++ compiler in your $PATH (for cgo to compile V8)
 
 ## Setting up Bud for Development
 

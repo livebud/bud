@@ -60,36 +60,6 @@ func Launch(ctx context.Context) (c *Client, err error) {
 	}, nil
 }
 
-// // Load files if the V8_FDS and V8_FDS_START environment variables are set.
-// func loadFiles() (files []*os.File) {
-// 	nfds, err := strconv.Atoi(os.Getenv("V8_FDS"))
-// 	if err != nil || nfds == 0 {
-// 		return nil
-// 	}
-// 	startAt, err := strconv.Atoi(os.Getenv("V8_FDS_START"))
-// 	if err != nil || startAt == 0 {
-// 		return nil
-// 	}
-// 	files = make([]*os.File, 0, nfds)
-// 	for fd := startAt; fd < startAt+nfds; fd++ {
-// 		syscall.CloseOnExec(fd)
-// 		name := "V8_FD_" + strconv.Itoa(fd)
-// 		files = append(files, os.NewFile(uintptr(fd), name))
-// 	}
-// 	return files
-// }
-
-// // FromFiles loads a V8 client from extra files passed into the command.
-// // This requires V8_FDS and V8_FDS_START to be set on the child, along with
-// // extra files to be passed in through cmd.ExtraFiles.
-// func FromFiles() (*Client, error) {
-// 	files := loadFiles()
-// 	if len(files) == 0 {
-// 		return nil, fmt.Errorf("v8client: unable to load passed in files")
-// 	}
-// 	return New(files[0], files[1]), nil
-// }
-
 // New client for testing
 func New(reader io.Reader, writer io.Writer) *Client {
 	return &Client{

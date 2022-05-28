@@ -283,7 +283,7 @@ func isExitStatus(err error) bool {
 	return strings.Contains(err.Error(), "exit status ")
 }
 
-// Input from stdin or empty object by default.
+// Input from stdin or empty reader by default.
 func stdin() io.Reader {
 	if isatty.IsTerminal(os.Stdin.Fd()) {
 		return strings.NewReader("")

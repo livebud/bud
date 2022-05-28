@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/livebud/bud/package/socket"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 )
 
 func TestLoadTCP(t *testing.T) {

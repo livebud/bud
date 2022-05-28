@@ -16,7 +16,7 @@ import (
 	"github.com/livebud/bud/package/modcache"
 	"github.com/livebud/bud/package/vfs"
 
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 )
 
 func containsName(des []fs.DirEntry, name string) bool {
@@ -66,9 +66,9 @@ func TestResolveDirectory(t *testing.T) {
 	modCache := modcache.Default()
 	module, err := gomod.Find(wd, gomod.WithModCache(modCache))
 	is.NoErr(err)
-	dir, err := module.ResolveDirectory("github.com/matryer/is")
+	dir, err := module.ResolveDirectory("github.com/evanw/esbuild")
 	is.NoErr(err)
-	expected := modCache.Directory("github.com", "matryer", "is")
+	expected := modCache.Directory("github.com", "evanw", "esbuild")
 	is.True(strings.HasPrefix(dir, expected))
 }
 

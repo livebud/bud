@@ -12,7 +12,6 @@ require (
 	github.com/fatih/structtag v1.2.0
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/gitchander/permutation v0.0.0-20201214100618-1f3e7285f953
-	github.com/matryer/is v1.4.0
 	github.com/matthewmueller/diff v0.0.0-20220104030700-cb2fe910d90c
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac
 	github.com/matthewmueller/text v0.0.0-20210424201111-ec1e4af8dfe8

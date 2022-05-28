@@ -5,7 +5,7 @@ import (
 
 	"github.com/livebud/bud/internal/entrypoint"
 	"github.com/livebud/bud/package/vfs"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 )
 
 func TestList(t *testing.T) {

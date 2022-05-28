@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/internal/scan"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 
 	"github.com/livebud/bud/package/vfs"
 )

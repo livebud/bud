@@ -10,7 +10,7 @@ import (
 	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/package/gomod"
 
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 )
 
 func TestAppHash(t *testing.T) {

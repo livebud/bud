@@ -19,7 +19,7 @@ import (
 	"github.com/livebud/bud/runtime/transform"
 	"github.com/livebud/bud/runtime/view"
 	"github.com/livebud/bud/runtime/view/ssr"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 )
 
 func TestSvelteHello(t *testing.T) {

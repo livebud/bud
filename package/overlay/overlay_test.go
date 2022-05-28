@@ -12,7 +12,7 @@ import (
 	"github.com/livebud/bud/package/overlay"
 
 	"github.com/livebud/bud/package/gomod"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 )
 
 func TestPlugins(t *testing.T) {

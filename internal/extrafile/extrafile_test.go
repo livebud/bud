@@ -332,7 +332,3 @@ func TestTCPPassthrough(t *testing.T) {
 		parent(t)
 	}
 }
-
-func TestForward(t *testing.T) {
-	t.SkipNow()
-}

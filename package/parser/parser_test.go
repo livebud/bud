@@ -16,7 +16,7 @@ import (
 	"github.com/livebud/bud/internal/txtar"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/vfs"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 )
 
 // TODO: replace txtar with testdir

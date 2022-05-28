@@ -7,7 +7,7 @@ import (
 	"github.com/livebud/bud/package/modcache"
 
 	"github.com/livebud/bud/package/gomod"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 )
 
 func TestAddRequire(t *testing.T) {
