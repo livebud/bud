@@ -21,7 +21,10 @@ type File struct {
 func (f *File) Import(subpaths ...string) string {
 	if f.file.Module == nil {
 		module, err := f.file.Format()
-		panic("module not defined:\n" + string(module) + "\n" + err.Error() + "\n" + strings.Join(subpaths, "/"))
+		if err != nil {
+			panic("module not defined:\n" + string(module) + "\n" + err.Error() + "\n" + strings.Join(subpaths, "/"))
+		}
+		panic("module not defined:\n" + string(module) + "\n" + strings.Join(subpaths, "/"))
 	}
 	return path.Join(append([]string{f.file.Module.Mod.Path}, subpaths...)...)
 }
