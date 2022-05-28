@@ -88,7 +88,7 @@ func listen(path string) (socket.Listener, *http.Client, error) {
 		return nil, nil, err
 	}
 	client := &http.Client{
-		Timeout:   10 * time.Second,
+		Timeout:   30 * time.Second,
 		Transport: transport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
