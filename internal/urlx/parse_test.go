@@ -3,8 +3,8 @@ package urlx_test
 import (
 	"testing"
 
-	urlx "github.com/livebud/bud/internal/urlx"
 	"github.com/livebud/bud/internal/is"
+	urlx "github.com/livebud/bud/internal/urlx"
 )
 
 func Test(t *testing.T) {

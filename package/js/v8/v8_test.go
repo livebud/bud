@@ -3,8 +3,8 @@ package v8_test
 import (
 	"testing"
 
-	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/internal/is"
+	v8 "github.com/livebud/bud/package/js/v8"
 )
 
 func TestCompile(t *testing.T) {

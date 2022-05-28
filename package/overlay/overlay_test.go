@@ -11,8 +11,8 @@ import (
 
 	"github.com/livebud/bud/package/overlay"
 
-	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/package/gomod"
 )
 
 func TestPlugins(t *testing.T) {

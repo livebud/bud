@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/livebud/bud/internal/dsync"
+	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/conjure"
 	"github.com/livebud/bud/package/vfs"
-	"github.com/livebud/bud/internal/is"
 )
 
 func TestFileSync(t *testing.T) {

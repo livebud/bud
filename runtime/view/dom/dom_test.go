@@ -12,12 +12,12 @@ import (
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/runtime/transform"
 
+	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/internal/version"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/svelte"
 	"github.com/livebud/bud/runtime/view/dom"
-	"github.com/livebud/bud/internal/is"
 )
 
 func TestServeFile(t *testing.T) {

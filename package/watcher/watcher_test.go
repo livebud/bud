@@ -11,8 +11,8 @@ import (
 	"github.com/livebud/bud/package/watcher"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/livebud/bud/package/vfs"
 	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/package/vfs"
 )
 
 var waitForEvents = 500 * time.Millisecond

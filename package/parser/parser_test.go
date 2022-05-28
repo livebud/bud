@@ -12,11 +12,11 @@ import (
 	"github.com/livebud/bud/package/modcache"
 	"github.com/livebud/bud/package/parser"
 
+	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/internal/txtar"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/vfs"
-	"github.com/livebud/bud/internal/is"
 )
 
 // TODO: replace txtar with testdir

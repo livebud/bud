@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/livebud/bud/internal/sig"
 	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/internal/sig"
 )
 
 // Based on: https://github.com/golang/go/issues/19326

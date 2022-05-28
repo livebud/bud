@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/livebud/bud/package/commander"
 	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/package/commander"
 	"github.com/matthewmueller/diff"
 )
 

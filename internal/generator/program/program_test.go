@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/internal/generator/program"
-	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/package/di"
 )
 
 func parse(code []byte) (*ast.File, error) {

@@ -3,8 +3,8 @@ package pubsub_test
 import (
 	"testing"
 
-	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/internal/pubsub"
 	"golang.org/x/sync/errgroup"
 )
 

@@ -7,8 +7,8 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/livebud/bud/package/vfs"
 	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/package/vfs"
 )
 
 func TestOS(t *testing.T) {
