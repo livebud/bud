@@ -55,7 +55,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case <-subscription.Wait():
 			scriptPath := fmt.Sprintf("%s?ts=%d", pagePath, s.Now().UnixMilli())
 			event := &Event{
-				Data: []byte(fmt.Sprintf(`{\"scripts\":[%q]}`, scriptPath)),
+				Data: []byte(fmt.Sprintf(`{"scripts":[%q]}`, scriptPath)),
 			}
 			w.Write(event.Format().Bytes())
 			flusher.Flush()
