@@ -3,6 +3,7 @@ package gomod
 import (
 	"path"
 	"sort"
+	"strings"
 
 	"golang.org/x/mod/modfile"
 	"golang.org/x/mod/module"
@@ -18,6 +19,10 @@ type File struct {
 
 // Import returns the module's import path (e.g. github.com/livebud/bud)
 func (f *File) Import(subpaths ...string) string {
+	if f.file.Module == nil {
+		module, err := f.file.Format()
+		panic("module not defined:\n" + string(module) + "\n" + err.Error() + "\n" + strings.Join(subpaths, "/"))
+	}
 	return path.Join(append([]string{f.file.Module.Mod.Path}, subpaths...)...)
 }
 
