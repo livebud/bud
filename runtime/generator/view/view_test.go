@@ -91,7 +91,7 @@ func TestHelloEmbed(t *testing.T) {
 	defer cancel()
 	event, err := hot.Next(eventCtx)
 	is.NoErr(err)
-	is.In(string(event.Data), `{\"scripts\":["?ts=`)
+	is.In(string(event.Data), `{"scripts":["?ts=`)
 	// Shouldn't be any change
 	res, err = app.Get("/")
 	is.NoErr(err)
