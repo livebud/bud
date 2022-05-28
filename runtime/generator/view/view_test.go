@@ -83,14 +83,15 @@ func TestHelloEmbed(t *testing.T) {
 	`)
 	is.In(res.Body().String(), "<h1>hello</h1>")
 	// Change svelte file
+	td = testdir.New(dir)
 	td.Files["view/index.svelte"] = `<h1>hi</h1>`
 	is.NoErr(td.Write(ctx))
 	// Wait for the change event
-	eventCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	eventCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	event, err := hot.Next(eventCtx)
 	is.NoErr(err)
-	is.Equal(string(event.Data), `{"reload":true}`)
+	is.In(string(event.Data), `{\"scripts\":["?ts=`)
 	// Shouldn't be any change
 	res, err = app.Get("/")
 	is.NoErr(err)
@@ -100,5 +101,5 @@ func TestHelloEmbed(t *testing.T) {
 	`)
 	is.In(res.Body().String(), "<h1>hello</h1>")
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "info: Ready on")
+	is.In(stderr.String(), "")
 }

@@ -10,6 +10,7 @@ Currently, Bud must be developed using WSL/WSL2 if developing on Windows. While 
 
 - Node 14
 - Go 1.18
+- C++ Compiler in your $PATH (for cgo to compile V8)
 
 ## Setting up Bud for Development
 
@@ -40,6 +41,17 @@ After running `go run main.go`, you should see the following:
 ```
 
 If you run into any problems, please [open an issue](https://github.com/livebud/bud/issues/new).
+
+### Developing with Docker
+
+We've included a [Dockerfile](./Dockerfile) that you can use to run bud within a Docker container. This can be helpful for testing Bud within a Linux environment and debugging CI issues.
+
+To build and start a Docker container with Bud, run the following commands:
+
+```sh
+docker build -t bud:latest contributing
+docker run -it --rm bud /bin/bash
+```
 
 ## Developing Bud with a Project
 

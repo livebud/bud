@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"testing"
+	"time"
 
 	"github.com/matthewmueller/diff"
 
@@ -1786,6 +1787,9 @@ func TestOkChangeOk(t *testing.T) {
 	app, stdout, stderr, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
+	hot, err := app.Hot("/bud/view/index.svelte")
+	is.NoErr(err)
+	defer hot.Close()
 	res, err := app.Get("/")
 	is.NoErr(err)
 	is.NoErr(err)
@@ -1795,6 +1799,7 @@ func TestOkChangeOk(t *testing.T) {
 	`)
 	is.In(res.Body().String(), `Hello Users!`)
 	// Update file
+	td = testdir.New(dir)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -1803,6 +1808,13 @@ func TestOkChangeOk(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
+	// Wait for the change event
+	eventCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	event, err := hot.Next(eventCtx)
+	is.NoErr(err)
+	is.Equal(string(event.Data), `{"reload":true}`)
+	// Try again with the new file
 	res, err = app.Get("/")
 	is.NoErr(err)
 	diff.TestHTTP(t, res.Headers().String(), `

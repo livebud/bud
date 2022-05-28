@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -106,7 +105,6 @@ func (s *Stream) Close() error {
 
 func (s *Stream) close() (err error) {
 	err = errs.Join(err, s.res.Body.Close())
-	fmt.Println(s.closeCh)
 	close(s.closeCh)
 	// Drain event channel
 	if err := <-s.errorCh; err != nil {
@@ -115,8 +113,6 @@ func (s *Stream) close() (err error) {
 			err = errs.Join(err, err)
 		}
 	}
-	fmt.Println(s.errorCh)
-	fmt.Println(s.eventCh)
 	close(s.errorCh)
 	close(s.eventCh)
 	return err
