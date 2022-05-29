@@ -112,9 +112,9 @@ func TestSvelteAwait(t *testing.T) {
 	is.True(strings.Contains(res.Body, `Loading...`))
 }
 
-// Wrap props with key (first use of generics :-D)
-func wrap[P any](key string, props P) map[string]P {
-	return map[string]P{key: props}
+// Wrap props with key
+func wrap(key string, props interface{}) map[string]interface{} {
+	return map[string]interface{}{key: props}
 }
 
 func render(vm js.VM, code, path string, props interface{}) (*view.Response, error) {
