@@ -1,36 +1,27 @@
 package hot
 
 import (
-	"context"
+	"bytes"
 	"fmt"
-	"net"
 	"net/http"
+	"strconv"
 	"time"
-
-	"github.com/livebud/bud/runtime/web"
 
 	"github.com/livebud/bud/internal/pubsub"
 )
 
+// New server-sent event (SSE) server
 func New() *Server {
-	return &Server{pubsub.New()}
+	return &Server{pubsub.New(), time.Now}
 }
 
 type Server struct {
-	ps pubsub.Client
+	ps  pubsub.Client
+	Now func() time.Time // Used for testing
 }
 
 func (s *Server) Reload(path string) {
 	s.ps.Publish(path, nil)
-}
-
-// Start listening on addr
-func (s *Server) ListenAndServe(ctx context.Context, addr string) error {
-	listener, err := net.Listen("tcp", addr)
-	if err != nil {
-		return err
-	}
-	return web.Serve(ctx, listener, s)
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -61,19 +52,52 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-ctx.Done():
 			return
-		case topic := <-subscription.Wait():
-			_ = topic
-			payload := fmt.Sprintf("data: {\"scripts\":[%q]}\n\n", fmt.Sprintf("%s?ts=%d", pagePath, time.Now().UnixMilli()))
-			w.Write([]byte(payload))
+		case <-subscription.Wait():
+			scriptPath := fmt.Sprintf("%s?ts=%d", pagePath, s.Now().UnixMilli())
+			event := &Event{
+				Data: []byte(fmt.Sprintf(`{"scripts":[%q]}`, scriptPath)),
+			}
+			w.Write(event.Format().Bytes())
 			flusher.Flush()
 
-		// TODO: rethink this, this was just the easiest way I could think of to add
-		// full-reloading. Using the exclamation point so it doesn't conflict with a
-		// file path
+		// TODO: Create a new event type. EventSourcing has a concept of event types
+		// which can be differentiated by the browser.
+		//
+		// See: https://html.spec.whatwg.org/multipage/server-sent-events.html#server-sent-events-intro
 		case <-s.ps.Subscribe("!").Wait():
-			payload := fmt.Sprintf("data: {\"reload\":true}\n\n")
-			w.Write([]byte(payload))
+			event := &Event{
+				Data: []byte(`{"reload":true}`),
+			}
+			w.Write(event.Format().Bytes())
 			flusher.Flush()
 		}
 	}
+}
+
+// https://html.spec.whatwg.org/multipage/server-sent-events.html#event-stream-interpretation
+type Event struct {
+	ID    string // id (optional)
+	Type  string // event type (optional)
+	Data  []byte // data
+	Retry int    // retry (optional)
+}
+
+func (e *Event) Format() *bytes.Buffer {
+	b := new(bytes.Buffer)
+	if e.ID != "" {
+		b.WriteString("id: " + e.ID + "\n")
+	}
+	if e.Type != "" {
+		b.WriteString("event: " + e.Type + "\n")
+	}
+	if len(e.Data) > 0 {
+		b.WriteString("data: ")
+		b.Write(e.Data)
+		b.WriteByte('\n')
+	}
+	if e.Retry > 0 {
+		b.WriteString("retry: " + strconv.Itoa(e.Retry) + "\n")
+	}
+	b.WriteByte('\n')
+	return b
 }

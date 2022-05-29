@@ -1,6 +1,7 @@
 package parser_test
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -11,11 +12,11 @@ import (
 	"github.com/livebud/bud/package/modcache"
 	"github.com/livebud/bud/package/parser"
 
+	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/internal/txtar"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/vfs"
-	"github.com/matryer/is"
 )
 
 // TODO: replace txtar with testdir
@@ -149,8 +150,9 @@ func TestAliasLookup(t *testing.T) {
 
 func TestNetHTTP(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	dir := t.TempDir()
-	td := testdir.New()
+	td := testdir.New(dir)
 	td.Files["app.go"] = `
 		package app
 
@@ -160,7 +162,7 @@ func TestNetHTTP(t *testing.T) {
 			*http.Request
 		}
 	`
-	err := td.Write(dir)
+	err := td.Write(ctx)
 	is.NoErr(err)
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
@@ -187,10 +189,11 @@ func TestNetHTTP(t *testing.T) {
 
 func TestGenerate(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	dir := t.TempDir()
-	td := testdir.New()
+	td := testdir.New(dir)
 	td.Modules["github.com/livebud/bud-test-plugin"] = `v0.0.8`
-	is.NoErr(td.Write(dir))
+	is.NoErr(td.Write(ctx))
 	cfs := conjure.New()
 	merged := merged.Merge(os.DirFS(dir), cfs)
 	cfs.GenerateFile("hello/hello.go", func(file *conjure.File) error {

@@ -10,36 +10,44 @@ import (
 {{- end }}
 
 func New(
-	flag *bud.Flag,
-	fsys *generator.FileSystem,
 	module *gomod.Module,
-	newController *new_controller.Command,
+	runCmd *run.Command,
+	buildCmd *build.Command,
+	newControllerCmd *new_controller.Command,
 ) *CLI {
-	return &CLI{flag, fsys, module, newController}
+	return &CLI{
+		module,
+		runCmd,
+		buildCmd,
+		newControllerCmd,
+	}
 }
 
 type CLI struct {
-  flag   *bud.Flag
-	fsys   *generator.FileSystem
 	module *gomod.Module
-	newController *new_controller.Command
+	runCmd *run.Command
+	buildCmd *build.Command
+	newControllerCmd *new_controller.Command
 }
 
 func (c *CLI) Parse(ctx context.Context, args ...string) error {
-	project := bud.New(c.fsys, c.module)
-	cli := commander.New("cli")
+	cli := commander.New("cli").Writer(os.Stdout)
 
 	{ // cli run
-		cmd := &run.Command{Flag: c.flag, Project: project}
 		cli := cli.Command("run", "run command")
-		cli.Flag("port", "port to listen to").String(&cmd.Port).Default(":3000")
-		cli.Run(cmd.Run)
+		cli.Flag("embed", "embed assets").Bool(&c.runCmd.Flag.Embed).Default(false)
+		cli.Flag("hot", "hot reloading").String(&c.runCmd.Flag.Hot).Default(":35729")
+		cli.Flag("minify", "minify assets").Bool(&c.runCmd.Flag.Minify).Default(false)
+		cli.Flag("listen", "address to listen to").String(&c.runCmd.Listen).Default(":3000")
+		cli.Run(c.beforeRun(c.runCmd))
 	}
 
 	{ // cli build
-		cmd := &build.Command{Flag: c.flag, Project: project}
 		cli := cli.Command("build", "build command")
-		cli.Run(cmd.Run)
+		cli.Flag("embed", "embed assets").Bool(&c.buildCmd.Flag.Embed).Default(true)
+		cli.Flag("hot", "hot reloading").String(&c.buildCmd.Flag.Hot).Default("false")
+		cli.Flag("minify", "minify assets").Bool(&c.buildCmd.Flag.Minify).Default(true)
+		cli.Run(c.beforeBuild(c.buildCmd))
 	}
 
 	{ // cli new <scaffold>
@@ -47,11 +55,37 @@ func (c *CLI) Parse(ctx context.Context, args ...string) error {
 
 		{ // cli new resource <path> [actions...]
 			cli := cli.Command("controller", "new controller")
-			cli.Arg("path").String(&c.newController.Path)
-			cli.Args("actions").Strings(&c.newController.Actions)
-			cli.Run(c.newController.Run)
+			cli.Arg("path").String(&c.newControllerCmd.Path)
+			cli.Args("actions").Strings(&c.newControllerCmd.Actions)
+			cli.Run(c.newControllerCmd.Run)
 		}
 	}
 
 	return cli.Parse(ctx, args)
 }
+
+// Before run loads and attaches the generators before running.
+func (c *CLI) beforeRun(cmd *run.Command) (func(ctx context.Context) error) {
+	return func(ctx context.Context) (err error) {
+		// Attach the generators
+		cmd.FS, err = {{ $.Provider.Name }}(cmd.Flag, ctx, c.module)
+		if err != nil {
+			return err
+		}
+		return cmd.Run(ctx)
+	}
+}
+
+// beforeBuilds loads and attaches the generators before building.
+func (c *CLI) beforeBuild(cmd *build.Command) (func(ctx context.Context) error) {
+	return func(ctx context.Context) (err error) {
+		// Attach the generators
+		cmd.FS, err = {{ $.Provider.Name }}(cmd.Flag, ctx, c.module)
+		if err != nil {
+			return err
+		}
+		return cmd.Run(ctx)
+	}
+}
+
+{{ $.Provider.Function }}

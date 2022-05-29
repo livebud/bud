@@ -67,7 +67,7 @@ func Import(fsys fs.FS, dir string) (*build.Package, error) {
 	// messages
 	imported, err := buildContext(fsys).Import(".", dir, build.ImportMode(0))
 	if err != nil {
-		return nil, fmt.Errorf("parser: unable to import package %q > %w", dir, err)
+		return nil, fmt.Errorf("parser: unable to import package %q. %w", dir, err)
 	}
 	return imported, nil
 }
@@ -144,7 +144,11 @@ func buildContext(fsys fs.FS) *build.Context {
 		// OpenFile opens a file (not a directory) for reading.
 		// If OpenFile is nil, Import uses os.Open.
 		OpenFile: func(path string) (io.ReadCloser, error) {
-			return fsys.Open(path)
+			file, err := fsys.Open(path)
+			if err != nil {
+				return nil, err
+			}
+			return file, nil
 		},
 	}
 }

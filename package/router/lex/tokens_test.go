@@ -3,8 +3,8 @@ package lex_test
 import (
 	"testing"
 
+	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/router/lex"
-	"github.com/matryer/is"
 )
 
 func tokens(t testing.TB, input string) lex.Tokens {

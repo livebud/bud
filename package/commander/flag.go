@@ -25,12 +25,14 @@ func (f *Flag) String(target *string) *String {
 }
 
 func (f *Flag) Strings(target *[]string) *Strings {
+	*target = []string{}
 	value := &Strings{target: target}
 	f.value = &stringsValue{inner: value}
 	return value
 }
 
 func (f *Flag) StringMap(target *map[string]string) *StringMap {
+	*target = map[string]string{}
 	value := &StringMap{target: target}
 	f.value = &stringMapValue{inner: value}
 	return value
@@ -39,6 +41,13 @@ func (f *Flag) StringMap(target *map[string]string) *StringMap {
 func (f *Flag) Bool(target *bool) *Bool {
 	value := &Bool{target: target}
 	f.value = &boolValue{inner: value}
+	return value
+}
+
+// Custom allows you to define a custom parsing function
+func (f *Flag) Custom(fn func(string) error) *Custom {
+	value := &Custom{target: fn}
+	f.value = &customValue{inner: value}
 	return value
 }
 

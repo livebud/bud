@@ -58,9 +58,7 @@ func (l *loader) loadRoot(base string) *Command {
 	// If a generated web server is present, then the root command is runnable.
 	if _, err := fs.Stat(l.fsys, "bud/.app/web/web.go"); nil == err {
 		l.imports.AddStd("os")
-		// l.imports.AddStd("fmt")
 		l.imports.AddNamed("web", l.module.Import("bud", ".app", "web"))
-		l.imports.AddNamed("socket", "github.com/livebud/bud/package/socket")
 		command.Runnable = true
 	}
 	des, err := fs.ReadDir(l.fsys, base)

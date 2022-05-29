@@ -2,15 +2,16 @@ package transform_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"strings"
 	"testing"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
+	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/runtime/transform"
-	"github.com/matryer/is"
 )
 
 func TestTransform(t *testing.T) {
@@ -74,6 +75,7 @@ func TestTransform(t *testing.T) {
 
 func TestPlugins(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	transformer, err := transform.Load([]*transform.Transformable{
 		{
 			From: ".svelte",
@@ -110,8 +112,8 @@ func TestPlugins(t *testing.T) {
 	plugins := transformer.SSR.Plugins()
 	is.Equal(len(plugins), 2)
 	// Create the test dir
-	td := testdir.New()
 	dir := t.TempDir()
+	td := testdir.New(dir)
 	td.Files["index.js"] = `
 		import hello from "./hello.md"
 		console.log(hello)
@@ -119,7 +121,7 @@ func TestPlugins(t *testing.T) {
 	td.Files["hello.md"] = `
 		# Hi world
 	`
-	is.NoErr(td.Write(dir))
+	is.NoErr(td.Write(ctx))
 	result := esbuild.Build(esbuild.BuildOptions{
 		EntryPoints:   []string{"index.js"},
 		AbsWorkingDir: dir,

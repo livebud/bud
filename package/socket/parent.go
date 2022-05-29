@@ -2,62 +2,68 @@ package socket
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/livebud/bud/internal/urlx"
 )
 
+type Listener interface {
+	net.Listener
+	file
+}
+
+type listener struct {
+	net.Listener
+}
+
 type file interface {
 	File() (*os.File, error)
 }
 
-type Env string
-
-func (e Env) Key() string {
-	i := strings.Index(string(e), "=")
-	return string(e)[0:i]
-}
-
-func (e Env) Value() string {
-	i := strings.Index(string(e), "=")
-	return string(e)[i+1:]
-}
-
-func Files(l net.Listener) (files []*os.File, env Env, err error) {
-	filer, ok := l.(file)
+func (l listener) File() (*os.File, error) {
+	filer, ok := l.Listener.(file)
 	if !ok {
-		return []*os.File{}, "", nil
+		return nil, fmt.Errorf("socket: %s is not a file", l.Listener.Addr().String())
 	}
-	file, err := filer.File()
-	if err != nil {
-		return nil, "", err
-	}
-	return []*os.File{file}, "LISTEN_FDS=1", nil
+	return filer.File()
 }
 
-func listen(path string) (net.Listener, error) {
+// Listen on a path or port
+func Listen(path string) (Listener, error) {
 	url, err := urlx.Parse(path)
 	if err != nil {
 		return nil, err
 	}
 	// Empty host means the path is a unix domain socket
 	if url.Host == "" {
+		// Unix domain socket path can't be more than 103 characters long
+		if len(path) > 103 {
+			return nil, fmt.Errorf("socket: unix path too long %q", path)
+		}
 		addr, err := net.ResolveUnixAddr("unix", path)
 		if err != nil {
 			return nil, err
 		}
-		return net.ListenUnix("unix", addr)
+		unix, err := net.ListenUnix("unix", addr)
+		if err != nil {
+			return nil, err
+		}
+		return listener{unix}, nil
 	}
 	// Otherwise, we listen on a TCP port
 	addr, err := net.ResolveTCPAddr("tcp", url.Host)
 	if err != nil {
 		return nil, err
 	}
-	return net.ListenTCP("tcp", addr)
+	tcp, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	return listener{tcp}, nil
 }
 
 func Transport(path string) (http.RoundTripper, error) {

@@ -6,6 +6,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/livebud/bud/runtime/command"
 	"github.com/livebud/bud/runtime/view/dom"
 	"github.com/livebud/bud/runtime/view/ssr"
 
@@ -13,12 +14,11 @@ import (
 	"github.com/livebud/bud/internal/entrypoint"
 	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/package/gomod"
-	"github.com/livebud/bud/runtime/bud"
 	"github.com/livebud/bud/runtime/transform"
 )
 
 type parser struct {
-	Flag      *bud.Flag
+	Flag      *command.Flag
 	Module    *gomod.Module
 	Imports   *imports.Set
 	Transform *transform.Map
@@ -26,7 +26,7 @@ type parser struct {
 
 type State struct {
 	Imports []*imports.Import
-	Flag    *bud.Flag
+	Flag    *command.Flag
 	Embeds  []*embed.File
 }
 

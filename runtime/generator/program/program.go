@@ -8,7 +8,7 @@ import (
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/vfs"
-	"github.com/livebud/bud/runtime/bud"
+	"github.com/livebud/bud/runtime/command"
 
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/internal/imports"
@@ -21,7 +21,7 @@ var template string
 var generator = gotemplate.MustParse("program.gotext", template)
 
 type Program struct {
-	Flag     *bud.Flag
+	Flag     *command.Flag
 	Module   *gomod.Module
 	Injector *di.Injector
 }

@@ -5,13 +5,14 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
 
+	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/commander"
-	"github.com/matryer/is"
 	"github.com/matthewmueller/diff"
 )
 
@@ -722,10 +723,291 @@ func TestUsageError(t *testing.T) {
 	ctx := context.Background()
 	err := cli.Parse(ctx, []string{})
 	is.NoErr(err)
-	is.NoErr(err)
 	isEqual(t, actual.String(), `
   {bold}Usage:{reset}
     cli
 
 `)
+}
+
+func TestIdempotent(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	cli := commander.New("cli").Writer(actual)
+	var f1 string
+	cmd := cli.Command("run", "run command")
+	cmd.Flag("f1", "cli flag").Short('f').String(&f1)
+	var f2 string
+	cmd.Flag("f2", "cli flag").String(&f2)
+	var f3 string
+	cmd.Flag("f3", "cli flag").String(&f3)
+	ctx := context.Background()
+	args := []string{"run", "--f1=a", "--f2=b", "--f3", "c"}
+	err := cli.Parse(ctx, args)
+	is.NoErr(err)
+	is.Equal(f1, "a")
+	is.Equal(f2, "b")
+	is.Equal(f3, "c")
+	f1 = ""
+	f2 = ""
+	f3 = ""
+	err = cli.Parse(ctx, args)
+	is.NoErr(err)
+	is.Equal(f1, "a")
+	is.Equal(f2, "b")
+	is.Equal(f3, "c")
+}
+
+func TestManualHelp(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	cli := commander.New("cli").Writer(actual)
+	var help bool
+	var dir string
+	cli.Flag("help", "help menu").Short('h').Bool(&help).Default(false)
+	cli.Flag("chdir", "change directory").Short('C').String(&dir)
+	called := 0
+	cli.Run(func(ctx context.Context) error {
+		is.Equal(help, true)
+		is.Equal(dir, "somewhere")
+		called++
+		return nil
+	})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"--help", "--chdir", "somewhere"})
+	is.NoErr(err)
+	is.Equal(actual.String(), "")
+	is.Equal(called, 1)
+}
+
+func TestManualHelpUsage(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	cli := commander.New("cli").Writer(actual)
+	var help bool
+	var dir string
+	cli.Flag("help", "help menu").Short('h').Bool(&help).Default(false)
+	cli.Flag("chdir", "change directory").Short('C').String(&dir)
+	called := 0
+	cli.Run(func(ctx context.Context) error {
+		is.Equal(help, true)
+		is.Equal(dir, "somewhere")
+		called++
+		return commander.Usage()
+	})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"--help", "--chdir", "somewhere"})
+	is.NoErr(err)
+	is.Equal(called, 1)
+	isEqual(t, actual.String(), `
+  {bold}Usage:{reset}
+    cli {dim}[flags]{reset}
+
+  {bold}Flags:{reset}
+    -C, --chdir  {dim}change directory{reset}
+    -h, --help   {dim}help menu{reset}
+
+`)
+}
+
+func TestAfterRun(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	cli := commander.New("cli").Writer(actual)
+	called := 0
+	var ctx context.Context
+	cli.Run(func(c context.Context) error {
+		called++
+		ctx = c
+		return nil
+	})
+	err := cli.Parse(context.Background(), []string{})
+	is.NoErr(err)
+	is.Equal(called, 1)
+	select {
+	case <-ctx.Done():
+		is.Fail() // Context shouldn't have been cancelled
+	default:
+	}
+}
+
+func TestArgsClearSlice(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	args := []string{"a", "b"}
+	cli.Args("custom").Strings(&args)
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"c", "d"})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(len(args), 2)
+	is.Equal(args[0], "c")
+	is.Equal(args[1], "d")
+	isEqual(t, actual.String(), ``)
+}
+
+func TestArgClearMap(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	args := map[string]string{"a": "a"}
+	cli.Arg("custom").StringMap(&args)
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"b:b"})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(len(args), 1)
+	is.Equal(args["b"], "b")
+	isEqual(t, actual.String(), ``)
+}
+
+func TestFlagClearSlice(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	args := []string{"a", "b"}
+	cli.Flag("f", "flag").Strings(&args)
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"-f", "c", "-f", "d"})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(len(args), 2)
+	is.Equal(args[0], "c")
+	is.Equal(args[1], "d")
+	isEqual(t, actual.String(), ``)
+}
+
+func TestFlagClearMap(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	args := map[string]string{"a": "a"}
+	cli.Flag("f", "flag").StringMap(&args)
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"-f", "b:b"})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(len(args), 1)
+	is.Equal(args["b"], "b")
+	isEqual(t, actual.String(), ``)
+}
+
+func TestFlagCustom(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	hot := ""
+	cli.Flag("hot", "hot server").Custom(func(v string) error {
+		hot = v
+		return nil
+	})
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"--hot=:35729"})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(hot, ":35729")
+}
+
+func TestFlagCustomError(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Flag("hot", "hot server").Custom(func(v string) error {
+		return fmt.Errorf("unable to parse")
+	})
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"--hot=:35729"})
+	is.True(err != nil)
+	is.Equal(err.Error(), `invalid value ":35729" for flag -hot: unable to parse`)
+}
+
+func TestFlagCustomMissing(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Flag("hot", "hot server").Custom(func(v string) error {
+		return nil
+	})
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{})
+	is.True(err != nil)
+	is.Equal(err.Error(), `missing --hot`)
+}
+
+func TestFlagCustomMissingDefault(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	hot := ""
+	cli.Flag("hot", "hot server").Custom(func(v string) error {
+		hot = v
+		return nil
+	}).Default(":35729")
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(hot, ":35729")
+}
+
+func TestFlagCustomDefault(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	hot := ""
+	cli.Flag("hot", "hot server").Custom(func(v string) error {
+		hot = v
+		return nil
+	}).Default(":35729")
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"--hot=false"})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(hot, "false")
 }

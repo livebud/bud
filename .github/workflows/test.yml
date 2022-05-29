@@ -51,6 +51,11 @@ jobs:
             livebud/package-lock.json
             package-lock.json
 
+      # Temporary fix to get the tests working until we pass the V8 client as a
+      # os.Pipe
+      - name: Install bud binary into $PATH
+        run: go install github.com/livebud/bud@latest
+
       - name: Install bud node_modules
         run: npm ci
 
