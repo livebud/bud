@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/livebud/bud/internal/dsync"
+	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/conjure"
 	"github.com/livebud/bud/package/vfs"
-	"github.com/matryer/is"
 )
 
 func TestFileSync(t *testing.T) {
@@ -212,7 +212,7 @@ func TestErrorGenerator(t *testing.T) {
 	// sync
 	err := dsync.Dir(sourceFS, ".", targetFS, ".")
 	is.True(err != nil)
-	is.Equal(err.Error(), `conjure: generate "bud/generate/main.go" > uh oh`)
+	is.Equal(err.Error(), `conjure: generate "bud/generate/main.go". uh oh`)
 	is.Equal(len(targetFS), 0)
 }
 

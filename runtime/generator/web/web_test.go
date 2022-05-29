@@ -4,52 +4,40 @@ import (
 	"context"
 	"testing"
 
-	"github.com/livebud/bud/internal/budtest"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/cli"
+	"github.com/livebud/bud/internal/cli/testcli"
+	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/internal/testdir"
 )
 
-// TODO: generate welcome server when there are no routes
-func TestEmpty(t *testing.T) {
-	t.SkipNow()
+func TestNoProject(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
-	bud := budtest.New(dir)
-	project, err := bud.Compile(ctx)
+	td := testdir.New(dir)
+	cli := testcli.New(cli.New(dir))
+	stdout, stderr, err := cli.Run(ctx)
 	is.NoErr(err)
-	app, err := project.Build(ctx)
-	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/web/web.go"))
+	is.In(stdout.String(), "bud")
+	is.Equal(stderr.String(), "")
+	is.NoErr(td.NotExists("bud/.app/web/web.go"))
 }
 
-func TestRootAction(t *testing.T) {
+func TestEmptyProject(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
-	bud := budtest.New(dir)
-	bud.Files["controller/controller.go"] = `
-		package controller
-		type Controller struct {}
-		func (c *Controller) Index() {}
-		func (c *Controller) Show() {}
-		func (c *Controller) New() {}
-		func (c *Controller) Edit() {}
-		func (c *Controller) Create() {}
-		func (c *Controller) Update() {}
-		func (c *Controller) Delete() {}
-	`
-	project, err := bud.Compile(ctx)
+	td := testdir.New(dir)
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(cli.New(dir))
+	app, stdout, stderr, err := cli.Start(ctx, "run")
 	is.NoErr(err)
-	app, err := project.Build(ctx)
+	defer app.Close()
+	res, err := app.Get("/")
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/web/web.go"))
-	server, err := app.Start(ctx)
-	is.NoErr(err)
-	defer server.Close()
-	res, err := server.Get("/")
-	is.NoErr(err)
-	is.Equal(res.StatusCode, 204)
-	res, err = server.Get("/new")
-	is.NoErr(err)
-	is.Equal(res.StatusCode, 204)
+	is.Equal(res.Status(), 200)
+	is.In(res.Body().String(), "Hey Bud")
+	is.NoErr(td.Exists("bud/.app/web/web.go"))
+	is.Equal(stdout.String(), "")
+	is.Equal(stderr.String(), "")
 }

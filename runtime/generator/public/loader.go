@@ -12,10 +12,10 @@ import (
 	"github.com/livebud/bud/internal/embed"
 	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/package/gomod"
-	"github.com/livebud/bud/runtime/bud"
+	"github.com/livebud/bud/runtime/command"
 )
 
-func Load(flag *bud.Flag, fsys fs.FS, module *gomod.Module) (*State, error) {
+func Load(flag *command.Flag, fsys fs.FS, module *gomod.Module) (*State, error) {
 	loader := &loader{
 		fsys:    fsys,
 		flag:    flag,
@@ -27,7 +27,7 @@ func Load(flag *bud.Flag, fsys fs.FS, module *gomod.Module) (*State, error) {
 
 type loader struct {
 	bail.Struct
-	flag    *bud.Flag
+	flag    *command.Flag
 	fsys    fs.FS
 	imports *imports.Set
 	module  *gomod.Module

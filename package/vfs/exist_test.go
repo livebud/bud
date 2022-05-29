@@ -5,8 +5,8 @@ import (
 	"io/fs"
 	"testing"
 
+	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/vfs"
-	"github.com/matryer/is"
 )
 
 func TestExistAll(t *testing.T) {

@@ -33,15 +33,6 @@ func (v *stringMapValue) verify(displayName string) error {
 	return fmt.Errorf("missing %s", displayName)
 }
 
-func (v *stringMapValue) Get() interface{} {
-	if v.set {
-		return *v.inner.target
-	} else if v.inner.defval != nil {
-		return *v.inner.defval
-	}
-	return nil
-}
-
 func (v *stringMapValue) Set(val string) error {
 	kv := strings.SplitN(val, ":", 2)
 	if len(kv) != 2 {

@@ -55,6 +55,10 @@ type Server struct {
 	http.Handler
 }
 
-func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
-	return web.Serve(ctx, ln, s)
+func (s *Server) Serve(ctx context.Context, address string) error {
+	listener, err := web.Listen("APP", address)
+	if err != nil {
+		return err
+	}
+	return web.Serve(ctx, listener, s)
 }

@@ -5,13 +5,15 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/di"
 	"github.com/matthewmueller/gotext"
 	"github.com/matthewmueller/text"
 )
 
 type State struct {
-	Imports []*imports.Import
-	Command *Cmd
+	Imports  []*imports.Import
+	Command  *Cmd
+	Provider *di.Provider
 }
 
 // Flatten out the commands, intentionally ignoring the root command

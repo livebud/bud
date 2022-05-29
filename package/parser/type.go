@@ -7,9 +7,17 @@ import (
 	"go/printer"
 	"go/token"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/livebud/bud/internal/gois"
 )
+
+// Type fn
+type Type interface {
+	String() string
+	node() ast.Expr
+}
 
 // Get the expression
 // https://golang.org/ref/spec#Types
@@ -144,6 +152,11 @@ type definition interface {
 	Definition() (Declaration, error)
 }
 
+// Optional importPath interface
+type importPath interface {
+	ImportPath() (path string, err error)
+}
+
 // ImportPath tries going to the type's definition
 func ImportPath(t Type) (path string, err error) {
 	ip, ok := t.(importPath)
@@ -151,11 +164,6 @@ func ImportPath(t Type) (path string, err error) {
 		return "", fmt.Errorf("parser: type %q doesn't implement ImportPath", t)
 	}
 	return ip.ImportPath()
-}
-
-// Optional importPath interface
-type importPath interface {
-	ImportPath() (path string, err error)
 }
 
 // TypeName returns the name of the type
@@ -171,10 +179,26 @@ type typeName interface {
 	Name() string
 }
 
-// Type fn
-type Type interface {
-	String() string
-	node() ast.Expr
+// FullName does it's best to resolve the full name of a type
+func FullName(t Type) string {
+	s := new(strings.Builder)
+	// Try pulling the import path
+	if i, ok := t.(importPath); ok {
+		imp, err := i.ImportPath()
+		if err != nil {
+			// Fallback to the type string
+			return t.String()
+		}
+		s.WriteString(strconv.Quote(imp))
+	}
+	// Try pulling the name
+	if n, ok := t.(typeName); ok {
+		name := n.Name()
+		s.WriteString("." + name)
+		return s.String()
+	}
+	// Fallback to the type string
+	return t.String()
 }
 
 // StarType struct
@@ -333,6 +357,15 @@ func (t *SelectorType) Unqualify() Type {
 
 // Definition returns the type definition
 func (t *SelectorType) Definition() (Declaration, error) {
+	decl, err := t.definition()
+	if err != nil {
+		return nil, fmt.Errorf("parser: unable to find declaration for %s in %q. %w", FullName(t), t.f.File().Path(), err)
+	}
+	return decl, nil
+}
+
+// definition tries finding the definition for the selector type
+func (t *SelectorType) definition() (Declaration, error) {
 	left, ok := t.n.X.(*ast.Ident)
 	if !ok {
 		return nil, fmt.Errorf("parser: unknown selector type %T", t.n.X)

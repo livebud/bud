@@ -6,7 +6,7 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 )
 
 var modTime = time.Date(2021, 12, 31, 0, 0, 0, 0, time.UTC)

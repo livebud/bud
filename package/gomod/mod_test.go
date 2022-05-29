@@ -1,6 +1,7 @@
 package gomod_test
 
 import (
+	"context"
 	"errors"
 	"go/build"
 	"io/fs"
@@ -15,7 +16,7 @@ import (
 	"github.com/livebud/bud/package/modcache"
 	"github.com/livebud/bud/package/vfs"
 
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 )
 
 func containsName(des []fs.DirEntry, name string) bool {
@@ -65,9 +66,9 @@ func TestResolveDirectory(t *testing.T) {
 	modCache := modcache.Default()
 	module, err := gomod.Find(wd, gomod.WithModCache(modCache))
 	is.NoErr(err)
-	dir, err := module.ResolveDirectory("github.com/matryer/is")
+	dir, err := module.ResolveDirectory("github.com/evanw/esbuild")
 	is.NoErr(err)
-	expected := modCache.Directory("github.com", "matryer", "is")
+	expected := modCache.Directory("github.com", "evanw", "esbuild")
 	is.True(strings.HasPrefix(dir, expected))
 }
 
@@ -150,10 +151,11 @@ func TestModuleFindStdlib(t *testing.T) {
 
 func TestFindNested(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	dir := t.TempDir()
-	td := testdir.New()
+	td := testdir.New(dir)
 	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.8"
-	err := td.Write(dir)
+	err := td.Write(ctx)
 	is.NoErr(err)
 	modCache := modcache.Default()
 	module1, err := gomod.Find(dir)
@@ -312,4 +314,12 @@ func TestHash(t *testing.T) {
 	m3, err := gomod.Parse("go.mod", []byte(`module apptest`))
 	is.NoErr(err)
 	is.True(string(m2.Hash()) != string(m3.Hash()))
+}
+
+func TestMissingModule(t *testing.T) {
+	is := is.New(t)
+	module, err := gomod.Parse("go.mod", []byte(`require github.com/evanw/esbuild v0.14.11`))
+	is.True(err != nil)
+	is.Equal(err.Error(), `mod: missing module statement in "go.mod"`)
+	is.Equal(module, nil)
 }

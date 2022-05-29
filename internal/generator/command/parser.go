@@ -14,6 +14,7 @@ import (
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/internal/valid"
+	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
 	goparse "github.com/livebud/bud/package/parser"
 	"github.com/matthewmueller/text"
@@ -21,25 +22,24 @@ import (
 
 type parser struct {
 	bail.Struct
-	fs      fs.FS
-	module  *gomod.Module
-	parser  *goparse.Parser
-	imports *imports.Set
+	fs       fs.FS
+	imports  *imports.Set
+	injector *di.Injector
+	module   *gomod.Module
+	parser   *goparse.Parser
 }
 
 func (p *parser) Parse(ctx context.Context) (state *State, err error) {
 	defer p.Recover2(&err, "command: unable to parse")
 	// Default imports
-	p.imports.AddStd("context")
+	p.imports.AddStd("context", "os")
 	p.imports.AddNamed("commander", "github.com/livebud/bud/package/commander")
-	// p.imports.AddNamed("command", "github.com/livebud/bud/runtime/command")
 	p.imports.AddNamed("gomod", "github.com/livebud/bud/package/gomod")
-	p.imports.AddNamed("bud", "github.com/livebud/bud/runtime/bud")
 	p.imports.AddNamed("run", "github.com/livebud/bud/runtime/command/run")
 	p.imports.AddNamed("new_controller", "github.com/livebud/bud/runtime/command/new/controller")
 	p.imports.AddNamed("build", "github.com/livebud/bud/runtime/command/build")
-	p.imports.AddNamed("generator", p.module.Import("bud/.cli/generator"))
 	state = new(State)
+	state.Provider = p.loadProvider()
 	state.Imports = p.imports.List()
 	return state, nil
 }
@@ -90,6 +90,35 @@ func (p *parser) loadCommand2(parent *Cmd, base, dir string) *Cmd {
 		// 	}
 	}
 	return cmd
+}
+
+func (p *parser) loadProvider() *di.Provider {
+	provider, err := p.injector.Wire(&di.Function{
+		Name:   "loadGenerator",
+		Target: p.module.Import("bud/.cli/command"),
+		Params: []di.Dependency{
+			di.ToType("github.com/livebud/bud/package/gomod", "*Module"),
+			di.ToType("context", "Context"),
+			di.ToType("github.com/livebud/bud/runtime/command", "*Flag"),
+		},
+		Results: []di.Dependency{
+			di.ToType(p.module.Import("bud/.cli/generator"), "*FileSystem"),
+			&di.Error{},
+		},
+		Aliases: di.Aliases{
+			di.ToType("github.com/livebud/bud/package/js", "VM"):          di.ToType("github.com/livebud/bud/package/js/v8client", "*Client"),
+			di.ToType("io/fs", "FS"):                                      di.ToType("github.com/livebud/bud/package/overlay", "*FileSystem"),
+			di.ToType("github.com/livebud/bud/runtime/transform", "*Map"): di.ToType(p.module.Import("bud/.cli/transform"), "*Map"),
+		},
+	})
+	if err != nil {
+		p.Bail(err)
+	}
+	// Add the imports
+	for _, im := range provider.Imports {
+		p.imports.AddNamed(im.Name, im.Path)
+	}
+	return provider
 }
 
 // func isValidSubDir(de fs.DirEntry) bool {

@@ -6,10 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/runtime/web"
 )
 
@@ -17,7 +16,7 @@ func TestServe(t *testing.T) {
 	is := is.New(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	listener, err := socket.Listen(":0")
+	listener, err := web.Listen("APP", ":0")
 	is.NoErr(err)
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(205)

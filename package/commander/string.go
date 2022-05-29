@@ -30,15 +30,6 @@ func (v *stringValue) verify(displayName string) error {
 	return fmt.Errorf("missing %s", displayName)
 }
 
-func (v *stringValue) Get() interface{} {
-	if v.set {
-		return *v.inner.target
-	} else if v.inner.defval != nil {
-		return *v.inner.defval
-	}
-	return nil
-}
-
 func (v *stringValue) Set(val string) error {
 	*v.inner.target = val
 	v.set = true

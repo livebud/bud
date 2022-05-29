@@ -8,9 +8,12 @@ import (
 	"time"
 
 	"io/fs"
+
+	"github.com/livebud/bud/internal/errs"
 )
 
 // Merge the filesystems together
+// TODO: give the filesystems names
 func Merge(fileSystems ...fs.FS) *FS {
 	return &FS{fileSystems}
 }
@@ -29,12 +32,15 @@ func (f *FS) Open(path string) (fs.File, error) {
 		}
 	}
 	var dirs []dir
+	notExists := &notExists{path: path}
 	for _, fsys := range f.fileSystems {
 		file, err := fsys.Open(path)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
+				notExists.errors = append(notExists.errors, err)
 				continue
 			}
+			// Fail fast if it's anything other than a not found.
 			return nil, err
 		}
 		stat, err := file.Stat()
@@ -47,7 +53,30 @@ func (f *FS) Open(path string) (fs.File, error) {
 		}
 		dirs = append(dirs, dir{file, stat})
 	}
+	// If we didn't find any files within the filesystem,
+	// return the missing file errors.
+	if len(dirs) == 0 {
+		return nil, notExists
+	}
 	return f.mergeDir(path, dirs)
+}
+
+// notExistsError is a collection of all errors while attempting to open a file
+// in one of the filesystems
+type notExists struct {
+	path   string
+	errors []error
+}
+
+// Error implements error and joins all the errors together
+func (n *notExists) Error() string {
+	return fmt.Errorf("merged: open %q. %w", n.path, errs.Join(n.errors...)).Error()
+}
+
+// This type of error should be an fs.ErrNotExist because all underlying errors
+// are also fs.ErrNotExists
+func (*notExists) Unwrap() error {
+	return fs.ErrNotExist
 }
 
 type dir struct {
@@ -60,13 +89,6 @@ type dir struct {
 // specified path in m.A and m.B, respectively. Closes files a and b before
 // returning, since they aren't needed by the MergedDirectory pseudo-file.
 func (f *FS) mergeDir(path string, dirs []dir) (fs.File, error) {
-	if len(dirs) == 0 {
-		return nil, &fs.PathError{
-			Op:   "open",
-			Path: path,
-			Err:  fs.ErrNotExist,
-		}
-	}
 	// Initialize merged
 	merged := &mergeDir{
 		name:    baseName(path),
@@ -82,7 +104,7 @@ func (f *FS) mergeDir(path string, dirs []dir) (fs.File, error) {
 		defer dir.Close()
 		d, ok := dir.File.(fs.ReadDirFile)
 		if !ok {
-			return nil, fmt.Errorf("mergefs: directories doesn't implement ReadDirFile")
+			return nil, fmt.Errorf("merged: directories doesn't implement ReadDirFile")
 		}
 		// Read all the dir entries
 		des, err := d.ReadDir(-1)

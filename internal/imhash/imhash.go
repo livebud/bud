@@ -30,7 +30,17 @@ func find(module *gomod.Module, mainDir string) (*fileSet, error) {
 	return fset, nil
 }
 
+// Hash traverse the imports in mainDir and generates a hash. This hash will
+// change if the contents of any imported packages change.
 func Hash(module *gomod.Module, mainDir string) (string, error) {
+	hsh, err := hash(module, mainDir)
+	if err != nil {
+		return "", fmt.Errorf("imhash: unable to hash %q. %w", mainDir, err)
+	}
+	return hsh, err
+}
+
+func hash(module *gomod.Module, mainDir string) (string, error) {
 	fset, err := find(module, mainDir)
 	if err != nil {
 		return "", err
@@ -170,27 +180,28 @@ func findDeps(fset *fileSet, module *gomod.Module, dir string) (err error) {
 	// Traverse imports and compute a hash
 	eg := new(errgroup.Group)
 	for _, importPath := range imported.Imports {
-		if fset.Has(importPath) {
+		importPath := importPath
+		if fset.Has(importPath) || !shouldWalk(module, importPath) {
 			continue
 		}
-		importPath := importPath
 		eg.Go(func() error {
-			if !shouldWalk(module, importPath) {
-				return nil
-			}
-			dir, err := module.ResolveDirectory(importPath)
-			if err != nil {
-				return err
-			}
-			relPath, err := filepath.Rel(module.Directory(), dir)
-			if err != nil {
-				return err
-			}
-			if err := findDeps(fset, module, relPath); err != nil {
-				return err
-			}
-			return nil
+			return findImport(fset, module, dir, importPath)
 		})
 	}
 	return eg.Wait()
+}
+
+func findImport(fset *fileSet, module *gomod.Module, from, importPath string) error {
+	dir, err := module.ResolveDirectory(importPath)
+	if err != nil {
+		return fmt.Errorf("imhash: error finding import %q from %q. %w", importPath, from, err)
+	}
+	relPath, err := filepath.Rel(module.Directory(), dir)
+	if err != nil {
+		return err
+	}
+	if err := findDeps(fset, module, relPath); err != nil {
+		return err
+	}
+	return nil
 }

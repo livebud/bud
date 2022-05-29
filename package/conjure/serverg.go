@@ -22,7 +22,7 @@ func (g *serverg) Generate(target string) (fs.File, error) {
 		path: target,
 	}
 	if err := g.fn(file); err != nil {
-		return nil, fmt.Errorf("conjure: serve %q > %w", target, err)
+		return nil, fmt.Errorf("conjure: serve %q . %w", target, err)
 	}
 	return file.open()
 }

@@ -5,13 +5,15 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"io/fs"
+
+	"github.com/livebud/bud/package/vfs"
 
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/overlay"
-	"github.com/livebud/bud/runtime/bud"
 )
 
 //go:embed program.gotext
@@ -33,17 +35,20 @@ func Generate(state *State) ([]byte, error) {
 	return generator.Generate(state)
 }
 
-func New(flag *bud.Flag, injector *di.Injector, module *gomod.Module) *Program {
-	return &Program{flag, injector, module}
+func New(injector *di.Injector, module *gomod.Module) *Program {
+	return &Program{injector, module}
 }
 
 type Program struct {
-	flag     *bud.Flag
 	injector *di.Injector
 	module   *gomod.Module
 }
 
-func (p *Program) Parse(ctx context.Context) (*State, error) {
+func (p *Program) Parse(ctx context.Context, fsys fs.FS) (*State, error) {
+	// Program depends on bud/.cli/command existing
+	if err := vfs.Exist(fsys, "bud/.cli/command"); err != nil {
+		return nil, err
+	}
 	// Default  imports
 	imports := imports.New()
 	imports.AddStd("errors", "context")
@@ -57,11 +62,9 @@ func (p *Program) Parse(ctx context.Context) (*State, error) {
 		Target:  p.module.Import("bud/.cli/program"),
 		Params: []di.Dependency{
 			di.ToType("github.com/livebud/bud/package/gomod", "*Module"),
-			di.ToType("context", "Context"),
-			di.ToType("github.com/livebud/bud/runtime/bud", "*Flag"),
 		},
 		Aliases: di.Aliases{
-			jsVM:                     di.ToType("github.com/livebud/bud/package/js/v8client", "*Client"),
+			jsVM:                     di.ToType("github.com/livebud/bud/package/js/v8", "*VM"),
 			di.ToType("io/fs", "FS"): di.ToType("github.com/livebud/bud/package/overlay", "*FileSystem"),
 			di.ToType("github.com/livebud/bud/runtime/transform", "*Map"): di.ToType(p.module.Import("bud/.cli/transform"), "*Map"),
 		},
@@ -70,27 +73,23 @@ func (p *Program) Parse(ctx context.Context) (*State, error) {
 			&di.Error{},
 		},
 	}
-	if p.flag.Embed {
-		loadCLI.Aliases[jsVM] = di.ToType("github.com/livebud/bud/package/js/v8", "*VM")
-	}
 	provider, err := p.injector.Wire(loadCLI)
 	if err != nil {
 		// Don't wrap on purpose, this error gets swallowed up too easily
 		return nil, fmt.Errorf("%w > %s", ErrCantWire, err)
 	}
 	// Add additional imports that we brought in
-	for _, im := range provider.Imports {
-		imports.AddNamed(im.Name, im.Path)
+	for i, im := range provider.Imports {
+		provider.Imports[i].Name = imports.Add(im.Path)
 	}
 	return &State{
 		Imports:  imports.List(),
-		Flags:    p.flag.Map(),
 		Provider: provider,
 	}, nil
 }
 
 func (p *Program) GenerateFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
-	state, err := p.Parse(ctx)
+	state, err := p.Parse(ctx, fsys)
 	if err != nil {
 		return err
 	}

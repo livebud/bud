@@ -10,7 +10,7 @@ import (
 {{- end }}
 
 func Run(ctx context.Context, args ...string) int {
-	if err := run(ctx, args...); err != nil {
+	if err := runProgram(ctx, args...); err != nil {
 		if errors.Is(err, context.Canceled) {
 			// Unfortunately interrupts like SIGINT trigger a non-zero exit code,
 			// regardless of whether you do os.Exit(0) or not. We're going to use exit
@@ -24,7 +24,7 @@ func Run(ctx context.Context, args ...string) int {
 	return 0
 }
 
-func run(ctx context.Context, args ...string) error {
+func runProgram(ctx context.Context, args ...string) error {
 	program, err := Load(ctx)
 	if err != nil {
 		return err
@@ -40,12 +40,6 @@ func Load(ctx context.Context) (*Program, error) {
 	}
 	{{- end }}
 	cli, err := {{ $.Provider.Name }}(
-		&bud.Flag{
-			{{- range $key, $value := $.Flags }}
-			{{ $key }}: {{ $value }},
-			{{- end }}
-		},
-		{{- if $.Provider.Variable "context.Context" }}ctx,{{ end }}
 		{{- with $gomod := $.Provider.Variable "github.com/livebud/bud/package/gomod.*Module" }}{{ $gomod }},{{ end }}
 	)
 	if err != nil {
