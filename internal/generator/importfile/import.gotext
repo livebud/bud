@@ -1,4 +1,4 @@
-// Package bud should not be imported directory. This package is here to ensure
+// Package bud should not be imported directly. This package is here to ensure
 // that `go mod tidy` finds these dependencies. The .cli and .app directories
 // contain private packages that should not be imported manually. Adding the dot
 // in front, prevents `goimports` from automatically importing them.
