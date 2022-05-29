@@ -170,12 +170,12 @@ func Watch(ctx context.Context, dir string, fn func(path string) error) error {
 				// closely together (details in #70)
 				// If there are multiple events in one file change, this only accept the first one.
 				case op&fsnotify.Write != 0 && time.Since(startTime).Milliseconds() >= 1:
+					startTime = time.Now()
 					if err := write(evt.Name); err != nil {
 						return err
 					}
 				}
 
-				startTime = time.Now()
 			}
 		}
 	})
