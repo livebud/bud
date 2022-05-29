@@ -33,10 +33,6 @@ func (v *intValue) verify(displayName string) error {
 	return fmt.Errorf("missing %s", displayName)
 }
 
-func (v *intValue) Get() interface{} {
-	return *v.inner.target
-}
-
 func (v *intValue) Set(val string) error {
 	n, err := strconv.Atoi(val)
 	if err != nil {

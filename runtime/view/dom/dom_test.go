@@ -1,6 +1,7 @@
 package dom_test
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"strings"
@@ -11,16 +12,17 @@ import (
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/runtime/transform"
 
+	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/internal/version"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/svelte"
 	"github.com/livebud/bud/runtime/view/dom"
-	"github.com/matryer/is"
 )
 
 func TestServeFile(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	dir := t.TempDir()
 	vm, err := v8.Load()
 	is.NoErr(err)
@@ -29,10 +31,10 @@ func TestServeFile(t *testing.T) {
 	transformer := transform.MustLoad(
 		svelte.NewTransformable(svelteCompiler),
 	)
-	td := testdir.New()
+	td := testdir.New(dir)
 	td.Files["view/index.svelte"] = `<h1>index</h1>`
 	td.Files["view/about/index.svelte"] = `<h2>about</h2>`
-	is.NoErr(td.Write(dir))
+	is.NoErr(td.Write(ctx))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
 	overlay, err := overlay.Load(module)
@@ -83,11 +85,12 @@ func TestServeFile(t *testing.T) {
 
 func TestNodeModules(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	dir := t.TempDir()
-	td := testdir.New()
+	td := testdir.New(dir)
 	td.Files["view/index.svelte"] = `<h1>hi world</h1>`
 	td.NodeModules["svelte"] = version.Svelte
-	is.NoErr(td.Write(dir))
+	is.NoErr(td.Write(ctx))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
 	overlay, err := overlay.Load(module)
@@ -102,13 +105,14 @@ func TestNodeModules(t *testing.T) {
 
 func TestGenerateDir(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	dir := t.TempDir()
-	td := testdir.New()
+	td := testdir.New(dir)
 	td.Files["view/index.svelte"] = `<h1>index</h1>`
 	td.Files["view/about/index.svelte"] = `<h2>about</h2>`
 	td.NodeModules["livebud"] = "*"
 	td.NodeModules["svelte"] = version.Svelte
-	is.NoErr(td.Write(dir))
+	is.NoErr(td.Write(ctx))
 	vm, err := v8.Load()
 	is.NoErr(err)
 	svelteCompiler, err := svelte.Load(vm)

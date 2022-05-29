@@ -1,12 +1,13 @@
 package merged_test
 
 import (
+	"fmt"
 	"io/fs"
+	"strings"
 	"testing"
 	"testing/fstest"
 
-	"github.com/matryer/is"
-
+	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/merged"
 )
 
@@ -96,4 +97,27 @@ func TestFS(t *testing.T) {
 	// Sanity check
 	err := fstest.TestFS(fsys, "a.txt", "b.txt", "c.txt", "d/b.txt", "d/c.txt")
 	is.NoErr(err)
+}
+
+type errFS struct{ err error }
+
+func (f *errFS) Open(name string) (fs.File, error) {
+	return nil, fmt.Errorf("open %q: %w", name, f.err)
+}
+
+func TestErrorPropagation(t *testing.T) {
+	is := is.New(t)
+	afs := &errFS{fmt.Errorf("afs: %w", fs.ErrNotExist)}
+	bfs := &errFS{fmt.Errorf("bfs: %w", fs.ErrNotExist)}
+	cfs := &errFS{fmt.Errorf("cfs: %w", fs.ErrNotExist)}
+	fsys := merged.Merge(afs, bfs, cfs)
+	file, err := fsys.Open("a.txt")
+	is.True(file == nil)
+	expect := strings.Join([]string{
+		`merged: open "a.txt"`,
+		`open "a.txt": afs: file does not exist`,
+		`open "a.txt": bfs: file does not exist`,
+		`open "a.txt": cfs: file does not exist`,
+	}, ". ")
+	is.Equal(err.Error(), expect)
 }

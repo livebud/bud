@@ -8,13 +8,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/vfs"
 
 	"github.com/matthewmueller/gotext"
 
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/imports"
-	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/scaffold"
 	"github.com/matthewmueller/text"
 )
@@ -37,13 +37,13 @@ type Command struct {
 //go:embed controller.gotext
 var controller string
 
-//go:embed view/default.gotext
+//go:embed view_default.gotext
 var defaultView string
 
-//go:embed view/index.gotext
+//go:embed view_index.gotext
 var indexView string
 
-//go:embed view/show.gotext
+//go:embed view_show.gotext
 var showView string
 
 var views = map[string]string{
@@ -238,7 +238,7 @@ func controllerRoute(controllerKey string) string {
 		}
 		path.WriteString(text.Slug(segments[i]))
 	}
-	return "/" + path.String()
+	return strings.TrimSuffix("/"+path.String(), "/")
 }
 
 func viewPath(controllerKey, path string) string {

@@ -3,11 +3,12 @@ package sig_test
 import (
 	"context"
 	"os"
+	"syscall"
 	"testing"
 	"time"
 
+	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/sig"
-	"github.com/matryer/is"
 )
 
 // Based on: https://github.com/golang/go/issues/19326
@@ -21,8 +22,7 @@ func raise(sig os.Signal) error {
 
 func TestInterrupt(t *testing.T) {
 	is := is.New(t)
-	ctx, cancel := sig.Trap(context.Background(), os.Interrupt)
-	defer cancel()
+	ctx := sig.Trap(context.Background(), os.Interrupt)
 	// Should not have received signal
 	select {
 	case <-ctx.Done():
@@ -39,20 +39,20 @@ func TestInterrupt(t *testing.T) {
 	}
 }
 
-func TestCancel(t *testing.T) {
+func TestEither(t *testing.T) {
 	is := is.New(t)
-	ctx, cancel := sig.Trap(context.Background(), os.Interrupt)
+	ctx := sig.Trap(context.Background(), os.Interrupt, syscall.SIGQUIT)
 	// Should not have received signal
 	select {
 	case <-ctx.Done():
 		is.Fail() // context shouldn't be cancelled yet
 	default:
 	}
-	cancel()
-	// Should have received a signal
+	is.NoErr(raise(syscall.SIGQUIT))
+	// Should have received a SIGQUIT
 	select {
 	case <-ctx.Done():
-	default:
+	case <-time.Tick(time.Second):
 		is.Fail() // context should have been cancelled
 	}
 }

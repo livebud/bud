@@ -71,7 +71,7 @@ func loadPlugins(module *gomod.Module) (plugins []fs.FS, err error) {
 }
 
 type FS struct {
-	merged *merged.FS
+	merged fs.FS
 }
 
 func (f *FS) Open(name string) (fs.File, error) {

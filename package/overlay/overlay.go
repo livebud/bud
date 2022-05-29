@@ -28,7 +28,7 @@ func Load(module *gomod.Module) (*FileSystem, error) {
 	merged := merged.Merge(cache.Wrap("cfs", cfs), cache.Wrap("pluginfs", pluginFS))
 	dag := dag.New()
 	ps := pubsub.New()
-	return &FileSystem{cache, cfs, dag, cache.Wrap("merged", merged), module, ps}, nil
+	return &FileSystem{cache, cfs, dag, merged, module, ps}, nil
 }
 
 // Serve is just load without the cache
@@ -65,8 +65,11 @@ func (f *FileSystem) Link(from, to string) {
 }
 
 func (f *FileSystem) Open(name string) (fs.File, error) {
-	// fmt.Println("overlay opening", name)
-	return f.fsys.Open(name)
+	file, err := f.fsys.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	return file, nil
 }
 
 var _ fs.FS = (*FileSystem)(nil)
@@ -74,12 +77,18 @@ var _ fs.FS = (*FileSystem)(nil)
 type GenerateFile func(ctx context.Context, fsys F, file *File) error
 
 func (fn GenerateFile) GenerateFile(ctx context.Context, fsys F, file *File) error {
-	return fn(ctx, fsys, file)
+	if err := fn(ctx, fsys, file); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (f *FileSystem) GenerateFile(path string, fn func(ctx context.Context, fsys F, file *File) error) {
 	f.cfs.GenerateFile(path, func(file *conjure.File) error {
-		return fn(context.TODO(), f, &File{File: file})
+		if err := fn(context.TODO(), f, &File{File: file}); err != nil {
+			return err
+		}
+		return nil
 	})
 }
 
@@ -90,12 +99,19 @@ func (f *FileSystem) FileGenerator(path string, generator FileGenerator) {
 type GenerateDir func(ctx context.Context, fsys F, dir *Dir) error
 
 func (fn GenerateDir) GenerateDir(ctx context.Context, fsys F, dir *Dir) error {
-	return fn(ctx, fsys, dir)
+	if err := fn(ctx, fsys, dir); err != nil {
+		return err
+	}
+	return nil
+
 }
 
 func (f *FileSystem) GenerateDir(path string, fn func(ctx context.Context, fsys F, dir *Dir) error) {
 	f.cfs.GenerateDir(path, func(dir *conjure.Dir) error {
-		return fn(context.TODO(), f, &Dir{f, dir})
+		if err := fn(context.TODO(), f, &Dir{f, dir}); err != nil {
+			return err
+		}
+		return nil
 	})
 }
 

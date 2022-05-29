@@ -4,20 +4,35 @@ import (
 	"context"
 	"testing"
 
-	"github.com/livebud/bud/internal/budtest"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/cli"
+	"github.com/livebud/bud/internal/cli/testcli"
+	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/internal/testdir"
 )
 
-// TODO: We should always generate a main, even if empty dir
-func TestEmpty(t *testing.T) {
-	t.SkipNow()
+func TestNoProject(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
-	bud := budtest.New(dir)
-	project, err := bud.Compile(ctx)
+	td := testdir.New(dir)
+	cli := testcli.New(cli.New(dir))
+	stdout, stderr, err := cli.Run(ctx)
 	is.NoErr(err)
-	app, err := project.Build(ctx)
+	is.In(stdout.String(), "bud")
+	is.Equal(stderr.String(), "")
+	is.NoErr(td.NotExists("bud/.app/main.go"))
+}
+
+func TestEmptyBuild(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(cli.New(dir))
+	stdout, stderr, err := cli.Run(ctx, "build")
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/main.go"))
+	is.In(stdout.String(), "")
+	is.Equal(stderr.String(), "")
+	is.NoErr(td.Exists("bud/.app/main.go"))
 }

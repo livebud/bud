@@ -3,8 +3,8 @@ package valid_test
 import (
 	"testing"
 
+	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/valid"
-	"github.com/matryer/is"
 )
 
 func TestDir(t *testing.T) {

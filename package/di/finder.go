@@ -31,7 +31,7 @@ func (i *Injector) Find(currModule *gomod.Module, dep Dependency) (Declaration, 
 	// Find the module within the filesystem
 	nextModule, err := currModule.FindIn(fsys, dep.ImportPath())
 	if err != nil {
-		return nil, fmt.Errorf("di: unable to find module for dependency %s > %w", dep.ID(), err)
+		return nil, fmt.Errorf("di: unable to find module for dependency %s . %w", dep.ID(), err)
 	}
 	// Check again with the newly found module
 	if nextModule.Directory() != currModule.Directory() {
@@ -40,8 +40,7 @@ func (i *Injector) Find(currModule *gomod.Module, dep Dependency) (Declaration, 
 	// Resolve the package directory from within the module
 	dir, err := nextModule.ResolveDirectoryIn(fsys, dep.ImportPath())
 	if err != nil {
-		fmt.Println("error there")
-		return nil, fmt.Errorf("di: unable to find directory for dependency %s > %w", dep.ID(), err)
+		return nil, fmt.Errorf("di: unable to find directory for dependency %s . %w", dep.ID(), err)
 	}
 	rel, err := filepath.Rel(nextModule.Directory(), dir)
 	if err != nil {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 
 	"github.com/livebud/bud/internal/cli"
@@ -10,5 +11,5 @@ import (
 
 // main bud entrypoint. Intentionally simple.
 func main() {
-	os.Exit(cli.Parse(os.Args[1:]))
+	os.Exit(cli.Run(context.Background(), os.Args[1:]...))
 }

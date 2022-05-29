@@ -4,60 +4,59 @@ import (
 	"context"
 	"testing"
 
+	"github.com/livebud/bud/internal/cli"
+	"github.com/livebud/bud/internal/cli/testcli"
+	"github.com/livebud/bud/internal/imhash"
+	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/package/gomod"
 
-	"github.com/livebud/bud/internal/imhash"
-
-	"github.com/livebud/bud/internal/budtest"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 )
 
 func TestAppHash(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
-	bud := budtest.New(dir)
-	bud.Files["controller/controller.go"] = `
+	td := testdir.New(dir)
+	td.Files["controller/controller.go"] = `
 		package controller
-
-		type Controller struct {
-		}
-
+		type Controller struct {}
 		func (c *Controller) Index() string {
 			return "Hello Users!"
 		}
 	`
-	project, err := bud.Compile(ctx)
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(cli.New(dir))
+	stdout, stderr, err := cli.Run(ctx, "build")
 	is.NoErr(err)
-	is.NoErr(project.Exists("bud/.cli/main.go"))
-
+	is.Equal(stdout.String(), "")
+	is.Equal(stderr.String(), "")
+	is.NoErr(td.Exists(
+		"bud/.cli/main.go",
+		"bud/.app/main.go",
+	))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-
-	app, err := project.Build(ctx)
-	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/main.go"))
-
 	hash1, err := imhash.Hash(module, "bud/.app")
 	is.NoErr(err)
 	is.Equal(len(hash1), 11)
-
 	// Update
-	project.Files["controller/controller.go"] = `
+	td.Files["controller/controller.go"] = `
 		package controller
-
-		type Controller struct {
-		}
-
+		type Controller struct {}
 		func (c *Controller) Index() string {
 			return "Hello Users!!"
 		}
 	`
-	is.NoErr(project.Rewrite())
-	app, err = project.Build(ctx)
+	is.NoErr(td.Write(ctx))
+	stdout, stderr, err = cli.Run(ctx, "build")
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/main.go"))
-
+	is.Equal(stdout.String(), "")
+	is.Equal(stderr.String(), "")
+	is.NoErr(td.Exists(
+		"bud/.cli/main.go",
+		"bud/.app/main.go",
+	))
 	hash2, err := imhash.Hash(module, "bud/.app")
 	is.NoErr(err)
 	is.Equal(len(hash2), 11)

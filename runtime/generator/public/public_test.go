@@ -1,31 +1,42 @@
 package public_test
 
 import (
-	"bytes"
 	"context"
 	_ "embed"
-	"io"
-	"os"
-	"path/filepath"
 	"testing"
 
-	"github.com/livebud/bud/internal/budtest"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/cli"
+	"github.com/livebud/bud/internal/cli/testcli"
+	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/internal/testdir"
 )
 
-// TODO: bud/.app/main.go should always be generated, but public will not exist
-// if there are no files
-func TestEmpty(t *testing.T) {
-	t.SkipNow()
+func TestNoProject(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
-	bud := budtest.New(dir)
-	project, err := bud.Compile(ctx)
+	td := testdir.New(dir)
+	cli := testcli.New(cli.New(dir))
+	stdout, stderr, err := cli.Run(ctx)
 	is.NoErr(err)
-	app, err := project.Build(ctx)
+	is.In(stdout.String(), "bud")
+	is.Equal(stderr.String(), "")
+	is.NoErr(td.NotExists("bud/.app/public/public.go"))
+}
+
+func TestEmptyBuild(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(cli.New(dir))
+	stdout, stderr, err := cli.Run(ctx, "build")
 	is.NoErr(err)
-	is.NoErr(app.NotExists("bud/.app/public/public.go"))
+	is.In(stdout.String(), "")
+	is.Equal(stderr.String(), "")
+	// Empty builds don't generate public files
+	is.NoErr(td.NotExists("bud/.app/public/public.go"))
 }
 
 // Pulled from: https://github.com/mathiasbynens/small
@@ -39,144 +50,134 @@ var favicon = []byte{
 	0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00,
 }
 
-func TestFavicon(t *testing.T) {
-	is := is.New(t)
-	ctx := context.Background()
-	dir := t.TempDir()
-	bud := budtest.New(dir)
-	bud.BFiles["public/favicon.ico"] = favicon
-	project, err := bud.Compile(ctx)
-	is.NoErr(err)
-	app, err := project.Build(ctx)
-	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/public/public.go"))
-	server, err := app.Start(ctx)
-	is.NoErr(err)
-	defer server.Close()
-	res, err := server.Get("/favicon.ico")
-	is.NoErr(err)
-	defer res.Body.Close()
-	is.Equal(200, res.StatusCode)
-	body, err := io.ReadAll(res.Body)
-	is.NoErr(err)
-	is.True(bytes.Equal(favicon, body))
+// Small valid gif: https://github.com/mathiasbynens/small/blob/master/gif.gif
+var gif = []byte{
+	0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01,
+	0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x3b,
 }
 
-func TestNested(t *testing.T) {
+func TestPublic(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
-	bud := budtest.New(dir)
+	td := testdir.New(dir)
+	td.BFiles["public/favicon.ico"] = favicon
+	ga := `function ga(track){}`
+	td.Files["public/ga.js"] = ga
 	css := `* { box-sizing: border-box; }`
-	bud.Files["public/normalize/normalize.css"] = css
-	project, err := bud.Compile(ctx)
+	td.Files["public/normalize/normalize.css"] = css
+	td.BFiles["public/lol.gif"] = gif
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(cli.New(dir))
+	app, stdout, stderr, err := cli.Start(ctx, "run")
 	is.NoErr(err)
-	app, err := project.Build(ctx)
+	defer app.Close()
+	// /favicon.ico
+	res, err := app.Get("/favicon.ico")
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/public/public.go"))
-	server, err := app.Start(ctx)
+	is.Equal(200, res.Status())
+	is.Equal(res.Body().Bytes(), favicon)
+	// Ubuntu CI reports a different MIME type than OSX
+	is.In(res.Header("Content-Type"), "image/")
+	is.In(res.Header("Content-Type"), "icon")
+	// /ga.js
+	res, err = app.Get("/ga.js")
 	is.NoErr(err)
-	defer server.Close()
-	res, err := server.Get("/normalize/normalize.css")
+	is.Equal(200, res.Status())
+	is.Equal(res.Body().String(), ga)
+	is.In(res.Header("Content-Type"), "javascript")
+	// /normalize/normalize.css
+	res, err = app.Get("/normalize/normalize.css")
 	is.NoErr(err)
-	defer res.Body.Close()
-	is.Equal(200, res.StatusCode)
-	body, err := io.ReadAll(res.Body)
+	is.Equal(200, res.Status())
+	is.Equal(res.Body().String(), css)
+	is.In(res.Header("Content-Type"), "css")
+	// /normalize/normalize.css
+	res, err = app.Get("/lol.gif")
 	is.NoErr(err)
-	is.Equal(string(body), css)
+	is.Equal(200, res.Status())
+	is.Equal(res.Body().Bytes(), gif)
+	is.In(res.Header("Content-Type"), "image/")
+	is.In(res.Header("Content-Type"), "gif")
+	// Test stdio
+	is.Equal(stdout.String(), "")
+	is.Equal(stderr.String(), "")
 }
 
 func TestPlugin(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
-	bud := budtest.New(dir)
-	bud.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.8"
-	project, err := bud.Compile(ctx)
+	td := testdir.New(dir)
+	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.8"
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(cli.New(dir))
+	app, stdout, stderr, err := cli.Start(ctx, "run")
 	is.NoErr(err)
-	app, err := project.Build(ctx)
+	defer app.Close()
+	res, err := app.Get("/tailwind/preflight.css")
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/public/public.go"))
-	server, err := app.Start(ctx)
-	is.NoErr(err)
-	defer server.Close()
-	res, err := server.Get("/tailwind/preflight.css")
-	is.NoErr(err)
-	defer res.Body.Close()
-	is.Equal(200, res.StatusCode)
-	body, err := io.ReadAll(res.Body)
-	is.NoErr(err)
-	is.Equal(string(body), `/* tailwind */`)
+	is.Equal(200, res.Status())
+	is.Equal(res.Body().String(), `/* tailwind */`)
+	is.Equal(stdout.String(), "")
+	is.Equal(stderr.String(), "")
 }
 
 func TestGetChangeGet(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
-	bud := budtest.New(dir)
-	bud.BFiles["public/favicon.ico"] = favicon
-	project, err := bud.Compile(ctx)
+	td := testdir.New(dir)
+	td.BFiles["public/favicon.ico"] = favicon
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(cli.New(dir))
+	app, _, _, err := cli.Start(ctx, "run")
 	is.NoErr(err)
-	app, err := project.Build(ctx)
+	defer app.Close()
+	res, err := app.Get("/favicon.ico")
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/public/public.go"))
-	server, err := app.Start(ctx)
-	is.NoErr(err)
-	defer server.Close()
-	res, err := server.Get("/favicon.ico")
-	is.NoErr(err)
-	defer res.Body.Close()
-	is.Equal(200, res.StatusCode)
-	body, err := io.ReadAll(res.Body)
-	is.NoErr(err)
-	is.True(bytes.Equal(favicon, body))
+	is.Equal(200, res.Status())
+	is.Equal(res.Body().Bytes(), favicon)
+	is.NoErr(td.Exists("bud/.app/public/public.go"))
 	// Favicon2
 	favicon2 := []byte{0x00, 0x00, 0x01}
-	bud.BFiles["public/favicon.ico"] = favicon2
-	err = project.Rewrite()
+	td.BFiles["public/favicon.ico"] = favicon2
+	is.NoErr(td.Write(ctx))
+	is.NoErr(td.Exists("bud/.app/public/public.go"))
+	res, err = app.Get("/favicon.ico")
 	is.NoErr(err)
-	// Rebuild
-	app, err = project.Build(ctx)
-	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/public/public.go"))
-	err = server.Restart(ctx)
-	is.NoErr(err)
-	res, err = server.Get("/")
-	is.NoErr(err)
-	res, err = server.Get("/favicon.ico")
-	is.NoErr(err)
-	defer res.Body.Close()
-	is.Equal(200, res.StatusCode)
-	body, err = io.ReadAll(res.Body)
-	is.NoErr(err)
-	is.True(bytes.Equal(favicon2, body))
+	is.Equal(200, res.Status())
+	is.Equal(res.Body().Bytes(), favicon2)
+	// is.Equal(stdout.String(), "")
+	// is.Equal(stderr.String(), "")
 }
 
 func TestEmbedFavicon(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
-	bud := budtest.New(dir)
-	bud.Flag.Embed = true
-	bud.BFiles["public/favicon.ico"] = favicon
-	project, err := bud.Compile(ctx)
+	td := testdir.New(dir)
+	td.BFiles["public/favicon.ico"] = favicon
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(cli.New(dir))
+	app, stdout, stderr, err := cli.Start(ctx, "run", "--embed")
 	is.NoErr(err)
-	app, err := project.Build(ctx)
+	defer app.Close()
+	res, err := app.Get("/favicon.ico")
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/public/public.go"))
-	// Remove file to ensure it's been embedded
-	is.NoErr(os.Remove(filepath.Join(dir, "public/favicon.ico")))
-	// Try requesting the favicon, it should be in memory now
-	server, err := app.Start(ctx)
+	is.Equal(200, res.Status())
+	is.Equal(res.Body().Bytes(), favicon)
+	// Replace favicon
+	favicon2 := []byte{0x00, 0x00, 0x01}
+	td.BFiles["public/favicon.ico"] = favicon2
+	is.NoErr(td.Write(ctx))
+	// Favicon shouldn't have changed
+	res, err = app.Get("/favicon.ico")
 	is.NoErr(err)
-	defer server.Close()
-	res, err := server.Get("/favicon.ico")
-	is.NoErr(err)
-	defer res.Body.Close()
-	is.Equal(200, res.StatusCode)
-	body, err := io.ReadAll(res.Body)
-	is.NoErr(err)
-	is.True(bytes.Equal(favicon, body))
+	is.Equal(200, res.Status())
+	is.Equal(res.Body().Bytes(), favicon)
+	is.Equal(stdout.String(), "")
+	is.Equal(stderr.String(), "")
 }
 
 func TestAppPluginOverlap(t *testing.T) {
@@ -197,71 +198,23 @@ func TestDefaults(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
-	bud := budtest.New(dir)
-	bud.Files["view/index.svelte"] = `<h1>hello</h1>`
-	project, err := bud.Compile(ctx)
+	td := testdir.New(dir)
+	td.Files["view/index.svelte"] = `<h1>hello</h1>`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(cli.New(dir))
+	app, stdout, stderr, err := cli.Start(ctx, "run")
 	is.NoErr(err)
-	app, err := project.Build(ctx)
+	defer app.Close()
+	// default favicon
+	res, err := app.Get("/favicon.ico")
 	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/public/public.go"))
-	server, err := app.Start(ctx)
-	is.NoErr(err)
-	defer server.Close()
-	// favicon.ico
-	res, err := server.Get("/favicon.ico")
-	is.NoErr(err)
-	defer res.Body.Close()
-	is.Equal(200, res.StatusCode)
-	body, err := io.ReadAll(res.Body)
-	is.NoErr(err)
-	is.True(bytes.Equal(defaultFavicon, body))
+	is.Equal(200, res.Status())
+	is.Equal(res.Body().Bytes(), defaultFavicon)
 	// default.css
-	res, err = server.Get("/default.css")
+	res, err = app.Get("/default.css")
 	is.NoErr(err)
-	defer res.Body.Close()
-	is.Equal(200, res.StatusCode)
-	body, err = io.ReadAll(res.Body)
-	is.NoErr(err)
-	is.True(bytes.Equal(defaultCSS, body))
-}
-
-func TestDefaultsPublic(t *testing.T) {
-	is := is.New(t)
-	ctx := context.Background()
-	dir := t.TempDir()
-	bud := budtest.New(dir)
-	ga := `function ga(track){}`
-	bud.Files["public/ga.js"] = ga
-	project, err := bud.Compile(ctx)
-	is.NoErr(err)
-	app, err := project.Build(ctx)
-	is.NoErr(err)
-	is.NoErr(app.Exists("bud/.app/public/public.go"))
-	server, err := app.Start(ctx)
-	is.NoErr(err)
-	defer server.Close()
-	// favicon.ico
-	res, err := server.Get("/ga.js")
-	is.NoErr(err)
-	defer res.Body.Close()
-	is.Equal(200, res.StatusCode)
-	body, err := io.ReadAll(res.Body)
-	is.NoErr(err)
-	is.Equal(ga, string(body))
-	// favicon.ico
-	res, err = server.Get("/favicon.ico")
-	is.NoErr(err)
-	defer res.Body.Close()
-	is.Equal(200, res.StatusCode)
-	body, err = io.ReadAll(res.Body)
-	is.NoErr(err)
-	is.True(bytes.Equal(defaultFavicon, body))
-	// default.css
-	res, err = server.Get("/default.css")
-	is.NoErr(err)
-	defer res.Body.Close()
-	is.Equal(200, res.StatusCode)
-	body, err = io.ReadAll(res.Body)
-	is.NoErr(err)
-	is.True(bytes.Equal(defaultCSS, body))
+	is.Equal(200, res.Status())
+	is.Equal(res.Body().Bytes(), defaultCSS)
+	is.Equal(stdout.String(), "")
+	is.Equal(stderr.String(), "")
 }

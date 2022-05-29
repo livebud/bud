@@ -25,7 +25,7 @@ func (templates Templates) Write(fsys vfs.ReadWritable) error {
 type Template struct {
 	Path  string
 	Code  string
-	State any
+	State interface{}
 }
 
 func (t *Template) Write(fsys vfs.ReadWritable) error {

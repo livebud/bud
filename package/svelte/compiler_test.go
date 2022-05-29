@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/livebud/bud/internal/is"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/svelte"
-	"github.com/matryer/is"
 )
 
 func TestSSR(t *testing.T) {

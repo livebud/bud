@@ -17,15 +17,17 @@ func (a *Arg) String(target *string) *String {
 	return value
 }
 
-func (a *Arg) Strings(target *[]string) *Strings {
-	value := &Strings{target: target}
-	a.value = &stringsValue{inner: value}
+func (a *Arg) StringMap(target *map[string]string) *StringMap {
+	*target = map[string]string{}
+	value := &StringMap{target: target}
+	a.value = &stringMapValue{inner: value}
 	return value
 }
 
-func (a *Arg) StringMap(target *map[string]string) *StringMap {
-	value := &StringMap{target: target}
-	a.value = &stringMapValue{inner: value}
+// Custom allows you to define a custom parsing function
+func (a *Arg) Custom(fn func(string) error) *Custom {
+	value := &Custom{target: fn}
+	a.value = &customValue{inner: value}
 	return value
 }
 

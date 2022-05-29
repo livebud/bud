@@ -96,7 +96,6 @@ Check out the Hacker News [demo](https://www.youtube.com/watch?v=LoypcRqn-xA), r
 
 Recent discussions: [Reddit](https://www.reddit.com/r/golang/comments/uoxocj/bud_the_fullstack_web_framework_for_go_developers/), [Hacker News](https://news.ycombinator.com/item?id=31371340), [Twitter](https://twitter.com/golivebud)
 
-
 # How did Bud come into existence?
 
 I started working on Bud 2 years ago after seeing how productive people could be in [Laravel](https://laravel.com/). I wanted the same for Go, so I decided to try creating Laravel for the Go ecosystem. However, my first version after 6 months needed to scaffold many files just to get started. If you are coming from [Rails](https://github.com/rails/rails) or Laravel, you may shrug and consider this as pretty normal.
@@ -117,7 +116,6 @@ The goals are now:
 
 - Bud should compile to a single binary that contains your entire web app and can be copied to a server that doesn't even have Go installed.
 
-
 # Contributing
 
-Please refer to the [Contributing Guide](./Contributing.md) to learn how to run and test Bud locally.
+Please refer to the [Contributing Guide](./contributing/Readme.md) to learn how to develop Bud locally.

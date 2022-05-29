@@ -57,7 +57,6 @@ func (c *Compiler) DOM(path string, code []byte) (*DOM, error) {
 	expr := fmt.Sprintf(`;__svelte__.compile({ "path": %q, "code": %q, "target": "dom", "dev": %t, "css": true })`, path, code, c.Dev)
 	result, err := c.VM.Eval(path, expr)
 	if err != nil {
-		fmt.Println("Error evaling...", expr, err)
 		return nil, err
 	}
 	out := new(DOM)

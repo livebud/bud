@@ -17,9 +17,13 @@ func Serve() error {
 	return server.Serve()
 }
 
+func New(r io.Reader, w io.Writer) *Server {
+	return &Server{r, w}
+}
+
 type Server struct {
-	Reader io.Reader
-	Writer io.Writer
+	r io.Reader
+	w io.Writer
 }
 
 func (s *Server) Serve() error {
@@ -27,8 +31,8 @@ func (s *Server) Serve() error {
 	if err != nil {
 		return err
 	}
-	dec := gob.NewDecoder(s.Reader)
-	enc := gob.NewEncoder(s.Writer)
+	dec := gob.NewDecoder(s.r)
+	enc := gob.NewEncoder(s.w)
 	for {
 		// Decode messages into input
 		var in v8client.Input

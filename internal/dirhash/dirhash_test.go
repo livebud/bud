@@ -6,7 +6,7 @@ import (
 
 	"github.com/livebud/bud/internal/dirhash"
 	"github.com/livebud/bud/internal/gitignore"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 )
 
 func TestHash(t *testing.T) {

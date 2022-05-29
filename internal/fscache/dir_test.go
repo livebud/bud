@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/internal/fscache"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/internal/is"
 )
 
 func TestDir(t *testing.T) {

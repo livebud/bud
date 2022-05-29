@@ -1,17 +1,15 @@
 package testdir
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
-	"strings"
 	"testing/fstest"
 	"time"
 
@@ -24,13 +22,11 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/snapshot"
 
 	"github.com/livebud/bud/internal/npm"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/modcache"
-	"github.com/livebud/bud/package/vfs"
 	"golang.org/x/mod/modfile"
 )
 
@@ -42,8 +38,11 @@ const goMod = `
 	)
 `
 
-func New() *Dir {
+func New(dir string) *Dir {
 	return &Dir{
+		dir:         dir,
+		Backup:      false, // TODO: re-enable and store snapshots in ./bud/tmp
+		Skip:        func(string, bool) bool { return false },
 		Modules:     map[string]string{},
 		NodeModules: map[string]string{},
 		BFiles:      map[string][]byte{},
@@ -52,6 +51,9 @@ func New() *Dir {
 }
 
 type Dir struct {
+	dir         string
+	Backup      bool
+	Skip        func(name string, isDir bool) (skip bool)
 	Files       map[string]string // String files (convenient)
 	BFiles      map[string][]byte // Byte files (for images and binaries)
 	Modules     map[string]string // name[version]
@@ -182,25 +184,12 @@ func (d *Dir) mapfs() (fstest.MapFS, error) {
 	return mapfs, nil
 }
 
-type Option func(o *option)
-
-type option struct {
-	backup bool
-	skips  []func(name string, isDir bool) (skip bool)
+// Dir returns the directory
+func (d *Dir) Dir() string {
+	return d.dir
 }
 
-func WithBackup(backup bool) Option {
-	return func(o *option) {
-		o.backup = backup
-	}
-}
-
-func WithSkip(skips ...func(name string, isDir bool) (skip bool)) Option {
-	return func(o *option) {
-		o.skips = skips
-	}
-}
-
+// Hash returns a file hash of our mapped file system
 func (d *Dir) Hash() (string, error) {
 	// Map out the filesystem
 	fsys, err := d.mapfs()
@@ -211,15 +200,39 @@ func (d *Dir) Hash() (string, error) {
 	return snapshot.Hash(fsys)
 }
 
+func (d *Dir) writeAll(fsys fs.FS, to string) error {
+	return fs.WalkDir(fsys, ".", func(path string, de fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		toPath := filepath.Join(to, path)
+		if de.IsDir() {
+			mode := de.Type()
+			if mode == fs.ModeDir {
+				mode = fs.FileMode(0755)
+			}
+			if err := os.MkdirAll(toPath, mode); err != nil {
+				return err
+			}
+			return nil
+		}
+		data, err := fs.ReadFile(fsys, path)
+		if err != nil {
+			return err
+		}
+		mode := de.Type()
+		if mode == 0 {
+			mode = fs.FileMode(0644)
+		}
+		if err := os.WriteFile(toPath, data, mode); err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
 // Write testdir into dir
-func (d *Dir) Write(dir string, options ...Option) error {
-	// Load the options
-	opt := &option{
-		backup: true,
-	}
-	for _, option := range options {
-		option(opt)
-	}
+func (d *Dir) Write(ctx context.Context) error {
 	// Map out the filesystem
 	fsys, err := d.mapfs()
 	if err != nil {
@@ -231,15 +244,19 @@ func (d *Dir) Write(dir string, options ...Option) error {
 		return err
 	}
 	// Try restoring from cache
-	if opt.backup {
+	if d.Backup {
 		cachedFS, err := snapshot.Restore(hash)
 		if nil == err {
-			return dsync.Dir(cachedFS, ".", vfs.OS(dir), ".", dsync.WithSkip(opt.skips...))
+			// Write the cache to dir
+			if err := d.writeAll(cachedFS, d.dir); err != nil {
+				return err
+			}
 		} else if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
 	}
-	if err := dsync.Dir(fsys, ".", vfs.OS(dir), ".", dsync.WithSkip(opt.skips...)); err != nil {
+	// Write all the files in the filesystem out
+	if err := d.writeAll(fsys, d.dir); err != nil {
 		return err
 	}
 	// Load the module cache
@@ -248,13 +265,13 @@ func (d *Dir) Write(dir string, options ...Option) error {
 	if err != nil {
 		return err
 	}
-	eg, ctx := errgroup.WithContext(context.Background())
+	eg, ctx := errgroup.WithContext(ctx)
 	// Download modules that aren't in the module cache
 	if _, ok := fsys["go.mod"]; ok {
 		// Use "all" to extract cached directories into GOMODCACHE, so there's not
 		// a "go: downloading ..." step during go build.
 		cmd := exec.CommandContext(ctx, "go", "mod", "download", "all")
-		cmd.Dir = dir
+		cmd.Dir = d.dir
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 		cmd.Env = []string{
@@ -273,8 +290,9 @@ func (d *Dir) Write(dir string, options ...Option) error {
 	}
 
 	if _, ok := fsys["package.json"]; ok {
-		cmd := exec.CommandContext(ctx, "npm", "install", "--loglevel=error")
-		cmd.Dir = dir
+		// Avoid symlinking in node_modules/.bin to avoid symlink issues downstream
+		cmd := exec.CommandContext(ctx, "npm", "install", "--loglevel=error", "--no-bin-links")
+		cmd.Dir = d.dir
 		cmd.Stderr = os.Stderr
 		cmd.Env = []string{
 			"HOME=" + os.Getenv("HOME"),
@@ -292,8 +310,8 @@ func (d *Dir) Write(dir string, options ...Option) error {
 		return err
 	}
 	// Backing the snapshot up
-	if opt.backup {
-		if err := snapshot.Backup(hash, os.DirFS(dir)); err != nil {
+	if d.Backup {
+		if err := snapshot.Backup(hash, os.DirFS(d.dir)); err != nil {
 			return err
 		}
 	}
@@ -310,7 +328,8 @@ func Tree(dir string) (string, error) {
 
 func copyLiveBud(mapfs fstest.MapFS, budDir string) error {
 	liveBudDir := filepath.Join(budDir, "livebud")
-	return filepath.WalkDir(liveBudDir, func(path string, de fs.DirEntry, err error) error {
+	liveBudModules := path.Join("node_modules", "livebud")
+	return filepath.WalkDir(liveBudDir, func(fpath string, de fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -318,11 +337,17 @@ func copyLiveBud(mapfs fstest.MapFS, budDir string) error {
 		if err != nil {
 			return err
 		}
-		relPath, err := filepath.Rel(liveBudDir, path)
+		// Ignore symlinks since they cause write issues later and so far aren't
+		// relevant.
+		if stat.Mode()&fs.ModeSymlink != 0 {
+			return nil
+		}
+		relPath, err := filepath.Rel(liveBudDir, fpath)
 		if err != nil {
 			return err
 		}
-		mapfs[relPath] = &fstest.MapFile{
+		nodePath := path.Join(liveBudModules, relPath)
+		mapfs[nodePath] = &fstest.MapFile{
 			ModTime: stat.ModTime(),
 			Mode:    stat.Mode(),
 			Sys:     stat.Sys(),
@@ -330,34 +355,53 @@ func copyLiveBud(mapfs fstest.MapFS, budDir string) error {
 		if stat.IsDir() {
 			return nil
 		}
-		data, err := os.ReadFile(path)
+		data, err := os.ReadFile(fpath)
 		if err != nil {
 			return err
 		}
-		mapfs[relPath].Data = data
+		mapfs[nodePath].Data = data
 		return nil
 	})
 }
 
-func packLiveBud(budDir string) (string, error) {
-	liveBudDir := filepath.Join(budDir, "livebud")
-	tmpDir, err := ioutil.TempDir("", "testdir-livebud-*")
-	if err != nil {
-		return "", err
+// Exists returns nil if path exists. Should be called after Write.
+func (d *Dir) Exists(paths ...string) error {
+	eg := new(errgroup.Group)
+	for _, path := range paths {
+		path := path
+		eg.Go(func() error { return d.exist(path) })
 	}
-	cmd := exec.Command("npm", "pack", liveBudDir, "--loglevel=error")
-	cmd.Dir = tmpDir
-	cmd.Stderr = os.Stderr
-	tarName := new(bytes.Buffer)
-	cmd.Stdout = tarName
-	cmd.Env = []string{
-		"HOME=" + os.Getenv("HOME"),
-		"PATH=" + os.Getenv("PATH"),
-		"NO_COLOR=1",
+	return eg.Wait()
+}
+
+func (d *Dir) exist(path string) error {
+	if _, err := d.Stat(path); err != nil {
+		return err
 	}
-	if err := cmd.Run(); err != nil {
-		return "", err
+	return nil
+}
+
+// NotExists returns nil if path doesn't exist. Should be called after Write.
+func (d *Dir) NotExists(paths ...string) error {
+	eg := new(errgroup.Group)
+	for _, path := range paths {
+		path := path
+		eg.Go(func() error { return d.notExist(path) })
 	}
-	tarPath := filepath.Join(tmpDir, strings.TrimSpace(tarName.String()))
-	return tarPath, nil
+	return eg.Wait()
+}
+
+func (d *Dir) notExist(path string) error {
+	if _, err := d.Stat(path); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+	return fmt.Errorf("%s exists: %w", path, fs.ErrExist)
+}
+
+// Stat return the file info of path. Should be called after Write.
+func (d *Dir) Stat(path string) (fs.FileInfo, error) {
+	return os.Stat(filepath.Join(d.dir, path))
 }

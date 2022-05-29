@@ -6,6 +6,7 @@ type Args struct {
 }
 
 func (a *Args) Strings(target *[]string) *Strings {
+	*target = []string{}
 	value := &Strings{target: target}
 	a.value = &stringsValue{inner: value}
 	return value

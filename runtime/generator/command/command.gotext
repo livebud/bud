@@ -69,16 +69,7 @@ type Command struct {
 
 // Run starts the web server
 func (c *Command) Run(ctx context.Context) error {
-	addr := os.Getenv("PORT")
-	if addr == "" {
-		addr = "localhost:3000"
-	}
-	listener, err := socket.Load(addr)
-	if err != nil {
-		return err
-	}
-	{{/* console.Info("Listening on %s", "http://"+addr) */}}
-	return c.web.Serve(ctx, listener)
+	return c.web.Serve(ctx, os.Getenv("PORT"))
 }
 {{- end }}
 

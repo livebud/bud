@@ -1,6 +1,7 @@
 package ssr_test
 
 import (
+	"context"
 	"encoding/json"
 	"io/fs"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/internal/version"
 	"github.com/livebud/bud/package/gomod"
@@ -18,16 +20,16 @@ import (
 	"github.com/livebud/bud/runtime/transform"
 	"github.com/livebud/bud/runtime/view"
 	"github.com/livebud/bud/runtime/view/ssr"
-	"github.com/matryer/is"
 )
 
 func TestSvelteHello(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	dir := t.TempDir()
-	td := testdir.New()
+	td := testdir.New(dir)
 	td.Files["view/index.svelte"] = `<h1>hi world</h1>`
 	td.NodeModules["svelte"] = version.Svelte
-	is.NoErr(td.Write(dir))
+	is.NoErr(td.Write(ctx))
 	vm, err := v8.Load()
 	is.NoErr(err)
 	svelteCompiler, err := svelte.Load(vm)
@@ -60,13 +62,14 @@ func TestSvelteHello(t *testing.T) {
 
 func TestSvelteAwait(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	dir := t.TempDir()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "text/plain")
 		w.Write([]byte("all good"))
 	}))
 	defer server.Close()
-	td := testdir.New()
+	td := testdir.New(dir)
 	td.Files["view/index.svelte"] = `
 		<script>
 			let promise = fetch("` + server.URL + `").then(res => res.text())
@@ -81,7 +84,7 @@ func TestSvelteAwait(t *testing.T) {
 		</div>
 	`
 	td.NodeModules["svelte"] = version.Svelte
-	is.NoErr(td.Write(dir))
+	is.NoErr(td.Write(ctx))
 	vm, err := v8.Load()
 	is.NoErr(err)
 	svelteCompiler, err := svelte.Load(vm)
@@ -109,9 +112,9 @@ func TestSvelteAwait(t *testing.T) {
 	is.True(strings.Contains(res.Body, `Loading...`))
 }
 
-// Wrap props with key (first use of generics :-D)
-func wrap[P any](key string, props P) map[string]P {
-	return map[string]P{key: props}
+// Wrap props with key
+func wrap(key string, props interface{}) map[string]interface{} {
+	return map[string]interface{}{key: props}
 }
 
 func render(vm js.VM, code, path string, props interface{}) (*view.Response, error) {
@@ -132,8 +135,9 @@ func render(vm js.VM, code, path string, props interface{}) (*view.Response, err
 
 func TestSvelteProps(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	dir := t.TempDir()
-	td := testdir.New()
+	td := testdir.New(dir)
 	td.Files["view/index.svelte"] = `
 		<script>
 			export let users = []
@@ -171,7 +175,7 @@ func TestSvelteProps(t *testing.T) {
 		<h6>{@html JSON.stringify(comment)}</h6>
 	`
 	td.NodeModules["svelte"] = version.Svelte
-	is.NoErr(td.Write(dir))
+	is.NoErr(td.Write(ctx))
 	vm, err := v8.Load()
 	is.NoErr(err)
 	svelteCompiler, err := svelte.Load(vm)
@@ -248,8 +252,9 @@ func TestSvelteProps(t *testing.T) {
 
 func TestSvelteLocalImports(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	dir := t.TempDir()
-	td := testdir.New()
+	td := testdir.New(dir)
 	td.Files["view/Comment.svelte"] = `
 		<script>
 			export let comment = {}
@@ -277,7 +282,7 @@ func TestSvelteLocalImports(t *testing.T) {
 		{/each}
 	`
 	td.NodeModules["svelte"] = version.Svelte
-	is.NoErr(td.Write(dir))
+	is.NoErr(td.Write(ctx))
 	vm, err := v8.Load()
 	is.NoErr(err)
 	svelteCompiler, err := svelte.Load(vm)
