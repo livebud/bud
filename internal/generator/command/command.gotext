@@ -68,7 +68,11 @@ func (c *CLI) Parse(ctx context.Context, args ...string) error {
 func (c *CLI) beforeRun(cmd *run.Command) (func(ctx context.Context) error) {
 	return func(ctx context.Context) (err error) {
 		// Attach the generators
-		cmd.FS, err = {{ $.Provider.Name }}(cmd.Flag, ctx, c.module)
+		cmd.FS, err = {{ $.Provider.Name }}(
+			{{- if $.Provider.Variable "github.com/livebud/bud/runtime/command.*Flag" }}cmd.Flag,{{ end }}
+			{{- if $.Provider.Variable "context.Context" }}ctx,{{ end }}
+			{{- if $.Provider.Variable "github.com/livebud/bud/package/gomod.*Module" }}c.module,{{ end }}
+		)
 		if err != nil {
 			return err
 		}
@@ -80,10 +84,11 @@ func (c *CLI) beforeRun(cmd *run.Command) (func(ctx context.Context) error) {
 func (c *CLI) beforeBuild(cmd *build.Command) (func(ctx context.Context) error) {
 	return func(ctx context.Context) (err error) {
 		// Attach the generators
-		cmd.FS, err = {{ $.Provider.Name }}(cmd.Flag, ctx, c.module)
-		if err != nil {
-			return err
-		}
+		cmd.FS, err = {{ $.Provider.Name }}(
+			{{- if $.Provider.Variable "github.com/livebud/bud/runtime/command.*Flag" }}cmd.Flag,{{ end }}
+			{{- if $.Provider.Variable "context.Context" }}ctx,{{ end }}
+			{{- if $.Provider.Variable "github.com/livebud/bud/package/gomod.*Module" }}c.module,{{ end }}
+		)
 		return cmd.Run(ctx)
 	}
 }

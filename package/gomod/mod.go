@@ -103,7 +103,11 @@ func parse(opt *option, path string, data []byte) (*Module, error) {
 		return nil, err
 	}
 	if modfile.Module == nil {
-		return nil, fmt.Errorf("mod: missing module statement in %q", path)
+		modFile, err := modfile.Format()
+		if err != nil {
+			return nil, fmt.Errorf("mod: missing module statement in %q and got an error while formatting %s", path, err)
+		}
+		return nil, fmt.Errorf("mod: missing module statement in %q, received %q", path, string(modFile))
 	}
 	dir := filepath.Dir(path)
 	return &Module{
