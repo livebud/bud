@@ -315,3 +315,11 @@ func TestHash(t *testing.T) {
 	is.NoErr(err)
 	is.True(string(m2.Hash()) != string(m3.Hash()))
 }
+
+func TestMissingModule(t *testing.T) {
+	is := is.New(t)
+	module, err := gomod.Parse("go.mod", []byte(`require github.com/evanw/esbuild v0.14.11`))
+	is.True(err != nil)
+	is.Equal(err.Error(), `mod: missing module statement in "go.mod"`)
+	is.Equal(module, nil)
+}
