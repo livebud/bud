@@ -99,7 +99,7 @@ func (c *CLI) Run(ctx context.Context, args ...string) error {
 				// In this case, show the bud cli's usage, not your project cli's usage.
 				return commander.Usage()
 			}
-			return nil
+			return err
 		}
 		return cmd.Run()
 	})
@@ -184,13 +184,7 @@ func (c *CLI) parse(ctx context.Context, args []string, fn func(ctx context.Cont
 		cli.Run(cmd.Run)
 	}
 
-	if err := cli.Parse(ctx, args); err != nil {
-		if !errors.Is(err, context.Canceled) && !isExitStatus(err) {
-			return err
-		}
-		return nil
-	}
-	return nil
+	return cli.Parse(ctx, args)
 }
 
 func (c *CLI) compile(ctx context.Context) (*exe.Cmd, error) {

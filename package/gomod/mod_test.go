@@ -320,6 +320,6 @@ func TestMissingModule(t *testing.T) {
 	is := is.New(t)
 	module, err := gomod.Parse("go.mod", []byte(`require github.com/evanw/esbuild v0.14.11`))
 	is.True(err != nil)
-	is.Equal(err.Error(), `mod: missing module statement in "go.mod"`)
+	is.Equal(err.Error(), `mod: missing module statement in "go.mod", received "require github.com/evanw/esbuild v0.14.11\n"`)
 	is.Equal(module, nil)
 }
