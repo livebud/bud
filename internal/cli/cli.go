@@ -3,11 +3,14 @@ package cli
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/livebud/bud/package/js/v8server"
 
 	"github.com/livebud/bud/internal/buildcache"
 	"github.com/livebud/bud/internal/cli/create"
@@ -101,6 +104,28 @@ func (c *CLI) Run(ctx context.Context, args ...string) error {
 			}
 			return err
 		}
+
+		// Start the V8 Server
+		// TODO: find a better place for this
+		if len(c.args) > 0 && c.args[0] == "run" {
+			r1, w2, err := os.Pipe()
+			if err != nil {
+				return err
+			}
+			defer w2.Close()
+			r2, w1, err := os.Pipe()
+			if err != nil {
+				return err
+			}
+			defer w1.Close()
+			v8Server := v8server.New(r1, w1)
+			go func() {
+				fmt.Println("err serving", v8Server.Serve())
+			}()
+			v8Env := extrafile.PrepareEnv("V8", len(cmd.ExtraFiles), r2, w2)
+			cmd.ExtraFiles = append(cmd.ExtraFiles, r2, w2)
+			cmd.Env = append(cmd.Env, v8Env...)
+		}
 		return cmd.Run()
 	})
 }
@@ -112,6 +137,26 @@ func (c *CLI) Start(ctx context.Context, args ...string) (cmd *exe.Cmd, err erro
 		cmd, err = c.compile(ctx)
 		if err != nil {
 			return err
+		}
+		// Start the V8 Server
+		// TODO: find a better place for this
+		if len(c.args) > 0 && c.args[0] == "run" {
+			r1, w2, err := os.Pipe()
+			if err != nil {
+				return err
+			}
+			defer w2.Close()
+			r2, w1, err := os.Pipe()
+			if err != nil {
+				return err
+			}
+			defer w1.Close()
+			server := v8server.New(r1, w1)
+			fmt.Println("serving...")
+			go server.Serve()
+			v8Env := extrafile.PrepareEnv("V8", len(cmd.ExtraFiles), r2, w2)
+			cmd.ExtraFiles = append(cmd.ExtraFiles, r2, w2)
+			cmd.Env = append(cmd.Env, v8Env...)
 		}
 		return cmd.Start()
 	})
@@ -245,6 +290,19 @@ func (c *CLI) compile(ctx context.Context) (*exe.Cmd, error) {
 	cmd.ExtraFiles = c.ExtraFiles
 	return cmd, nil
 }
+
+// Inject the V8 server
+// func startV8(cmd *exe.Cmd) (*v8server.Server, error) {
+// 	// if _, err := v8client.Load()
+// 	r1, w2, err := os.Pipe()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	r2, w1, err := os.Pipe()
+// 	if err != nil {
+// 		return err
+// 	}
+// }
 
 // Wrapper for `bud create`
 func (c *CLI) create(cmd *create.Command) func(ctx context.Context) error {

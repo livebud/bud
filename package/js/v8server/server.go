@@ -17,13 +17,13 @@ func Serve() error {
 	return server.Serve()
 }
 
-func New(r io.Reader, w io.Writer) *Server {
-	return &Server{r, w}
+func New(reader io.ReadCloser, writer io.WriteCloser) *Server {
+	return &Server{reader, writer}
 }
 
 type Server struct {
-	r io.Reader
-	w io.Writer
+	reader io.ReadCloser
+	writer io.WriteCloser
 }
 
 func (s *Server) Serve() error {
@@ -31,8 +31,8 @@ func (s *Server) Serve() error {
 	if err != nil {
 		return err
 	}
-	dec := gob.NewDecoder(s.r)
-	enc := gob.NewEncoder(s.w)
+	dec := gob.NewDecoder(s.reader)
+	enc := gob.NewEncoder(s.writer)
 	for {
 		// Decode messages into input
 		var in v8client.Input
@@ -40,7 +40,9 @@ func (s *Server) Serve() error {
 			if errors.Is(err, io.EOF) {
 				return nil
 			}
-			continue
+			// Return an error avoid potential infinite loops even though it will kill
+			// the V8 server.
+			return fmt.Errorf("v8server: error decoding: %w", err)
 		}
 		// Handle eval
 		if in.Type == "eval" {

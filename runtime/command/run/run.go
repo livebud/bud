@@ -3,6 +3,7 @@ package run
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -74,18 +75,31 @@ func (c *Command) compileAndStart(ctx context.Context, listener socket.Listener)
 	if err := bcache.Build(ctx, c.module, "bud/.app/main.go", "bud/app"); err != nil {
 		return nil, err
 	}
-	// Forward existing APP file descriptor to bud/app if it exists.
-	files, env, err := extrafile.Prepare("APP", 0, listener)
-	if err != nil {
-		return nil, err
-	}
+
 	// Start the web server
 	process := exe.Command(ctx, "bud/app")
 	process.Stdout = os.Stdout
 	process.Stderr = os.Stderr
-	process.Env = envs.From(os.Environ()).Append(env...).List()
+	process.Env = os.Environ()
 	process.Dir = c.module.Directory()
-	process.ExtraFiles = append(process.ExtraFiles, files...)
+
+	// Forward V8 read-write pipes to bud/app
+	v8Files, v8Env := extrafile.Forward("V8", len(process.ExtraFiles))
+	process.ExtraFiles = append(process.ExtraFiles, v8Files...)
+	process.Env = append(process.Env, v8Env...)
+
+	// Forward APP listener to bud/app
+	appFiles, appEnv, err := extrafile.Prepare("APP", len(process.ExtraFiles), listener)
+	if err != nil {
+		return nil, err
+	}
+	process.ExtraFiles = append(process.ExtraFiles, appFiles...)
+	process.Env = append(process.Env, appEnv...)
+
+	// Dedupe
+	process.Env = envs.From(process.Env).List()
+	fmt.Println(v8Env)
+	fmt.Println(appEnv)
 	if err := process.Start(); err != nil {
 		return nil, err
 	}

@@ -24,14 +24,17 @@ func Prepare(prefix string, offset int, files ...File) ([]*os.File, []string, er
 		}
 		osFiles[i] = osFile
 	}
-	env := prepareEnv(prefix, offset, osFiles)
+	env := PrepareEnv(prefix, offset, osFiles...)
 	return osFiles, env, nil
 }
 
-// Half-hearted attempt to support Systemd out of the box.
+// PrepareEnv prepares the environment variables so the file descriptors can be
+// recovered in the subprocess.
+//
+// This is also a half-hearted attempt to support systemd out of the box.
 // https://github.com/coreos/go-systemd/blob/main/activation/files_unix.go
-// TODO: test this assumption
-func prepareEnv(prefix string, offset int, files []*os.File) []string {
+// TODO: test systemd support
+func PrepareEnv(prefix string, offset int, files ...*os.File) []string {
 	if len(files) == 0 {
 		return nil
 	}
@@ -69,4 +72,13 @@ func Load(prefix string) []*os.File {
 		files = append(files, os.NewFile(uintptr(fd), name))
 	}
 	return files
+}
+
+// Forward existing file descriptors to a subprocess
+func Forward(prefix string, offset int) (files []*os.File, env []string) {
+	files = Load(prefix)
+	if len(files) == 0 {
+		return files, env
+	}
+	return files, PrepareEnv(prefix, offset, files...)
 }

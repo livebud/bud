@@ -6,58 +6,78 @@
 package v8client
 
 import (
-	"context"
 	"encoding/gob"
 	"errors"
+	"fmt"
 	"io"
-	"os"
-	"os/exec"
 	"sync"
+
+	"github.com/livebud/bud/internal/extrafile"
 )
 
-// Launch the process and return a client
-func Launch(ctx context.Context) (c *Client, err error) {
-	// Get the BUD_PATH that's been passed in or fail. This should always be set
-	// by the compiler
-	budPath := os.Getenv("BUD_PATH")
-	if budPath == "" {
-		budPath, err = exec.LookPath("bud")
-		if err != nil {
-			return nil, err
-		}
-	}
-	cmd := exec.CommandContext(ctx, budPath, "tool", "v8", "client")
-	cmd.Env = os.Environ()
-	cmd.Stderr = os.Stderr
-	stdin, err := cmd.StdinPipe()
+// Load from the V8 file descriptor
+func Load() (*Client, error) {
+	client, err := From("V8")
 	if err != nil {
 		return nil, err
+		// return Launch(context.Background())
 	}
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
+	return client, nil
+}
+
+// // Launch the process and return a client
+// func Launch(ctx context.Context) (c *Client, err error) {
+// 	// Get the BUD_PATH that's been passed in or fail. This should always be set
+// 	// by the compiler
+// 	budPath := os.Getenv("BUD_PATH")
+// 	if budPath == "" {
+// 		budPath, err = exec.LookPath("bud")
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	}
+// 	cmd := exec.CommandContext(ctx, budPath, "tool", "v8", "client")
+// 	cmd.Env = os.Environ()
+// 	cmd.Stderr = os.Stderr
+// 	stdin, err := cmd.StdinPipe()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	stdout, err := cmd.StdoutPipe()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	if err := cmd.Start(); err != nil {
+// 		return nil, err
+// 	}
+// 	// Close function to shut down the process gracefully
+// 	closer := func() error {
+// 		if cmd.Process == nil {
+// 			return nil
+// 		}
+// 		if err := cmd.Process.Signal(os.Interrupt); err != nil {
+// 			return err
+// 		}
+// 		if err := cmd.Wait(); err != nil && err.Error() != "signal: interrupt" {
+// 			return err
+// 		}
+// 		return nil
+// 	}
+// 	return &Client{
+// 		reader: gob.NewDecoder(stdout),
+// 		writer: gob.NewEncoder(stdin),
+// 		closer: closer,
+// 	}, nil
+// }
+
+// From loads from an incoming file descriptor
+func From(prefix string) (*Client, error) {
+	files := extrafile.Load(prefix)
+	if len(files) != 2 {
+		return nil, fmt.Errorf("v8client: unable to load V8 client from extra files")
 	}
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-	// Close function to shut down the process gracefully
-	closer := func() error {
-		if cmd.Process == nil {
-			return nil
-		}
-		if err := cmd.Process.Signal(os.Interrupt); err != nil {
-			return err
-		}
-		if err := cmd.Wait(); err != nil && err.Error() != "signal: interrupt" {
-			return err
-		}
-		return nil
-	}
-	return &Client{
-		reader: gob.NewDecoder(stdout),
-		writer: gob.NewEncoder(stdin),
-		closer: closer,
-	}, nil
+	client := New(files[0], files[1])
+	return client, nil
 }
 
 // New client for testing
@@ -104,6 +124,7 @@ func (c *Client) Eval(path, expr string) (value string, err error) {
 	}
 	var out Output
 	if err := c.reader.Decode(&out); err != nil {
+		fmt.Println("ERROR DECODING....")
 		return "", err
 	}
 	if out.Error != "" {

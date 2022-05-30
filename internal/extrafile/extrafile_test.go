@@ -13,6 +13,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/livebud/bud/package/js/v8client"
+
+	"github.com/livebud/bud/package/js/v8server"
+
 	"golang.org/x/sync/errgroup"
 
 	"github.com/livebud/bud/internal/extrafile"
@@ -324,6 +328,69 @@ func TestTCPPassthrough(t *testing.T) {
 		eg.Go(func() error { return serve(appServer, appListener) })
 		eg.Go(func() error { return serve(hotServer, hotListener) })
 		is.NoErr(eg.Wait())
+	}
+
+	if value := os.Getenv("CHILD"); value != "" {
+		child(t)
+	} else {
+		parent(t)
+	}
+}
+
+func TestV8Passthrough(t *testing.T) {
+	// Parent process
+	parent := func(t testing.TB) {
+		is := is.New(t)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		dir := t.TempDir()
+		r1, w2, err := os.Pipe()
+		is.NoErr(err)
+		defer w2.Close()
+		r2, w1, err := os.Pipe()
+		is.NoErr(err)
+		defer w1.Close()
+		env := extrafile.PrepareEnv("V8", 0, r2, w2)
+		// Ignore -test.count otherwise this will continue recursively
+		var args []string
+		for _, arg := range os.Args[1:] {
+			if strings.HasPrefix(arg, "-test.count=") {
+				continue
+			}
+			args = append(args, arg)
+		}
+		cmd := exec.CommandContext(ctx, os.Args[0], append(args, "-test.v=true", "-test.run=^"+t.Name()+"$")...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Dir = dir
+		cmd.ExtraFiles = append(cmd.ExtraFiles, r2, w2)
+		cmd.Env = append(os.Environ(), "CHILD=1")
+		cmd.Env = append(cmd.Env, env...)
+		is.NoErr(cmd.Start())
+		// Create the V8 server
+		server := v8server.New(r1, w1)
+		// Start the V8 server
+		eg := new(errgroup.Group)
+		eg.Go(server.Serve)
+		// Wait for the command to finish
+		is.NoErr(cmd.Wait())
+		is.NoErr(w2.Close())
+		is.NoErr(w1.Close())
+		is.NoErr(eg.Wait())
+	}
+
+	// Child process
+	child := func(t testing.TB) {
+		is := is.New(t)
+		client, err := v8client.From("V8")
+		is.NoErr(err)
+		result, err := client.Eval("eval.js", "2+2")
+		is.NoErr(err)
+		is.Equal(result, "4")
+		// Test that console.log doesn't mess things up
+		result, err = client.Eval("eval.js", "console.log('hi')")
+		is.NoErr(err)
+		is.Equal(result, "undefined")
 	}
 
 	if value := os.Getenv("CHILD"); value != "" {
