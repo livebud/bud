@@ -64,7 +64,7 @@ func (p *Program) GenerateFile(ctx context.Context, fsys overlay.F, file *overla
 	provider, err := p.Injector.Wire(loadApp)
 	if err != nil {
 		// Don't wrap on purpose, this error gets swallowed up easily
-		return fmt.Errorf("program: unable to wire > %s", err)
+		return fmt.Errorf("program: unable to wire. %s", err)
 	}
 	for _, im := range provider.Imports {
 		imports.AddNamed(im.Name, im.Path)

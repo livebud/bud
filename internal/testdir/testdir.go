@@ -185,8 +185,8 @@ func (d *Dir) mapfs() (fstest.MapFS, error) {
 }
 
 // Dir returns the directory
-func (d *Dir) Dir() string {
-	return d.dir
+func (d *Dir) Path(subpaths ...string) string {
+	return filepath.Join(append([]string{d.dir}, subpaths...)...)
 }
 
 // Hash returns a file hash of our mapped file system
