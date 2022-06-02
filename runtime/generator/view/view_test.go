@@ -14,7 +14,6 @@ import (
 )
 
 func TestHello(t *testing.T) {
-	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
@@ -56,7 +55,6 @@ func TestHello(t *testing.T) {
 }
 
 func TestHelloEmbed(t *testing.T) {
-	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
