@@ -64,14 +64,6 @@ func TestUnixPassthrough(t *testing.T) {
 		hotSocket, hotClient, err := listen(filepath.Join(dir, "hot.sock"))
 		is.NoErr(err)
 		defer hotSocket.Close()
-		// appFiles, appEnv, err := extrafile.Prepare("APP", 0, appSocket)
-		// is.NoErr(err)
-		// is.Equal(len(appFiles), 1)
-		// is.Equal(len(appEnv), 2)
-		// hotFiles, hotEnv, err := extrafile.Prepare("HOT", 1, hotSocket)
-		// is.NoErr(err)
-		// is.Equal(len(hotFiles), 1)
-		// is.Equal(len(hotEnv), 2)
 		// Ignore -test.count otherwise this will continue recursively
 		var args []string
 		for _, arg := range os.Args[1:] {
@@ -208,14 +200,6 @@ func TestTCPPassthrough(t *testing.T) {
 		hotSocket, hotClient, err := listen(":0")
 		is.NoErr(err)
 		defer hotSocket.Close()
-		// appFiles, appEnv, err := extrafile.Prepare("APP", 0, appSocket)
-		// is.NoErr(err)
-		// is.Equal(len(appFiles), 1)
-		// is.Equal(len(appEnv), 2)
-		// hotFiles, hotEnv, err := extrafile.Prepare("HOT", 1, hotSocket)
-		// is.NoErr(err)
-		// is.Equal(len(hotFiles), 1)
-		// is.Equal(len(hotEnv), 2)
 		// Ignore -test.count otherwise this will continue recursively
 		var args []string
 		for _, arg := range os.Args[1:] {
