@@ -3,6 +3,7 @@ package exe
 import (
 	"context"
 	"errors"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -14,12 +15,31 @@ func Command(ctx context.Context, name string, args ...string) (c *Cmd) {
 
 type Cmd exec.Cmd
 
-func (c *Cmd) cmd() *exec.Cmd {
+// Inner gets the inner *exec.Cmd
+func (c *Cmd) inner() *exec.Cmd {
 	return (*exec.Cmd)(c)
 }
 
+// StdinPipe returns a pipe that will be connected to the command's standard
+// input when the command starts.
+func (c *Cmd) StdinPipe() (io.WriteCloser, error) {
+	return c.inner().StdinPipe()
+}
+
+// StdoutPipe returns a pipe that will be connected to the command's
+// standard output when the command starts.
+func (c *Cmd) StdoutPipe() (io.ReadCloser, error) {
+	return c.inner().StdoutPipe()
+}
+
+// StderrPipe returns a pipe that will be connected to the command's
+// standard error when the command starts.
+func (c *Cmd) StderrPipe() (io.ReadCloser, error) {
+	return c.inner().StderrPipe()
+}
+
 func (c *Cmd) Close() error {
-	cmd := (*exec.Cmd)(c)
+	cmd := c.inner()
 	sp := cmd.Process
 	if sp != nil {
 		if err := sp.Signal(os.Interrupt); err != nil {
@@ -36,7 +56,7 @@ func (c *Cmd) Close() error {
 }
 
 func (c *Cmd) Wait() error {
-	if err := (*exec.Cmd)(c).Wait(); err != nil {
+	if err := c.inner().Wait(); err != nil {
 		if canIgnore(err) {
 			return nil
 		}
@@ -76,7 +96,7 @@ func isWaitError(err error) bool {
 }
 
 func (c *Cmd) Run() error {
-	if err := (*exec.Cmd)(c).Run(); err != nil {
+	if err := c.inner().Run(); err != nil {
 		if canIgnore(err) {
 			return nil
 		}
@@ -86,7 +106,7 @@ func (c *Cmd) Run() error {
 }
 
 func (c *Cmd) Start() error {
-	return (*exec.Cmd)(c).Start()
+	return c.inner().Start()
 }
 
 func (c *Cmd) Restart(ctx context.Context) error {
@@ -94,7 +114,7 @@ func (c *Cmd) Restart(ctx context.Context) error {
 	if err := c.Close(); err != nil {
 		return err
 	}
-	cmd := (*exec.Cmd)(c)
+	cmd := c.inner()
 	// Re-run the command again. cmd.Args[0] is the path, so we skip that.
 	next := Command(ctx, cmd.Path, cmd.Args[1:]...)
 	next.Env = cmd.Env
@@ -103,7 +123,7 @@ func (c *Cmd) Restart(ctx context.Context) error {
 	next.Stdin = cmd.Stdin
 	next.ExtraFiles = cmd.ExtraFiles
 	next.Dir = cmd.Dir
-	if err := next.cmd().Start(); err != nil {
+	if err := next.Start(); err != nil {
 		return err
 	}
 	// Point to the new command

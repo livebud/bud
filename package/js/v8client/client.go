@@ -6,69 +6,75 @@
 package v8client
 
 import (
-	"encoding/gob"
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"os/exec"
 	"sync"
+
+	"github.com/livebud/bud/package/exe"
 
 	"github.com/livebud/bud/internal/extrafile"
 )
 
 // Load from the V8 file descriptor
-func Load() (*Client, error) {
+func Load(ctx context.Context) (*Client, error) {
 	client, err := From("V8")
 	if err != nil {
-		return nil, err
-		// return Launch(context.Background())
+		// Fallback to launching a V8 server from Bud
+		return Launch(ctx)
 	}
 	return client, nil
 }
 
-// // Launch the process and return a client
-// func Launch(ctx context.Context) (c *Client, err error) {
-// 	// Get the BUD_PATH that's been passed in or fail. This should always be set
-// 	// by the compiler
-// 	budPath := os.Getenv("BUD_PATH")
-// 	if budPath == "" {
-// 		budPath, err = exec.LookPath("bud")
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 	}
-// 	cmd := exec.CommandContext(ctx, budPath, "tool", "v8", "client")
-// 	cmd.Env = os.Environ()
-// 	cmd.Stderr = os.Stderr
-// 	stdin, err := cmd.StdinPipe()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	stdout, err := cmd.StdoutPipe()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	if err := cmd.Start(); err != nil {
-// 		return nil, err
-// 	}
-// 	// Close function to shut down the process gracefully
-// 	closer := func() error {
-// 		if cmd.Process == nil {
-// 			return nil
-// 		}
-// 		if err := cmd.Process.Signal(os.Interrupt); err != nil {
-// 			return err
-// 		}
-// 		if err := cmd.Wait(); err != nil && err.Error() != "signal: interrupt" {
-// 			return err
-// 		}
-// 		return nil
-// 	}
-// 	return &Client{
-// 		reader: gob.NewDecoder(stdout),
-// 		writer: gob.NewEncoder(stdin),
-// 		closer: closer,
-// 	}, nil
-// }
+// Launch either $BUD_PATH or bud. This is typically a fallback when the file
+// descriptor hasn't been passed in.
+func Launch(ctx context.Context) (c *Client, err error) {
+	// Get the BUD_PATH that's been passed in or fail. This should always be set
+	// by the compiler
+	budPath := os.Getenv("BUD_PATH")
+	if budPath == "" {
+		budPath, err = exec.LookPath("bud")
+		if err != nil {
+			return nil, err
+		}
+	}
+	cmd := exe.Command(ctx, budPath, "tool", "v8", "serve")
+	cmd.Env = os.Environ()
+	cmd.Stderr = os.Stderr
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return nil, err
+	}
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+	// Close function to shut down the process gracefully
+	closer := func() error {
+		if cmd.Process == nil {
+			return nil
+		}
+		if err := cmd.Process.Signal(os.Interrupt); err != nil {
+			return err
+		}
+		if err := cmd.Wait(); err != nil && err.Error() != "signal: interrupt" {
+			return err
+		}
+		return nil
+	}
+	return &Client{
+		reader: json.NewDecoder(stdout),
+		writer: json.NewEncoder(stdin),
+		closer: closer,
+	}, nil
+}
 
 // From loads from an incoming file descriptor
 func From(prefix string) (*Client, error) {
@@ -83,8 +89,8 @@ func From(prefix string) (*Client, error) {
 // New client for testing
 func New(reader io.Reader, writer io.Writer) *Client {
 	return &Client{
-		reader: gob.NewDecoder(reader),
-		writer: gob.NewEncoder(writer),
+		reader: json.NewDecoder(reader),
+		writer: json.NewEncoder(writer),
 		closer: func() error { return nil },
 	}
 }
@@ -96,8 +102,8 @@ type Client struct {
 	// Synchronize readers, writers and closers
 	mu     sync.Mutex
 	closer func() error
-	reader *gob.Decoder
-	writer *gob.Encoder
+	reader *json.Decoder
+	writer *json.Encoder
 }
 
 func (c *Client) Script(path, script string) error {
@@ -124,7 +130,6 @@ func (c *Client) Eval(path, expr string) (value string, err error) {
 	}
 	var out Output
 	if err := c.reader.Decode(&out); err != nil {
-		fmt.Println("ERROR DECODING....")
 		return "", err
 	}
 	if out.Error != "" {

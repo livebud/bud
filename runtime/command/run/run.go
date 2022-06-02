@@ -3,13 +3,11 @@ package run
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 
 	"github.com/livebud/bud/internal/buildcache"
-	"github.com/livebud/bud/internal/envs"
 	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/package/exe"
 	"github.com/livebud/bud/package/gomod"
@@ -84,22 +82,15 @@ func (c *Command) compileAndStart(ctx context.Context, listener socket.Listener)
 	process.Dir = c.module.Directory()
 
 	// Forward V8 read-write pipes to bud/app
-	v8Files, v8Env := extrafile.Forward("V8", len(process.ExtraFiles))
-	process.ExtraFiles = append(process.ExtraFiles, v8Files...)
-	process.Env = append(process.Env, v8Env...)
+	extrafile.Forward(&process.ExtraFiles, &process.Env, "V8")
 
 	// Forward APP listener to bud/app
-	appFiles, appEnv, err := extrafile.Prepare("APP", len(process.ExtraFiles), listener)
+	fileListener, err := listener.File()
 	if err != nil {
 		return nil, err
 	}
-	process.ExtraFiles = append(process.ExtraFiles, appFiles...)
-	process.Env = append(process.Env, appEnv...)
+	extrafile.Inject(&process.ExtraFiles, &process.Env, "APP", fileListener)
 
-	// Dedupe
-	process.Env = envs.From(process.Env).List()
-	fmt.Println(v8Env)
-	fmt.Println(appEnv)
 	if err := process.Start(); err != nil {
 		return nil, err
 	}

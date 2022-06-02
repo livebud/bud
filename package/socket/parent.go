@@ -24,12 +24,16 @@ type file interface {
 	File() (*os.File, error)
 }
 
-func (l listener) File() (*os.File, error) {
+func (l *listener) File() (*os.File, error) {
 	filer, ok := l.Listener.(file)
 	if !ok {
 		return nil, fmt.Errorf("socket: %s is not a file", l.Listener.Addr().String())
 	}
 	return filer.File()
+}
+
+func (l *listener) Close() error {
+	return l.Listener.Close()
 }
 
 // Listen on a path or port
@@ -52,7 +56,7 @@ func Listen(path string) (Listener, error) {
 		if err != nil {
 			return nil, err
 		}
-		return listener{unix}, nil
+		return &listener{unix}, nil
 	}
 	// Otherwise, we listen on a TCP port
 	addr, err := net.ResolveTCPAddr("tcp", url.Host)
@@ -63,7 +67,7 @@ func Listen(path string) (Listener, error) {
 	if err != nil {
 		return nil, err
 	}
-	return listener{tcp}, nil
+	return &listener{tcp}, nil
 }
 
 func Transport(path string) (http.RoundTripper, error) {

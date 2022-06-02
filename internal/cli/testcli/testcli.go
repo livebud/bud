@@ -108,7 +108,12 @@ func (c *TestCLI) Start(ctx context.Context, args ...string) (app *App, stdout *
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("unable to listen on socket path %q: %s", appSocketPath, err)
 	}
-	if err := c.cli.Inject("APP", appListener); err != nil {
+	appFile, err := appListener.File()
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("unable to get the app file listener %q: %s", appSocketPath, err)
+	}
+	// extrafile.Inject()
+	if err := c.cli.Inject("APP", appFile); err != nil {
 		return nil, nil, nil, err
 	}
 	// Start listening on a unix domain socket for the hot
@@ -117,7 +122,11 @@ func (c *TestCLI) Start(ctx context.Context, args ...string) (app *App, stdout *
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("unable to listen on socket path %q: %s", hotSocketPath, err)
 	}
-	if err := c.cli.Inject("HOT", hotListener); err != nil {
+	hotFile, err := hotListener.File()
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("unable to get the hot file listener %q: %s", hotSocketPath, err)
+	}
+	if err := c.cli.Inject("HOT", hotFile); err != nil {
 		return nil, nil, nil, err
 	}
 	// Attach to stdout and stderr
