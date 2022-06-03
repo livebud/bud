@@ -31,6 +31,9 @@ func TestHello(t *testing.T) {
 	app, stdout, stderr, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
+	hot, err := app.Hot("/bud/view/index.svelte")
+	is.NoErr(err)
+	defer hot.Close()
 	res, err := app.Get("/")
 	is.NoErr(err)
 	diff.TestHTTP(t, res.Headers().String(), `
@@ -42,6 +45,12 @@ func TestHello(t *testing.T) {
 	// Change svelte file
 	td.Files["view/index.svelte"] = `<h1>hi</h1>`
 	is.NoErr(td.Write(ctx))
+	// Wait for the change event
+	eventCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	event, err := hot.Next(eventCtx)
+	is.NoErr(err)
+	is.In(string(event.Data), `{"scripts":["?ts=`)
 	// Should change
 	res, err = app.Get("/")
 	is.NoErr(err)
