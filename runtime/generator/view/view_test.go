@@ -54,6 +54,9 @@ func TestHello(t *testing.T) {
 	is.In(stderr.String(), "info: Ready on")
 }
 
+// Note: if this test is failing due to context deadline exceeding, you
+// probably just need update the timeout. Right now we don't have a signal
+// that Start() has built and started the app.
 func TestHelloEmbed(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()

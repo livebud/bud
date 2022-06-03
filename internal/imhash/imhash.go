@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/livebud/bud/internal/version"
+
 	"github.com/cespare/xxhash"
 	"golang.org/x/sync/errgroup"
 
@@ -24,7 +26,8 @@ func find(module *gomod.Module, mainDir string) (*fileSet, error) {
 	if err := addIfExist(module, fset, "go.mod", "package.json", "package-lock.json"); err != nil {
 		return nil, err
 	}
-	if err := findDeps(fset, module, mainDir); err != nil {
+	imset := newImportSet()
+	if err := findDeps(fset, imset, module, mainDir); err != nil {
 		return nil, err
 	}
 	return fset, nil
@@ -156,14 +159,44 @@ func (s *fileSet) Debug(fsys fs.FS, w io.Writer) error {
 	return nil
 }
 
-func shouldWalk(module *gomod.Module, importPath string) bool {
-	return module.IsLocal(importPath) ||
-		// TODO: consider removing in release mode and are able to turn enable this
-		// for development
-		strings.HasPrefix(importPath, "github.com/livebud/bud")
+func newImportSet() *importSet {
+	return &importSet{
+		m: map[string]struct{}{},
+	}
 }
 
-func findDeps(fset *fileSet, module *gomod.Module, dir string) (err error) {
+type importSet struct {
+	mu sync.RWMutex
+	m  map[string]struct{}
+}
+
+func (i *importSet) Has(path string) bool {
+	i.mu.RLock()
+	_, ok := i.m[path]
+	i.mu.RUnlock()
+	return ok
+}
+
+func (i *importSet) Add(path string) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	if _, ok := i.m[path]; !ok {
+		i.m[path] = struct{}{}
+	}
+}
+
+func shouldWalk(module *gomod.Module, importPath string) bool {
+	if module.IsLocal(importPath) {
+		return true
+	}
+	// Search livebud if we're in development, otherwise skip it
+	if version.Bud == "latest" && strings.HasPrefix(importPath, "github.com/livebud/bud") {
+		return true
+	}
+	return false
+}
+
+func findDeps(fset *fileSet, imset *importSet, module *gomod.Module, dir string) (err error) {
 	imported, err := parser.Import(module, dir)
 	if err != nil {
 		return err
@@ -181,17 +214,21 @@ func findDeps(fset *fileSet, module *gomod.Module, dir string) (err error) {
 	eg := new(errgroup.Group)
 	for _, importPath := range imported.Imports {
 		importPath := importPath
-		if fset.Has(importPath) || !shouldWalk(module, importPath) {
+		if imset.Has(importPath) {
+			continue
+		}
+		imset.Add(importPath)
+		if !shouldWalk(module, importPath) {
 			continue
 		}
 		eg.Go(func() error {
-			return findImport(fset, module, dir, importPath)
+			return findImport(fset, imset, module, dir, importPath)
 		})
 	}
 	return eg.Wait()
 }
 
-func findImport(fset *fileSet, module *gomod.Module, from, importPath string) error {
+func findImport(fset *fileSet, imset *importSet, module *gomod.Module, from, importPath string) error {
 	dir, err := module.ResolveDirectory(importPath)
 	if err != nil {
 		return fmt.Errorf("imhash: error finding import %q from %q. %w", importPath, from, err)
@@ -200,7 +237,7 @@ func findImport(fset *fileSet, module *gomod.Module, from, importPath string) er
 	if err != nil {
 		return err
 	}
-	if err := findDeps(fset, module, relPath); err != nil {
+	if err := findDeps(fset, imset, module, relPath); err != nil {
 		return err
 	}
 	return nil

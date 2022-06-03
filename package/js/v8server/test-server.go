@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	if err := v8server.Serve(); err != nil {
+	if err := v8server.New(os.Stdin, os.Stdout).Serve(); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
 	}

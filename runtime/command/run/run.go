@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/livebud/bud/internal/buildcache"
-	"github.com/livebud/bud/internal/envs"
 	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/package/exe"
 	"github.com/livebud/bud/package/gomod"
@@ -74,18 +73,24 @@ func (c *Command) compileAndStart(ctx context.Context, listener socket.Listener)
 	if err := bcache.Build(ctx, c.module, "bud/.app/main.go", "bud/app"); err != nil {
 		return nil, err
 	}
-	// Forward existing APP file descriptor to bud/app if it exists.
-	files, env, err := extrafile.Prepare("APP", 0, listener)
-	if err != nil {
-		return nil, err
-	}
+
 	// Start the web server
 	process := exe.Command(ctx, "bud/app")
 	process.Stdout = os.Stdout
 	process.Stderr = os.Stderr
-	process.Env = envs.From(os.Environ()).Append(env...).List()
+	process.Env = os.Environ()
 	process.Dir = c.module.Directory()
-	process.ExtraFiles = append(process.ExtraFiles, files...)
+
+	// Forward V8 read-write pipes to bud/app
+	extrafile.Forward(&process.ExtraFiles, &process.Env, "V8")
+
+	// Forward APP listener to bud/app
+	fileListener, err := listener.File()
+	if err != nil {
+		return nil, err
+	}
+	extrafile.Inject(&process.ExtraFiles, &process.Env, "APP", fileListener)
+
 	if err := process.Start(); err != nil {
 		return nil, err
 	}

@@ -14,5 +14,5 @@ func From(file *os.File) (Listener, error) {
 	if err := file.Close(); err != nil {
 		return nil, err
 	}
-	return listener{ln}, nil
+	return &listener{ln}, nil
 }

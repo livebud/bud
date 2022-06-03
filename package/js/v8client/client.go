@@ -7,15 +7,31 @@ package v8client
 
 import (
 	"context"
-	"encoding/gob"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"sync"
+
+	"github.com/livebud/bud/package/exe"
+
+	"github.com/livebud/bud/internal/extrafile"
 )
 
-// Launch the process and return a client
+// Load from the V8 file descriptor
+func Load(ctx context.Context) (*Client, error) {
+	client, err := From("V8")
+	if err != nil {
+		// Fallback to launching a V8 server from Bud
+		return Launch(ctx)
+	}
+	return client, nil
+}
+
+// Launch either $BUD_PATH or bud. This is typically a fallback when the file
+// descriptor hasn't been passed in.
 func Launch(ctx context.Context) (c *Client, err error) {
 	// Get the BUD_PATH that's been passed in or fail. This should always be set
 	// by the compiler
@@ -26,7 +42,7 @@ func Launch(ctx context.Context) (c *Client, err error) {
 			return nil, err
 		}
 	}
-	cmd := exec.CommandContext(ctx, budPath, "tool", "v8", "client")
+	cmd := exe.Command(ctx, budPath, "tool", "v8", "serve")
 	cmd.Env = os.Environ()
 	cmd.Stderr = os.Stderr
 	stdin, err := cmd.StdinPipe()
@@ -54,17 +70,27 @@ func Launch(ctx context.Context) (c *Client, err error) {
 		return nil
 	}
 	return &Client{
-		reader: gob.NewDecoder(stdout),
-		writer: gob.NewEncoder(stdin),
+		reader: json.NewDecoder(stdout),
+		writer: json.NewEncoder(stdin),
 		closer: closer,
 	}, nil
+}
+
+// From loads from an incoming file descriptor
+func From(prefix string) (*Client, error) {
+	files := extrafile.Load(prefix)
+	if len(files) != 2 {
+		return nil, fmt.Errorf("v8client: unable to load V8 client from extra files")
+	}
+	client := New(files[0], files[1])
+	return client, nil
 }
 
 // New client for testing
 func New(reader io.Reader, writer io.Writer) *Client {
 	return &Client{
-		reader: gob.NewDecoder(reader),
-		writer: gob.NewEncoder(writer),
+		reader: json.NewDecoder(reader),
+		writer: json.NewEncoder(writer),
 		closer: func() error { return nil },
 	}
 }
@@ -76,8 +102,8 @@ type Client struct {
 	// Synchronize readers, writers and closers
 	mu     sync.Mutex
 	closer func() error
-	reader *gob.Decoder
-	writer *gob.Encoder
+	reader *json.Decoder
+	writer *json.Encoder
 }
 
 func (c *Client) Script(path, script string) error {

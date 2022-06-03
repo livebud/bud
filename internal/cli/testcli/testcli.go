@@ -87,7 +87,14 @@ func listen(path string) (socket.Listener, *http.Client, error) {
 		return nil, nil, err
 	}
 	client := &http.Client{
-		Timeout:   30 * time.Second,
+		// This is extra high right now because we don't currently have any signal
+		// that we've built the app and `bud run --embed` can take a long time. This
+		// is going to slow down legitimately failing requests, so it's a very
+		// temporary solution.
+		//
+		// TODO: support getting a signal that we've built the app, then lower this
+		// deadline.
+		Timeout:   60 * time.Second,
 		Transport: transport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
@@ -108,7 +115,12 @@ func (c *TestCLI) Start(ctx context.Context, args ...string) (app *App, stdout *
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("unable to listen on socket path %q: %s", appSocketPath, err)
 	}
-	if err := c.cli.Inject("APP", appListener); err != nil {
+	appFile, err := appListener.File()
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("unable to get the app file listener %q: %s", appSocketPath, err)
+	}
+	// extrafile.Inject()
+	if err := c.cli.Inject("APP", appFile); err != nil {
 		return nil, nil, nil, err
 	}
 	// Start listening on a unix domain socket for the hot
@@ -117,7 +129,11 @@ func (c *TestCLI) Start(ctx context.Context, args ...string) (app *App, stdout *
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("unable to listen on socket path %q: %s", hotSocketPath, err)
 	}
-	if err := c.cli.Inject("HOT", hotListener); err != nil {
+	hotFile, err := hotListener.File()
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("unable to get the hot file listener %q: %s", hotSocketPath, err)
+	}
+	if err := c.cli.Inject("HOT", hotFile); err != nil {
 		return nil, nil, nil, err
 	}
 	// Attach to stdout and stderr

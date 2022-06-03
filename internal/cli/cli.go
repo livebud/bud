@@ -9,15 +9,16 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/livebud/bud/internal/extrafile"
+
 	"github.com/livebud/bud/internal/buildcache"
 	"github.com/livebud/bud/internal/cli/create"
 	tool_cache_clean "github.com/livebud/bud/internal/cli/tool/cache/clean"
 	tool_di "github.com/livebud/bud/internal/cli/tool/di"
 	tool_v8 "github.com/livebud/bud/internal/cli/tool/v8"
-	tool_v8_client "github.com/livebud/bud/internal/cli/tool/v8/client"
+	tool_v8_serve "github.com/livebud/bud/internal/cli/tool/v8/serve"
 	"github.com/livebud/bud/internal/cli/version"
 	"github.com/livebud/bud/internal/envs"
-	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/generator/command"
 	"github.com/livebud/bud/internal/generator/generator"
 	"github.com/livebud/bud/internal/generator/importfile"
@@ -79,19 +80,23 @@ func (c *CLI) Dir() string {
 }
 
 // Inject extra files into the command
-func (c *CLI) Inject(prefix string, files ...extrafile.File) error {
-	extras, env, err := extrafile.Prepare(prefix, len(c.ExtraFiles), files...)
-	if err != nil {
-		return err
+func (c *CLI) Inject(prefix string, files ...*os.File) error {
+	var env []string
+	extrafile.Inject(&c.ExtraFiles, &env, prefix, files...)
+	for _, ev := range env {
+		parts := strings.Split(ev, "=")
+		if len(parts) != 2 {
+			continue
+		}
+		c.Env[parts[0]] = parts[1]
 	}
-	c.ExtraFiles = append(c.ExtraFiles, extras...)
-	c.Env = c.Env.Append(env...)
 	return nil
 }
 
 // Run the CLI and wait for the command to finish
 func (c *CLI) Run(ctx context.Context, args ...string) error {
 	return c.parse(ctx, args, func(ctx context.Context) error {
+		// Generate and build the project CLI
 		cmd, err := c.compile(ctx)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
@@ -157,9 +162,9 @@ func (c *CLI) parse(ctx context.Context, args []string, fn func(ctx context.Cont
 			cli := cli.Command("v8", "Execute Javascript with V8 from stdin")
 			cli.Run(cmd.Run)
 
-			{ // $ bud tool v8 client
-				cmd := &tool_v8_client.Command{}
-				cli := cli.Command("client", "V8 client used during development")
+			{ // $ bud tool v8 serve
+				cmd := &tool_v8_serve.Command{}
+				cli := cli.Command("serve", "Serve from a V8 server during development")
 				cli.Run(cmd.Run)
 			}
 		}

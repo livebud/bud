@@ -6,32 +6,13 @@ import (
 	"syscall"
 )
 
-type File interface {
-	File() (*os.File, error)
-}
-
-// Prepare is a low-level function for preparing files to be passed through a
-// subprocess via "os/exec".*Cmd.ExtraFiles. The prefix must be the same on both
-// sides. Use the offset to prepare multiple extra files to be passed through.
-// The offset should start at 0.
-func Prepare(prefix string, offset int, files ...File) ([]*os.File, []string, error) {
-	lenFiles := len(files)
-	osFiles := make([]*os.File, lenFiles)
-	for i, file := range files {
-		osFile, err := file.File()
-		if err != nil {
-			return nil, nil, err
-		}
-		osFiles[i] = osFile
-	}
-	env := prepareEnv(prefix, offset, osFiles)
-	return osFiles, env, nil
-}
-
-// Half-hearted attempt to support Systemd out of the box.
+// prepareEnv prepares the environment variables so the file descriptors can be
+// recovered in the subprocess.
+//
+// This is also a half-hearted attempt to support systemd out of the box.
 // https://github.com/coreos/go-systemd/blob/main/activation/files_unix.go
-// TODO: test this assumption
-func prepareEnv(prefix string, offset int, files []*os.File) []string {
+// TODO: test systemd support
+func prepareEnv(prefix string, offset int, files ...*os.File) []string {
 	if len(files) == 0 {
 		return nil
 	}
@@ -39,6 +20,27 @@ func prepareEnv(prefix string, offset int, files []*os.File) []string {
 		prefix + "_FDS_START=" + strconv.Itoa(offset),
 		prefix + "_FDS=" + strconv.Itoa(len(files)),
 	}
+}
+
+// Inject files and environment for a subprocess
+func Inject(extras *[]*os.File, env *[]string, prefix string, files ...*os.File) {
+	if len(files) == 0 {
+		return
+	}
+	offset := len(*extras)
+	environ := prepareEnv(prefix, offset, files...)
+	*extras = append(*extras, files...)
+	*env = append(*env, environ...)
+}
+
+// Forward an existing prefix into a subprocesses ExtraFiles and Env
+// parameters.
+func Forward(extras *[]*os.File, env *[]string, prefix string) {
+	files := Load(prefix)
+	if len(files) == 0 {
+		return
+	}
+	Inject(extras, env, prefix, files...)
 }
 
 // Loading extra file descriptors should start at 3 because the first 3 are:
@@ -65,7 +67,7 @@ func Load(prefix string) []*os.File {
 	var files []*os.File
 	for fd := startAt + offset; fd < startAt+offset+len; fd++ {
 		syscall.CloseOnExec(fd)
-		name := prefix + "_FD_" + strconv.Itoa(fd)
+		name := prefix + "_FD_" + strconv.Itoa(fd-startAt)
 		files = append(files, os.NewFile(uintptr(fd), name))
 	}
 	return files

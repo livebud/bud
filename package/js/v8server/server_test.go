@@ -30,7 +30,6 @@ func TestClient(t *testing.T) {
 
 func TestMultiClient(t *testing.T) {
 	is := is.New(t)
-
 	cmd := exec.Command("go", "run", "test-server.go")
 	cmd.Stderr = os.Stderr
 	cmd.Env = os.Environ()
@@ -40,9 +39,6 @@ func TestMultiClient(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(cmd.Start())
 	client := v8client.New(stdout, stdin)
-	// server := &v8server.Server{r2, w1}
-	// eg := new(errgroup.Group)
-	// eg.Go(func() error { return server.Serve() })
 	err = client.Script("fib.js", `
 		function fib(num) {
 			if (num <= 1) return 1;
