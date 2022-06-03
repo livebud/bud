@@ -2,14 +2,11 @@
 
 Thank you for your interest in helping to make Bud better! Bud is and forever will be a driven by the community. We depend on volunteers lending their time and expertise to make Bud better for everyone.
 
-## Note for Developing with Bud on Windows
-
-Currently, Bud must be developed using WSL/WSL2 if developing on Windows. While there is a desire to get native Windows development supported, the effort to get there will be a HEAVY lift, as we will need to work closely with the [v8go](https://github.com/rogchap/v8go) team to get their Windows support added back in to v8go, as well as a handful of other large effort-intensive tasks, such as finding a consistent way to identify file descriptors in Windows. There are some efforts working towards accomplishing these goals, but as they are such large tasks, it has been decided that they will be placed on the back burner. If anyone wants to contribute to these efforts, you can find a beginning list of tasks [here](https://github.com/livebud/bud/discussions/81).
-
 ## Requirements
 
-- Node 14
-- Go 1.18
+- OSX, Linux or Windows (via [WSL2](https://github.com/livebud/bud/issues/7))
+- Node 16+
+- Go 1.17+
 - C++ compiler in your $PATH (for cgo to compile V8)
 
 ## Setting up Bud for Development
@@ -80,6 +77,10 @@ go run main.go -C hello run
 go run main.go -C hello build
 ```
 
+## Issues to Work On
+
+Issues with the [good first issue]() or [help wanted](https://github.com/livebud/bud/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) labels would be good candidates to work on.
+
 ## Running Tests
 
 You can use the following commands to run all the tests:
@@ -97,3 +98,7 @@ You can run then run:
 1. Write the `Changelog.md`. You can use `git log v0.1.0..HEAD` to see the commits since the last release.
 2. Bump the version in `version.txt`.
 3. Run `make publish`.
+
+## Note for Developing with Bud on Windows
+
+Currently, Bud must be developed using WSL/WSL2 if developing on Windows. While there is a desire to get native Windows development supported, the effort to get there will be a HEAVY lift, as we will need to work closely with the [v8go](https://github.com/rogchap/v8go) team to get their Windows support added back in to v8go, as well as a handful of other large effort-intensive tasks, such as finding a consistent way to identify file descriptors in Windows. There are some efforts working towards accomplishing these goals, but as they are such large tasks, it has been decided that they will be placed on the back burner. If anyone wants to contribute to these efforts, you can find a beginning list of tasks [here](https://github.com/livebud/bud/discussions/81).
