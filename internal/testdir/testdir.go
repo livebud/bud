@@ -173,6 +173,9 @@ func (d *Dir) mapfs() (fstest.MapFS, error) {
 		}
 		hashes = append(hashes, []byte(hash)...)
 	}
+	if len(formatted) == 0 {
+		return nil, fmt.Errorf("testdir: empty go.mod for some reason")
+	}
 	mapfs["go.mod"] = &fstest.MapFile{
 		Data:    formatted,
 		ModTime: time.Now(),
