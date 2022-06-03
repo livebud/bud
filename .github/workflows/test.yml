@@ -2,32 +2,44 @@ name: Test
 
 on:
   push:
-    branches: ['*']
+    branches: [main]
   pull_request:
-    branches: ['*']
+    branches: [main]
 
 jobs:
   bud:
     name: Test
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
+        go: ['1.17', '1.18']
+        node: ['16']
+        include:
+          - os: ubuntu-latest
+            go: 1.18
+            node: 18
+          - os: macos-latest
+            go: 1.18
+            node: 18
 
     steps:
       - name: Check out bud
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         id: go
         with:
-          go-version: 1.18.0
+          go-version: ${{ matrix.go }}
+          cache: true
+          cache-dependency-path: go.sum
 
       - name: Setup Node.js
-        uses: actions/setup-node@v1.4.4
+        uses: actions/setup-node@v3
         with:
-          node-version: 16
+          node-version: ${{ matrix.node }}
           cache: 'npm'
           cache-dependency-path: |
             livebud/package-lock.json
@@ -47,38 +59,19 @@ jobs:
         run: npm ci
         working-directory: ./livebud
 
-      # Get values for cache paths to be used in later steps
-      # Based on: https://markphelps.me/posts/speed-up-your-go-builds-with-actions-cache/
-      - id: go-cache-paths
-        run: |
-          echo "::set-output name=go-build::$(go env GOCACHE)"
-          echo "::set-output name=go-mod::$(go env GOMODCACHE)"
-      # Cache go build cache, used to speedup go test
-      - name: Go Build Cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.go-cache-paths.outputs.go-build }}
-          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
-      # Cache go mod cache, used to speedup builds
-      - name: Go Mod Cache
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.go-cache-paths.outputs.go-mod }}
-          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
-
-      - name: Install go modules
+      - name: Install Go modules
         run: go mod download
 
       - name: Cached testdir snapshots
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: $TMPDIR/bud/snapshot
           key: ${{ runner.os }}
 
-      - name: Run CI (OSX)
-        if: matrix.os == 'macos-latest'
-        run: make ci.macos
-
-      - name: Run CI (Ubuntu)
+      - name: Run CI (Ubuntu Linux)
         if: matrix.os == 'ubuntu-latest'
         run: make ci.ubuntu
+
+      - name: Run CI (macOS)
+        if: matrix.os == 'macos-latest'
+        run: make ci.macos
