@@ -35,8 +35,10 @@ jobs:
 
       # Temporary fix to get the tests working until we pass the V8 client as a
       # os.Pipe
+      # Using GOPRIVATE=* to try and force Go to install the latest from the
+      # main branch. See: https://github.com/golang/go/issues/53226
       - name: Install bud binary into $PATH
-        run: go install github.com/livebud/bud@v8pipe2
+        run: GOPRIVATE=* go install github.com/livebud/bud@main
 
       - name: Install bud node_modules
         run: npm ci
