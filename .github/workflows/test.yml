@@ -14,18 +14,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        go: ['1.16', '1.17', '1.18']
+        go: ['1.17', '1.18']
         node: ['16']
         include:
           - os: ubuntu-latest
             go: 1.18
-            node: 14
-          - os: ubuntu-latest
-            go: 1.18
             node: 18
-          - os: macos-latest
-            go: 1.18
-            node: 14
           - os: macos-latest
             go: 1.18
             node: 18
