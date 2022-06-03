@@ -87,7 +87,14 @@ func listen(path string) (socket.Listener, *http.Client, error) {
 		return nil, nil, err
 	}
 	client := &http.Client{
-		Timeout:   10 * time.Second,
+		// This is extra high right now because we don't currently have any signal
+		// that we've built the app and `bud run --embed` can take a long time. This
+		// is going to slow down legitimately failing requests, so it's a very
+		// temporary solution.
+		//
+		// TODO: support getting a signal that we've built the app, then lower this
+		// deadline.
+		Timeout:   60 * time.Second,
 		Transport: transport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
