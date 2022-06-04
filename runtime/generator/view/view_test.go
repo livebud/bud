@@ -31,6 +31,9 @@ func TestHello(t *testing.T) {
 	app, stdout, stderr, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
+	hot, err := app.Hot("/bud/view/index.svelte")
+	is.NoErr(err)
+	defer hot.Close()
 	res, err := app.Get("/")
 	is.NoErr(err)
 	diff.TestHTTP(t, res.Headers().String(), `
@@ -40,8 +43,15 @@ func TestHello(t *testing.T) {
 	is.In(res.Body().String(), "<h1>hello</h1>")
 	is.NoErr(td.Exists("bud/.app/view/view.go"))
 	// Change svelte file
+	td = testdir.New(dir)
 	td.Files["view/index.svelte"] = `<h1>hi</h1>`
 	is.NoErr(td.Write(ctx))
+	// Wait for the change event
+	eventCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	event, err := hot.Next(eventCtx)
+	is.NoErr(err)
+	is.In(string(event.Data), `{"scripts":["?ts=`)
 	// Should change
 	res, err = app.Get("/")
 	is.NoErr(err)
@@ -51,7 +61,7 @@ func TestHello(t *testing.T) {
 		`)
 	is.In(res.Body().String(), "<h1>hi</h1>")
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "info: Ready on")
+	is.Equal(stderr.String(), "")
 }
 
 // Note: if this test is failing due to context deadline exceeding, you
@@ -104,5 +114,5 @@ func TestHelloEmbed(t *testing.T) {
 	`)
 	is.In(res.Body().String(), "<h1>hello</h1>")
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "")
+	is.Equal(stderr.String(), "")
 }
