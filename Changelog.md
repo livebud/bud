@@ -6,6 +6,52 @@ Get the latest release of Bud by running the following in your terminal:
 curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
 ```
 
+## v0.1.5
+
+This release focuses on paying down some technical debt that was accumulated prior to the release. It's part of the [v0.2](https://github.com/livebud/bud/discussions/18) plan.
+
+- Rename `bud run [--port=<address>]` to `bud run [--listen=<address>]`
+
+  This **breaking change** addresses the confusion discussed in https://github.com/livebud/bud/discussions/42.
+
+- Rename `bud tool v8 client` to `bud tool v8 serve`
+
+  This **breaking change** gives a better name for what the command does, listen for eval requests, evaluate the javascript and return the response.
+
+- 204 No Content improvements (thanks @theEyeD!)
+
+  Now when controller don't have a return value or return a nil error, they return `204 No Content`. For example:
+
+  ```go
+  package users
+  type Controller struct {}
+  func (c *Controller) Create() error {
+    return nil
+  }
+  ```
+
+  ```sh
+  $ curl -X POST /users
+  HTTP/1.1 204 No Content
+  Content-Length: 0
+  ```
+
+- Dedupe and group watch events (#123)
+
+  This reduces the number of events the watcher triggers on Linux causing less builds to trigger at once. It also hopefully fixed an issue where "remove" events sometimes weren't triggering rebuilds on all platforms.
+
+- Improve CI (thanks @wheinze!) (#118)
+
+  Waldemar took a much needed pass over the CI. He cleaned up the file, fixed caching and extended the test matrix, so we can more confidently say what's required to use Bud.
+
+- Refactor, test and simplify the compiler (#93)
+
+  The compiler wasn't really tested prior to v0.1.4. Issue that would crop up would be discovered due to E2E tests. In v0.1.5, the compiler was refactored to be testable, then tested. It was also simplified to reduce the number of ways you could use it programmatically. This makes it less likely a test will pass but the end-to-end usage will fail.
+
+- Extend the error chain (#100)
+
+  Errors were being lost while merging the filesystems for plugins. Now errors that occur in generators will be extended through the merged filesystem, so it's easier to see when there are issues in the generators
+
 ## v0.1.4
 
 - Add support for custom actions (thanks @theEyeD!)
