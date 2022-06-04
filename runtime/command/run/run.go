@@ -112,7 +112,7 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 		}
 		// TODO: de-duplicate with the watcher below
 		console.Error(err.Error())
-		if err := watcher.Watch(ctx, ".", func(path string) error {
+		if err := watcher.Watch(ctx, ".", func(_ []string) error {
 			process, err = c.compileAndStart(ctx, listener)
 			if err != nil {
 				// Exit without logging if the context has been cancelled. This can
@@ -136,39 +136,47 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 	}
 	defer process.Close()
 	// Start watching
-	if err := watcher.Watch(ctx, ".", func(path string) error {
-		switch filepath.Ext(path) {
-		// Re-compile the app and restart the Go server
-		case ".go":
-			// Trigger a reload if there's a hot reload server configured
-			if hotServer != nil {
-				// Exclamation point just means full page reload
-				hotServer.Reload("!")
-			}
-			if err := process.Close(); err != nil {
-				console.Error(err.Error())
-				return nil
-			}
-			p, err := c.compileAndStart(ctx, listener)
-			if err != nil {
-				console.Error(err.Error())
-				return nil
-			}
-			process = p
-			console.Info("Ready on " + web.Format(listener))
-			return nil
-		// Hot reload the page
-		default:
+	if err := watcher.Watch(ctx, ".", func(paths []string) error {
+		// Check if the changed paths support an incremental reload
+		if canIncrementallyReload(paths) {
 			// Trigger a reload if there's a hot reload server configured
 			if hotServer != nil {
 				hotServer.Reload("*")
 			}
 			return nil
 		}
+		// Otherwise trigger a full reload if there's a hot reload server configured
+		if hotServer != nil {
+			// Exclamation point just means full page reload
+			hotServer.Reload("!")
+		}
+		if err := process.Close(); err != nil {
+			console.Error(err.Error())
+			return nil
+		}
+		p, err := c.compileAndStart(ctx, listener)
+		if err != nil {
+			console.Error(err.Error())
+			return nil
+		}
+		process = p
+		console.Info("Ready on " + web.Format(listener))
+		return nil
+
 	}); err != nil {
 		return err
 	}
 	return process.Wait()
+}
+
+// canIncrementallyReload returns true if we can incrementally reload a page
+func canIncrementallyReload(paths []string) bool {
+	for _, path := range paths {
+		if filepath.Ext(path) == ".go" {
+			return false
+		}
+	}
+	return true
 }
 
 func (c *Command) startHot(ctx context.Context, hotServer *hot.Server) error {
