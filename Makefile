@@ -78,7 +78,7 @@ go.fmt:
 go.install:
 	@ go build --trimpath \
 		--ldflags="-s -w \
-			-X 'github.com/livebud/bud/internal/versions.Bud=0.1.5' \
+			-X 'github.com/livebud/bud/internal/versions.Bud=latest' \
 		" \
 		-o /usr/local/bin/bud \
 		.
