@@ -9,7 +9,7 @@ import (
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
-	"github.com/livebud/bud/internal/version"
+	"github.com/livebud/bud/internal/versions"
 )
 
 func TestDir(t *testing.T) {
@@ -21,7 +21,7 @@ func TestDir(t *testing.T) {
 	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.2"
 	td.Files["controller/controller.go"] = `package controller`
 	td.BFiles["public/favicon.ico"] = []byte{0x00}
-	td.NodeModules["svelte"] = version.Svelte
+	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["livebud"] = "*"
 	is.NoErr(td.Write(ctx))
 	is.NoErr(td.Exists(
@@ -49,7 +49,7 @@ func TestRefresh(t *testing.T) {
 	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.2"
 	td.Files["controller/controller.go"] = `package controller`
 	td.BFiles["public/favicon.ico"] = []byte{0x00}
-	td.NodeModules["svelte"] = version.Svelte
+	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["livebud"] = "*"
 	is.NoErr(td.Write(ctx))
 	is.NoErr(td.Exists(

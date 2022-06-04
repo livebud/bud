@@ -12,7 +12,7 @@ import (
 	"github.com/livebud/bud/internal/cli/testcli"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
-	"github.com/livebud/bud/internal/version"
+	"github.com/livebud/bud/internal/versions"
 )
 
 func TestIndexString(t *testing.T) {
@@ -1238,7 +1238,7 @@ func TestViewUnnamed(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)
-	td.NodeModules["svelte"] = version.Svelte
+	td.NodeModules["svelte"] = versions.Svelte
 	td.Files["view/index.svelte"] = `
 		<script>
 			export let users = []
@@ -1386,7 +1386,7 @@ func TestViewNestedUnnamed(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)
-	td.NodeModules["svelte"] = version.Svelte
+	td.NodeModules["svelte"] = versions.Svelte
 	td.Files["view/users/index.svelte"] = `
 		<script>
 			export let users = []
@@ -1534,7 +1534,7 @@ func TestViewDeepUnnamed(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)
-	td.NodeModules["svelte"] = version.Svelte
+	td.NodeModules["svelte"] = versions.Svelte
 	td.Files["view/teams/users/index.svelte"] = `
 		<script>
 			export let onlineUsers = []
@@ -1834,7 +1834,7 @@ func TestEmptyActionWithView(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)
-	td.NodeModules["svelte"] = version.Svelte
+	td.NodeModules["svelte"] = versions.Svelte
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}

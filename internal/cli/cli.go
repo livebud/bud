@@ -9,8 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/livebud/bud/internal/extrafile"
-
 	"github.com/livebud/bud/internal/buildcache"
 	"github.com/livebud/bud/internal/cli/create"
 	tool_cache_clean "github.com/livebud/bud/internal/cli/tool/cache/clean"
@@ -19,12 +17,14 @@ import (
 	tool_v8_serve "github.com/livebud/bud/internal/cli/tool/v8/serve"
 	"github.com/livebud/bud/internal/cli/version"
 	"github.com/livebud/bud/internal/envs"
+	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/generator/command"
 	"github.com/livebud/bud/internal/generator/generator"
 	"github.com/livebud/bud/internal/generator/importfile"
 	"github.com/livebud/bud/internal/generator/mainfile"
 	"github.com/livebud/bud/internal/generator/program"
 	"github.com/livebud/bud/internal/generator/transform"
+	"github.com/livebud/bud/internal/versions"
 	"github.com/livebud/bud/package/commander"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/exe"
@@ -199,6 +199,11 @@ func (c *CLI) compile(ctx context.Context) (*exe.Cmd, error) {
 		return nil, err
 	}
 
+	// Ensure we have the correct runtime
+	if err := ensureRuntimeAlignment(module); err != nil {
+		return nil, err
+	}
+
 	// Initialize generator dependencies
 	genfs, err := overlay.Load(module)
 	if err != nil {
@@ -276,6 +281,30 @@ func (c *CLI) tool_cache_clean(cmd *tool_cache_clean.Command) func(ctx context.C
 		cmd.Dir = c.dir
 		return cmd.Run(ctx)
 	}
+}
+
+// ensureRuntimeAlignment ensures that the CLI and runtime versions are aligned.
+// If they're not aligned, the CLI will correct the go.mod file to align them.
+func ensureRuntimeAlignment(module *gomod.Module) error {
+	// Do nothing for the latest version
+	if versions.Bud == "latest" {
+		return nil
+	}
+	target := "v" + versions.Bud
+	modfile := module.File()
+	require := modfile.Require("github.com/livebud/bud")
+	// We're good, the CLI matches the runtime version
+	if require != nil && require.Version == target {
+		return nil
+	}
+	// Otherwise, update go.mod to match the CLI's version
+	if err := modfile.AddRequire("github.com/livebud/bud", target); err != nil {
+		return err
+	}
+	if err := os.WriteFile(module.Directory("go.mod"), modfile.Format(), 0644); err != nil {
+		return err
+	}
+	return nil
 }
 
 func isExitStatus(err error) bool {

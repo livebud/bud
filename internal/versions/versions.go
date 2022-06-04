@@ -1,4 +1,4 @@
-package version
+package versions
 
 // Bud gets changed at link time using ldflags.
 var Bud = "latest"

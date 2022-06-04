@@ -9,7 +9,7 @@ import (
 	"github.com/livebud/bud/internal/cli/testcli"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
-	"github.com/livebud/bud/internal/version"
+	"github.com/livebud/bud/internal/versions"
 	"github.com/matthewmueller/diff"
 )
 
@@ -24,7 +24,7 @@ func TestHello(t *testing.T) {
 		func (c *Controller) Index() string { return "" }
 	`
 	td.Files["view/index.svelte"] = `<h1>hello</h1>`
-	td.NodeModules["svelte"] = version.Svelte
+	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["livebud"] = "*"
 	is.NoErr(td.Write(ctx))
 	cli := testcli.New(cli.New(dir))
@@ -78,7 +78,7 @@ func TestHelloEmbed(t *testing.T) {
 		func (c *Controller) Index() string { return "" }
 	`
 	td.Files["view/index.svelte"] = `<h1>hello</h1>`
-	td.NodeModules["svelte"] = version.Svelte
+	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["livebud"] = "*"
 	is.NoErr(td.Write(ctx))
 	cli := testcli.New(cli.New(dir))

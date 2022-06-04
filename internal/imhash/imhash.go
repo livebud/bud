@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/livebud/bud/internal/version"
+	"github.com/livebud/bud/internal/versions"
 
 	"github.com/cespare/xxhash"
 	"golang.org/x/sync/errgroup"
@@ -190,7 +190,7 @@ func shouldWalk(module *gomod.Module, importPath string) bool {
 		return true
 	}
 	// Search livebud if we're in development, otherwise skip it
-	if version.Bud == "latest" && strings.HasPrefix(importPath, "github.com/livebud/bud") {
+	if versions.Bud == "latest" && strings.HasPrefix(importPath, "github.com/livebud/bud") {
 		return true
 	}
 	return false

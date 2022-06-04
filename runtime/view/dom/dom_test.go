@@ -14,7 +14,7 @@ import (
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
-	"github.com/livebud/bud/internal/version"
+	"github.com/livebud/bud/internal/versions"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/svelte"
 	"github.com/livebud/bud/runtime/view/dom"
@@ -89,7 +89,7 @@ func TestNodeModules(t *testing.T) {
 	dir := t.TempDir()
 	td := testdir.New(dir)
 	td.Files["view/index.svelte"] = `<h1>hi world</h1>`
-	td.NodeModules["svelte"] = version.Svelte
+	td.NodeModules["svelte"] = versions.Svelte
 	is.NoErr(td.Write(ctx))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
@@ -111,7 +111,7 @@ func TestGenerateDir(t *testing.T) {
 	td.Files["view/index.svelte"] = `<h1>index</h1>`
 	td.Files["view/about/index.svelte"] = `<h2>about</h2>`
 	td.NodeModules["livebud"] = "*"
-	td.NodeModules["svelte"] = version.Svelte
+	td.NodeModules["svelte"] = versions.Svelte
 	is.NoErr(td.Write(ctx))
 	vm, err := v8.Load()
 	is.NoErr(err)

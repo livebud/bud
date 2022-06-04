@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/livebud/bud/internal/version"
+	"github.com/livebud/bud/internal/versions"
 
 	"github.com/Bowery/prompt"
 	"github.com/livebud/bud/internal/gotemplate"
@@ -55,11 +55,11 @@ func (c *Command) generateGoMod(ctx context.Context, dir string) error {
 	// Get the Go version
 	state.Version = strings.TrimPrefix(goVersion(runtime.Version()), "go")
 	// Add the required dependencies
-	if version.Bud != "latest" {
+	if versions.Bud != "latest" {
 		state.Requires = []*Require{
 			{
 				Import:  "github.com/livebud/bud",
-				Version: "v" + version.Bud,
+				Version: "v" + versions.Bud,
 			},
 		}
 	} else {
