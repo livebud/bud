@@ -24,7 +24,8 @@ func Watch(ctx context.Context, dir string, fn func(path string) error) error {
 		return err
 	}
 	defer watcher.Close()
-	// Avoid duplicate events
+	// Avoid duplicate events by checking the stamp of the file.
+	// TODO: bound this map
 	duplicates := map[string]struct{}{}
 	isDuplicate := func(path string, stat fs.FileInfo) bool {
 		stamp, err := computeStamp(path, stat)
@@ -36,6 +37,17 @@ func Watch(ctx context.Context, dir string, fn func(path string) error) error {
 			return true
 		}
 		duplicates[stamp] = struct{}{}
+		return false
+	}
+	// Note which paths we've seen already. This is similar to deduping, but for
+	// rename and remove events where the files don't exist anymore.
+	// TODO: bound this map
+	seen := map[string]struct{}{}
+	hasSeen := func(path string) bool {
+		if _, ok := seen[path]; ok {
+			return true
+		}
+		seen[path] = struct{}{}
 		return false
 	}
 	gitIgnore := gitignore.From(dir)
@@ -68,14 +80,6 @@ func Watch(ctx context.Context, dir string, fn func(path string) error) error {
 			}
 			return fn(path)
 		}
-	}
-	seen := map[string]struct{}{}
-	hasSeen := func(path string) bool {
-		if _, ok := seen[path]; ok {
-			return true
-		}
-		seen[path] = struct{}{}
-		return false
 	}
 	// For some reason renames are often emitted instead of
 	// Remove. Check it and correct.
