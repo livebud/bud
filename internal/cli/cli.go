@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -200,7 +201,7 @@ func (c *CLI) compile(ctx context.Context) (*exe.Cmd, error) {
 	}
 
 	// Ensure we have the correct runtime
-	if err := ensureRuntimeAlignment(module); err != nil {
+	if err := ensureRuntimeAlignment(ctx, module); err != nil {
 		return nil, err
 	}
 
@@ -285,7 +286,7 @@ func (c *CLI) tool_cache_clean(cmd *tool_cache_clean.Command) func(ctx context.C
 
 // ensureRuntimeAlignment ensures that the CLI and runtime versions are aligned.
 // If they're not aligned, the CLI will correct the go.mod file to align them.
-func ensureRuntimeAlignment(module *gomod.Module) error {
+func ensureRuntimeAlignment(ctx context.Context, module *gomod.Module) error {
 	// Do nothing for the latest version
 	if versions.Bud == "latest" {
 		return nil
@@ -302,6 +303,15 @@ func ensureRuntimeAlignment(module *gomod.Module) error {
 		return err
 	}
 	if err := os.WriteFile(module.Directory("go.mod"), modfile.Format(), 0644); err != nil {
+		return err
+	}
+	// Run `go mod download`
+	cmd := exec.CommandContext(ctx, "go", "mod", "download")
+	cmd.Dir = module.Directory()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	if err := cmd.Run(); err != nil {
 		return err
 	}
 	return nil
