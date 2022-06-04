@@ -194,16 +194,10 @@ func TestWithScaffold(t *testing.T) {
 	is.True(paths["view"])
 	is.True(paths["view/index.svelte"])
 	is.True(paths["view/show.svelte"])
-	// While there should be no more events, testing this can be flaky in CI.
-	// Instead test that we don't have any events with unexpected paths.
-	// An extra event isn't the end of the world, it'll just reload one more time.
+	// Test that there's no more events in the pipe
 	select {
 	case path := <-event:
-		rel, err := filepath.Rel(dir, path)
-		is.NoErr(err)
-		if _, ok := paths[rel]; !ok {
-			t.Fatalf("unexpected event: %q", path)
-		}
+		t.Fatalf("unexpected event: %q", path)
 	case <-time.Tick(waitForEvents):
 	}
 	cancel()
