@@ -6,6 +6,12 @@ Get the latest release of Bud by running the following in your terminal:
 curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
 ```
 
+## v0.1.6
+
+- Ensure alignment between CLI and runtime (#126)
+
+  In v0.1.5, we had a breaking change in the runtime. If you had an existing project and upgraded the CLI to v0.1.5, but you were still using the v0.1.4 runtime in go.mod, you'd encounter an error. This change automatically updates your go.mod to align with the CLI that's building it. Fixes: #125.
+
 ## v0.1.5
 
 This release focuses on paying down some technical debt that was accumulated prior to the release. It's part of the [v0.2](https://github.com/livebud/bud/discussions/18) plan.
