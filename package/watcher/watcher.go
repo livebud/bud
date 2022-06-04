@@ -6,25 +6,74 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
+	"sync"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/livebud/bud/internal/gitignore"
-
+	"github.com/bep/debounce"
 	"github.com/fsnotify/fsnotify"
+	"github.com/livebud/bud/internal/gitignore"
 )
 
 var Stop = errors.New("stop watching")
 
+// Arbitrarily picked after some manual testing. OSX is pretty fast, but Ubuntu
+// requires a longer delay for writes. Duplicate checks below allow us to keep
+// this snappy.
+var debounceDelay = 20 * time.Millisecond
+
+func newPathSet() *pathSet {
+	return &pathSet{
+		paths: map[string]struct{}{},
+	}
+}
+
+type pathSet struct {
+	mu    sync.RWMutex
+	paths map[string]struct{}
+}
+
+func (p *pathSet) Add(path string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.paths[path] = struct{}{}
+}
+
+func (p *pathSet) Flush() (paths []string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for path := range p.paths {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+	p.paths = map[string]struct{}{}
+	return paths
+}
+
 // Watch function
-func Watch(ctx context.Context, dir string, fn func(path string) error) error {
+func Watch(ctx context.Context, dir string, fn func(paths []string) error) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return err
 	}
 	defer watcher.Close()
-	// Avoid duplicate events by checking the stamp of the file.
+	// Trigger is debounced to group events together
+	errorCh := make(chan error)
+	pathset := newPathSet()
+	debounce := debounce.New(debounceDelay)
+	trigger := func(path string) {
+		pathset.Add(path)
+		debounce(func() {
+			if err := fn(pathset.Flush()); err != nil {
+				errorCh <- err
+			}
+		})
+	}
+	// Avoid duplicate events by checking the stamp of the file. This allows us
+	// to bring down the debounce delay to trigger events faster.
 	// TODO: bound this map
 	duplicates := map[string]struct{}{}
 	isDuplicate := func(path string, stat fs.FileInfo) bool {
@@ -39,17 +88,6 @@ func Watch(ctx context.Context, dir string, fn func(path string) error) error {
 		duplicates[stamp] = struct{}{}
 		return false
 	}
-	// Note which paths we've seen already. This is similar to deduping, but for
-	// rename and remove events where the files don't exist anymore.
-	// TODO: bound this map
-	seen := map[string]struct{}{}
-	hasSeen := func(path string) bool {
-		if _, ok := seen[path]; ok {
-			return true
-		}
-		seen[path] = struct{}{}
-		return false
-	}
 	gitIgnore := gitignore.From(dir)
 	// Files to ignore while walking the directory
 	shouldIgnore := func(path string, de fs.DirEntry) error {
@@ -57,29 +95,6 @@ func Watch(ctx context.Context, dir string, fn func(path string) error) error {
 			return filepath.SkipDir
 		}
 		return nil
-	}
-	// Walk the files, adding files that aren't ignored
-	walkDir := func(path string, de fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if err := shouldIgnore(path, de); err != nil {
-			return err
-		}
-		watcher.Add(path)
-		return nil
-	}
-	if err := filepath.WalkDir(dir, walkDir); err != nil {
-		return err
-	}
-	// Trigger takes the walkDir above but will also trigger the fn abovre
-	trigger := func(walk func(path string, de fs.DirEntry, err error) error) func(path string, de fs.DirEntry, err error) error {
-		return func(path string, de fs.DirEntry, err error) error {
-			if err := walk(path, de, err); err != nil {
-				return err
-			}
-			return fn(path)
-		}
 	}
 	// For some reason renames are often emitted instead of
 	// Remove. Check it and correct.
@@ -92,39 +107,26 @@ func Watch(ctx context.Context, dir string, fn func(path string) error) error {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return nil
 		}
-		// Don't do anything if we've already seen this path
-		if hasSeen(path) {
-			return nil
-		}
 		// Remove the path and emit an update
 		watcher.Remove(path)
 		// Trigger an update
-		if err := fn(path); err != nil {
-			return err
-		}
+		trigger(path)
 		return nil
 	}
 	// Remove the file or directory from the watcher.
 	// We intentionally ignore errors for this case.
 	remove := func(path string) error {
-		// Don't do anything if we've already seen this path
-		if hasSeen(path) {
-			return nil
-		}
 		watcher.Remove(path)
 		// Trigger an update
-		if err := fn(path); err != nil {
-			return err
-		}
+		trigger(path)
 		return nil
 	}
 	// Watching a file or directory as long as it's not inside .gitignore.
 	// Ignore most errors since missing a file isn't the end of the world.
 	// If a new directory is created, add and trigger all the files within
 	// that directory.
-	create := func(path string) error {
-		// Reset seen path
-		delete(seen, path)
+	var create func(path string) error
+	create = func(path string) error {
 		// Stat the file
 		stat, err := os.Stat(path)
 		if err != nil {
@@ -143,21 +145,24 @@ func Watch(ctx context.Context, dir string, fn func(path string) error) error {
 		// If it's a directory, walk the dir and trigger creates
 		// because those create events won't happen on their own
 		if stat.IsDir() {
-			if err := filepath.WalkDir(path, trigger(walkDir)); err != nil {
+			des, err := os.ReadDir(path)
+			if err != nil {
 				return err
 			}
+			for _, de := range des {
+				if err := create(filepath.Join(path, de.Name())); err != nil {
+					return err
+				}
+			}
+			trigger(path)
 			return nil
 		}
 		// Otherwise, trigger the create
-		if err := fn(path); err != nil {
-			return err
-		}
+		trigger(path)
 		return nil
 	}
 	// A file or directory has been updated. Notify our matchers.
 	write := func(path string) error {
-		// Reset seen path
-		delete(seen, path)
 		// Stat the file
 		stat, err := os.Stat(path)
 		if err != nil {
@@ -170,10 +175,22 @@ func Watch(ctx context.Context, dir string, fn func(path string) error) error {
 			return nil
 		}
 		// Trigger an update
-		if err := fn(path); err != nil {
+		trigger(path)
+		return nil
+	}
+
+	// Walk the files, adding files that aren't ignored
+	if err := filepath.WalkDir(dir, func(path string, de fs.DirEntry, err error) error {
+		if err != nil {
 			return err
 		}
+		if err := shouldIgnore(path, de); err != nil {
+			return err
+		}
+		watcher.Add(path)
 		return nil
+	}); err != nil {
+		return err
 	}
 
 	// Watch for file events!
@@ -185,9 +202,18 @@ func Watch(ctx context.Context, dir string, fn func(path string) error) error {
 			select {
 			case <-ctx.Done():
 				return nil
+			case err := <-errorCh:
+				return err
 			case err := <-watcher.Errors:
 				return err
 			case evt := <-watcher.Events:
+				// Sometimes the event name can be empty on Linux during deletes. Ignore
+				// those events.
+				if evt.Name == "" {
+					continue
+				}
+
+				// Switch over the operations
 				switch op := evt.Op; {
 
 				// Handle rename events
