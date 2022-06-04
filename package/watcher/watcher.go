@@ -31,17 +31,21 @@ func newPathSet() *pathSet {
 	}
 }
 
+// pathset is used to collect paths that have changed and flush them all at once
+// when the watch function is triggered.
 type pathSet struct {
 	mu    sync.RWMutex
 	paths map[string]struct{}
 }
 
+// Add a path to the set
 func (p *pathSet) Add(path string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.paths[path] = struct{}{}
 }
 
+// Flush the stored paths and clear the path set.
 func (p *pathSet) Flush() (paths []string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
