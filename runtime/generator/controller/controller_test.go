@@ -1814,6 +1814,8 @@ func TestOkChangeOk(t *testing.T) {
 	event, err := hot.Next(eventCtx)
 	is.NoErr(err)
 	is.Equal(string(event.Data), `{"reload":true}`)
+	// There might be a period before the process is closed. Wait for it.
+	time.Sleep(100 * time.Millisecond)
 	// Try again with the new file
 	res, err = app.Get("/")
 	is.NoErr(err)
