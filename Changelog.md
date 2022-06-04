@@ -6,6 +6,12 @@ Get the latest release of Bud by running the following in your terminal:
 curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
 ```
 
+## v0.1.7
+
+- Ensure alignment between CLI and runtime round 2 (#128)
+
+  In #126, we missed the case where the module wasn't downloaded yet. This version fixes that.
+
 ## v0.1.6
 
 - Ensure alignment between CLI and runtime (#126)
