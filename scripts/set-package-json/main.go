@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/livebud/bud/internal/npm"
-	"github.com/livebud/bud/internal/version"
+	"github.com/livebud/bud/internal/versions"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log/console"
 )
@@ -25,21 +25,21 @@ func run() error {
 	}
 	// Update the dependencies in ./livebud/package.json
 	if err := npm.Set(filepath.Join(dir, "livebud"), map[string]string{
-		"dependencies.svelte":              version.Svelte,
-		"dependencies.react":               version.React,
-		"dependencies.react-dom":           version.React,
-		"devDependencies.@types/react":     version.React,
-		"devDependencies.@types/react-dom": version.React,
+		"dependencies.svelte":              versions.Svelte,
+		"dependencies.react":               versions.React,
+		"dependencies.react-dom":           versions.React,
+		"devDependencies.@types/react":     versions.React,
+		"devDependencies.@types/react-dom": versions.React,
 	}); err != nil {
 		return err
 	}
 	// Update the dependencies in .
 	if err := npm.Set(dir, map[string]string{
-		"devDependencies.svelte":           version.Svelte,
-		"devDependencies.react":            version.React,
-		"devDependencies.react-dom":        version.React,
-		"devDependencies.@types/react":     version.React,
-		"devDependencies.@types/react-dom": version.React,
+		"devDependencies.svelte":           versions.Svelte,
+		"devDependencies.react":            versions.React,
+		"devDependencies.react-dom":        versions.React,
+		"devDependencies.@types/react":     versions.React,
+		"devDependencies.@types/react-dom": versions.React,
 	}); err != nil {
 		return err
 	}

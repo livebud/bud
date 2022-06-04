@@ -15,7 +15,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/livebud/bud/internal/current"
-	"github.com/livebud/bud/internal/version"
+	"github.com/livebud/bud/internal/versions"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/otiai10/copy"
 )
@@ -70,7 +70,7 @@ func (c *Command) Run(ctx context.Context) error {
 	// TODO: clean this mess up.
 	// It's breaking out of the packagejson.go file, but moving symlinks via
 	// os.Rename doesn't seem to work.
-	if version.Bud == "latest" {
+	if versions.Bud == "latest" {
 		npm, err := exec.LookPath("npm")
 		if err != nil {
 			return err

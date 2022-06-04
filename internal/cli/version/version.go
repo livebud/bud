@@ -6,7 +6,7 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/livebud/bud/internal/version"
+	"github.com/livebud/bud/internal/versions"
 )
 
 type Command struct {
@@ -16,19 +16,19 @@ type Command struct {
 func (c *Command) Run(ctx context.Context) error {
 	switch c.Key {
 	case "bud":
-		fmt.Println(version.Bud)
+		fmt.Println(versions.Bud)
 		return nil
 	case "svelte":
-		fmt.Println(version.Svelte)
+		fmt.Println(versions.Svelte)
 		return nil
 	case "react":
-		fmt.Println(version.React)
+		fmt.Println(versions.React)
 		return nil
 	default:
 		tw := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', tabwriter.AlignRight)
-		tw.Write([]byte("bud: \t" + version.Bud + "\n"))
-		tw.Write([]byte("svelte: \t" + version.Svelte + "\n"))
-		tw.Write([]byte("react: \t" + version.React + "\n"))
+		tw.Write([]byte("bud: \t" + versions.Bud + "\n"))
+		tw.Write([]byte("svelte: \t" + versions.Svelte + "\n"))
+		tw.Write([]byte("react: \t" + versions.React + "\n"))
 		return tw.Flush()
 	}
 }

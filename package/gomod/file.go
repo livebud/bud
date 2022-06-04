@@ -25,8 +25,14 @@ func (f *File) AddRequire(importPath, version string) error {
 	return f.file.AddRequire(importPath, version)
 }
 
-func (f *File) Replace(oldPath, newPath string) error {
-	return f.AddReplace(oldPath, "", newPath, "")
+// Replace finds a replaced package within go.mod or returns nil if not found.
+func (f *File) Replace(path string) *module.Version {
+	for _, rep := range f.file.Replace {
+		if rep.Old.Path == path {
+			return &rep.Old
+		}
+	}
+	return nil
 }
 
 func (f *File) AddReplace(oldPath, oldVers, newPath, newVers string) error {

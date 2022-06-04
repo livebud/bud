@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/livebud/bud/internal/version"
+	"github.com/livebud/bud/internal/versions"
 )
 
 func (c *Command) generatePackageJSON(ctx context.Context, dir, name string) error {
@@ -23,8 +23,8 @@ func (c *Command) generatePackageJSON(ctx context.Context, dir, name string) err
 	state.Name = name
 	state.Private = true
 	state.Dependencies = map[string]string{
-		"livebud": version.Bud,
-		"svelte":  version.Svelte,
+		"livebud": versions.Bud,
+		"svelte":  versions.Svelte,
 	}
 	code, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {

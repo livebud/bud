@@ -78,7 +78,7 @@ go.fmt:
 go.install:
 	@ go build --trimpath \
 		--ldflags="-s -w \
-			-X 'github.com/livebud/bud/internal/version.Bud=latest' \
+			-X 'github.com/livebud/bud/internal/versions.Bud=latest' \
 		" \
 		-o /usr/local/bin/bud \
 		.
@@ -91,7 +91,7 @@ go.build.darwin.amd64:
 		--out=bud \
 		--trimpath \
 		--ldflags="-s -w \
-			-X 'github.com/livebud/bud/internal/version.Bud=$(BUD_VERSION)' \
+			-X 'github.com/livebud/bud/internal/versions.Bud=$(BUD_VERSION)' \
 		" \
 		./ 1> /dev/null
 	@ mkdir -p release/bud_v$(BUD_VERSION)_darwin_amd64
@@ -108,7 +108,7 @@ go.build.darwin.arm64:
 		--out=bud \
 		--trimpath \
 		--ldflags="-s -w \
-			-X 'github.com/livebud/bud/internal/version.Bud=$(BUD_VERSION)' \
+			-X 'github.com/livebud/bud/internal/versions.Bud=$(BUD_VERSION)' \
 		" \
 		./ 1> /dev/null
 	@ mkdir -p release/bud_v$(BUD_VERSION)_darwin_arm64
@@ -124,7 +124,7 @@ go.build.linux:
 		--out=bud \
 		--trimpath \
 		--ldflags="-s -w \
-			-X 'github.com/livebud/bud/internal/version.Bud=$(BUD_VERSION)' \
+			-X 'github.com/livebud/bud/internal/versions.Bud=$(BUD_VERSION)' \
 		" \
 		./ 1> /dev/null
 	@ mkdir -p release/bud_v$(BUD_VERSION)_linux_amd64
@@ -145,7 +145,7 @@ go.build.windows:
 		--out=bud \
 		--trimpath \
 		--ldflags="-s -w \
-			-X 'github.com/livebud/bud/internal/version.Bud=$(BUD_VERSION)' \
+			-X 'github.com/livebud/bud/internal/versions.Bud=$(BUD_VERSION)' \
 		" \
 		./ 1> /dev/null
 
