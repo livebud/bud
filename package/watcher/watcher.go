@@ -38,7 +38,6 @@ func Watch(ctx context.Context, dir string, fn func(path string) error) error {
 		duplicates[stamp] = struct{}{}
 		return false
 	}
-	_ = isDuplicate
 	gitIgnore := gitignore.From(dir)
 	// Files to ignore while walking the directory
 	shouldIgnore := func(path string, de fs.DirEntry) error {
