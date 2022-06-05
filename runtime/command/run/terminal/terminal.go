@@ -8,7 +8,7 @@
 
 	So cursor moving and clear lines work properly ("_" is current cursor position):
 		Reloading...				-> _Reloading        -> Ready in 100ms (x23)
-		_										    _
+		_                                                     _
 		(current cursor position)	 (move cursor up)    (clear line and write new)
 */
 package terminal
