@@ -178,8 +178,8 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 			// Trigger a reload if there's a hot reload server configured
 			if hotServer != nil {
 				hotServer.Reload("*")
-				terminal.PromptSucessReload(time.Since(startTime), &counter)
 			}
+			terminal.PromptSucessReload(time.Since(startTime), &counter)
 			return nil
 		}
 		// Otherwise trigger a full reload if there's a hot reload server configured
