@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/livebud/bud/internal/cli"
+	cli "github.com/livebud/bud/internal/cli2"
 )
 
 //go:generate go run scripts/set-package-json/main.go
