@@ -1,14 +1,13 @@
 package run
 
 import (
-	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/livebud/bud/internal/buildcache"
 	"github.com/livebud/bud/internal/extrafile"
@@ -24,7 +23,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/livebud/bud/runtime/command"
-	"github.com/livebud/bud/runtime/command/run/terminal"
+	"github.com/livebud/bud/runtime/command/run/prompter"
 	"github.com/livebud/bud/runtime/web"
 )
 
@@ -63,11 +62,11 @@ func (c *Command) Run(ctx context.Context) error {
 	return nil
 }
 
-// Duplicate os.Stdout into currentBuffer for later use
+// The prompt need stdout and stderr's content.
 var (
-	currentBuffer  bytes.Buffer
-	previousBuffer bytes.Buffer
-	stdout         = io.MultiWriter(os.Stdout, &currentBuffer)
+	prompt prompter.Prompter
+	stdout = io.MultiWriter(os.Stdout, &prompt.StdOut)
+	stderr = io.MultiWriter(os.Stderr, &prompt.StdErr)
 )
 
 func (c *Command) compileAndStart(ctx context.Context, listener socket.Listener) (*exe.Cmd, error) {
@@ -88,7 +87,7 @@ func (c *Command) compileAndStart(ctx context.Context, listener socket.Listener)
 	// Start the web server
 	process := exe.Command(ctx, "bud/app")
 	process.Stdout = stdout
-	process.Stderr = os.Stderr
+	process.Stderr = stderr
 	process.Env = os.Environ()
 	process.Dir = c.module.Directory()
 
@@ -108,24 +107,15 @@ func (c *Command) compileAndStart(ctx context.Context, listener socket.Listener)
 	return process, nil
 }
 
-// Check if user's program printed anything out (since last re-compile)
-func newPrintMade() bool {
-	// Temporary variable to hold function's result
-	temp := currentBuffer.String() != previousBuffer.String()
-
-	// Replace old buffer with current buffer.
-	// currentBuffer will be renewed in compileAndStart later.
-	previousBuffer = currentBuffer
-	return temp
-}
+//
 
 func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 	listener, err := web.Listen("APP", c.Listen)
 	if err != nil {
 		return err
 	}
-	// Counter to count total sucessful reloads
-	counter := 0
+	// Create a terminal prompter
+	prompt.Init()
 	// Compile and start the project
 	process, err := c.compileAndStart(ctx, listener)
 	if err != nil {
@@ -137,11 +127,9 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 		// TODO: de-duplicate with the watcher below
 		console.Error(err.Error())
 		if err := watcher.Watch(ctx, ".", func(_ []string) error {
-			// Calculate total time took to compile
-			startTime := time.Now()
-
-			// Handle Reloading... message
-			terminal.PromptReloading(newPrintMade())
+			// Start timer and show Reloading... message
+			prompt.StartTimer()
+			prompt.Reloading()
 
 			process, err = c.compileAndStart(ctx, listener)
 			if err != nil {
@@ -150,10 +138,10 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 				if errors.Is(err, context.Canceled) {
 					return err
 				}
-				terminal.PromptFailedReload(err.Error(), &counter)
+				prompt.FailReload(err.Error())
 				return nil
 			}
-			terminal.PromptSucessReload(time.Since(startTime), &counter)
+			prompt.SuccessReload()
 			return watcher.Stop
 		}); err != nil {
 			return err
@@ -167,11 +155,10 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 	defer process.Close()
 	// Start watching
 	if err := watcher.Watch(ctx, ".", func(paths []string) error {
-		// Calculate total time took to compile
-		startTime := time.Now()
-
-		// Handle Reloading... message
-		terminal.PromptReloading(newPrintMade())
+		fmt.Println("std err:", prompt.StdErr.String())
+		// Start timer and show Reloading... message
+		prompt.StartTimer()
+		prompt.Reloading()
 
 		// Check if the changed paths support an incremental reload
 		if canIncrementallyReload(paths) {
@@ -179,7 +166,7 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 			if hotServer != nil {
 				hotServer.Reload("*")
 			}
-			terminal.PromptSucessReload(time.Since(startTime), &counter)
+			prompt.SuccessReload()
 			return nil
 		}
 		// Otherwise trigger a full reload if there's a hot reload server configured
@@ -188,16 +175,16 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 			hotServer.Reload("!")
 		}
 		if err := process.Close(); err != nil {
-			terminal.PromptFailedReload(err.Error(), &counter)
+			prompt.FailReload(err.Error())
 			return nil
 		}
 		p, err := c.compileAndStart(ctx, listener)
 		if err != nil {
-			terminal.PromptFailedReload(err.Error(), &counter)
+			prompt.FailReload(err.Error())
 			return nil
 		}
 		process = p
-		terminal.PromptSucessReload(time.Since(startTime), &counter)
+		prompt.SuccessReload()
 		return nil
 
 	}); err != nil {
