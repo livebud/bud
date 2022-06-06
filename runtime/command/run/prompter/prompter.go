@@ -41,12 +41,12 @@ type Prompter struct {
 
 // Clear line with cursor on.
 func clearLine() {
-	// fmt.Print("\033[0K")
+	fmt.Print("\033[0K")
 }
 
 // Move cursor up 1 line.
 func moveCursorUp() {
-	// fmt.Print("\033[1A")
+	fmt.Print("\033[1A")
 }
 
 func (p *Prompter) Init() {
