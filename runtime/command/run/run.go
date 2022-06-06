@@ -3,7 +3,6 @@ package run
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -155,7 +154,6 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 	defer process.Close()
 	// Start watching
 	if err := watcher.Watch(ctx, ".", func(paths []string) error {
-		fmt.Println("std err:", prompt.StdErr.String())
 		// Start timer and show Reloading... message
 		prompt.StartTimer()
 		prompt.Reloading()
