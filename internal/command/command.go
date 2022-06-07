@@ -2,12 +2,12 @@ package command
 
 import (
 	"context"
-	"fmt"
 	"io"
+
+	"github.com/livebud/bud/package/overlay"
 
 	"github.com/livebud/bud/package/commander"
 
-	"github.com/livebud/bud/internal/compiler"
 	"github.com/livebud/bud/package/log/console"
 	"github.com/livebud/bud/package/log/filter"
 
@@ -34,7 +34,7 @@ func (c *Bud) Module() (*gomod.Module, error) {
 	return gomod.Find(c.Dir)
 }
 
-func (c *Bud) Logger() (log.Interface, error) {
+func (c *Bud) Console() (log.Interface, error) {
 	handler, err := filter.Load(console.New(c.Stderr), c.Log)
 	if err != nil {
 		return nil, err
@@ -42,21 +42,33 @@ func (c *Bud) Logger() (log.Interface, error) {
 	return log.New(handler), nil
 }
 
-func (c *Bud) Compiler(log log.Interface, module *gomod.Module) *compiler.Bud {
-	return &compiler.Bud{
-		Module: module,
-		Log:    log,
-		Stdout: c.Stdout,
-		Stderr: c.Stderr,
-		Stdin:  c.Stdin,
+// Filesystem loads the filesystem
+// TODO: inline the overlay loader
+func (c *Bud) FileSystem(module *gomod.Module) (*overlay.FileSystem, error) {
+	genfs, err := overlay.Load(module)
+	if err != nil {
+		return nil, err
 	}
+	// genfs.FileGenerator("bud/import.go", importfile.New(module))
+	// genfs.FileGenerator("bud/.cli/main.go", mainfile.New(module))
+	// genfs.FileGenerator("bud/.cli/program/program.go", program.New(injector, module))
+	// genfs.FileGenerator("bud/.cli/command/command.go", command.New(injector, module, parser))
+	// genfs.FileGenerator("bud/.cli/generator/generator.go", generator.New(genfs, module, parser))
+	// genfs.FileGenerator("bud/.cli/transform/transform.go", transform.New(module))
+	return genfs, nil
 }
 
 // Run a custom command
+// TODO: finish supporting custom commands
+// 1. Compile
+//   a. Generate generator (later!)
+//   	 i. Generate bud/internal/generator
+//     ii. Build bud/generator
+//     iii. Run bud/generator
+//   b. Generate custom command
+//     i. Generate bud/internal/command/${name}/
+//     ii. Build bud/command/${name}
+// 2. Run bud/command/${name}
 func (c *Bud) Run(ctx context.Context) error {
-	fmt.Println("running custom command!")
-	if c.Help {
-		return commander.Usage()
-	}
-	return nil
+	return commander.Usage()
 }

@@ -5,7 +5,6 @@ import (
 	"os/exec"
 
 	"github.com/livebud/bud/internal/command"
-	"github.com/livebud/bud/internal/compiler"
 	"github.com/livebud/bud/package/socket"
 )
 
@@ -62,17 +61,17 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		// TODO: Setup the Bud pipe
 	}
 
-	{ // 2. Compile
-		budCompiler := c.bud.Compiler(log, module)
-		err := budCompiler.Compile(ctx, &compiler.Flag{
-			Minify: c.Minify,
-			Embed:  c.Embed,
-			Hot:    c.Hot,
-		})
-		if err != nil {
-			return err
-		}
-	}
+	// { // 2. Compile
+	// 	budCompiler := c.bud.Compiler(log, module)
+	// 	err := budCompiler.Compile(ctx, &compiler.Flag{
+	// 		Minify: c.Minify,
+	// 		Embed:  c.Embed,
+	// 		Hot:    c.Hot,
+	// 	})
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	{ // 3. Start the application
 		cmd := exec.Command("bud/app")

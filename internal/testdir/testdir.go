@@ -47,6 +47,7 @@ func New(dir string) *Dir {
 		NodeModules: map[string]string{},
 		BFiles:      map[string][]byte{},
 		Files:       map[string]string{},
+		MapFiles:    map[string]*fstest.MapFile{},
 	}
 }
 
@@ -54,10 +55,11 @@ type Dir struct {
 	dir         string
 	Backup      bool
 	Skip        func(name string, isDir bool) (skip bool)
-	Files       map[string]string // String files (convenient)
-	BFiles      map[string][]byte // Byte files (for images and binaries)
-	Modules     map[string]string // name[version]
-	NodeModules map[string]string // name[version]
+	Files       map[string]string          // String files (convenient)
+	BFiles      map[string][]byte          // Byte files (for images and binaries)
+	MapFiles    map[string]*fstest.MapFile // Map files (for directories)
+	Modules     map[string]string          // name[version]
+	NodeModules map[string]string          // name[version]
 }
 
 func merge(mapfs fstest.MapFS, fsys fs.FS, base ...string) error {
@@ -104,6 +106,10 @@ func (d *Dir) mapfs() (fstest.MapFS, error) {
 			ModTime: time.Now(),
 			Mode:    0644,
 		}
+	}
+	// Loop over map files
+	for path, mapfile := range d.MapFiles {
+		mapfs[path] = mapfile
 	}
 	// Build up go.mod automatically
 	modFile, err := modfile.Parse("go.mod", []byte(goMod), nil)

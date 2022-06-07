@@ -1,0 +1,30 @@
+{
+  "Imports": [
+    {
+      "name": "transform",
+      "path": "app.com/bud/.cli/transform"
+    },
+    {
+      "name": "mod",
+      "path": "github.com/livebud/bud/package/gomod"
+    },
+    {
+      "name": "js",
+      "path": "github.com/livebud/bud/package/js"
+    },
+    {
+      "name": "overlay",
+      "path": "github.com/livebud/bud/package/overlay"
+    },
+    {
+      "name": "view",
+      "path": "github.com/livebud/bud/runtime/view"
+    }
+  ],
+  "Flag": {
+    "Embed": false,
+    "Minify": false,
+    "Hot": ""
+  },
+  "Embeds": null
+}
