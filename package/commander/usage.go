@@ -8,7 +8,7 @@ import (
 	"text/template"
 )
 
-func generateUsage(template *template.Template, c *Command) (string, error) {
+func generateUsage(template *template.Template, c *Subcommand) (string, error) {
 	buf := new(bytes.Buffer)
 	if err := template.Execute(buf, &generateCommand{c}); err != nil {
 		return "", err
@@ -17,7 +17,7 @@ func generateUsage(template *template.Template, c *Command) (string, error) {
 }
 
 type generateCommand struct {
-	c *Command
+	c *Subcommand
 }
 
 func (g *generateCommand) Name() string {
