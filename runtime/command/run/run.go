@@ -12,7 +12,6 @@ import (
 	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/package/exe"
 	"github.com/livebud/bud/package/gomod"
-	"github.com/livebud/bud/package/log/console"
 	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/package/watcher"
@@ -113,23 +112,23 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 	if err != nil {
 		return err
 	}
+
 	// Create a terminal prompter
 	prompt.Init()
+
 	// Compile and start the project
 	process, err := c.compileAndStart(ctx, listener)
 	if err != nil {
+		prompt.Reloading() // ! Just use temporarily until the watcher is de-duplicated
+		prompt.FailReload(err.Error())
 		// Exit without logging if the context has been cancelled. This can
 		// occur when the hot reload server failed to start or exits early.
 		if errors.Is(err, context.Canceled) {
 			return err
 		}
 		// TODO: de-duplicate with the watcher below
-		console.Error(err.Error())
 		if err := watcher.Watch(ctx, ".", func(_ []string) error {
-			// Start timer and show Reloading... message
-			prompt.StartTimer()
 			prompt.Reloading()
-
 			process, err = c.compileAndStart(ctx, listener)
 			if err != nil {
 				// Exit without logging if the context has been cancelled. This can
@@ -154,10 +153,7 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 	defer process.Close()
 	// Start watching
 	if err := watcher.Watch(ctx, ".", func(paths []string) error {
-		// Start timer and show Reloading... message
-		prompt.StartTimer()
 		prompt.Reloading()
-
 		// Check if the changed paths support an incremental reload
 		if canIncrementallyReload(paths) {
 			// Trigger a reload if there's a hot reload server configured

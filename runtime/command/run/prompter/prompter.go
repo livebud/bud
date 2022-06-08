@@ -4,7 +4,7 @@
 			 https://en.wikipedia.org/wiki/ANSI_escape_code
 
 	Promptings must be placed in the right order
-	Init -> Start timer -> Reloading -> SucessReload/FailReload -> Reloading -> Start timer -> ...
+	Init -> Reloading -> Sucess Reload or Fail Reload -> Reloading -> ...
 
 	So cursor moving and clear lines work properly ("_" is current cursor position):
 		Reloading...               | -> _Reloading...   | -> Ready in 100ms (x23)
@@ -35,7 +35,7 @@ type Prompter struct {
 	oldStdOut bytes.Buffer
 	oldStdErr bytes.Buffer
 
-	// Prevent overriding error messages while compiling
+	// Use to prevent overriding error messages while compiling
 	previousIsErr bool
 }
 
@@ -49,12 +49,13 @@ func moveCursorUp() {
 	fmt.Print("\033[1A")
 }
 
-func (p *Prompter) Init() {
-	p.Counter = 0
+func (p *Prompter) startTimer() {
+	p.startTime = time.Now()
 }
 
-func (p *Prompter) StartTimer() {
-	p.startTime = time.Now()
+func (p *Prompter) Init() {
+	p.Counter = 0
+	fmt.Println("")
 }
 
 // Prompt failed reloads. Reset counter.
@@ -64,17 +65,23 @@ func (p *Prompter) FailReload(err string) {
 	console.Error(err)
 }
 
-// Prompt sucessfully reloads including time (in ms) and total sucessful reloads in a row.
+// Prompt sucessful reloads including time (in ms) and total times in a row.
 // Increase counter.
 // Example: Ready in 100ms (x23).
 func (p *Prompter) SuccessReload() {
+	p.previousIsErr = false
 	p.Counter++ // Increase counter
-	moveCursorUp()
-	clearLine()
+
+	// ! Temporary. Prevent overriding some unexpected errors we couldn't catch.
+	if p.canOverridePreviousPrompt() {
+		moveCursorUp()
+		clearLine()
+	}
+
 	console.Info(fmt.Sprintf("Ready in %dms (x%d)", time.Since(p.startTime).Milliseconds(), p.Counter))
 }
 
-func (p *Prompter) okToClearLine() bool {
+func (p *Prompter) canOverridePreviousPrompt() bool {
 	newContentInStdOut := p.StdOut.String() != p.oldStdOut.String()
 	newContentInStdErr := p.StdErr.String() != p.oldStdErr.String()
 
@@ -82,18 +89,22 @@ func (p *Prompter) okToClearLine() bool {
 	p.oldStdOut = p.StdOut
 	p.oldStdErr = p.StdErr
 
-	// Only return true if there are nothing new on both stdout and stderr
-	return !newContentInStdErr && !newContentInStdOut
+	// Only return true if there are nothing new on both stdout and stderr,
+	// and no error previously
+	return !newContentInStdErr && !newContentInStdOut && !p.previousIsErr
 }
 
 // Prompt "Reloading..." message.
+// Start timer.
 func (p *Prompter) Reloading() {
+	p.startTimer() // For displaying reloading time in successful reloads
+
 	// If there are anything new in stdout or stderr, we must not move cursor up and clear line
-	// since it will probably override its messages
+	// since it will probably override its messages.
 	// Example if there's a error (we don't want to override):
 	// Error: This is a error -> _Error: This is a error -> Reloading...
 	// _                                                    _
-	if p.okToClearLine() {
+	if p.canOverridePreviousPrompt() {
 		moveCursorUp()
 		clearLine()
 	}
