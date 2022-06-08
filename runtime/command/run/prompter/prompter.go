@@ -54,7 +54,10 @@ func (p *Prompter) startTimer() {
 }
 
 func (p *Prompter) Init() {
-	p.Counter = 0
+	p.Counter = 0 // Init counter
+
+	// Prevent overriding anything already
+	// in the terminal before running
 	fmt.Println("")
 }
 
@@ -72,7 +75,7 @@ func (p *Prompter) SuccessReload() {
 	p.previousIsErr = false
 	p.Counter++ // Increase counter
 
-	// ! Temporary. Prevent overriding some unexpected errors we couldn't catch.
+	// Prevent overriding errors in stderr.
 	if p.canOverridePreviousPrompt() {
 		moveCursorUp()
 		clearLine()
@@ -81,6 +84,11 @@ func (p *Prompter) SuccessReload() {
 	console.Info(fmt.Sprintf("Ready in %dms (x%d)", time.Since(p.startTime).Milliseconds(), p.Counter))
 }
 
+// If there are anything new in stdout or stderr, we must not move cursor up and clear line
+// since it will probably override its messages.
+// Example if there's a error (we don't want to override):
+// Error: This is a error -> _Error: This is a error -> Reloading...
+// _                                                    _
 func (p *Prompter) canOverridePreviousPrompt() bool {
 	newContentInStdOut := p.StdOut.String() != p.oldStdOut.String()
 	newContentInStdErr := p.StdErr.String() != p.oldStdErr.String()
@@ -98,12 +106,6 @@ func (p *Prompter) canOverridePreviousPrompt() bool {
 // Start timer.
 func (p *Prompter) Reloading() {
 	p.startTimer() // For displaying reloading time in successful reloads
-
-	// If there are anything new in stdout or stderr, we must not move cursor up and clear line
-	// since it will probably override its messages.
-	// Example if there's a error (we don't want to override):
-	// Error: This is a error -> _Error: This is a error -> Reloading...
-	// _                                                    _
 	if p.canOverridePreviousPrompt() {
 		moveCursorUp()
 		clearLine()

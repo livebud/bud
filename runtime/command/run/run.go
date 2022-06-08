@@ -105,8 +105,6 @@ func (c *Command) compileAndStart(ctx context.Context, listener socket.Listener)
 	return process, nil
 }
 
-//
-
 func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 	listener, err := web.Listen("APP", c.Listen)
 	if err != nil {
@@ -119,11 +117,11 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 	// Compile and start the project
 	process, err := c.compileAndStart(ctx, listener)
 	if err != nil {
-		prompt.Reloading() // ! Just use temporarily until the watcher is de-duplicated
-		prompt.FailReload(err.Error())
 		// Exit without logging if the context has been cancelled. This can
 		// occur when the hot reload server failed to start or exits early.
 		if errors.Is(err, context.Canceled) {
+			prompt.Reloading() // ! Just use temporarily until the watcher is de-duplicated
+			prompt.FailReload(err.Error())
 			return err
 		}
 		// TODO: de-duplicate with the watcher below
