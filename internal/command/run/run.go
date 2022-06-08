@@ -4,15 +4,17 @@ import (
 	"context"
 	"os/exec"
 
+	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/command"
 	"github.com/livebud/bud/package/socket"
 )
 
 func New(bud *command.Bud, web, hot socket.Listener) *Command {
 	return &Command{
-		bud: bud,
-		web: web,
-		hot: hot,
+		bud:  bud,
+		web:  web,
+		hot:  hot,
+		Flag: new(framework.Flag),
 	}
 }
 
@@ -24,9 +26,7 @@ type Command struct {
 	hot socket.Listener // Can be nil
 
 	// Flags
-	Embed  bool
-	Minify bool
-	Hot    string
+	Flag   *framework.Flag
 	Listen string
 }
 
@@ -52,8 +52,8 @@ func (c *Command) Run(ctx context.Context) (err error) {
 			}
 		}
 		// Bind the hot listener to the hot address
-		if c.hot == nil && !disabled(c.Hot) {
-			c.hot, err = socket.Listen(c.Hot)
+		if c.hot == nil && !disabled(c.Flag.Hot) {
+			c.hot, err = socket.Listen(c.Flag.Hot)
 			if err != nil {
 				return err
 			}

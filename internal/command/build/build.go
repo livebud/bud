@@ -2,23 +2,22 @@ package build
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/command"
 )
 
 func New(bud *command.Bud) *Command {
 	return &Command{
-		bud: bud,
+		bud:  bud,
+		Flag: new(framework.Flag),
 	}
 }
 
 type Command struct {
-	bud *command.Bud
-
-	// Flags
-	Embed  bool
-	Minify bool
-	Hot    string
+	bud  *command.Bud
+	Flag *framework.Flag
 }
 
 // Run the build command
@@ -40,13 +39,14 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	fsys, err := c.bud.FileSystem(module)
+	fmt.Println(module.Directory())
+	fsys, err := c.bud.FileSystem(module, c.Flag)
 	if err != nil {
 		return err
 	}
 	if err := fsys.Sync("bud/internal/app"); err != nil {
 		return err
 	}
-	// TODO: Build into bud/app
-	return nil
+	builder := c.bud.Builder(module)
+	return builder.Build(ctx, "bud/internal/app/main.go", "bud/app")
 }

@@ -1,0 +1,39 @@
+package web
+
+// GENERATED. DO NOT EDIT.
+
+import (
+	context "context"
+	middleware "github.com/livebud/bud/package/middleware"
+	router "github.com/livebud/bud/package/router"
+	web "github.com/livebud/bud/runtime/web"
+	welcome "github.com/livebud/bud/runtime/web/welcome"
+	http "net/http"
+)
+
+// New web server
+func New(
+	router *router.Router,
+	welcome welcome.Middleware,
+) *Server {
+	// Compose the middleware together
+	middleware := middleware.Compose(
+		router,
+		welcome,
+	)
+	// 404 at the bottom of the middleware
+	handler := middleware.Middleware(http.NotFoundHandler())
+	return &Server{handler}
+}
+
+type Server struct {
+	http.Handler
+}
+
+func (s *Server) Serve(ctx context.Context, address string) error {
+	listener, err := web.Listen("APP", address)
+	if err != nil {
+		return err
+	}
+	return web.Serve(ctx, listener, s)
+}

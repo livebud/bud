@@ -1,0 +1,66 @@
+{
+  "Imports": [
+    {
+      "name": "web",
+      "path": "app.com/bud/internal/app/web"
+    },
+    {
+      "name": "context",
+      "path": "context"
+    },
+    {
+      "name": "commander",
+      "path": "github.com/livebud/bud/package/commander"
+    },
+    {
+      "name": "console",
+      "path": "github.com/livebud/bud/package/log/console"
+    },
+    {
+      "name": "router",
+      "path": "github.com/livebud/bud/package/router"
+    },
+    {
+      "name": "welcome",
+      "path": "github.com/livebud/bud/runtime/web/welcome"
+    },
+    {
+      "name": "os",
+      "path": "os"
+    }
+  ],
+  "Provider": {
+    "Name": "loadWeb",
+    "Target": "app.com/bud/program",
+    "Imports": [
+      {
+        "name": "web",
+        "path": "app.com/bud/internal/app/web"
+      },
+      {
+        "name": "router",
+        "path": "github.com/livebud/bud/package/router"
+      },
+      {
+        "name": "welcome",
+        "path": "github.com/livebud/bud/runtime/web/welcome"
+      }
+    ],
+    "Externals": null,
+    "Code": "routerRouter := router.New()\nwelcomeMiddleware, err := welcome.Load()\nif err != nil {\n\treturn nil, err\n}\nwebServer := web.New(routerRouter, welcomeMiddleware)\n",
+    "Results": [
+      {
+        "Import": "app.com/bud/internal/app/web",
+        "Type": "*web.Server",
+        "Name": "webServer",
+        "Kind": 2
+      },
+      {
+        "Import": "",
+        "Type": "error",
+        "Name": "err",
+        "Kind": 3
+      }
+    ]
+  }
+}

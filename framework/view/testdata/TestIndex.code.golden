@@ -1,0 +1,21 @@
+package view
+
+// GENERATED. DO NOT EDIT.
+
+import (
+	transform "app.com/bud/.cli/transform"
+	mod "github.com/livebud/bud/package/gomod"
+	js "github.com/livebud/bud/package/js"
+	overlay "github.com/livebud/bud/package/overlay"
+	view "github.com/livebud/bud/runtime/view"
+)
+
+// New is called like this when calling bud run
+func New(module *mod.Module, overlay *overlay.Server, vm js.VM, transformer *transform.Map) *Server {
+	return view.Live(module, overlay, vm, transformer, func(path string, props interface{}) interface{} {
+		return props
+	})
+}
+
+type Map = view.Map
+type Server = view.Server

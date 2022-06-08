@@ -76,7 +76,10 @@ func Import(fsys fs.FS, dir string) (*build.Package, error) {
 func Check(code []byte) error {
 	fset := token.NewFileSet()
 	_, err := parser.ParseFile(fset, "", code, parser.DeclarationErrors)
-	return err
+	if err != nil {
+		return fmt.Errorf("parser: unable to parse code the following:\n\n%s\n%w", string(code), err)
+	}
+	return nil
 }
 
 // A Context specifies the supporting context for a build. We mostly use the

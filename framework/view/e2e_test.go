@@ -27,6 +27,7 @@ func TestHello(t *testing.T) {
 	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["livebud"] = "*"
 	is.NoErr(td.Write(ctx))
+
 	cli := testcli.New(cli.New(dir))
 	app, stdout, stderr, err := cli.Start(ctx, "run")
 	is.NoErr(err)

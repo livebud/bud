@@ -9,6 +9,7 @@ import (
 
 	"github.com/livebud/bud/framework"
 	v8 "github.com/livebud/bud/package/js/v8"
+	"github.com/livebud/bud/package/parser"
 	"github.com/livebud/bud/package/svelte"
 
 	"github.com/livebud/bud/runtime/transform"
@@ -77,4 +78,8 @@ func TestIndex(t *testing.T) {
 	state, err := load(ctx, module, module, &framework.Flag{})
 	is.NoErr(err)
 	golden.State(t, state)
+	code, err := view.Generate(state)
+	is.NoErr(err)
+	is.NoErr(parser.Check(code))
+	golden.Code(t, code)
 }

@@ -69,4 +69,8 @@ func TestHelloString(t *testing.T) {
 	state, err := load(module, module)
 	is.NoErr(err)
 	golden.State(t, state)
+	code, err := controller.Generate(state)
+	is.NoErr(err)
+	is.NoErr(parser.Check(code))
+	golden.Code(t, code)
 }

@@ -1,0 +1,66 @@
+{
+  "Imports": [
+    {
+      "name": "controller",
+      "path": "app.com/bud/internal/app/controller"
+    },
+    {
+      "name": "web",
+      "path": "app.com/bud/internal/app/web"
+    },
+    {
+      "name": "context",
+      "path": "context"
+    },
+    {
+      "name": "commander",
+      "path": "github.com/livebud/bud/package/commander"
+    },
+    {
+      "name": "console",
+      "path": "github.com/livebud/bud/package/log/console"
+    },
+    {
+      "name": "router",
+      "path": "github.com/livebud/bud/package/router"
+    },
+    {
+      "name": "os",
+      "path": "os"
+    }
+  ],
+  "Provider": {
+    "Name": "loadWeb",
+    "Target": "app.com/bud/program",
+    "Imports": [
+      {
+        "name": "controller",
+        "path": "app.com/bud/internal/app/controller"
+      },
+      {
+        "name": "web",
+        "path": "app.com/bud/internal/app/web"
+      },
+      {
+        "name": "router",
+        "path": "github.com/livebud/bud/package/router"
+      }
+    ],
+    "Externals": null,
+    "Code": "routerRouter := router.New()\ncontrollerIndexAction := \u0026controller.IndexAction{}\ncontrollerController := \u0026controller.Controller{Index: controllerIndexAction}\nwebServer := web.New(routerRouter, controllerController)\n",
+    "Results": [
+      {
+        "Import": "app.com/bud/internal/app/web",
+        "Type": "*web.Server",
+        "Name": "webServer",
+        "Kind": 2
+      },
+      {
+        "Import": "",
+        "Type": "error",
+        "Name": "nil",
+        "Kind": 3
+      }
+    ]
+  }
+}

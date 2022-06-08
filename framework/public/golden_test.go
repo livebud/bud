@@ -11,6 +11,7 @@ import (
 	"github.com/livebud/bud/framework/public"
 	"github.com/livebud/bud/internal/golden"
 	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/package/parser"
 )
 
 type Flag = framework.Flag
@@ -43,6 +44,10 @@ func TestLinkEmptyPublic(t *testing.T) {
 	})
 	is.NoErr(err)
 	golden.State(t, state)
+	code, err := public.Generate(state)
+	is.NoErr(err)
+	is.NoErr(parser.Check(code))
+	golden.Code(t, code)
 }
 
 func TestEmbedEmptyPublic(t *testing.T) {
@@ -55,4 +60,8 @@ func TestEmbedEmptyPublic(t *testing.T) {
 	})
 	is.NoErr(err)
 	golden.State(t, state)
+	code, err := public.Generate(state)
+	is.NoErr(err)
+	is.NoErr(parser.Check(code))
+	golden.Code(t, code)
 }
