@@ -120,10 +120,10 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 		// Exit without logging if the context has been cancelled. This can
 		// occur when the hot reload server failed to start or exits early.
 		if errors.Is(err, context.Canceled) {
-			prompt.Reloading() // ! Just use temporarily until the watcher is de-duplicated
-			prompt.FailReload(err.Error())
 			return err
 		}
+		prompt.Reloading() // ! Just use temporarily until the watcher is de-duplicated
+		prompt.FailReload(err.Error())
 		// TODO: de-duplicate with the watcher below
 		if err := watcher.Watch(ctx, ".", func(_ []string) error {
 			prompt.Reloading()
