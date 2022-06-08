@@ -37,8 +37,8 @@ type App struct {
 }
 
 func (a *App) Run(ctx context.Context) error {
-	// Load the dependencies
 	{{- with $module := $.Provider.Variable "github.com/livebud/bud/package/gomod.*Module" }}
+	// Load the module dependency
 	{{ $module }}, err := gomod.Find(".")
 	if err != nil {
 		return nil, err

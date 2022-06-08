@@ -38,7 +38,6 @@ type App struct {
 }
 
 func (a *App) Run(ctx context.Context) error {
-	// Load the dependencies
 	// Load the web server
 	webServer, err := loadWeb()
 	if err != nil {
