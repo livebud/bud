@@ -1826,7 +1826,7 @@ func TestOkChangeOk(t *testing.T) {
 	is.In(res.Body().String(), `Hello Humans!`)
 	// Test stdio
 	is.Equal(stdout.String(), "")
-	is.In(stderr.String(), "info: Ready on")
+	is.In(stderr.String(), "info: Ready in")
 }
 
 func TestEmptyActionWithView(t *testing.T) {

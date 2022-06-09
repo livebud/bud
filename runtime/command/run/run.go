@@ -12,6 +12,7 @@ import (
 	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/package/exe"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/log/console"
 	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/package/watcher"
@@ -122,8 +123,7 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 		if errors.Is(err, context.Canceled) {
 			return err
 		}
-		prompt.Reloading() // ! Just use temporarily until the watcher is de-duplicated
-		prompt.FailReload(err.Error())
+		console.Error(err.Error())
 		// TODO: de-duplicate with the watcher below
 		if err := watcher.Watch(ctx, ".", func(_ []string) error {
 			prompt.Reloading()
@@ -151,16 +151,15 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 	defer process.Close()
 	// Start watching
 	if err := watcher.Watch(ctx, ".", func(paths []string) error {
-		prompt.Reloading()
 		// Check if the changed paths support an incremental reload
 		if canIncrementallyReload(paths) {
 			// Trigger a reload if there's a hot reload server configured
 			if hotServer != nil {
 				hotServer.Reload("*")
-				prompt.SuccessReload()
 			}
 			return nil
 		}
+		prompt.Reloading()
 		// Otherwise trigger a full reload if there's a hot reload server configured
 		if hotServer != nil {
 			// Exclamation point just means full page reload

@@ -16,6 +16,7 @@ package prompter
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/livebud/bud/package/log/console"
@@ -41,12 +42,12 @@ type Prompter struct {
 
 // Clear line with cursor on.
 func clearLine() {
-	fmt.Print("\033[0K")
+	fmt.Fprint(os.Stderr, "\033[0K")
 }
 
 // Move cursor up 1 line.
 func moveCursorUp() {
-	fmt.Print("\033[1A")
+	fmt.Fprint(os.Stderr, "\033[1A")
 }
 
 func (p *Prompter) startTimer() {
@@ -55,10 +56,6 @@ func (p *Prompter) startTimer() {
 
 func (p *Prompter) Init() {
 	p.Counter = 0 // Init counter
-
-	// Prevent overriding anything already
-	// in the terminal before running
-	fmt.Println("")
 }
 
 // Prompt failed reloads. Reset counter.
@@ -93,7 +90,7 @@ func (p *Prompter) canOverridePreviousPrompt() bool {
 	newContentInStdOut := p.StdOut.String() != p.oldStdOut.String()
 	newContentInStdErr := p.StdErr.String() != p.oldStdErr.String()
 
-	// Renew
+	// Renew stdout and stderr
 	p.oldStdOut = p.StdOut
 	p.oldStdErr = p.StdErr
 
