@@ -77,9 +77,8 @@ func TestIndex(t *testing.T) {
 	is.NoErr(err)
 	state, err := load(ctx, module, module, &framework.Flag{})
 	is.NoErr(err)
-	golden.State(t, state)
 	code, err := view.Generate(state)
 	is.NoErr(err)
 	is.NoErr(parser.Check(code))
-	golden.Code(t, code)
+	golden.TestGenerator(t, state, code)
 }

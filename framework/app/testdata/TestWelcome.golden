@@ -1,3 +1,4 @@
+-- state.json --
 {
   "Imports": [
     {
@@ -63,4 +64,63 @@
       }
     ]
   }
+}
+-- code.txt --
+package main
+
+import (
+	web "app.com/bud/internal/app/web"
+	context "context"
+	commander "github.com/livebud/bud/package/commander"
+	console "github.com/livebud/bud/package/log/console"
+	router "github.com/livebud/bud/package/router"
+	welcome "github.com/livebud/bud/runtime/web/welcome"
+	os "os"
+)
+
+func main() {
+	os.Exit(run(context.Background(), os.Args[1:]...))
+}
+
+// Run the cli
+func run(ctx context.Context, args ...string) int {
+	if err := parse(ctx, args...); err != nil {
+		console.Error(err.Error())
+		return 1
+	}
+	return 0
+}
+
+// Parse the arguments
+func parse(ctx context.Context, args ...string) error {
+	cli := commander.New("bud")
+	app := new(App)
+	cli.Flag("listen", "address to listen to").String(&app.Listen).Default(":3000")
+	cli.Run(app.Run)
+	return cli.Parse(ctx, args)
+}
+
+// App command
+type App struct {
+	Listen string
+}
+
+func (a *App) Run(ctx context.Context) error {
+	// Load the web server
+	webServer, err := loadWeb()
+	if err != nil {
+		return err
+	}
+	// Start serving requests
+	return webServer.Serve(ctx, a.Listen)
+}
+
+func loadWeb() (*web.Server, error) {
+	routerRouter := router.New()
+	welcomeMiddleware, err := welcome.Load()
+	if err != nil {
+		return nil, err
+	}
+	webServer := web.New(routerRouter, welcomeMiddleware)
+	return webServer, err
 }

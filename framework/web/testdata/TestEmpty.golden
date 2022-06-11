@@ -1,3 +1,37 @@
+-- state.json --
+{
+  "Imports": [
+    {
+      "name": "context",
+      "path": "context"
+    },
+    {
+      "name": "middleware",
+      "path": "github.com/livebud/bud/package/middleware"
+    },
+    {
+      "name": "router",
+      "path": "github.com/livebud/bud/package/router"
+    },
+    {
+      "name": "web",
+      "path": "github.com/livebud/bud/runtime/web"
+    },
+    {
+      "name": "welcome",
+      "path": "github.com/livebud/bud/runtime/web/welcome"
+    },
+    {
+      "name": "http",
+      "path": "net/http"
+    }
+  ],
+  "Actions": null,
+  "HasPublic": false,
+  "HasView": false,
+  "ShowWelcome": true
+}
+-- code.txt --
 package web
 
 // GENERATED. DO NOT EDIT.

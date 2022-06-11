@@ -71,11 +71,10 @@ func TestWelcome(t *testing.T) {
 	is.NoErr(td.Write(ctx))
 	state, err := load(module, module, &framework.Flag{Embed: false})
 	is.NoErr(err)
-	golden.State(t, state)
 	code, err := app.Generate(state)
 	is.NoErr(err)
 	is.NoErr(parser.Check(code))
-	golden.Code(t, code)
+	golden.TestGenerator(t, state, code)
 }
 
 func TestControllerWeb(t *testing.T) {
@@ -101,9 +100,8 @@ func TestControllerWeb(t *testing.T) {
 	is.NoErr(td.Write(ctx))
 	state, err := load(module, module, &framework.Flag{Embed: false})
 	is.NoErr(err)
-	golden.State(t, state)
 	code, err := app.Generate(state)
 	is.NoErr(err)
 	is.NoErr(parser.Check(code))
-	golden.Code(t, code)
+	golden.TestGenerator(t, state, code)
 }

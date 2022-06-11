@@ -43,11 +43,10 @@ func TestLinkEmptyPublic(t *testing.T) {
 		Embed: false,
 	})
 	is.NoErr(err)
-	golden.State(t, state)
 	code, err := public.Generate(state)
 	is.NoErr(err)
 	is.NoErr(parser.Check(code))
-	golden.Code(t, code)
+	golden.TestGenerator(t, state, code)
 }
 
 func TestEmbedEmptyPublic(t *testing.T) {
@@ -59,9 +58,8 @@ func TestEmbedEmptyPublic(t *testing.T) {
 		Embed: true,
 	})
 	is.NoErr(err)
-	golden.State(t, state)
 	code, err := public.Generate(state)
 	is.NoErr(err)
 	is.NoErr(parser.Check(code))
-	golden.Code(t, code)
+	golden.TestGenerator(t, state, code)
 }
