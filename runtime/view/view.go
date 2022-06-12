@@ -1,13 +1,17 @@
 package view
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/fs"
 	"net/http"
 	"strings"
 
+	"github.com/livebud/bud/internal/embedded"
+
 	"github.com/livebud/bud/package/overlay"
+	"github.com/livebud/bud/package/svelte"
 
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/js"
@@ -41,11 +45,25 @@ type Renderer interface {
 // }
 
 // Live server serves view files on the fly. Used during development.
-func Live(module *gomod.Module, overlay *overlay.FileSystem, vm js.VM, transformer *transform.Map, wrapProps func(path string, props interface{}) interface{}) *Server {
-	overlay.FileServer("bud/view", dom.New(module, transformer.DOM))
-	overlay.FileServer("bud/node_modules", dom.NodeModules(module))
-	overlay.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
-	return &Server{overlay, http.FS(overlay), vm, wrapProps}
+func Live(module *gomod.Module, genfs *overlay.FileSystem, vm js.VM, wrapProps func(path string, props interface{}) interface{}) (*Server, error) {
+	svelteCompiler, err := svelte.Load(vm)
+	if err != nil {
+		return nil, err
+	}
+	transformer, err := transform.Load(svelte.NewTransformable(svelteCompiler))
+	if err != nil {
+		return nil, err
+	}
+	genfs.FileServer("bud/view", dom.New(module, transformer.DOM))
+	genfs.FileServer("bud/node_modules", dom.NodeModules(module))
+	genfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
+	// TODO: make this configurable
+	genfs.GenerateFile("bud/view/layout.css", func(ctx context.Context, fs overlay.F, file *overlay.File) error {
+		file.Data = embedded.Layout()
+		file.Mode = 0444
+		return nil
+	})
+	return &Server{genfs, http.FS(genfs), vm, wrapProps}, nil
 }
 
 // Static server serves the same files every time. Used during production.
@@ -144,6 +162,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	w.Header().Add("Content-Type", "text/javascript")
+	// Maintain support to resolve and run "/bud/node_modules/livebud/runtime".
+	if strings.HasPrefix(r.URL.Path, "/bud/node_modules/") {
+		w.Header().Add("Content-Type", "text/javascript")
+	}
 	http.ServeContent(w, r, r.URL.Path, stat.ModTime(), file)
 }

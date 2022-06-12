@@ -2,9 +2,12 @@ package view
 
 import (
 	"context"
+	"errors"
 	"io/fs"
 	"path"
 	"strings"
+
+	"github.com/livebud/bud/package/vfs"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/runtime/view/dom"
@@ -12,6 +15,7 @@ import (
 
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/embed"
+	"github.com/livebud/bud/internal/embedded"
 	"github.com/livebud/bud/internal/entrypoint"
 	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/package/gomod"
@@ -77,13 +81,23 @@ func (l *loader) Load(ctx context.Context) (state *State, err error) {
 			// because the router always lower-cases things, but the generated chunks
 			// contain are upper values
 			state.Embeds = append(state.Embeds, &embed.File{
-				Path: path.Join("bud/view", strings.ToLower(file.Path)),
+				Path: path.Join("bud/view", strings.ToLower(file.Path)) + ".js",
 				Data: file.Contents,
+			})
+		}
+		// Add default layout.css
+		if err := vfs.Exist(l.fsys, "view/layout.css"); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				return nil, err
+			}
+			state.Embeds = append(state.Embeds, &embed.File{
+				Path: "bud/view/layout.css",
+				Data: embedded.Layout(),
 			})
 		}
 	}
 	// fmt.Println(l.Flag.Embed, l.Transform.SSR, views)
-	l.imports.AddNamed("transform", l.module.Import("bud/.cli/transform"))
+	// l.imports.AddNamed("transform", l.module.Import("bud/.cli/transform"))
 	l.imports.AddNamed("overlay", "github.com/livebud/bud/package/overlay")
 	l.imports.AddNamed("mod", "github.com/livebud/bud/package/gomod")
 	l.imports.AddNamed("js", "github.com/livebud/bud/package/js")

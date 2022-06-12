@@ -4,8 +4,6 @@ go 1.18
 
 replace github.com/livebud/bud => ../..
 
-require github.com/livebud/bud v0.0.0-00010101000000-000000000000
-
 require (
 	github.com/ajg/form v1.5.2-0.20200323032839-9aeb3cf462e1 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect

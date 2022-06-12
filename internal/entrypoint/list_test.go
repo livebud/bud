@@ -46,7 +46,8 @@ func TestList(t *testing.T) {
 	is.Equal(views[0].Error, entrypoint.Path("view/Error.svelte"))
 	is.Equal(views[0].Type, "svelte")
 	is.Equal(views[0].Route, "/")
-	is.Equal(views[0].Client, "bud/view/_index.svelte")
+	is.Equal(views[0].Client, "bud/view/_index.svelte.js")
+	is.Equal(views[0].Hot, ":35729")
 	// user/edit.svelte
 	is.Equal(views[1].Page, entrypoint.Path("view/user/edit.svelte"))
 	is.Equal(len(views[1].Frames), 2)
@@ -56,7 +57,8 @@ func TestList(t *testing.T) {
 	is.Equal(views[1].Error, entrypoint.Path("view/user/Error.svelte"))
 	is.Equal(views[1].Type, "svelte")
 	is.Equal(views[1].Route, "/user/:id/edit")
-	is.Equal(views[1].Client, "bud/view/user/_edit.svelte")
+	is.Equal(views[1].Client, "bud/view/user/_edit.svelte.js")
+	is.Equal(views[1].Hot, ":35729")
 	// user/index.svelte
 	is.Equal(views[2].Page, entrypoint.Path("view/user/index.svelte"))
 	is.Equal(len(views[2].Frames), 2)
@@ -66,7 +68,8 @@ func TestList(t *testing.T) {
 	is.Equal(views[2].Error, entrypoint.Path("view/user/Error.svelte"))
 	is.Equal(views[2].Type, "svelte")
 	is.Equal(views[2].Route, "/user")
-	is.Equal(views[2].Client, "bud/view/user/_index.svelte")
+	is.Equal(views[2].Client, "bud/view/user/_index.svelte.js")
+	is.Equal(views[2].Hot, ":35729")
 	// visitor/comments/index.svelte
 	is.Equal(views[3].Page, entrypoint.Path("view/visitor/comments/edit.svelte"))
 	is.Equal(len(views[3].Frames), 2)
@@ -76,7 +79,8 @@ func TestList(t *testing.T) {
 	is.Equal(views[3].Error, entrypoint.Path("view/visitor/comments/Error.svelte"))
 	is.Equal(views[3].Type, "svelte")
 	is.Equal(views[3].Route, "/visitor/:visitor_id/comments/:id/edit")
-	is.Equal(views[3].Client, "bud/view/visitor/comments/_edit.svelte")
+	is.Equal(views[3].Client, "bud/view/visitor/comments/_edit.svelte.js")
+	is.Equal(views[3].Hot, ":35729")
 }
 
 func TestListUnderscore(t *testing.T) {
@@ -95,5 +99,6 @@ func TestListUnderscore(t *testing.T) {
 	is.Equal(views[0].Error, entrypoint.Path(""))
 	is.Equal(views[0].Type, "svelte")
 	is.Equal(views[0].Route, "/admin_users/:admin_user_id/comments/:id")
-	is.Equal(views[0].Client, "bud/admin_users/comments/_show.svelte")
+	is.Equal(views[0].Client, "bud/admin_users/comments/_show.svelte.js")
+	is.Equal(views[0].Hot, ":35729")
 }

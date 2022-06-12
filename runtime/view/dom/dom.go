@@ -226,7 +226,7 @@ func domPlugin(fsys fs.FS, module *gomod.Module) esbuild.Plugin {
 	return esbuild.Plugin{
 		Name: "dom",
 		Setup: func(epb esbuild.PluginBuild) {
-			epb.OnResolve(esbuild.OnResolveOptions{Filter: `^bud\/view\/(?:[A-Za-z\-0-9]+\/)*_[A-Za-z\-0-9]+\.(svelte|jsx)$`}, func(args esbuild.OnResolveArgs) (result esbuild.OnResolveResult, err error) {
+			epb.OnResolve(esbuild.OnResolveOptions{Filter: `^bud\/view\/(?:[A-Za-z\-0-9]+\/)*_[A-Za-z\-0-9]+\.(svelte|jsx)\.js$`}, func(args esbuild.OnResolveArgs) (result esbuild.OnResolveResult, err error) {
 				result.Namespace = "dom"
 				result.Path = args.Path
 				return result, nil

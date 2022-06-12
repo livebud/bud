@@ -1,4 +1,4 @@
-package embeds
+package embedded
 
 import (
 	_ "embed"
@@ -14,10 +14,10 @@ func Favicon() []byte {
 
 // Default CSS is modern-normalize by Sindre Sorhus
 // https://raw.githubusercontent.com/sindresorhus/modern-normalize/v1.1.0/modern-normalize.css
-//go:embed default.css
-var stylesheet []byte
+//go:embed layout.css
+var layout []byte
 
-// Stylesheet returns the default stylesheet
-func Stylesheet() []byte {
-	return stylesheet
+// Layout returns the default stylesheet
+func Layout() []byte {
+	return layout
 }

@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+// TODO: remove context from exe.Command
 func Command(ctx context.Context, name string, args ...string) (c *Cmd) {
 	return (*Cmd)(exec.CommandContext(ctx, name, args...))
 }

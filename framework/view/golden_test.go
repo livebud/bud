@@ -66,16 +66,37 @@ func TestEmptyViewDir(t *testing.T) {
 	is.Equal(state, nil)
 }
 
-func TestIndex(t *testing.T) {
+func TestIndexLink(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)
 	td.Files["view/index.svelte"] = `<h1>hello</h1>`
+	td.NodeModules["svelte"] = "*"
+	td.NodeModules["livebud"] = "*"
 	is.NoErr(td.Write(ctx))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	state, err := load(ctx, module, module, &framework.Flag{})
+	state, err := load(ctx, module, module, &framework.Flag{Embed: false})
+	is.NoErr(err)
+	code, err := view.Generate(state)
+	is.NoErr(err)
+	is.NoErr(parser.Check(code))
+	golden.TestGenerator(t, state, code)
+}
+
+func TestIndexEmbed(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["view/index.svelte"] = `<h1>hello</h1>`
+	td.NodeModules["svelte"] = "*"
+	td.NodeModules["livebud"] = "*"
+	is.NoErr(td.Write(ctx))
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	state, err := load(ctx, module, module, &framework.Flag{Embed: true})
 	is.NoErr(err)
 	code, err := view.Generate(state)
 	is.NoErr(err)

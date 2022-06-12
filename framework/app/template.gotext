@@ -41,7 +41,7 @@ func (a *App) Run(ctx context.Context) error {
 	// Load the module dependency
 	{{ $module }}, err := gomod.Find(".")
 	if err != nil {
-		return nil, err
+		return err
 	}
 	{{- end }}
 	// Load the web server

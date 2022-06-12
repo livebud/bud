@@ -42,7 +42,7 @@ func TestHello(t *testing.T) {
 		Content-Type: text/html
 	`)
 	is.In(res.Body().String(), "<h1>hello</h1>")
-	is.NoErr(td.Exists("bud/.app/view/view.go"))
+	is.NoErr(td.Exists("bud/internal/app/view/view.go"))
 	// Change svelte file
 	td = testdir.New(dir)
 	td.Files["view/index.svelte"] = `<h1>hi</h1>`

@@ -2,7 +2,6 @@ package build
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/command"
@@ -31,22 +30,12 @@ type Command struct {
 //     i. Generate bud/internal/app
 //     ii. Build into bud/app
 func (c *Command) Run(ctx context.Context) error {
-	// console, err := c.bud.Console()
-	// if err != nil {
-	// 	return err
-	// }
 	module, err := c.bud.Module()
 	if err != nil {
 		return err
 	}
-	fmt.Println(module.Directory())
-	fsys, err := c.bud.FileSystem(module, c.Flag)
-	if err != nil {
+	if err := c.bud.Generate(module, c.Flag, "bud/internal/app"); err != nil {
 		return err
 	}
-	if err := fsys.Sync("bud/internal/app"); err != nil {
-		return err
-	}
-	builder := c.bud.Builder(module)
-	return builder.Build(ctx, "bud/internal/app/main.go", "bud/app")
+	return c.bud.Build(ctx, module, "bud/internal/app/main.go", "bud/app")
 }

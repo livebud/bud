@@ -4,10 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/livebud/bud/framework/public/embeds"
-
 	"github.com/livebud/bud/internal/cli"
 	"github.com/livebud/bud/internal/cli/testcli"
+	"github.com/livebud/bud/internal/embedded"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
 )
@@ -204,12 +203,12 @@ func TestDefaults(t *testing.T) {
 	res, err := app.Get("/favicon.ico")
 	is.NoErr(err)
 	is.Equal(200, res.Status())
-	is.Equal(res.Body().Bytes(), embeds.Favicon())
+	is.Equal(res.Body().Bytes(), embedded.Favicon())
 	// default.css
 	res, err = app.Get("/default.css")
 	is.NoErr(err)
 	is.Equal(200, res.Status())
-	is.Equal(res.Body().Bytes(), embeds.Stylesheet())
+	is.Equal(res.Body().Bytes(), embedded.Layout())
 	is.Equal(stdout.String(), "")
 	is.Equal(stderr.String(), "")
 }

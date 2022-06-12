@@ -49,7 +49,7 @@ type View struct {
 	Layout Path
 	Error  Path
 	Client string
-	Hot    bool
+	Hot    string
 }
 
 func (v *View) ServerImports() (imports []Path) {

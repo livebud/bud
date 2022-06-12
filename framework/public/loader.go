@@ -6,11 +6,11 @@ import (
 	"path"
 
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/framework/public/embeds"
 	"github.com/livebud/bud/package/vfs"
 
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/embed"
+	"github.com/livebud/bud/internal/embedded"
 	"github.com/livebud/bud/internal/imports"
 )
 
@@ -35,7 +35,7 @@ func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
 	state = new(State)
 	state.Flag = l.flag
-	exist, err := vfs.SomeExist(l.fsys, "public")
+	exist, err := vfs.SomeExist(l.fsys, "public", "view")
 	if err != nil {
 		return nil, err
 	} else if len(exist) == 0 {
@@ -95,17 +95,7 @@ func (l *loader) loadDefaults() (files []*embed.File) {
 		}
 		files = append(files, &embed.File{
 			Path: "public/favicon.ico",
-			Data: embeds.Favicon(),
-		})
-	}
-	// Add default.css if it doesn't exist
-	if err := vfs.Exist(l.fsys, "public/default.css"); err != nil {
-		if !errors.Is(err, fs.ErrNotExist) {
-			l.Bail(err)
-		}
-		files = append(files, &embed.File{
-			Path: "public/default.css",
-			Data: embeds.Stylesheet(),
+			Data: embedded.Favicon(),
 		})
 	}
 	return files

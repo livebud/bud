@@ -63,3 +63,18 @@ func TestEmbedEmptyPublic(t *testing.T) {
 	is.NoErr(parser.Check(code))
 	golden.TestGenerator(t, state, code)
 }
+
+func TestEmbedOnlyView(t *testing.T) {
+	is := is.New(t)
+	fsys := fstest.MapFS{
+		"view": &fstest.MapFile{Mode: fs.ModeDir},
+	}
+	state, err := public.Load(fsys, &Flag{
+		Embed: true,
+	})
+	is.NoErr(err)
+	code, err := public.Generate(state)
+	is.NoErr(err)
+	is.NoErr(parser.Check(code))
+	golden.TestGenerator(t, state, code)
+}

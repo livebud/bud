@@ -66,7 +66,7 @@ func (c *CLI) Run(ctx context.Context, args ...string) error {
 		cmd := run.New(bud, c.Web, c.Hot)
 		cli := cli.Command("run", "run the development server")
 		cli.Flag("embed", "embed assets").Bool(&cmd.Flag.Embed).Default(false)
-		cli.Flag("hot", "hot reloading").String(&cmd.Flag.Hot).Default(":35729")
+		cli.Flag("hot", "hot reloading").Bool(&cmd.Hot).Default(true)
 		cli.Flag("minify", "minify assets").Bool(&cmd.Flag.Minify).Default(false)
 		cli.Flag("listen", "address to listen to").String(&cmd.Listen).Default(":3000")
 		cli.Run(cmd.Run)
@@ -75,9 +75,8 @@ func (c *CLI) Run(ctx context.Context, args ...string) error {
 	{ // $ bud build
 		cmd := build.New(bud)
 		cli := cli.Command("build", "build the application into a single binary")
-		cli.Flag("embed", "embed assets").Bool(&cmd.Flag.Embed).Default(false)
-		cli.Flag("hot", "hot reloading").String(&cmd.Flag.Hot).Default(":35729")
-		cli.Flag("minify", "minify assets").Bool(&cmd.Flag.Minify).Default(false)
+		cli.Flag("embed", "embed assets").Bool(&cmd.Flag.Embed).Default(true)
+		cli.Flag("minify", "minify assets").Bool(&cmd.Flag.Minify).Default(true)
 		cli.Run(cmd.Run)
 	}
 

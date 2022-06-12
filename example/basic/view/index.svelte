@@ -6,6 +6,7 @@
 
 <style>
   h1 {
+    margin: 0;
     background: blue;
     padding: 20px;
     color: white;
