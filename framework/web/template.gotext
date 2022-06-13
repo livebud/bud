@@ -21,7 +21,7 @@ func New(
 	public public.Middleware,
 	{{- end }}
 	{{- if $.HasView }}
-	view *view.Server,
+	view view.Server,
 	{{- end }}
 	{{- if $.ShowWelcome }}
 	welcome welcome.Middleware,
@@ -56,7 +56,7 @@ type Server struct {
 }
 
 func (s *Server) Serve(ctx context.Context, address string) error {
-	listener, err := web.Listen("APP", address)
+	listener, err := web.Listen("WEB", address)
 	if err != nil {
 		return err
 	}

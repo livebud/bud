@@ -73,3 +73,30 @@ func TestHelloString(t *testing.T) {
 	is.NoErr(parser.Check(code))
 	golden.TestGenerator(t, state, code)
 }
+
+func TestHelloView(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["controller/controller.go"] = `
+		package controller
+		type Controller struct {}
+		func (c *Controller) Index() string { return "Root" }
+	`
+	td.Files["view/index.svelte"] = `
+		<script>
+			export let _string = "default"
+		</script>
+		<h1>{_string}</h1>
+	`
+	is.NoErr(td.Write(ctx))
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	state, err := load(module, module)
+	is.NoErr(err)
+	code, err := controller.Generate(state)
+	is.NoErr(err)
+	is.NoErr(parser.Check(code))
+	golden.TestGenerator(t, state, code)
+}

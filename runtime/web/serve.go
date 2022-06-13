@@ -10,7 +10,6 @@ import (
 
 	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/sig"
-	"github.com/livebud/bud/package/log/console"
 	"github.com/livebud/bud/package/socket"
 )
 
@@ -29,12 +28,6 @@ func Listen(prefix, path string) (socket.Listener, error) {
 	listener, err := socket.Listen(path)
 	if err != nil {
 		return nil, err
-	}
-	// This is done to avoid logging the live-reload server.
-	// TODO: clean this up.
-	if prefix == "APP" {
-		// Log here because this is the first time we've bound to a resource.
-		console.Info("Listening on " + Format(listener))
 	}
 	return listener, nil
 }

@@ -4,5 +4,5 @@ package framework
 type Flag struct {
 	Embed  bool
 	Minify bool
-	Hot    string // Hot reload address
+	Hot    bool
 }

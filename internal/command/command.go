@@ -60,31 +60,35 @@ func (c *Bud) Logger() (log.Interface, error) {
 	return log.New(handler), nil
 }
 
-// Generate the app
-func (c *Bud) Generate(module *gomod.Module, flag *framework.Flag, outDir string) error {
+func (c *Bud) FileSystem(module *gomod.Module, flag *framework.Flag) (*overlay.FileSystem, error) {
 	genfs, err := overlay.Load(module)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	parser := parser.New(genfs, module)
 	injector := di.New(genfs, module, parser)
 	vm, err := v8.Load()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	svelteCompiler, err := svelte.Load(vm)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	transformMap, err := transform.Load(svelte.NewTransformable(svelteCompiler))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	genfs.FileGenerator("bud/internal/app/main.go", app.New(injector, module, flag))
 	genfs.FileGenerator("bud/internal/app/web/web.go", web.New(module, parser))
 	genfs.FileGenerator("bud/internal/app/controller/controller.go", controller.New(injector, module, parser))
 	genfs.FileGenerator("bud/internal/app/view/view.go", view.New(module, transformMap, flag))
 	genfs.FileGenerator("bud/internal/app/public/public.go", public.New(flag))
+	return genfs, nil
+}
+
+// Generate the app
+func (c *Bud) Generate(genfs *overlay.FileSystem, outDir string) error {
 	return genfs.Sync(outDir)
 }
 
@@ -93,7 +97,7 @@ func (c *Bud) Build(ctx context.Context, module *gomod.Module, mainPath, outPath
 	return builder.Build(ctx, mainPath, outPath)
 }
 
-func (c *Bud) Start(module *gomod.Module, webListener socket.Listener) (*exe.Cmd, error) {
+func (c *Bud) Start(module *gomod.Module, webListener socket.Listener, budListener socket.Listener) (*exe.Cmd, error) {
 	// Start the web server
 	cmd := exe.Command(context.Background(), filepath.Join("bud", "app"))
 	cmd.Stdin = c.Stdin
@@ -106,8 +110,13 @@ func (c *Bud) Start(module *gomod.Module, webListener socket.Listener) (*exe.Cmd
 	if err != nil {
 		return nil, err
 	}
-	// TODO: rename to WEB
-	extrafile.Inject(&cmd.ExtraFiles, &cmd.Env, "APP", webFile)
+	extrafile.Inject(&cmd.ExtraFiles, &cmd.Env, "WEB", webFile)
+	// Inject the bud listener into the app
+	budFile, err := budListener.File()
+	if err != nil {
+		return nil, err
+	}
+	extrafile.Inject(&cmd.ExtraFiles, &cmd.Env, "BUD", budFile)
 	// Start the command
 	if err := cmd.Start(); err != nil {
 		return nil, err

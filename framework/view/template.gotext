@@ -14,14 +14,12 @@ import (
 
 {{- if not $.Flag.Embed }}
 // Load the view server. Files are linked rather than embedded.
-func Load(module *mod.Module, overlay *overlay.Server, vm js.VM) (*Server, error) {
-	return view.Live(module, overlay, vm, func(path string, props interface{}) interface{} {
-		return props
-	})
+func Load(proxy *budproxy.Proxy) Server {
+	return view.Proxy(proxy)
 }
 {{ else }}
 // New view server. Files are embedded rather than linked.
-func New(module *mod.Module, fsys *overlay.FileSystem, vm js.VM) *Server {
+func New(module *mod.Module, fsys *overlay.FileSystem, vm js.VM) Server {
 	{{- range $embed := $.Embeds }}
 	fsys.FileGenerator(`{{ $embed.Path }}`, &overlay.Embed{
 		{{ if $embed.Data }}Data: []byte("{{ $embed.Data }}"),{{ end }}
@@ -33,5 +31,4 @@ func New(module *mod.Module, fsys *overlay.FileSystem, vm js.VM) *Server {
 }
 {{- end }}
 
-type Map = view.Map
 type Server = view.Server

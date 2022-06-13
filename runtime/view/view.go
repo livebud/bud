@@ -1,23 +1,14 @@
 package view
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/fs"
 	"net/http"
 	"strings"
 
-	"github.com/livebud/bud/internal/embedded"
-
-	"github.com/livebud/bud/package/overlay"
-	"github.com/livebud/bud/package/svelte"
-
-	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/budproxy"
 	"github.com/livebud/bud/package/js"
-	"github.com/livebud/bud/runtime/transform"
-	"github.com/livebud/bud/runtime/view/dom"
-	"github.com/livebud/bud/runtime/view/ssr"
 )
 
 type Response struct {
@@ -44,47 +35,40 @@ type Renderer interface {
 // 	return &Server{fsys, http.FS(fsys), vm}
 // }
 
-// Live server serves view files on the fly. Used during development.
-func Live(module *gomod.Module, genfs *overlay.FileSystem, vm js.VM, wrapProps func(path string, props interface{}) interface{}) (*Server, error) {
-	svelteCompiler, err := svelte.Load(vm)
-	if err != nil {
-		return nil, err
-	}
-	transformer, err := transform.Load(svelte.NewTransformable(svelteCompiler))
-	if err != nil {
-		return nil, err
-	}
-	genfs.FileServer("bud/view", dom.New(module, transformer.DOM))
-	genfs.FileServer("bud/node_modules", dom.NodeModules(module))
-	genfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
-	// TODO: make this configurable
-	genfs.GenerateFile("bud/view/layout.css", func(ctx context.Context, fs overlay.F, file *overlay.File) error {
-		file.Data = embedded.Layout()
-		file.Mode = 0444
-		return nil
+type Server interface {
+	Middleware(http.Handler) http.Handler
+	Handler(route string, props interface{}) http.Handler
+}
+
+func Proxy(proxy *budproxy.Proxy) *liveServer {
+	return &liveServer{proxy}
+}
+
+type liveServer struct {
+	proxy *budproxy.Proxy
+}
+
+var _ Server = (*liveServer)(nil)
+
+func (s *liveServer) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !isClient(r.URL.Path) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		fmt.Println("live server serving", r.URL.Path)
 	})
-	return &Server{genfs, http.FS(genfs), vm, wrapProps}, nil
 }
 
-// Static server serves the same files every time. Used during production.
-func Static(fsys fs.FS, vm js.VM, wrapProps func(path string, props interface{}) interface{}) *Server {
-	return &Server{fsys, http.FS(fsys), vm, wrapProps}
+func (s *liveServer) Handler(route string, props interface{}) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.respond(w, route, props)
+	})
 }
-
-type Server struct {
-	fsys      fs.FS
-	hfs       http.FileSystem
-	vm        js.VM
-	wrapProps func(path string, props interface{}) interface{}
-}
-
-// Map is a convenience function for the common case of passing a map of props
-// into a view
-type Map map[string]interface{}
 
 // Respond is a convenience function for render
-func (s *Server) Respond(w http.ResponseWriter, path string, props interface{}) {
-	res, err := s.Render(path, props)
+func (s *liveServer) respond(w http.ResponseWriter, path string, props interface{}) {
+	res, err := s.render(path, props)
 	if err != nil {
 		// TODO: swap with logger
 		fmt.Println("view: render error", err)
@@ -99,7 +83,70 @@ func (s *Server) Respond(w http.ResponseWriter, path string, props interface{}) 
 	w.Write([]byte(res.Body))
 }
 
-func (s *Server) Render(path string, props interface{}) (*Response, error) {
+func (s *liveServer) render(path string, props interface{}) (*Response, error) {
+	result, err := s.proxy.Render(path, props)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("GOT RESULT", result)
+	return nil, fmt.Errorf("view: liveserver render not finished")
+	// script, err := fs.ReadFile(s.fsys, "bud/view/_ssr.js")
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// // Evaluate the server
+	// expr := fmt.Sprintf(`%s; bud.render(%q, %s)`, script, path, propBytes)
+	// result, err := s.vm.Eval("_ssr.js", expr)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// // Unmarshal the response
+	// res := new(Response)
+	// if err := json.Unmarshal([]byte(result), res); err != nil {
+	// 	return nil, err
+	// }
+	// if res.Status < 100 || res.Status > 999 {
+	// 	return nil, fmt.Errorf("view: invalid status code %d", res.Status)
+	// }
+	// return res, nil
+}
+
+// Static server serves the same files every time. Used during production.
+func Static(fsys fs.FS, vm js.VM, wrapProps func(path string, props interface{}) interface{}) *staticServer {
+	return &staticServer{fsys, http.FS(fsys), vm, wrapProps}
+}
+
+type staticServer struct {
+	fsys      fs.FS
+	hfs       http.FileSystem
+	vm        js.VM
+	wrapProps func(path string, props interface{}) interface{}
+}
+
+var _ Server = (*staticServer)(nil)
+
+// Map is a convenience function for the common case of passing a map of props
+// into a view
+type Map map[string]interface{}
+
+// Respond is a convenience function for render
+func (s *staticServer) respond(w http.ResponseWriter, path string, props interface{}) {
+	res, err := s.render(path, props)
+	if err != nil {
+		// TODO: swap with logger
+		fmt.Println("view: render error", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	headers := w.Header()
+	for key, value := range res.Headers {
+		headers.Set(key, value)
+	}
+	w.WriteHeader(res.Status)
+	w.Write([]byte(res.Body))
+}
+
+func (s *staticServer) render(path string, props interface{}) (*Response, error) {
 	propBytes, err := json.Marshal(s.wrapProps(path, props))
 	if err != nil {
 		return nil, err
@@ -130,24 +177,24 @@ func isClient(path string) bool {
 		strings.HasPrefix(path, "/bud/view/")
 }
 
-func (s *Server) Middleware(next http.Handler) http.Handler {
+func (s *staticServer) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !isClient(r.URL.Path) {
 			next.ServeHTTP(w, r)
 			return
 		}
-		s.ServeHTTP(w, r)
+		s.serveHTTP(w, r)
 	})
 }
 
 // Handler returns a handler for a specific server-side route
-func (s *Server) Handler(route string, props interface{}) http.Handler {
+func (s *staticServer) Handler(route string, props interface{}) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.Respond(w, route, props)
+		s.respond(w, route, props)
 	})
 }
 
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *staticServer) serveHTTP(w http.ResponseWriter, r *http.Request) {
 	file, err := s.hfs.Open(r.URL.Path)
 	if err != nil {
 		// TODO: swap with logger

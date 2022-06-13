@@ -97,10 +97,13 @@ func (l *loader) Load(ctx context.Context) (state *State, err error) {
 		}
 	}
 	// fmt.Println(l.Flag.Embed, l.Transform.SSR, views)
-	// l.imports.AddNamed("transform", l.module.Import("bud/.cli/transform"))
-	l.imports.AddNamed("overlay", "github.com/livebud/bud/package/overlay")
-	l.imports.AddNamed("mod", "github.com/livebud/bud/package/gomod")
-	l.imports.AddNamed("js", "github.com/livebud/bud/package/js")
+	if l.flag.Embed {
+		l.imports.AddNamed("overlay", "github.com/livebud/bud/package/overlay")
+		l.imports.AddNamed("mod", "github.com/livebud/bud/package/gomod")
+		l.imports.AddNamed("js", "github.com/livebud/bud/package/js")
+	} else {
+		l.imports.AddNamed("budproxy", "github.com/livebud/bud/package/budproxy")
+	}
 	l.imports.AddNamed("view", "github.com/livebud/bud/runtime/view")
 	state.Imports = l.imports.List()
 	return state, nil

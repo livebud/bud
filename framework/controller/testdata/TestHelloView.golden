@@ -1,0 +1,143 @@
+-- state.json --
+{
+  "Imports": [
+    {
+      "name": "view",
+      "path": "app.com/bud/internal/app/view"
+    },
+    {
+      "name": "controller",
+      "path": "app.com/controller"
+    },
+    {
+      "name": "response",
+      "path": "github.com/livebud/bud/runtime/controller/response"
+    },
+    {
+      "name": "http",
+      "path": "net/http"
+    }
+  ],
+  "Controller": {
+    "Name": "",
+    "Pascal": "",
+    "JSON": "",
+    "Path": "/",
+    "Route": "/",
+    "Actions": [
+      {
+        "Name": "Index",
+        "Pascal": "Index",
+        "Camel": "index",
+        "Short": "i",
+        "View": {
+          "Route": "/"
+        },
+        "Key": "/index",
+        "Route": "/",
+        "Redirect": "\"\"",
+        "Method": "GET",
+        "Context": {
+          "Function": "loadController",
+          "Code": "func loadController() *controller.Controller {\n\tcontrollerController := \u0026controller.Controller{}\n\treturn controllerController\n}\n",
+          "Fields": null,
+          "Results": [
+            {
+              "Variable": "controllerController"
+            }
+          ]
+        },
+        "Params": null,
+        "Input": "struct {\n\t}",
+        "Results": [
+          {
+            "Name": "in0",
+            "Pascal": "In0",
+            "Named": false,
+            "Snake": "in0",
+            "Type": "string",
+            "Kind": 1,
+            "Variable": "in0",
+            "IsError": false,
+            "Fields": null,
+            "Methods": null
+          }
+        ],
+        "RespondJSON": true,
+        "RespondHTML": true,
+        "PropsKey": ""
+      }
+    ],
+    "Controllers": null
+  },
+  "Contexts": [
+    {
+      "Function": "loadController",
+      "Code": "func loadController() *controller.Controller {\n\tcontrollerController := \u0026controller.Controller{}\n\treturn controllerController\n}\n",
+      "Fields": null,
+      "Results": [
+        {
+          "Variable": "controllerController"
+        }
+      ]
+    }
+  ]
+}
+-- code.txt --
+package controller
+
+import (
+	view "app.com/bud/internal/app/view"
+	controller "app.com/controller"
+	response "github.com/livebud/bud/runtime/controller/response"
+	http "net/http"
+)
+
+// Controller struct
+type Controller struct {
+	Index *IndexAction
+}
+
+// IndexAction struct
+type IndexAction struct {
+	View *view.Server
+}
+
+// Key is a unique identifier of this action
+func (i *IndexAction) Key() string {
+	return "/index"
+}
+
+// Path is the default RESTful path to this action
+func (i *IndexAction) Path() string {
+	return "/"
+}
+
+// Method is the default RESTful method of this action
+func (i *IndexAction) Method() string {
+	return "GET"
+}
+
+// ServeHTTP fn
+func (i *IndexAction) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	i.handler(r).ServeHTTP(w, r)
+}
+
+// Handler function
+func (i *IndexAction) handler(httpRequest *http.Request) http.Handler {
+	controllerController := loadController()
+	fn := controllerController.Index
+	// Call the controller
+	in0 := fn()
+
+	// Respond
+	return &response.Format{
+		HTML: i.View.Handler("/", map[string]interface{}{"_string": in0}),
+		JSON: response.JSON(in0),
+	}
+}
+
+func loadController() *controller.Controller {
+	controllerController := &controller.Controller{}
+	return controllerController
+}

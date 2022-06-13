@@ -34,7 +34,11 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := c.bud.Generate(module, c.Flag, "bud/internal/app"); err != nil {
+	genfs, err := c.bud.FileSystem(module, c.Flag)
+	if err != nil {
+		return err
+	}
+	if err := genfs.Sync("bud/internal/app"); err != nil {
 		return err
 	}
 	return c.bud.Build(ctx, module, "bud/internal/app/main.go", "bud/app")
