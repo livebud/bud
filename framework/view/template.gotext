@@ -14,8 +14,8 @@ import (
 
 {{- if not $.Flag.Embed }}
 // Load the view server. Files are linked rather than embedded.
-func Load(proxy *budproxy.Proxy) Server {
-	return view.Proxy(proxy)
+func Load(client *devclient.Client) Server {
+	return view.Proxy(client)
 }
 {{ else }}
 // New view server. Files are embedded rather than linked.

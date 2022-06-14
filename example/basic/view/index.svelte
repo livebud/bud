@@ -7,7 +7,7 @@
 <style>
   h1 {
     margin: 0;
-    background: blue;
+    background: red;
     padding: 20px;
     color: white;
   }

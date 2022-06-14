@@ -41,7 +41,7 @@ func TestServeFile(t *testing.T) {
 	is.NoErr(err)
 	overlay.FileServer("bud/view", dom.New(module, transformer.DOM))
 	// Read the wrapped version of index.svelte with node_modules rewritten
-	code, err := fs.ReadFile(overlay, "bud/view/_index.svelte")
+	code, err := fs.ReadFile(overlay, "bud/view/_index.svelte.js")
 	is.NoErr(err)
 	is.True(strings.Contains(string(code), `from "/bud/node_modules/svelte/internal"`))
 	is.True(strings.Contains(string(code), `element("h1");`))
@@ -62,7 +62,7 @@ func TestServeFile(t *testing.T) {
 	is.True(!strings.Contains(string(code), `hot: new Hot("http://127.0.0.1:35729/?page=%2Fbud%2Fview%2Findex.svelte", components)`))
 
 	// Read the wrapped version of about/index.svelte with node_modules rewritten
-	code, err = fs.ReadFile(overlay, "bud/view/about/_index.svelte")
+	code, err = fs.ReadFile(overlay, "bud/view/about/_index.svelte.js")
 	is.NoErr(err)
 	is.True(strings.Contains(string(code), `from "/bud/node_modules/svelte/internal"`))
 	is.True(strings.Contains(string(code), `element("h2");`))
@@ -126,7 +126,7 @@ func TestGenerateDir(t *testing.T) {
 	des, err := fs.ReadDir(overlay, "bud/view")
 	is.NoErr(err)
 	is.Equal(len(des), 3)
-	is.Equal(des[0].Name(), "_index.svelte")
+	is.Equal(des[0].Name(), "_index.svelte.js")
 	is.Equal(des[0].IsDir(), false)
 	is.Equal(des[1].Name(), "about")
 	is.Equal(des[1].IsDir(), true)
@@ -136,10 +136,10 @@ func TestGenerateDir(t *testing.T) {
 	des, err = fs.ReadDir(overlay, "bud/view/about")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
-	is.Equal(des[0].Name(), "_index.svelte")
+	is.Equal(des[0].Name(), "_index.svelte.js")
 	is.Equal(des[0].IsDir(), false)
 
-	code, err := fs.ReadFile(overlay, "bud/view/_index.svelte")
+	code, err := fs.ReadFile(overlay, "bud/view/_index.svelte.js")
 	is.NoErr(err)
 	is.True(strings.Contains(string(code), `"H1"`))
 	is.True(strings.Contains(string(code), `"index"`))
@@ -149,7 +149,7 @@ func TestGenerateDir(t *testing.T) {
 	// TODO: remove hot
 	// is.True(!strings.Contains(string(code), `hot:`))
 
-	code, err = fs.ReadFile(overlay, "bud/view/about/_index.svelte")
+	code, err = fs.ReadFile(overlay, "bud/view/about/_index.svelte.js")
 	is.NoErr(err)
 	is.True(strings.Contains(string(code), `"H2"`))
 	is.True(strings.Contains(string(code), `"about"`))

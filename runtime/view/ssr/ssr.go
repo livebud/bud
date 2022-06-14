@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,6 +18,22 @@ import (
 	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/runtime/transform"
 )
+
+// Response from evaluating SSR files
+type Response struct {
+	Status  int               `json:"status,omitempty"`
+	Headers map[string]string `json:"headers,omitempty"`
+	Body    string            `json:"body,omitempty"`
+}
+
+func (res *Response) Write(w http.ResponseWriter) {
+	// Write the response out
+	for key, value := range res.Headers {
+		w.Header().Set(key, value)
+	}
+	w.WriteHeader(res.Status)
+	w.Write([]byte(res.Body))
+}
 
 func New(module *gomod.Module, transformer transform.Transformer) *Compiler {
 	return &Compiler{module, transformer}

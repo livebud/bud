@@ -5,6 +5,9 @@ import (
 	"io"
 	"path/filepath"
 
+	"github.com/livebud/bud/runtime/view/dom"
+	"github.com/livebud/bud/runtime/view/ssr"
+
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/gobuild"
@@ -75,15 +78,18 @@ func (c *Bud) FileSystem(module *gomod.Module, flag *framework.Flag) (*overlay.F
 	if err != nil {
 		return nil, err
 	}
-	transformMap, err := transform.Load(svelte.NewTransformable(svelteCompiler))
+	transforms, err := transform.Load(svelte.NewTransformable(svelteCompiler))
 	if err != nil {
 		return nil, err
 	}
 	genfs.FileGenerator("bud/internal/app/main.go", app.New(injector, module, flag))
 	genfs.FileGenerator("bud/internal/app/web/web.go", web.New(module, parser))
 	genfs.FileGenerator("bud/internal/app/controller/controller.go", controller.New(injector, module, parser))
-	genfs.FileGenerator("bud/internal/app/view/view.go", view.New(module, transformMap, flag))
+	genfs.FileGenerator("bud/internal/app/view/view.go", view.New(module, transforms, flag))
 	genfs.FileGenerator("bud/internal/app/public/public.go", public.New(flag))
+	genfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
+	genfs.FileServer("bud/view", dom.New(module, transforms.DOM))
+	genfs.FileServer("bud/node_modules", dom.NodeModules(module))
 	return genfs, nil
 }
 

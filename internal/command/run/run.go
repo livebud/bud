@@ -4,6 +4,7 @@ import (
 	"context"
 	"path/filepath"
 
+	"github.com/livebud/bud/package/devserver"
 	"github.com/livebud/bud/package/exe"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/hot"
@@ -15,8 +16,8 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/internal/budserver"
 	"github.com/livebud/bud/internal/command"
+	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/package/socket"
 )
 
@@ -92,8 +93,9 @@ func (c *Command) startBud(ctx context.Context, genfs *overlay.FileSystem) (err 
 	if err != nil {
 		return err
 	}
-	budServer := budserver.New(genfs, c.hotServer, vm, c.Flag)
-	return web.Serve(ctx, c.budListener, budServer)
+	ps := pubsub.New()
+	devServer := devserver.New(genfs, ps, vm)
+	return web.Serve(ctx, c.budListener, devServer)
 }
 
 // 1. Trigger reload

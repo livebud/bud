@@ -7,28 +7,14 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/livebud/bud/package/budproxy"
+	"github.com/livebud/bud/package/devclient"
 	"github.com/livebud/bud/package/js"
+	"github.com/livebud/bud/runtime/view/ssr"
 )
-
-type Response struct {
-	Status  int               `json:"status,omitempty"`
-	Headers map[string]string `json:"headers,omitempty"`
-	Body    string            `json:"body,omitempty"`
-}
-
-func (res *Response) Write(w http.ResponseWriter) {
-	// Write the response out
-	for key, value := range res.Headers {
-		w.Header().Set(key, value)
-	}
-	w.WriteHeader(res.Status)
-	w.Write([]byte(res.Body))
-}
 
 // Renderer interface
 type Renderer interface {
-	Render(path string, props interface{}) (*Response, error)
+	Render(path string, props interface{}) (*ssr.Response, error)
 }
 
 // func New(fsys fs.FS, vm js.VM, wrapProps map[string]string) *Server {
@@ -40,12 +26,12 @@ type Server interface {
 	Handler(route string, props interface{}) http.Handler
 }
 
-func Proxy(proxy *budproxy.Proxy) *liveServer {
-	return &liveServer{proxy}
+func Proxy(client *devclient.Client) *liveServer {
+	return &liveServer{client}
 }
 
 type liveServer struct {
-	proxy *budproxy.Proxy
+	client *devclient.Client
 }
 
 var _ Server = (*liveServer)(nil)
@@ -56,7 +42,7 @@ func (s *liveServer) Middleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		fmt.Println("live server serving", r.URL.Path)
+		s.client.Proxy(w, r)
 	})
 }
 
@@ -72,7 +58,7 @@ func (s *liveServer) respond(w http.ResponseWriter, path string, props interface
 	if err != nil {
 		// TODO: swap with logger
 		fmt.Println("view: render error", err)
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	headers := w.Header()
@@ -83,32 +69,8 @@ func (s *liveServer) respond(w http.ResponseWriter, path string, props interface
 	w.Write([]byte(res.Body))
 }
 
-func (s *liveServer) render(path string, props interface{}) (*Response, error) {
-	result, err := s.proxy.Render(path, props)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println("GOT RESULT", result)
-	return nil, fmt.Errorf("view: liveserver render not finished")
-	// script, err := fs.ReadFile(s.fsys, "bud/view/_ssr.js")
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// // Evaluate the server
-	// expr := fmt.Sprintf(`%s; bud.render(%q, %s)`, script, path, propBytes)
-	// result, err := s.vm.Eval("_ssr.js", expr)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// // Unmarshal the response
-	// res := new(Response)
-	// if err := json.Unmarshal([]byte(result), res); err != nil {
-	// 	return nil, err
-	// }
-	// if res.Status < 100 || res.Status > 999 {
-	// 	return nil, fmt.Errorf("view: invalid status code %d", res.Status)
-	// }
-	// return res, nil
+func (s *liveServer) render(path string, props interface{}) (*ssr.Response, error) {
+	return s.client.Render(path, props)
 }
 
 // Static server serves the same files every time. Used during production.
@@ -135,7 +97,7 @@ func (s *staticServer) respond(w http.ResponseWriter, path string, props interfa
 	if err != nil {
 		// TODO: swap with logger
 		fmt.Println("view: render error", err)
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	headers := w.Header()
@@ -146,7 +108,7 @@ func (s *staticServer) respond(w http.ResponseWriter, path string, props interfa
 	w.Write([]byte(res.Body))
 }
 
-func (s *staticServer) render(path string, props interface{}) (*Response, error) {
+func (s *staticServer) render(path string, props interface{}) (*ssr.Response, error) {
 	propBytes, err := json.Marshal(s.wrapProps(path, props))
 	if err != nil {
 		return nil, err
@@ -162,7 +124,7 @@ func (s *staticServer) render(path string, props interface{}) (*Response, error)
 		return nil, err
 	}
 	// Unmarshal the response
-	res := new(Response)
+	res := new(ssr.Response)
 	if err := json.Unmarshal([]byte(result), res); err != nil {
 		return nil, err
 	}
@@ -199,14 +161,14 @@ func (s *staticServer) serveHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// TODO: swap with logger
 		fmt.Println("view: open error", err)
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	stat, err := file.Stat()
 	if err != nil {
 		// TODO: swap with logger
 		fmt.Println("view: stat error", err)
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	// Maintain support to resolve and run "/bud/node_modules/livebud/runtime".

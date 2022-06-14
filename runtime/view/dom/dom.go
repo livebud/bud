@@ -192,7 +192,7 @@ func (c *Compiler) ServeFile(ctx context.Context, fsys overlay.F, file *overlay.
 
 func toEntry(path string) string {
 	dir, base := filepath.Split(path)
-	return filepath.Join(dir, "_"+base)
+	return filepath.Join(dir, "_"+base) + ".js"
 }
 
 func isEntry(path string) bool {
