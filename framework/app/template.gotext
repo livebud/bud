@@ -16,6 +16,9 @@ func main() {
 // Run the cli
 func run(ctx context.Context, args ...string) int {
 	if err := parse(ctx, args...); err != nil {
+		if errors.Is(err, context.Canceled) {
+			return 0
+		}
 		console.Error(err.Error())
 		return 1
 	}

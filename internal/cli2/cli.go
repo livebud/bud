@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os"
 
@@ -30,6 +31,9 @@ func Run(ctx context.Context, args ...string) int {
 	}
 	// Run the cli
 	if err := cli.Run(ctx, args...); err != nil {
+		if errors.Is(err, context.Canceled) {
+			return 0
+		}
 		console.Error(err.Error())
 		return 1
 	}

@@ -39,7 +39,7 @@ func (l *loader) Load() (state *State, err error) {
 	defer l.Recover2(&err, "app: unable to load state")
 	state = new(State)
 	state.Provider = l.loadProvider()
-	l.imports.AddStd("os", "context")
+	l.imports.AddStd("os", "context", "errors")
 	l.imports.AddNamed("console", "github.com/livebud/bud/package/log/console")
 	l.imports.AddNamed("commander", "github.com/livebud/bud/package/commander")
 	l.imports.Add(l.module.Import("bud/internal/app/web"))
