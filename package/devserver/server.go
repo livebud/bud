@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/livebud/bud/package/hot"
+	"github.com/livebud/bud/package/devclient"
+	hot "github.com/livebud/bud/package/hot2"
+	"github.com/livebud/bud/package/log"
 
 	"github.com/livebud/bud/internal/pubsub"
 
@@ -17,20 +19,24 @@ import (
 	"github.com/livebud/bud/package/router"
 )
 
-func New(fsys fs.FS, ps pubsub.Subscriber, vm js.VM) *Server {
+func New(fsys fs.FS, bus pubsub.Client, log log.Interface, vm js.VM) *Server {
 	router := router.New()
 	server := &Server{
 		Handler: router,
 		fsys:    fsys,
 		hfs:     http.FS(fsys),
-		ps:      ps,
+		bus:     bus,
+		log:     log,
 		vm:      vm,
 	}
+	// Routes that are proxied to from the browser through the app to bud
 	router.Post("/bud/view/:route*", http.HandlerFunc(server.render))
 	router.Get("/bud/view/:path*", http.HandlerFunc(server.serve))
 	router.Get("/bud/node_modules/:path*", http.HandlerFunc(server.serve))
-	// TODO: pass the pubsub subscriber to the hot handler
-	router.Get("/bud/hot", hot.New())
+	// Routes that are directly requested by the browser to
+	router.Get("/bud/hot", hot.New(bus))
+	// Private routes between the app and bud
+	router.Post("/bud/events", http.HandlerFunc(server.createEvent))
 	return server
 }
 
@@ -38,7 +44,8 @@ type Server struct {
 	http.Handler
 	fsys fs.FS
 	hfs  http.FileSystem
-	ps   pubsub.Subscriber
+	bus  pubsub.Client
+	log  log.Interface
 	vm   js.VM
 }
 
@@ -73,6 +80,7 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
+	s.log.Debug("devserver: serving file: " + r.URL.Path)
 	file, err := s.hfs.Open(r.URL.Path)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -93,4 +101,24 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/javascript")
 	}
 	http.ServeContent(w, r, r.URL.Path, stat.ModTime(), file)
+	s.log.Debug("devserver: served file: " + r.URL.Path)
+}
+
+func (s *Server) createEvent(w http.ResponseWriter, r *http.Request) {
+	// Read the body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	// Unmarshal the request body into an event
+	var event devclient.Event
+	if err := json.Unmarshal(body, &event); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	// Publish the event
+	s.bus.Publish(event.Type, event.Data)
+	// Return a No Content response
+	w.WriteHeader(http.StatusNoContent)
 }

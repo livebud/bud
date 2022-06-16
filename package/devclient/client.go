@@ -10,6 +10,7 @@ import (
 
 	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/urlx"
+	hot "github.com/livebud/bud/package/hot2"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/runtime/view/ssr"
 )
@@ -65,13 +66,13 @@ func (c *Client) Render(route string, props interface{}) (*ssr.Response, error) 
 	if err != nil {
 		return nil, err
 	}
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("devclient: server returned unexpected %d.", res.StatusCode)
-	}
 	defer res.Body.Close()
 	resBody, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
+	}
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("devclient: render returned unexpected %d. %s", res.StatusCode, resBody)
 	}
 	out := new(ssr.Response)
 	if err := json.Unmarshal(resBody, out); err != nil {
@@ -102,4 +103,34 @@ func (c *Client) Proxy(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(res.StatusCode)
 	io.Copy(w, res.Body)
+}
+
+func (c *Client) Hot() (*hot.Stream, error) {
+	return hot.DialWith(c.httpClient, c.baseURL+"/bud/hot")
+}
+
+type Event struct {
+	Type string
+	Data []byte
+}
+
+func (c *Client) Send(event Event) error {
+	body, err := json.Marshal(event)
+	if err != nil {
+		return err
+	}
+	url := c.baseURL + "/bud/events"
+	res, err := c.httpClient.Post(url, "application/json", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+	if res.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("devclient: send returned unexpected %d. %s", res.StatusCode, resBody)
+	}
+	return nil
 }

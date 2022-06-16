@@ -8,6 +8,7 @@ import (
 	"github.com/livebud/bud/internal/command"
 	"github.com/livebud/bud/internal/command/build"
 	"github.com/livebud/bud/internal/command/run"
+	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/package/commander"
 	"github.com/livebud/bud/package/log/console"
 	"github.com/livebud/bud/package/socket"
@@ -19,6 +20,7 @@ func Run(ctx context.Context, args ...string) int {
 		Stdin:  os.Stdin,
 		Stdout: os.Stdout,
 		Stderr: os.Stderr,
+		Bus:    pubsub.New(),
 		Env: []string{
 			"HOME=" + os.Getenv("HOME"),
 			"PATH=" + os.Getenv("PATH"),
@@ -34,16 +36,18 @@ func Run(ctx context.Context, args ...string) int {
 	return 0
 }
 
+// CLI is the Bud CLI. It should not be instantiated directly.
 type CLI struct {
 	Dir    string
-	Env    []string
 	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer
+	Bus    pubsub.Client
+	Env    []string
 
-	// Optional. Used for testing.
-	Web socket.Listener
-	Hot socket.Listener
+	// Used for testing.
+	Web socket.Listener // Could be nil
+	Hot socket.Listener // Could be nil
 }
 
 func (c *CLI) Run(ctx context.Context, args ...string) error {
@@ -63,7 +67,7 @@ func (c *CLI) Run(ctx context.Context, args ...string) error {
 	cli.Run(bud.Run)
 
 	{ // $ bud run
-		cmd := run.New(bud, c.Web, c.Hot)
+		cmd := run.New(bud, c.Bus, c.Web, c.Hot)
 		cli := cli.Command("run", "run the development server")
 		cli.Flag("embed", "embed assets").Bool(&cmd.Flag.Embed).Default(false)
 		cli.Flag("hot", "hot reloading").Bool(&cmd.Flag.Hot).Default(true)

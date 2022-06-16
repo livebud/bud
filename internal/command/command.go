@@ -87,10 +87,30 @@ func (c *Bud) FileSystem(module *gomod.Module, flag *framework.Flag) (*overlay.F
 	genfs.FileGenerator("bud/internal/app/controller/controller.go", controller.New(injector, module, parser))
 	genfs.FileGenerator("bud/internal/app/view/view.go", view.New(module, transforms, flag))
 	genfs.FileGenerator("bud/internal/app/public/public.go", public.New(flag))
-	genfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
-	genfs.FileServer("bud/view", dom.New(module, transforms.DOM))
-	genfs.FileServer("bud/node_modules", dom.NodeModules(module))
 	return genfs, nil
+}
+
+func (c *Bud) FileServer(module *gomod.Module, flag *framework.Flag) (*overlay.Server, error) {
+	servefs, err := overlay.Serve(module)
+	if err != nil {
+		return nil, err
+	}
+	vm, err := v8.Load()
+	if err != nil {
+		return nil, err
+	}
+	svelteCompiler, err := svelte.Load(vm)
+	if err != nil {
+		return nil, err
+	}
+	transforms, err := transform.Load(svelte.NewTransformable(svelteCompiler))
+	if err != nil {
+		return nil, err
+	}
+	servefs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
+	servefs.FileServer("bud/view", dom.New(module, transforms.DOM))
+	servefs.FileServer("bud/node_modules", dom.NodeModules(module))
+	return servefs, nil
 }
 
 // Generate the app

@@ -7,8 +7,8 @@
 <style>
   h1 {
     margin: 0;
-    background: red;
+    background: whitesmoke;
     padding: 20px;
-    color: white;
+    color: red;
   }
 </style>
