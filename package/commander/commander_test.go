@@ -22,17 +22,18 @@ func isEqual(t testing.TB, actual, expected string) {
 }
 
 func replaceEscapeCodes(str string) string {
-	// TODO: this is needlessly slow
-	str = strings.ReplaceAll(str, "\033[0m", `{reset}`)
-	str = strings.ReplaceAll(str, "\033[1m", `{bold}`)
-	str = strings.ReplaceAll(str, "\033[37m", `{dim}`)
-	str = strings.ReplaceAll(str, "\033[4m", `{underline}`)
-	str = strings.ReplaceAll(str, "\033[36m", `{teal}`)
-	str = strings.ReplaceAll(str, "\033[34m", `{blue}`)
-	str = strings.ReplaceAll(str, "\033[33m", `{yellow}`)
-	str = strings.ReplaceAll(str, "\033[31m", `{red}`)
-	str = strings.ReplaceAll(str, "\033[32m", `{green}`)
-	return str
+	r := strings.NewReplacer(
+		"\033[0m", `{reset}`,
+		"\033[1m", `{bold}`,
+		"\033[37m", `{dim}`,
+		"\033[4m", `{underline}`,
+		"\033[36m", `{teal}`,
+		"\033[34m", `{blue}`,
+		"\033[33m", `{yellow}`,
+		"\033[31m", `{red}`,
+		"\033[32m", `{green}`,
+	)
+	return r.Replace(str)
 }
 
 // is checks if expect and actual are equal
