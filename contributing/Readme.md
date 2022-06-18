@@ -47,7 +47,7 @@ To build and start a Docker container with Bud, run the following commands:
 
 ```sh
 docker build -t bud:latest contributing
-docker run -it --rm -v $(PWD):/bud bud /bin/bash
+docker run -it --rm -v $(pwd):/bud bud /bin/bash
 ```
 
 ## Developing Bud with a Project
