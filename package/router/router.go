@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"unicode"
 
 	"github.com/livebud/bud/package/router/radix"
 )
@@ -76,22 +75,11 @@ func (rt *Router) Middleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		// Redirect for trailing slashes or paths with uppercase letters
 		urlPath := r.URL.Path
-		redirect := false
 		// Strip any trailing slash (e.g. /users/ => /users)
 		if hasTrailingSlash(urlPath) {
 			urlPath = strings.TrimRight(urlPath, "/")
-			redirect = true
-		}
-		// Ensure that all paths are case-insensitive (e.g. /USERS => /users)
-		if hasUpper(urlPath) {
-			urlPath = strings.ToLower(urlPath)
-			redirect = true
-		}
-		// Redirect all at once, instead of for each rule
-		if redirect {
-			http.Redirect(w, r, strings.ToLower(urlPath), http.StatusPermanentRedirect)
+			http.Redirect(w, r, urlPath, http.StatusPermanentRedirect)
 			return
 		}
 		// Match the path
@@ -115,15 +103,6 @@ func (rt *Router) Middleware(next http.Handler) http.Handler {
 
 func hasTrailingSlash(path string) bool {
 	return path != "/" && strings.HasSuffix(path, "/")
-}
-
-func hasUpper(path string) bool {
-	for _, r := range path {
-		if unicode.IsUpper(r) {
-			return true
-		}
-	}
-	return false
 }
 
 // isMethod returns true if method is a valid HTTP method
