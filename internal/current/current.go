@@ -29,7 +29,7 @@ func Directory() (string, error) {
 	dir := filepath.Dir(name)
 	// When we use --trimpath, attempt to find the absolute path anyway
 	if !filepath.IsAbs(dir) {
-		// Attempt to find it within $GOPATH/src
+		// Hail mary attempt to find it within $GOPATH/src
 		if gopath := os.Getenv("GOPATH"); gopath != "" {
 			dir = filepath.Join(gopath, "src", dir)
 		}

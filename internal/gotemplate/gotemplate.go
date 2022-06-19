@@ -25,12 +25,18 @@ func Parse(name, code string) (Template, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &gotemplate{tpl}, nil
+	return &gotemplate{name, tpl}, nil
 }
 
 // Template struct
 type gotemplate struct {
-	tpl *template.Template
+	name string
+	tpl  *template.Template
+}
+
+// Name returns the name of the template
+func (t *gotemplate) Name() string {
+	return t.name
 }
 
 // Generate the code

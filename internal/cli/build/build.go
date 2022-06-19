@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/internal/command"
+	"github.com/livebud/bud/internal/cli/bud"
 )
 
-func New(bud *command.Bud) *Command {
+func New(bud *bud.Command) *Command {
 	return &Command{
 		bud:  bud,
 		Flag: new(framework.Flag),
@@ -15,7 +15,7 @@ func New(bud *command.Bud) *Command {
 }
 
 type Command struct {
-	bud  *command.Bud
+	bud  *bud.Command
 	Flag *framework.Flag
 }
 

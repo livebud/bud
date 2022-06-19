@@ -9,9 +9,9 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/livebud/bud/internal/errs"
 	"github.com/livebud/bud/internal/versions"
 
-	"github.com/Bowery/prompt"
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/package/gomod"
 )
@@ -47,10 +47,12 @@ func (c *Command) generateGoMod(ctx context.Context, dir string) error {
 	// Get the module name
 	state.Name = gomod.Infer(absPath)
 	if state.Name == "" {
-		state.Name, err = prompt.Basic("Module name? (e.g. github.com/me/app)", true)
-		if err != nil {
-			return err
-		}
+		return errs.New(`
+			Unable to infer a module name. Try again using the module <path> name.
+
+			For example,
+				bud create --module=github.com/my/app %s
+		`, c.Dir)
 	}
 	// Get the Go version
 	state.Version = strings.TrimPrefix(goVersion(runtime.Version()), "go")

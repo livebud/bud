@@ -1,0 +1,41 @@
+package {{ $.Package }}
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+type Controller struct {
+	// Dependencies...
+}
+
+// {{ $.Struct }} struct
+type {{ $.Struct }} struct {
+	// Fields...
+}
+
+{{- range $action := $.Actions }}
+{{/* Index action */}}
+{{- if $action.Index }}
+
+// Index of {{ $.Plural }}
+// GET {{ $.Route }}
+func (c *Controller) Index(ctx context.Context) ({{ $action.Result }} []*{{ $.Struct }}, err error) {
+	return []*{{ $.Struct }}{}, nil
+}
+
+{{/* Show action */}}
+{{- else if $action.Show }}
+
+// Show {{ $.Singular }}
+// GET {{ $action.Route }}
+func (c *Controller) Show(ctx context.Context, id int) ({{ $action.Result }} *{{ $.Struct }}, err error) {
+	return &{{ $.Struct }}{}, nil
+}
+{{- end }}
+
+{{- end }}

@@ -2,7 +2,6 @@ package run
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 
 	"github.com/livebud/bud/package/devserver"
@@ -16,12 +15,12 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/internal/command"
+	"github.com/livebud/bud/internal/cli/bud"
 	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/package/socket"
 )
 
-func New(bud *command.Bud, bus pubsub.Client, webListener, budListener socket.Listener) *Command {
+func New(bud *bud.Command, bus pubsub.Client, webListener, budListener socket.Listener) *Command {
 	return &Command{
 		bud:         bud,
 		bus:         bus,
@@ -32,7 +31,7 @@ func New(bud *command.Bud, bus pubsub.Client, webListener, budListener socket.Li
 }
 
 type Command struct {
-	bud *command.Bud
+	bud *bud.Command
 	bus pubsub.Client
 
 	// Passed in for testing
@@ -86,7 +85,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 
 	// Start the app
 	eg.Go(func() error {
-		return c.startApp(ctx, genfs, module, log)
+		return c.startApp(ctx, genfs, log, module)
 	})
 
 	// Wait until either the hot or web server exits
@@ -106,7 +105,7 @@ func (c *Command) startBud(ctx context.Context, servefs *overlay.Server, log log
 // 2. Close existing process
 // 3. Generate new codebase
 // 4. Start new process
-func (c *Command) startApp(ctx context.Context, genfs *overlay.FileSystem, module *gomod.Module, log log.Interface) (err error) {
+func (c *Command) startApp(ctx context.Context, genfs *overlay.FileSystem, log log.Interface, module *gomod.Module) (err error) {
 	if c.webListener == nil {
 		c.webListener, err = socket.Listen(c.Listen)
 		if err != nil {
@@ -115,23 +114,23 @@ func (c *Command) startApp(ctx context.Context, genfs *overlay.FileSystem, modul
 		log.Info("Listening on http://localhost" + c.Listen)
 	}
 	// Run the start function once upon booting
-	if err := c.restart(ctx, genfs, module); err != nil {
+	if err := c.restart(ctx, genfs, log, module); err != nil {
 		log.Error(err.Error())
 	}
 	// Watch the project
 	return watcher.Watch(ctx, module.Directory(), func(paths []string) error {
-		if err := c.restart(ctx, genfs, module, paths...); err != nil {
+		if err := c.restart(ctx, genfs, log, module, paths...); err != nil {
 			log.Error(err.Error())
 		}
 		return nil
 	})
 }
 
-func (c *Command) restart(ctx context.Context, genfs *overlay.FileSystem, module *gomod.Module, updatePaths ...string) (err error) {
+func (c *Command) restart(ctx context.Context, genfs *overlay.FileSystem, log log.Interface, module *gomod.Module, updatePaths ...string) (err error) {
 	if c.app != nil {
+		log.Debug("triggering update", updatePaths)
 		if canIncrementallyReload(updatePaths) {
 			// Trigger an incremental reload. Star just means any path.
-			fmt.Println("triggering update", updatePaths)
 			c.bus.Publish("page:update:*", nil)
 			return nil
 		}
@@ -150,10 +149,11 @@ func (c *Command) restart(ctx context.Context, genfs *overlay.FileSystem, module
 		return err
 	}
 	// Start the app
-	c.app, err = c.bud.Start(module, c.webListener, c.budListener)
+	app, err := c.bud.Start(module, c.webListener, c.budListener)
 	if err != nil {
 		return err
 	}
+	c.app = app
 	return nil
 }
 
