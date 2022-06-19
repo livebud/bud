@@ -157,10 +157,13 @@ func (c *CLI) Run(ctx context.Context, args ...string) error {
 		cli.Run(cmd.Run)
 	}
 
-	return cli.Parse(ctx, args)
+	// Parse the arguments
+	if err := cli.Parse(ctx, args); err != nil {
+		// Treat cancellation as a non-error
+		if errors.Is(err, context.Canceled) {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
-
-// // Close any resources we may opened
-// func (c *CLI) Close() error {
-// 	return c.bud.Close()
-// }

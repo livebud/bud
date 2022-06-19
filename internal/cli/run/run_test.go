@@ -2,6 +2,7 @@ package run_test
 
 import (
 	"context"
+	"io"
 	"testing"
 
 	"github.com/livebud/bud/internal/cli/testcli"
@@ -9,22 +10,26 @@ import (
 	"github.com/livebud/bud/internal/testdir"
 )
 
-func TestRunWelcome(t *testing.T) {
+func TestWelcome(t *testing.T) {
 	is := is.New(t)
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	dir := t.TempDir()
 	td := testdir.New(dir)
 	is.NoErr(td.Write(ctx))
 	cli := testcli.New(dir)
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
-	_ = app
-	// defer app.Close()
-	// res, err := app.Get("/")
-	// is.NoErr(err)
-	// is.Equal(res.Status(), 200)
-	// is.In(res.Body().String(), "Hey Bud")
-	// is.In(res.Body().String(), "Hey Bud") // should work multiple times
-	// is.Equal(app.Stdout, "")
-	// is.Equal(app.Stderr, "")
+	res, err := app.Get("/")
+	is.NoErr(err)
+	is.Equal(res.Status(), 200)
+	is.In(res.Body().String(), "Hey Bud")
+	is.In(res.Body().String(), "Hey Bud") // should work multiple times
+	is.NoErr(app.Close())
+	stdout, err := io.ReadAll(app.Stdout())
+	is.NoErr(err)
+	is.In(string(stdout), "")
+	stderr, err := io.ReadAll(app.Stderr())
+	is.NoErr(err)
+	is.In(string(stderr), "")
 }

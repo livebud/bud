@@ -133,13 +133,17 @@ func (c *Command) Build(ctx context.Context, module *gomod.Module, mainPath, out
 	return builder.Build(ctx, mainPath, outPath)
 }
 
-func (c *Command) Start(module *gomod.Module, webListener socket.Listener, budListener socket.Listener) (*exe.Cmd, error) {
+func (c *Command) Start(module *gomod.Module, webListener socket.Listener, budListener socket.Listener, flag *framework.Flag) (*exe.Cmd, error) {
 	// Start the web server
 	cmd := exe.Command(context.Background(), filepath.Join("bud", "app"))
 	cmd.Stdin = c.Stdin
 	cmd.Stdout = c.Stdout
 	cmd.Stderr = c.Stderr
 	cmd.Env = c.Env
+	// Add the bud address as an env var if we're not embedding assets
+	if !flag.Embed {
+		cmd.Env = append(cmd.Env, "BUD_LISTEN="+budListener.Addr().String())
+	}
 	cmd.Dir = module.Directory()
 	// Inject the web listener into the app
 	webFile, err := webListener.File()
@@ -147,12 +151,6 @@ func (c *Command) Start(module *gomod.Module, webListener socket.Listener, budLi
 		return nil, err
 	}
 	extrafile.Inject(&cmd.ExtraFiles, &cmd.Env, "WEB", webFile)
-	// Inject the bud listener into the app
-	budFile, err := budListener.File()
-	if err != nil {
-		return nil, err
-	}
-	extrafile.Inject(&cmd.ExtraFiles, &cmd.Env, "BUD", budFile)
 	// Start the command
 	if err := cmd.Start(); err != nil {
 		return nil, err

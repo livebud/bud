@@ -6,26 +6,22 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 
-	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/urlx"
 	hot "github.com/livebud/bud/package/hot2"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/runtime/view/ssr"
 )
 
-// FromFile loads the client from a file descriptor
-func FromFile() (*Client, error) {
-	files := extrafile.Load("BUD")
-	if len(files) == 0 {
-		return nil, fmt.Errorf("devclient: no listener file passed in")
+// LoadFromEnv tries loading a dev client from an environment variable
+func LoadFromEnv() (*Client, error) {
+	addr := os.Getenv("BUD_LISTEN")
+	if addr == "" {
+		return nil, fmt.Errorf("devclient: BUD_LISTEN is not set")
 	}
-	listener, err := socket.From(files[0])
-	if err != nil {
-		return nil, fmt.Errorf("devclient: unable to listen to file. %w", err)
-	}
-	return Load(listener.Addr().String())
+	return Load(addr)
 }
 
 // Load a client from an address

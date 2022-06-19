@@ -7,9 +7,9 @@
 <style>
   h1 {
     margin: 0;
-    background: lightcoral;
-    border-bottom: 2px solid red;
+    background: whitesmoke;
+    border-bottom: 2px solid purple;
     padding: 20px;
-    color: red;
+    color: purple;
   }
 </style>

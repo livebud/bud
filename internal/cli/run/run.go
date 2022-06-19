@@ -89,7 +89,9 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	})
 
 	// Wait until either the hot or web server exits
-	return eg.Wait()
+	err = eg.Wait()
+	log.Debug("Run finished", "err", err)
+	return err
 }
 
 func (c *Command) startBud(ctx context.Context, servefs *overlay.Server, log log.Interface) (err error) {
@@ -98,7 +100,9 @@ func (c *Command) startBud(ctx context.Context, servefs *overlay.Server, log log
 		return err
 	}
 	devServer := devserver.New(servefs, c.bus, log, vm)
-	return web.Serve(ctx, c.budListener, devServer)
+	err = web.Serve(ctx, c.budListener, devServer)
+	log.Debug("Bud server closed", "err", err)
+	return err
 }
 
 // 1. Trigger reload
@@ -118,12 +122,14 @@ func (c *Command) startApp(ctx context.Context, genfs *overlay.FileSystem, log l
 		log.Error(err.Error())
 	}
 	// Watch the project
-	return watcher.Watch(ctx, module.Directory(), func(paths []string) error {
+	err = watcher.Watch(ctx, module.Directory(), func(paths []string) error {
 		if err := c.restart(ctx, genfs, log, module, paths...); err != nil {
 			log.Error(err.Error())
 		}
 		return nil
 	})
+	log.Debug("Watcher closed", "err", err)
+	return nil
 }
 
 func (c *Command) restart(ctx context.Context, genfs *overlay.FileSystem, log log.Interface, module *gomod.Module, updatePaths ...string) (err error) {
@@ -149,7 +155,7 @@ func (c *Command) restart(ctx context.Context, genfs *overlay.FileSystem, log lo
 		return err
 	}
 	// Start the app
-	app, err := c.bud.Start(module, c.webListener, c.budListener)
+	app, err := c.bud.Start(module, c.webListener, c.budListener, c.Flag)
 	if err != nil {
 		return err
 	}

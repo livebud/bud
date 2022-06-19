@@ -46,7 +46,9 @@ func Serve(ctx context.Context, listener net.Listener, handler http.Handler) err
 	}
 	// Handle any errors that occurred while shutting down
 	if err := <-shutdown; err != nil {
-		return err
+		if !errors.Is(err, context.Canceled) {
+			return err
+		}
 	}
 	return nil
 }
