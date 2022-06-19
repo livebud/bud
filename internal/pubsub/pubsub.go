@@ -72,8 +72,9 @@ func (m *Memory) close(MemoryID int, topics []string) func() {
 		for i, topic := range topics {
 			// Same channel across subcribers, so we should only close once
 			if i == 0 {
-				ch := m.topics[topic][MemoryID]
-				close(ch)
+				if ch := m.topics[topic][MemoryID]; ch != nil {
+					close(ch)
+				}
 			}
 			delete(m.topics[topic], MemoryID)
 		}

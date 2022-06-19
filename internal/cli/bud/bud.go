@@ -3,6 +3,7 @@ package bud
 import (
 	"context"
 	"io"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/livebud/bud/framework"
@@ -16,7 +17,6 @@ import (
 	"github.com/livebud/bud/internal/gobuild"
 	"github.com/livebud/bud/package/commander"
 	"github.com/livebud/bud/package/di"
-	"github.com/livebud/bud/package/exe"
 	"github.com/livebud/bud/package/gomod"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log"
@@ -133,9 +133,9 @@ func (c *Command) Build(ctx context.Context, module *gomod.Module, mainPath, out
 	return builder.Build(ctx, mainPath, outPath)
 }
 
-func (c *Command) Start(module *gomod.Module, webListener socket.Listener, budListener socket.Listener, flag *framework.Flag) (*exe.Cmd, error) {
+func (c *Command) Start(module *gomod.Module, webListener socket.Listener, budListener socket.Listener, flag *framework.Flag) (*exec.Cmd, error) {
 	// Start the web server
-	cmd := exe.Command(context.Background(), filepath.Join("bud", "app"))
+	cmd := exec.Command(filepath.Join("bud", "app"))
 	cmd.Stdin = c.Stdin
 	cmd.Stdout = c.Stdout
 	cmd.Stderr = c.Stderr

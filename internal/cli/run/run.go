@@ -2,10 +2,13 @@ package run
 
 import (
 	"context"
+	"errors"
+	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/livebud/bud/package/devserver"
-	"github.com/livebud/bud/package/exe"
 	"github.com/livebud/bud/package/gomod"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log"
@@ -43,7 +46,7 @@ type Command struct {
 	Listen string // Web listen address
 
 	// Private
-	app *exe.Cmd // Starts as nil
+	app *exec.Cmd // Starts as nil
 }
 
 func (c *Command) Run(ctx context.Context) (err error) {
@@ -90,7 +93,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 
 	// Wait until either the hot or web server exits
 	err = eg.Wait()
-	log.Debug("Run finished", "err", err)
+	log.Debug("run: command finished", "err", err)
 	return err
 }
 
@@ -101,7 +104,7 @@ func (c *Command) startBud(ctx context.Context, servefs *overlay.Server, log log
 	}
 	devServer := devserver.New(servefs, c.bus, log, vm)
 	err = web.Serve(ctx, c.budListener, devServer)
-	log.Debug("Bud server closed", "err", err)
+	log.Debug("run: bud server closed", "err", err)
 	return err
 }
 
@@ -123,26 +126,33 @@ func (c *Command) startApp(ctx context.Context, genfs *overlay.FileSystem, log l
 	}
 	// Watch the project
 	err = watcher.Watch(ctx, module.Directory(), func(paths []string) error {
+		log.Debug("run: files changed", "paths", paths)
 		if err := c.restart(ctx, genfs, log, module, paths...); err != nil {
 			log.Error(err.Error())
 		}
 		return nil
 	})
-	log.Debug("Watcher closed", "err", err)
+	log.Debug("run: watcher closed", "err", err)
+	if c.app != nil {
+		err := closeProcess(c.app)
+		log.Debug("run: app server closed", "err", err)
+		return err
+	}
 	return nil
 }
 
 func (c *Command) restart(ctx context.Context, genfs *overlay.FileSystem, log log.Interface, module *gomod.Module, updatePaths ...string) (err error) {
 	if c.app != nil {
-		log.Debug("triggering update", updatePaths)
 		if canIncrementallyReload(updatePaths) {
+			log.Debug("run: incrementally reloading")
 			// Trigger an incremental reload. Star just means any path.
 			c.bus.Publish("page:update:*", nil)
 			return nil
 		}
 		// Reload the full server. Exclamation point just means full page reload.
+		log.Debug("run: reloading the page")
 		c.bus.Publish("page:reload", nil)
-		if err := c.app.Close(); err != nil {
+		if err := closeProcess(c.app); err != nil {
 			return err
 		}
 	}
@@ -159,6 +169,7 @@ func (c *Command) restart(ctx context.Context, genfs *overlay.FileSystem, log lo
 	if err != nil {
 		return err
 	}
+	go watchProcess(c.bus, app)
 	c.app = app
 	return nil
 }
@@ -171,4 +182,42 @@ func canIncrementallyReload(paths []string) bool {
 		}
 	}
 	return true
+}
+
+// watchProcess watches for a process to exit and publishes an event if there
+// was an error.
+func watchProcess(bus pubsub.Publisher, cmd *exec.Cmd) error {
+	if err := cmd.Wait(); err != nil {
+		if !isWaitError(err) {
+			bus.Publish("cmd:error", []byte(err.Error()))
+			return err
+		}
+	}
+	return nil
+}
+
+// Close the process down gracefully
+func closeProcess(cmd *exec.Cmd) error {
+	sp := cmd.Process
+	if sp == nil {
+		return nil
+	}
+	if err := sp.Signal(os.Interrupt); err != nil {
+		if errors.Is(err, os.ErrProcessDone) {
+			return nil
+		}
+		if err := sp.Kill(); err != nil {
+			return err
+		}
+	}
+	if err := cmd.Wait(); err != nil {
+		if !isWaitError(err) {
+			return err
+		}
+	}
+	return nil
+}
+
+func isWaitError(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "Wait was already called")
 }

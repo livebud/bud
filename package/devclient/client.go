@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/livebud/bud/internal/urlx"
@@ -15,17 +14,23 @@ import (
 	"github.com/livebud/bud/runtime/view/ssr"
 )
 
+type Client interface {
+	Render(route string, props interface{}) (*ssr.Response, error)
+	Proxy(w http.ResponseWriter, r *http.Request)
+	Hot() (*hot.Stream, error)
+	Publish(topic string, data []byte) error
+}
+
 // LoadFromEnv tries loading a dev client from an environment variable
-func LoadFromEnv() (*Client, error) {
-	addr := os.Getenv("BUD_LISTEN")
+func Try(addr string) (Client, error) {
 	if addr == "" {
-		return nil, fmt.Errorf("devclient: BUD_LISTEN is not set")
+		return discard{}, nil
 	}
 	return Load(addr)
 }
 
 // Load a client from an address
-func Load(addr string) (*Client, error) {
+func Load(addr string) (Client, error) {
 	url, err := urlx.Parse(addr)
 	if err != nil {
 		return nil, err
@@ -34,25 +39,27 @@ func Load(addr string) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("devclient: unable to create transport from listener. %w", err)
 	}
-	client := &http.Client{
+	httpClient := &http.Client{
 		Transport: transport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
 	}
-	return &Client{
+	return &client{
 		baseURL:    url.String(),
-		httpClient: client,
+		httpClient: httpClient,
 	}, nil
 }
 
-type Client struct {
+type client struct {
 	baseURL    string
 	httpClient *http.Client
 }
 
+var _ Client = (*client)(nil)
+
 // Render a path with props on the dev server
-func (c *Client) Render(route string, props interface{}) (*ssr.Response, error) {
+func (c *client) Render(route string, props interface{}) (*ssr.Response, error) {
 	body, err := json.Marshal(props)
 	if err != nil {
 		return nil, err
@@ -77,12 +84,7 @@ func (c *Client) Render(route string, props interface{}) (*ssr.Response, error) 
 	return out, nil
 }
 
-// Proxy a file to the dev server
-// func (c *Client) Proxy(urlPath string) (*http.Response, error) {
-// 	return c.httpClient.Get(c.baseURL + urlPath)
-// }
-
-func (c *Client) Proxy(w http.ResponseWriter, r *http.Request) {
+func (c *client) Proxy(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -101,17 +103,17 @@ func (c *Client) Proxy(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, res.Body)
 }
 
-func (c *Client) Hot() (*hot.Stream, error) {
+func (c *client) Hot() (*hot.Stream, error) {
 	return hot.DialWith(c.httpClient, c.baseURL+"/bud/hot")
 }
 
 type Event struct {
-	Type string
-	Data []byte
+	Topic string `json:"topic,omitempty"`
+	Data  []byte `json:"data,omitempty"`
 }
 
-func (c *Client) Send(event Event) error {
-	body, err := json.Marshal(event)
+func (c *client) Publish(topic string, data []byte) error {
+	body, err := json.Marshal(Event{topic, data})
 	if err != nil {
 		return err
 	}

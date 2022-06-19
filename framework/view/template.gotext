@@ -14,7 +14,7 @@ import (
 
 {{- if not $.Flag.Embed }}
 // Load the view server. Files are linked rather than embedded.
-func Load(client *devclient.Client) Server {
+func Load(client devclient.Client) Server {
 	return view.Proxy(client)
 }
 {{ else }}

@@ -36,11 +36,6 @@ func From(dir string) (ignore func(path string, isDir bool) bool) {
 	}
 	matcher := gitignore.NewGitIgnoreFromReader(".gitignore", bytes.NewBuffer(code))
 	return func(path string, isDir bool) bool {
-		rel, err := filepath.Rel(dir, path)
-		// Ignore non-relative files
-		if err != nil {
-			return true
-		}
-		return matcher.Match(rel, isDir)
+		return matcher.Match(path, isDir)
 	}
 }

@@ -26,12 +26,12 @@ type Server interface {
 	Handler(route string, props interface{}) http.Handler
 }
 
-func Proxy(client *devclient.Client) *liveServer {
+func Proxy(client devclient.Client) *liveServer {
 	return &liveServer{client}
 }
 
 type liveServer struct {
-	client *devclient.Client
+	client devclient.Client
 }
 
 var _ Server = (*liveServer)(nil)

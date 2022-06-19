@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -11,12 +12,19 @@ import (
 	"net/http/httputil"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/lithammer/dedent"
 	"github.com/livebud/bud/internal/errs"
 	"github.com/livebud/bud/internal/pubsub"
+	"github.com/matthewmueller/diff"
 
+	"github.com/livebud/bud/package/hot"
+	"github.com/livebud/bud/package/log"
+	"github.com/livebud/bud/package/log/console"
+	"github.com/livebud/bud/package/log/filter"
 	"github.com/livebud/bud/package/socket"
 
 	"golang.org/x/sync/errgroup"
@@ -25,12 +33,14 @@ import (
 	"github.com/livebud/bud/internal/envs"
 )
 
-var log = flag.String("log", "info", "choose a log level")
+var logPattern = flag.String("log", "info", "choose a log level")
 
 func New(dir string) *CLI {
+	ps := pubsub.New()
+	// log,err:=con
 	return &CLI{
 		dir: dir,
-		bus: pubsub.New(),
+		bus: ps,
 		Env: envs.Map{
 			"NO_COLOR": "1",
 			"HOME":     os.Getenv("HOME"),
@@ -49,6 +59,14 @@ type CLI struct {
 	Stdin io.Reader
 }
 
+func (c *CLI) Logger() (log.Interface, error) {
+	handler, err := filter.Load(console.New(os.Stderr), *logPattern)
+	if err != nil {
+		return nil, err
+	}
+	return log.New(handler), nil
+}
+
 func (c *CLI) toCLI() *cli.CLI {
 	return &cli.CLI{
 		Dir:    c.dir,
@@ -64,7 +82,7 @@ func (c *CLI) toCLI() *cli.CLI {
 // These can be overriden by more specific flags
 func prependFlags(args []string) []string {
 	return append([]string{
-		"--log=" + *log,
+		"--log=" + *logPattern,
 	}, args...)
 }
 
@@ -96,14 +114,7 @@ func listen(path string) (socket.Listener, *http.Client, error) {
 		return nil, nil, err
 	}
 	client := &http.Client{
-		// This is extra high right now because we don't currently have any signal
-		// that we've built the app and `bud run --embed` can take a long time. This
-		// is going to slow down legitimately failing requests, so it's a very
-		// temporary solution.
-		//
-		// TODO: support getting a signal that we've built the app, then lower this
-		// deadline.
-		Timeout:   60 * time.Second,
+		Timeout:   5 * time.Second,
 		Transport: transport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
@@ -113,6 +124,10 @@ func listen(path string) (socket.Listener, *http.Client, error) {
 }
 
 func (c *CLI) Start(ctx context.Context, args ...string) (*App, error) {
+	log, err := c.Logger()
+	if err != nil {
+		return nil, err
+	}
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		return nil, err
@@ -138,12 +153,12 @@ func (c *CLI) Start(ctx context.Context, args ...string) (*App, error) {
 	cli.Web = webListener
 	cli.Hot = hotListener
 	// Run the CLI
-	eg := new(errgroup.Group)
-	ctx, cancelCLI := context.WithCancel(ctx)
-	eg.Go(func() error { return cli.Run(ctx, prependFlags(args)...) })
+	ctx, cancel := context.WithCancel(ctx)
+	eg, ctx := errgroup.WithContext(ctx)
 	// App provides helpers and controls for the running CLI
-	return &App{
+	app := &App{
 		eg:           eg,
+		log:          log,
 		bus:          c.bus,
 		stdoutReader: stdoutReader,
 		stdoutWriter: stdoutWriter,
@@ -151,12 +166,25 @@ func (c *CLI) Start(ctx context.Context, args ...string) (*App, error) {
 		stderrWriter: stderrWriter,
 		webClient:    webClient,
 		hotClient:    hotClient,
-		cancelCLI:    cancelCLI,
-	}, nil
+		cancel:       cancel,
+		appReadySub:  c.bus.Subscribe("app:ready"),
+		cmdErrorSub:  c.bus.Subscribe("cmd:error"),
+	}
+	// Start running the CLI
+	eg.Go(func() error {
+		return cli.Run(ctx, prependFlags(args)...)
+	})
+	// Wait for the app to be ready
+	if err := app.Ready(ctx); err != nil {
+		cancel()
+		return nil, err
+	}
+	return app, nil
 }
 
 type App struct {
 	eg           *errgroup.Group
+	log          log.Interface
 	bus          pubsub.Client
 	stdoutReader io.Reader
 	stdoutWriter io.WriteCloser
@@ -164,7 +192,9 @@ type App struct {
 	stderrWriter io.WriteCloser
 	webClient    *http.Client
 	hotClient    *http.Client
-	cancelCLI    context.CancelFunc
+	cancel       context.CancelFunc
+	appReadySub  pubsub.Subscription
+	cmdErrorSub  pubsub.Subscription
 }
 
 func (a *App) Stdout() io.Reader {
@@ -185,16 +215,42 @@ func (a *App) Publish(topic string, payload []byte) {
 	a.bus.Publish(topic, payload)
 }
 
+func (a *App) Ready(ctx context.Context) error {
+	// Wait for the app to be ready or fail trying
+	a.log.Debug("testcli: waiting for app to be ready")
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("testcli: app exited quickly after starting. %w", ctx.Err())
+		case err := <-a.cmdErrorSub.Wait():
+			return fmt.Errorf("testcli: error starting the generated app. %s", string(err))
+		case <-a.appReadySub.Wait():
+			a.log.Debug("testcli: app is ready")
+			return nil
+		case <-time.Tick(time.Second):
+			a.log.Debug("testcli: app is not ready yet")
+		}
+	}
+}
+
 // Close the app down
 func (a *App) Close() (err error) {
 	// Cancel the CLI
-	a.cancelCLI()
+	a.cancel()
+	// Close the subscriptions
+	a.appReadySub.Close()
+	a.cmdErrorSub.Close()
 	// Close the writers
 	err = errs.Join(err, a.stdoutWriter.Close())
 	err = errs.Join(err, a.stderrWriter.Close())
 	// Wait for the CLI to finish
 	err = errs.Join(err, a.eg.Wait())
 	return err
+}
+
+// Hot connects to the event stream
+func (a *App) Hot(path string) (*hot.Stream, error) {
+	return hot.DialWith(a.hotClient, getURL(path))
 }
 
 func bufferHeaders(res *http.Response, body []byte) ([]byte, error) {
@@ -292,6 +348,69 @@ func (a *App) Get(path string) (*Response, error) {
 	return a.Request(req)
 }
 
+func (a *App) GetJSON(path string) (*Response, error) {
+	req, err := http.NewRequest(http.MethodGet, getURL(path), nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+	return a.Request(req)
+}
+
+func (a *App) Post(path string, body io.Reader) (*Response, error) {
+	req, err := http.NewRequest(http.MethodPost, getURL(path), body)
+	if err != nil {
+		return nil, err
+	}
+	return a.Request(req)
+}
+
+func (a *App) PostJSON(path string, body io.Reader) (*Response, error) {
+	req, err := http.NewRequest(http.MethodPost, getURL(path), body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	return a.Request(req)
+}
+
+func (a *App) Patch(path string, body io.Reader) (*Response, error) {
+	req, err := http.NewRequest(http.MethodPatch, getURL(path), body)
+	if err != nil {
+		return nil, err
+	}
+	return a.Request(req)
+}
+
+func (a *App) PatchJSON(path string, body io.Reader) (*Response, error) {
+	req, err := http.NewRequest(http.MethodPatch, getURL(path), body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	return a.Request(req)
+}
+
+func (a *App) Delete(path string, body io.Reader) (*Response, error) {
+	req, err := http.NewRequest(http.MethodDelete, getURL(path), body)
+	if err != nil {
+		return nil, err
+	}
+	return a.Request(req)
+}
+
+func (a *App) DeleteJSON(path string, body io.Reader) (*Response, error) {
+	req, err := http.NewRequest(http.MethodDelete, getURL(path), body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	return a.Request(req)
+}
+
 type Response struct {
 	res     *http.Response
 	headers []byte
@@ -318,6 +437,35 @@ func (r *Response) Dump() *bytes.Buffer {
 	b.WriteByte('\n')
 	b.Write(r.body)
 	return b
+}
+
+func (r *Response) Diff(expected string) error {
+	expected = strings.TrimSpace(dedent.Dedent(expected))
+	actual := strings.TrimSpace(r.Dump().String())
+	return difference(expected, actual)
+}
+
+func (r *Response) DiffHeaders(expected string) error {
+	expected = strings.TrimSpace(dedent.Dedent(expected))
+	actual := strings.TrimSpace(r.Headers().String())
+	return difference(expected, actual)
+}
+
+func difference(expected, actual string) error {
+	if expected == actual {
+		return nil
+	}
+	var b bytes.Buffer
+	b.WriteString("\n\x1b[4mExpected\x1b[0m:\n")
+	b.WriteString(expected)
+	b.WriteString("\n\n")
+	b.WriteString("\x1b[4mActual\x1b[0m: \n")
+	b.WriteString(actual)
+	b.WriteString("\n\n")
+	b.WriteString("\x1b[4mDifference\x1b[0m: \n")
+	b.WriteString(diff.String(expected, actual))
+	b.WriteString("\n")
+	return errors.New(b.String())
 }
 
 // Header gets a value from a key

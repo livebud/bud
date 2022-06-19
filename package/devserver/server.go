@@ -80,7 +80,7 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
-	s.log.Debug("devserver: serving file: " + r.URL.Path)
+	s.log.Debug("devserver: serving", "file", r.URL.Path)
 	file, err := s.hfs.Open(r.URL.Path)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -101,7 +101,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/javascript")
 	}
 	http.ServeContent(w, r, r.URL.Path, stat.ModTime(), file)
-	s.log.Debug("devserver: served file: " + r.URL.Path)
+	s.log.Debug("devserver: served", "file", r.URL.Path)
 }
 
 func (s *Server) createEvent(w http.ResponseWriter, r *http.Request) {
@@ -118,7 +118,7 @@ func (s *Server) createEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Publish the event
-	s.bus.Publish(event.Type, event.Data)
+	s.bus.Publish(event.Topic, event.Data)
 	// Return a No Content response
 	w.WriteHeader(http.StatusNoContent)
 }

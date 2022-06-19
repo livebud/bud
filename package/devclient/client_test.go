@@ -223,11 +223,11 @@ func TestEvents(t *testing.T) {
 	is.NoErr(err)
 	sub := ps.Subscribe("ready")
 	defer sub.Close()
-	err = client.Send(devclient.Event{Type: "ready", Data: []byte("hello")})
+	err = client.Publish("ready", []byte("test"))
 	is.NoErr(err)
 	select {
 	case payload := <-sub.Wait():
-		is.Equal(string(payload), "hello")
+		is.Equal(string(payload), "test")
 	default:
 		t.Fatalf("missing event")
 	}

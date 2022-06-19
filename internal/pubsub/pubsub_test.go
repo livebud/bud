@@ -8,7 +8,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func Test(t *testing.T) {
+func TestPubSub(t *testing.T) {
 	is := is.New(t)
 	ps := pubsub.New()
 	ps.Publish("toast", []byte("nothing to publish to yet"))
@@ -21,5 +21,12 @@ func Test(t *testing.T) {
 	})
 	ps.Publish("toast", []byte("toast is ready"))
 	is.NoErr(eg.Wait())
+	sub.Close()
+}
+
+func TestCloseTwice(t *testing.T) {
+	ps := pubsub.New()
+	sub := ps.Subscribe("toast")
+	sub.Close()
 	sub.Close()
 }

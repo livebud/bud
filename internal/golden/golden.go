@@ -36,18 +36,18 @@ func TestGenerator(t testing.TB, state interface{}, code []byte) {
 	})
 }
 
-func Test(t testing.TB, expected *txtar.Archive) {
+func Test(t testing.TB, actual *txtar.Archive) {
 	t.Helper()
 	filename := filepath.Join("testdata", t.Name()+".golden")
-	formatted := txtar.Format(expected)
-	actual, err := ioutil.ReadFile(filename)
+	formatted := txtar.Format(actual)
+	expected, err := ioutil.ReadFile(filename)
 	if err != nil {
 		if len(formatted) == 0 {
 			return
 		}
-		actual = []byte("")
+		expected = []byte("")
 	}
-	diff := difference(string(formatted), string(actual))
+	diff := difference(string(expected), string(formatted))
 	if diff == "" {
 		return
 	}
