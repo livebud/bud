@@ -199,6 +199,7 @@ func (a *App) Publish(topic string, payload []byte) {
 	a.bus.Publish(topic, payload)
 }
 
+// TODO: allow this to be called multiple times after the app is ready
 func (a *App) Ready(ctx context.Context) error {
 	// Wait for the app to be ready or fail trying
 	a.log.Debug("testcli: waiting for app to be ready")
@@ -325,6 +326,7 @@ func getURL(path string) string {
 }
 
 func (a *App) Get(path string) (*Response, error) {
+	a.log.Debug("testcli: get request", "path", path)
 	req, err := http.NewRequest(http.MethodGet, getURL(path), nil)
 	if err != nil {
 		return nil, err
@@ -333,6 +335,7 @@ func (a *App) Get(path string) (*Response, error) {
 }
 
 func (a *App) GetJSON(path string) (*Response, error) {
+	a.log.Debug("testcli: get json request", "path", path)
 	req, err := http.NewRequest(http.MethodGet, getURL(path), nil)
 	if err != nil {
 		return nil, err
@@ -342,6 +345,7 @@ func (a *App) GetJSON(path string) (*Response, error) {
 }
 
 func (a *App) Post(path string, body io.Reader) (*Response, error) {
+	a.log.Debug("testcli: post request", "path", path)
 	req, err := http.NewRequest(http.MethodPost, getURL(path), body)
 	if err != nil {
 		return nil, err
@@ -350,6 +354,7 @@ func (a *App) Post(path string, body io.Reader) (*Response, error) {
 }
 
 func (a *App) PostJSON(path string, body io.Reader) (*Response, error) {
+	a.log.Debug("testcli: post json request", "path", path)
 	req, err := http.NewRequest(http.MethodPost, getURL(path), body)
 	if err != nil {
 		return nil, err
@@ -360,6 +365,7 @@ func (a *App) PostJSON(path string, body io.Reader) (*Response, error) {
 }
 
 func (a *App) Patch(path string, body io.Reader) (*Response, error) {
+	a.log.Debug("testcli: patch request", "path", path)
 	req, err := http.NewRequest(http.MethodPatch, getURL(path), body)
 	if err != nil {
 		return nil, err
@@ -368,6 +374,7 @@ func (a *App) Patch(path string, body io.Reader) (*Response, error) {
 }
 
 func (a *App) PatchJSON(path string, body io.Reader) (*Response, error) {
+	a.log.Debug("testcli: patch json request", "path", path)
 	req, err := http.NewRequest(http.MethodPatch, getURL(path), body)
 	if err != nil {
 		return nil, err
@@ -378,6 +385,7 @@ func (a *App) PatchJSON(path string, body io.Reader) (*Response, error) {
 }
 
 func (a *App) Delete(path string, body io.Reader) (*Response, error) {
+	a.log.Debug("testcli: delete request", "path", path)
 	req, err := http.NewRequest(http.MethodDelete, getURL(path), body)
 	if err != nil {
 		return nil, err
@@ -386,6 +394,7 @@ func (a *App) Delete(path string, body io.Reader) (*Response, error) {
 }
 
 func (a *App) DeleteJSON(path string, body io.Reader) (*Response, error) {
+	a.log.Debug("testcli: delete json request", "path", path)
 	req, err := http.NewRequest(http.MethodDelete, getURL(path), body)
 	if err != nil {
 		return nil, err

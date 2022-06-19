@@ -34,7 +34,7 @@ func New(fsys fs.FS, bus pubsub.Client, log log.Interface, vm js.VM) *Server {
 	router.Get("/bud/view/:path*", http.HandlerFunc(server.serve))
 	router.Get("/bud/node_modules/:path*", http.HandlerFunc(server.serve))
 	// Routes that are directly requested by the browser to
-	router.Get("/bud/hot", hot.New(bus))
+	router.Get("/bud/hot/:path*", hot.New(bus))
 	// Private routes between the app and bud
 	router.Post("/bud/events", http.HandlerFunc(server.createEvent))
 	return server

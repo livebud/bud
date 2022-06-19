@@ -74,6 +74,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		return err
 	}
 
+	// Load the file server
 	servefs, err := c.bud.FileServer(log, module, c.Flag)
 	if err != nil {
 		return err

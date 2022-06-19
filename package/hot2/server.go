@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/livebud/bud/internal/pubsub"
@@ -37,7 +38,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Flush the headers
 	flusher.Flush()
 	// Subscribe to a specific page path or all pages
-	pagePath := r.URL.Query().Get("page")
+	pagePath := strings.TrimPrefix(r.URL.Path, "/bud/hot/")
 	topics := []string{"page:update:*"}
 	if pagePath != "" {
 		topics = append(topics, `page:update:`+pagePath[1:])

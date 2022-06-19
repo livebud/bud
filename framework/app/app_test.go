@@ -1,4 +1,4 @@
-package run_test
+package app_test
 
 import (
 	"context"
@@ -18,8 +18,10 @@ func TestWelcome(t *testing.T) {
 	td := testdir.New(dir)
 	is.NoErr(td.Write(ctx))
 	cli := testcli.New(dir)
+	is.NoErr(td.NotExists("bud/app"))
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
+	is.NoErr(td.Exists("bud/app"))
 	res, err := app.Get("/")
 	is.NoErr(err)
 	is.Equal(res.Status(), 200)

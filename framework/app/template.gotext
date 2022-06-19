@@ -56,7 +56,7 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	devClient, err := devclient.Load(os.Getenv("BUD_LISTEN"))
+	devClient, err := devclient.Try(os.Getenv("BUD_LISTEN"))
 	if err != nil {
 		return err
 	}

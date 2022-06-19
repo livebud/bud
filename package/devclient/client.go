@@ -21,7 +21,7 @@ type Client interface {
 	Publish(topic string, data []byte) error
 }
 
-// LoadFromEnv tries loading a dev client from an environment variable
+// Try tries loading a dev client from an address
 func Try(addr string) (Client, error) {
 	if addr == "" {
 		return discard{}, nil
