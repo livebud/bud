@@ -6,12 +6,14 @@ import (
 
 	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/parser"
 )
 
-func New(fsys fs.FS, module *gomod.Module, parser *parser.Parser) *Injector {
+func New(fsys fs.FS, log log.Interface, module *gomod.Module, parser *parser.Parser) *Injector {
 	return &Injector{
 		fsys:   fsys,
+		log:    log,
 		module: module,
 		parser: parser,
 	}
@@ -20,6 +22,8 @@ func New(fsys fs.FS, module *gomod.Module, parser *parser.Parser) *Injector {
 type Injector struct {
 	// Filesystem to look for files
 	fsys fs.FS
+	// Logger to use
+	log log.Interface
 	// Module where project dependencies will be wired
 	module *gomod.Module
 	// Go parser
@@ -29,6 +33,7 @@ type Injector struct {
 // Load the dependency graph, but don't generate any code. Load is intentionally
 // low-level and used by higher-level APIs like Generate.
 func (i *Injector) Load(fn *Function) (*Node, error) {
+	i.log.Debug("di: loading function", "fn", fn.Signature())
 	// Validate the function
 	if err := fn.Validate(); err != nil {
 		return nil, err
@@ -67,6 +72,7 @@ func (i *Injector) Load(fn *Function) (*Node, error) {
 func (i *Injector) load(externals map[string]bool, aliases map[string]Dependency, dep Dependency) (*Node, error) {
 	// Replace dep with mapped type alias if we have one
 	if alias, ok := aliases[dep.ID()]; ok {
+		i.log.Debug("di: aliased dep", "from", dep.ID(), "to", alias.ID())
 		dep = alias
 	}
 	// Handle external nodes
@@ -74,6 +80,7 @@ func (i *Injector) load(externals map[string]bool, aliases map[string]Dependency
 	typeName := dep.TypeName()
 	id := dep.ID()
 	if externals[id] {
+		i.log.Debug("di: marked external", "id", id)
 		return &Node{
 			Import:   importPath,
 			Type:     typeName,
@@ -94,6 +101,7 @@ func (i *Injector) load(externals map[string]bool, aliases map[string]Dependency
 	deps := decl.Dependencies()
 	// Find and load the dependencies
 	for _, dep := range deps {
+		i.log.Debug("di: finding dependency", "id", dep.ID(), "for", decl.ID())
 		child, err := i.load(externals, aliases, dep)
 		if err != nil {
 			return nil, err

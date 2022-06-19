@@ -37,6 +37,18 @@ func (fn *Function) ID() string {
 	return getID(fn.Target, fn.Name)
 }
 
+func (fn *Function) Signature() string {
+	params := make([]string, len(fn.Params))
+	for i, param := range fn.Params {
+		params[i] = param.ID()
+	}
+	results := make([]string, len(fn.Results))
+	for i, result := range fn.Results {
+		results[i] = result.ID()
+	}
+	return fmt.Sprintf("%s(%s) (%s)", fn.Name, strings.Join(params, ", "), strings.Join(results, ", "))
+}
+
 func (fn *Function) Validate() error {
 	if fn.Name == "" {
 		return fmt.Errorf("di: function must have a name")

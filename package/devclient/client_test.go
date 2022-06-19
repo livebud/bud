@@ -47,7 +47,7 @@ func loadServer(bus pubsub.Client, dir string) (*httptest.Server, error) {
 	genfs.FileServer("bud/view", dom.New(module, transforms.DOM))
 	genfs.FileServer("bud/node_modules", dom.NodeModules(module))
 	genfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
-	handler := devserver.New(genfs, bus, console.Stderr, vm)
+	handler := devserver.New(genfs, bus, console.Log, vm)
 	return httptest.NewServer(handler), nil
 }
 

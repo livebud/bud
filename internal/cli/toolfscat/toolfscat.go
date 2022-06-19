@@ -1,7 +1,11 @@
-package build
+package toolfscat
 
 import (
 	"context"
+	"fmt"
+	"io/fs"
+	"os"
+	"path"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/cli/bud"
@@ -17,18 +21,9 @@ func New(bud *bud.Command) *Command {
 type Command struct {
 	bud  *bud.Command
 	Flag *framework.Flag
+	Path string
 }
 
-// Run the build command
-// 1. Setup
-// 2. Compile
-//   a. Generate generator (later!)
-//   	 i. Generate bud/internal/generator
-//     ii. Build bud/generator
-//     iii. Run bud/generator
-//   b. Generate app
-//     i. Generate bud/internal/app
-//     ii. Build into bud/app
 func (c *Command) Run(ctx context.Context) error {
 	log, err := c.bud.Logger()
 	if err != nil {
@@ -38,12 +33,14 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	genfs, err := c.bud.FileSystem(log, module, c.Flag)
+	fsys, err := c.bud.FileSystem(log, module, c.Flag)
 	if err != nil {
 		return err
 	}
-	if err := genfs.Sync("bud/internal/app"); err != nil {
+	code, err := fs.ReadFile(fsys, path.Clean(c.Path))
+	if err != nil {
 		return err
 	}
-	return c.bud.Build(ctx, module, "bud/internal/app/main.go", "bud/app")
+	fmt.Fprintln(os.Stdout, string(code))
+	return nil
 }

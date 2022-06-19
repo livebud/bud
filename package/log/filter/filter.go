@@ -10,17 +10,18 @@ func Load(handler log.Handler, pattern string) (log.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &filter{handler, level}, nil
+	return &Filter{handler, level}, nil
 }
 
-type filter struct {
-	handler log.Handler
-	level   log.Level
+// Filter logs by level. Can be initialized manually or by the Load function.
+type Filter struct {
+	Handler log.Handler
+	Level   log.Level
 }
 
-func (f *filter) Log(entry log.Entry) {
-	if entry.Level < f.level {
+func (f *Filter) Log(entry log.Entry) {
+	if entry.Level < f.Level {
 		return
 	}
-	f.handler.Log(entry)
+	f.Handler.Log(entry)
 }

@@ -74,29 +74,29 @@ func (c *console) Log(log log.Entry) {
 }
 
 // Stderr is a console log singleton that writes to stderr
-var Stderr = log.New(New(os.Stderr))
+var stderr = log.New(New(os.Stderr))
 
 // Debug message is written to the console
 func Debug(message string, args ...interface{}) {
-	Stderr.Debug(message, args...)
+	stderr.Debug(message, args...)
 }
 
 // Info message is written to the console
 func Info(message string, args ...interface{}) {
-	Stderr.Info(message, args...)
+	stderr.Info(message, args...)
 }
 
 // Notice message is written to the console
 func Notice(message string, args ...interface{}) {
-	Stderr.Notice(message, args...)
+	stderr.Notice(message, args...)
 }
 
 // Warn message is written to the console
 func Warn(message string, args ...interface{}) {
-	Stderr.Warn(message, args...)
+	stderr.Warn(message, args...)
 }
 
 // Error message is written to the console
 func Error(message string, args ...interface{}) {
-	Stderr.Error(message, args...)
+	stderr.Error(message, args...)
 }

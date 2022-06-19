@@ -31,6 +31,30 @@ func TestMerge(t *testing.T) {
 	is.Equal(des[2].Name(), "c.txt")
 }
 
+func TestReadDirFile(t *testing.T) {
+	is := is.New(t)
+	a := fstest.MapFS{
+		"a.txt": &fstest.MapFile{Data: []byte("a")},
+	}
+	b := fstest.MapFS{
+		"b/b.txt": &fstest.MapFile{Data: []byte("b")},
+	}
+	c := fstest.MapFS{
+		"c.txt": &fstest.MapFile{Data: []byte("c")},
+	}
+	fsys := merged.Merge(a, b, c)
+	file, err := fsys.Open(".")
+	is.NoErr(err)
+	dir, ok := file.(fs.ReadDirFile)
+	is.True(ok)
+	des, err := dir.ReadDir(-1)
+	is.NoErr(err)
+	is.Equal(len(des), 3)
+	is.Equal(des[0].Name(), "a.txt")
+	is.Equal(des[1].Name(), "b")
+	is.Equal(des[2].Name(), "c.txt")
+}
+
 func TestInnerMerge(t *testing.T) {
 	is := is.New(t)
 	a := fstest.MapFS{

@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -23,8 +22,7 @@ import (
 
 	"github.com/livebud/bud/package/hot"
 	"github.com/livebud/bud/package/log"
-	"github.com/livebud/bud/package/log/console"
-	"github.com/livebud/bud/package/log/filter"
+	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/socket"
 
 	"golang.org/x/sync/errgroup"
@@ -33,11 +31,8 @@ import (
 	"github.com/livebud/bud/internal/envs"
 )
 
-var logPattern = flag.String("log", "info", "choose a log level")
-
 func New(dir string) *CLI {
 	ps := pubsub.New()
-	// log,err:=con
 	return &CLI{
 		dir: dir,
 		bus: ps,
@@ -59,14 +54,6 @@ type CLI struct {
 	Stdin io.Reader
 }
 
-func (c *CLI) Logger() (log.Interface, error) {
-	handler, err := filter.Load(console.New(os.Stderr), *logPattern)
-	if err != nil {
-		return nil, err
-	}
-	return log.New(handler), nil
-}
-
 func (c *CLI) toCLI() *cli.CLI {
 	return &cli.CLI{
 		Dir:    c.dir,
@@ -82,7 +69,7 @@ func (c *CLI) toCLI() *cli.CLI {
 // These can be overriden by more specific flags
 func prependFlags(args []string) []string {
 	return append([]string{
-		"--log=" + *logPattern,
+		"--log=" + testlog.Pattern(),
 	}, args...)
 }
 
@@ -124,10 +111,7 @@ func listen(path string) (socket.Listener, *http.Client, error) {
 }
 
 func (c *CLI) Start(ctx context.Context, args ...string) (*App, error) {
-	log, err := c.Logger()
-	if err != nil {
-		return nil, err
-	}
+	log := testlog.Log()
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		return nil, err

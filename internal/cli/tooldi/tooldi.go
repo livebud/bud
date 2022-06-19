@@ -29,11 +29,15 @@ type Command struct {
 }
 
 func (c *Command) Run(ctx context.Context) error {
+	log, err := c.bud.Logger()
+	if err != nil {
+		return err
+	}
 	module, err := c.bud.Module()
 	if err != nil {
 		return err
 	}
-	overlay, err := overlay.Load(module)
+	overlay, err := overlay.Load(log, module)
 	if err != nil {
 		return err
 	}
@@ -76,7 +80,7 @@ func (c *Command) Run(ctx context.Context) error {
 		}
 		fn.Params = append(fn.Params, ext)
 	}
-	injector := di.New(overlay, module, parser)
+	injector := di.New(overlay, log, module, parser)
 	node, err := injector.Load(fn)
 	if err != nil {
 		return err

@@ -13,6 +13,9 @@ import (
 	"github.com/livebud/bud/internal/cli/run"
 	"github.com/livebud/bud/internal/cli/toolcache"
 	"github.com/livebud/bud/internal/cli/tooldi"
+	"github.com/livebud/bud/internal/cli/toolfscat"
+	"github.com/livebud/bud/internal/cli/toolfsls"
+	"github.com/livebud/bud/internal/cli/toolfstxtar"
 	"github.com/livebud/bud/internal/cli/toolv8"
 	"github.com/livebud/bud/internal/cli/version"
 	"github.com/livebud/bud/internal/pubsub"
@@ -131,6 +134,41 @@ func (c *CLI) Run(ctx context.Context, args ...string) error {
 			cli.Flag("hoist", "hoist dependencies that depend on externals").Bool(&cmd.Hoist).Default(false)
 			cli.Flag("verbose", "verbose logging").Short('v').Bool(&cmd.Verbose).Default(false)
 			cli.Run(cmd.Run)
+		}
+
+		{ // $ bud tool fs
+			cli := cli.Command("fs", "filesystem tools")
+
+			{ // $ bud tool fs ls [dir]
+				cmd := toolfsls.New(bud)
+				cli := cli.Command("ls", "list a directory")
+				cli.Flag("embed", "embed assets").Bool(&cmd.Flag.Embed).Default(false)
+				cli.Flag("hot", "hot reloading").Bool(&cmd.Flag.Hot).Default(true)
+				cli.Flag("minify", "minify assets").Bool(&cmd.Flag.Minify).Default(false)
+				cli.Arg("dir").String(&cmd.Dir).Default(".")
+				cli.Run(cmd.Run)
+			}
+
+			{ // $ bud tool fs cat [path]
+				// TODO: better align with the unix `cat` command
+				cmd := toolfscat.New(bud)
+				cli := cli.Command("cat", "print a file")
+				cli.Flag("embed", "embed assets").Bool(&cmd.Flag.Embed).Default(false)
+				cli.Flag("hot", "hot reloading").Bool(&cmd.Flag.Hot).Default(true)
+				cli.Flag("minify", "minify assets").Bool(&cmd.Flag.Minify).Default(false)
+				cli.Arg("path").String(&cmd.Path)
+				cli.Run(cmd.Run)
+			}
+
+			{ // $ bud tool fs txtar [dir]
+				cmd := toolfstxtar.New(bud)
+				cli := cli.Command("txtar", "generate and print a txtar archive to stdout")
+				cli.Arg("dir").String(&cmd.Dir).Default("bud")
+				cli.Flag("embed", "embed assets").Bool(&cmd.Flag.Embed).Default(false)
+				cli.Flag("hot", "hot reloading").Bool(&cmd.Flag.Hot).Default(true)
+				cli.Flag("minify", "minify assets").Bool(&cmd.Flag.Minify).Default(false)
+				cli.Run(cmd.Run)
+			}
 		}
 
 		{ // $ bud tool v8

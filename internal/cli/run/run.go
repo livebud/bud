@@ -69,12 +69,12 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	}
 
 	// Load the filesystem
-	genfs, err := c.bud.FileSystem(module, c.Flag)
+	genfs, err := c.bud.FileSystem(log, module, c.Flag)
 	if err != nil {
 		return err
 	}
 
-	servefs, err := c.bud.FileServer(module, c.Flag)
+	servefs, err := c.bud.FileServer(log, module, c.Flag)
 	if err != nil {
 		return err
 	}

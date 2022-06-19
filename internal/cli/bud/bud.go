@@ -73,13 +73,13 @@ func (c *Command) Logger() (log.Interface, error) {
 	return log.New(handler), nil
 }
 
-func (c *Command) FileSystem(module *gomod.Module, flag *framework.Flag) (*overlay.FileSystem, error) {
-	genfs, err := overlay.Load(module)
+func (c *Command) FileSystem(log log.Interface, module *gomod.Module, flag *framework.Flag) (*overlay.FileSystem, error) {
+	genfs, err := overlay.Load(log, module)
 	if err != nil {
 		return nil, err
 	}
 	parser := parser.New(genfs, module)
-	injector := di.New(genfs, module, parser)
+	injector := di.New(genfs, log, module, parser)
 	vm, err := v8.Load()
 	if err != nil {
 		return nil, err
@@ -100,8 +100,8 @@ func (c *Command) FileSystem(module *gomod.Module, flag *framework.Flag) (*overl
 	return genfs, nil
 }
 
-func (c *Command) FileServer(module *gomod.Module, flag *framework.Flag) (*overlay.Server, error) {
-	servefs, err := overlay.Serve(module)
+func (c *Command) FileServer(log log.Interface, module *gomod.Module, flag *framework.Flag) (*overlay.Server, error) {
+	servefs, err := overlay.Serve(log, module)
 	if err != nil {
 		return nil, err
 	}

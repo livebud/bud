@@ -15,12 +15,14 @@ import (
 	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/log"
+	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/parser"
 )
 
-func load(fsys fs.FS, module *gomod.Module, flag *framework.Flag) (*app.State, error) {
+func load(fsys fs.FS, log log.Interface, module *gomod.Module, flag *framework.Flag) (*app.State, error) {
 	parser := parser.New(fsys, module)
-	injector := di.New(fsys, module, parser)
+	injector := di.New(fsys, log, module, parser)
 	return app.Load(fsys, injector, module, flag)
 }
 
@@ -33,9 +35,9 @@ func generateWeb(fsys fs.FS, module *gomod.Module) ([]byte, error) {
 	return web.Generate(state)
 }
 
-func generateController(fsys fs.FS, module *gomod.Module) ([]byte, error) {
+func generateController(fsys fs.FS, log log.Interface, module *gomod.Module) ([]byte, error) {
 	parser := parser.New(fsys, module)
-	injector := di.New(fsys, module, parser)
+	injector := di.New(fsys, log, module, parser)
 	state, err := controller.Load(fsys, injector, module, parser)
 	if err != nil {
 		return nil, err
@@ -45,13 +47,14 @@ func generateController(fsys fs.FS, module *gomod.Module) ([]byte, error) {
 
 func TestEmpty(t *testing.T) {
 	is := is.New(t)
+	log := testlog.Log()
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)
 	is.NoErr(td.Write(ctx))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	state, err := load(module, module, &framework.Flag{Embed: false})
+	state, err := load(module, log, module, &framework.Flag{Embed: false})
 	is.True(err != nil)
 	is.True(errors.Is(err, fs.ErrNotExist))
 	is.Equal(state, nil)
@@ -59,6 +62,7 @@ func TestEmpty(t *testing.T) {
 
 func TestWelcome(t *testing.T) {
 	is := is.New(t)
+	log := testlog.Log()
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)
@@ -69,7 +73,7 @@ func TestWelcome(t *testing.T) {
 	is.NoErr(err)
 	td.BFiles["bud/internal/app/web/web.go"] = web
 	is.NoErr(td.Write(ctx))
-	state, err := load(module, module, &framework.Flag{Embed: false})
+	state, err := load(module, log, module, &framework.Flag{Embed: false})
 	is.NoErr(err)
 	code, err := app.Generate(state)
 	is.NoErr(err)
@@ -79,6 +83,7 @@ func TestWelcome(t *testing.T) {
 
 func TestControllerWeb(t *testing.T) {
 	is := is.New(t)
+	log := testlog.Log()
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)
@@ -90,7 +95,7 @@ func TestControllerWeb(t *testing.T) {
 	is.NoErr(td.Write(ctx))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	controller, err := generateController(module, module)
+	controller, err := generateController(module, log, module)
 	is.NoErr(err)
 	td.BFiles["bud/internal/app/controller/controller.go"] = controller
 	is.NoErr(td.Write(ctx))
@@ -98,7 +103,7 @@ func TestControllerWeb(t *testing.T) {
 	is.NoErr(err)
 	td.BFiles["bud/internal/app/web/web.go"] = web
 	is.NoErr(td.Write(ctx))
-	state, err := load(module, module, &framework.Flag{Embed: false})
+	state, err := load(module, log, module, &framework.Flag{Embed: false})
 	is.NoErr(err)
 	code, err := app.Generate(state)
 	is.NoErr(err)
