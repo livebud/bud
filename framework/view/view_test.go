@@ -2,6 +2,7 @@ package view_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -69,7 +70,6 @@ func TestHello(t *testing.T) {
 // probably just need update the timeout. Right now we don't have a signal
 // that Start() has built and started the app.
 func TestHelloEmbed(t *testing.T) {
-	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
@@ -87,13 +87,14 @@ func TestHelloEmbed(t *testing.T) {
 	app, err := cli.Start(ctx, "run", "--embed")
 	is.NoErr(err)
 	defer app.Close()
-	hot, err := app.Hot("/bud/view/index.svelte")
+	hot, err := app.Hot("/bud/hot/view/index.svelte")
 	is.NoErr(err)
 	defer hot.Close()
 	res, err := app.Get("/")
 	is.NoErr(err)
 	diff.TestHTTP(t, res.Headers().String(), `
 		HTTP/1.1 200 OK
+		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`)
 	is.In(res.Body().String(), "<h1>hello</h1>")
@@ -102,11 +103,12 @@ func TestHelloEmbed(t *testing.T) {
 	td.Files["view/index.svelte"] = `<h1>hi</h1>`
 	is.NoErr(td.Write(ctx))
 	// Wait for the change event
-	eventCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	eventCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+	fmt.Println("waiting for event")
 	event, err := hot.Next(eventCtx)
 	is.NoErr(err)
-	is.In(string(event.Data), `{"scripts":["?ts=`)
+	is.In(string(event.Data), `{"scripts":["view/index.svelte?ts=`)
 	// Shouldn't be any change
 	res, err = app.Get("/")
 	is.NoErr(err)

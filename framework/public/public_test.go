@@ -19,8 +19,8 @@ func TestNoProject(t *testing.T) {
 	is.NoErr(td.NotExists("bud/internal/app/public"))
 	result, err := cli.Run(ctx)
 	is.NoErr(err)
-	is.In(result.Stdout, "bud")
-	is.Equal(result.Stderr, "")
+	is.In(result.Stdout(), "bud")
+	is.Equal(result.Stderr(), "")
 	is.NoErr(td.NotExists("bud/internal/app/public"))
 }
 
@@ -34,8 +34,8 @@ func TestEmptyBuild(t *testing.T) {
 	is.NoErr(td.NotExists("bud/internal/app/public"))
 	result, err := cli.Run(ctx, "build")
 	is.NoErr(err)
-	is.In(result.Stdout, "")
-	is.Equal(result.Stderr, "")
+	is.In(result.Stdout(), "")
+	is.Equal(result.Stderr(), "")
 	// Empty builds don't generate public files
 	is.NoErr(td.NotExists("bud/internal/app/public"))
 }
@@ -144,8 +144,8 @@ func TestGetChangeGet(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(200, res.Status())
 	is.Equal(res.Body().Bytes(), favicon2)
-	// is.Equal(result.Stdout, "")
-	// is.Equal(result.Stderr, "")
+	// is.Equal(result.Stdout(), "")
+	// is.Equal(result.Stderr(), "")
 }
 
 func TestEmbedFavicon(t *testing.T) {

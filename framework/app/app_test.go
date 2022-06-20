@@ -21,7 +21,6 @@ func TestWelcome(t *testing.T) {
 	is.NoErr(td.NotExists("bud/app"))
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
-	is.NoErr(td.Exists("bud/app"))
 	res, err := app.Get("/")
 	is.NoErr(err)
 	is.Equal(res.Status(), 200)
@@ -34,4 +33,5 @@ func TestWelcome(t *testing.T) {
 	stderr, err := io.ReadAll(app.Stderr())
 	is.NoErr(err)
 	is.In(string(stderr), "")
+	is.NoErr(td.Exists("bud/app"))
 }

@@ -20,8 +20,8 @@ func TestBuildEmpty(t *testing.T) {
 	is.NoErr(td.NotExists("bud/app"))
 	result, err := cli.Run(ctx, "build")
 	is.NoErr(err)
-	is.Equal(result.Stdout, "")
-	is.Equal(result.Stderr, "")
+	is.Equal(result.Stdout(), "")
+	is.Equal(result.Stderr(), "")
 	is.NoErr(td.Exists("bud/app"))
 }
 
@@ -35,12 +35,12 @@ func TestBuildTwice(t *testing.T) {
 	is.NoErr(td.NotExists("bud/app"))
 	result, err := cli.Run(ctx, "build")
 	is.NoErr(err)
-	is.Equal(result.Stdout, "")
-	is.Equal(result.Stderr, "")
+	is.Equal(result.Stdout(), "")
+	is.Equal(result.Stderr(), "")
 	is.NoErr(td.Exists("bud/app"))
 	result, err = cli.Run(ctx, "build")
 	is.NoErr(err)
-	is.Equal(result.Stdout, "")
-	is.Equal(result.Stderr, "")
+	is.Equal(result.Stdout(), "")
+	is.Equal(result.Stderr(), "")
 	is.NoErr(td.Exists("bud/app"))
 }

@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/internal/urlx"
-	hot "github.com/livebud/bud/package/hot2"
+	"github.com/livebud/bud/package/hot"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/runtime/view/ssr"
 )
@@ -21,7 +21,7 @@ type Client interface {
 	Publish(topic string, data []byte) error
 }
 
-// Try tries loading a dev client from an address
+// LoadFromEnv tries loading a dev client from an environment variable
 func Try(addr string) (Client, error) {
 	if addr == "" {
 		return discard{}, nil

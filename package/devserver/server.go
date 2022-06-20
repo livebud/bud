@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/package/devclient"
-	hot "github.com/livebud/bud/package/hot2"
+	"github.com/livebud/bud/package/hot"
 	"github.com/livebud/bud/package/log"
 
 	"github.com/livebud/bud/internal/pubsub"
@@ -25,8 +25,8 @@ func New(fsys fs.FS, bus pubsub.Client, log log.Interface, vm js.VM) *Server {
 		Handler: router,
 		fsys:    fsys,
 		hfs:     http.FS(fsys),
-		bus:     bus,
 		log:     log,
+		bus:     bus,
 		vm:      vm,
 	}
 	// Routes that are proxied to from the browser through the app to bud
@@ -34,7 +34,7 @@ func New(fsys fs.FS, bus pubsub.Client, log log.Interface, vm js.VM) *Server {
 	router.Get("/bud/view/:path*", http.HandlerFunc(server.serve))
 	router.Get("/bud/node_modules/:path*", http.HandlerFunc(server.serve))
 	// Routes that are directly requested by the browser to
-	router.Get("/bud/hot/:path*", hot.New(bus))
+	router.Get("/bud/hot/:page*", hot.New(log, bus))
 	// Private routes between the app and bud
 	router.Post("/bud/events", http.HandlerFunc(server.createEvent))
 	return server
@@ -44,7 +44,7 @@ type Server struct {
 	http.Handler
 	fsys fs.FS
 	hfs  http.FileSystem
-	bus  pubsub.Client
+	bus  pubsub.Publisher
 	log  log.Interface
 	vm   js.VM
 }

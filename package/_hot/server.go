@@ -5,20 +5,23 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/livebud/bud/internal/pubsub"
 )
 
 // New server-sent event (SSE) server
-func New(ps pubsub.Subscriber) *Server {
-	return &Server{ps, time.Now}
+func New() *Server {
+	return &Server{pubsub.New(), time.Now}
 }
 
 type Server struct {
-	ps  pubsub.Subscriber
+	ps  pubsub.Client
 	Now func() time.Time // Used for testing
+}
+
+func (s *Server) Reload(path string) {
+	s.ps.Publish(path, nil)
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -38,10 +41,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Flush the headers
 	flusher.Flush()
 	// Subscribe to a specific page path or all pages
-	pagePath := strings.TrimPrefix(r.URL.Path, "/bud/hot/")
-	topics := []string{"page:update:*"}
+	pagePath := r.URL.Query().Get("page")
+	topics := []string{"*"}
 	if pagePath != "" {
-		topics = append(topics, `page:update:`+pagePath[1:])
+		topics = append(topics, pagePath[1:])
 	}
 	subscription := s.ps.Subscribe(topics...)
 	ctx := r.Context()
@@ -61,7 +64,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// which can be differentiated by the browser.
 		//
 		// See: https://html.spec.whatwg.org/multipage/server-sent-events.html#server-sent-events-intro
-		case <-s.ps.Subscribe("page:reload").Wait():
+		case <-s.ps.Subscribe("!").Wait():
 			event := &Event{
 				Data: []byte(`{"reload":true}`),
 			}

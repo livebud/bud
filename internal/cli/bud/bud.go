@@ -3,8 +3,6 @@ package bud
 import (
 	"context"
 	"io"
-	"os/exec"
-	"path/filepath"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/app"
@@ -13,7 +11,6 @@ import (
 	"github.com/livebud/bud/framework/view"
 	"github.com/livebud/bud/framework/web"
 	"github.com/livebud/bud/internal/current"
-	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/gobuild"
 	"github.com/livebud/bud/package/commander"
 	"github.com/livebud/bud/package/di"
@@ -24,9 +21,7 @@ import (
 	"github.com/livebud/bud/package/log/filter"
 	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/parser"
-	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/package/svelte"
-	"github.com/livebud/bud/package/watcher"
 	"github.com/livebud/bud/runtime/transform"
 	"github.com/livebud/bud/runtime/view/dom"
 	"github.com/livebud/bud/runtime/view/ssr"
@@ -133,56 +128,31 @@ func (c *Command) Build(ctx context.Context, module *gomod.Module, mainPath, out
 	return builder.Build(ctx, mainPath, outPath)
 }
 
-func (c *Command) Start(module *gomod.Module, webListener socket.Listener, budListener socket.Listener, flag *framework.Flag) (*exec.Cmd, error) {
-	// Start the web server
-	cmd := exec.Command(filepath.Join("bud", "app"))
-	cmd.Stdin = c.Stdin
-	cmd.Stdout = c.Stdout
-	cmd.Stderr = c.Stderr
-	cmd.Env = c.Env
-	// Add the bud address as an env var if we're not embedding assets
-	if !flag.Embed {
-		cmd.Env = append(cmd.Env, "BUD_LISTEN="+budListener.Addr().String())
-	}
-	cmd.Dir = module.Directory()
-	// Inject the web listener into the app
-	webFile, err := webListener.File()
-	if err != nil {
-		return nil, err
-	}
-	extrafile.Inject(&cmd.ExtraFiles, &cmd.Env, "WEB", webFile)
-	// Start the command
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-	return cmd, nil
-}
+// func (c *Command) Watch(ctx context.Context, module *gomod.Module, log log.Interface, fn func(isBoot, canHotReload bool) error) error {
+// 	// Wrap the function
+// 	watchFn := func(paths []string) error {
+// 		if err := fn(false, canHotReload(paths)); err != nil {
+// 			log.Error(err.Error())
+// 		}
+// 		return nil
+// 	}
+// 	// Call the function once manually to boot
+// 	if err := fn(true, false); err != nil {
+// 		log.Error(err.Error())
+// 	}
+// 	// Regardless of success, watch for changes
+// 	return watcher.Watch(ctx, module.Directory(), watchFn)
+// }
 
-func (c *Command) Watch(ctx context.Context, module *gomod.Module, log log.Interface, fn func(isBoot, canHotReload bool) error) error {
-	// Wrap the function
-	watchFn := func(paths []string) error {
-		if err := fn(false, canHotReload(paths)); err != nil {
-			log.Error(err.Error())
-		}
-		return nil
-	}
-	// Call the function once manually to boot
-	if err := fn(true, false); err != nil {
-		log.Error(err.Error())
-	}
-	// Regardless of success, watch for changes
-	return watcher.Watch(ctx, module.Directory(), watchFn)
-}
-
-// canHotReload returns true if we can incrementally reload a page
-func canHotReload(paths []string) bool {
-	for _, path := range paths {
-		if filepath.Ext(path) == ".go" {
-			return false
-		}
-	}
-	return true
-}
+// // canHotReload returns true if we can incrementally reload a page
+// func canHotReload(paths []string) bool {
+// 	for _, path := range paths {
+// 		if filepath.Ext(path) == ".go" {
+// 			return false
+// 		}
+// 	}
+// 	return true
+// }
 
 // Run a custom command
 // TODO: finish supporting custom commands

@@ -16,7 +16,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/lithammer/dedent"
-	"github.com/livebud/bud/internal/errs"
 	"github.com/livebud/bud/internal/pubsub"
 	"github.com/matthewmueller/diff"
 
@@ -80,15 +79,20 @@ func (c *CLI) Run(ctx context.Context, args ...string) (*Result, error) {
 	cli.Stdout = io.MultiWriter(os.Stdout, stdout)
 	cli.Stderr = io.MultiWriter(os.Stderr, stderr)
 	err := cli.Run(ctx, prependFlags(args)...)
-	return &Result{
-		Stdout: stdout.String(),
-		Stderr: stderr.String(),
-	}, err
+	return &Result{stdout, stderr}, err
 }
 
 type Result struct {
-	Stdout string
-	Stderr string
+	stdout *bytes.Buffer
+	stderr *bytes.Buffer
+}
+
+func (r *Result) Stdout() string {
+	return r.stdout.String()
+}
+
+func (r *Result) Stderr() string {
+	return r.stderr.String()
 }
 
 func listen(path string) (socket.Listener, *http.Client, error) {
@@ -112,14 +116,6 @@ func listen(path string) (socket.Listener, *http.Client, error) {
 
 func (c *CLI) Start(ctx context.Context, args ...string) (*App, error) {
 	log := testlog.Log()
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
-	stderrReader, stderrWriter, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
 	// TODO: listen unix and create client
 	webListener, webClient, err := listen(":0")
 	if err != nil {
@@ -132,8 +128,10 @@ func (c *CLI) Start(ctx context.Context, args ...string) (*App, error) {
 	}
 	// Setup the CLI
 	cli := c.toCLI()
-	cli.Stdout = io.MultiWriter(os.Stdout, stdoutWriter)
-	cli.Stderr = io.MultiWriter(os.Stderr, stderrWriter)
+	stdout := new(bytes.Buffer)
+	cli.Stdout = stdout
+	stderr := new(bytes.Buffer)
+	cli.Stderr = stderr
 	cli.Web = webListener
 	cli.Hot = hotListener
 	// Run the CLI
@@ -141,97 +139,63 @@ func (c *CLI) Start(ctx context.Context, args ...string) (*App, error) {
 	eg, ctx := errgroup.WithContext(ctx)
 	// App provides helpers and controls for the running CLI
 	app := &App{
-		eg:           eg,
-		log:          log,
-		bus:          c.bus,
-		stdoutReader: stdoutReader,
-		stdoutWriter: stdoutWriter,
-		stderrReader: stderrReader,
-		stderrWriter: stderrWriter,
-		webClient:    webClient,
-		hotClient:    hotClient,
-		cancel:       cancel,
-		appReadySub:  c.bus.Subscribe("app:ready"),
-		cmdErrorSub:  c.bus.Subscribe("cmd:error"),
+		eg:        eg,
+		log:       log,
+		bus:       c.bus,
+		stdout:    stdout,
+		stderr:    stderr,
+		webClient: webClient,
+		hotClient: hotClient,
+		// Close function
+		close: func() error {
+			// Cancel the CLI
+			cancel()
+			// Wait for the CLI to finish
+			return eg.Wait()
+		},
 	}
 	// Start running the CLI
 	eg.Go(func() error {
 		return cli.Run(ctx, prependFlags(args)...)
 	})
-	// Wait for the app to be ready
-	if err := app.Ready(ctx); err != nil {
-		cancel()
-		return nil, err
-	}
 	return app, nil
 }
 
 type App struct {
-	eg           *errgroup.Group
-	log          log.Interface
-	bus          pubsub.Client
-	stdoutReader io.Reader
-	stdoutWriter io.WriteCloser
-	stderrReader io.Reader
-	stderrWriter io.WriteCloser
-	webClient    *http.Client
-	hotClient    *http.Client
-	cancel       context.CancelFunc
-	appReadySub  pubsub.Subscription
-	cmdErrorSub  pubsub.Subscription
+	eg        *errgroup.Group
+	log       log.Interface
+	bus       pubsub.Client
+	stdout    *bytes.Buffer
+	stderr    *bytes.Buffer
+	webClient *http.Client
+	hotClient *http.Client
+	close     func() error
 }
 
-func (a *App) Stdout() io.Reader {
-	return a.stdoutReader
+// Stdout at a point in time
+func (a *App) Stdout() string {
+	return a.stdout.String()
 }
 
-func (a *App) Stderr() io.Reader {
-	return a.stdoutReader
-}
-
-// Subscribe to an event
-func (a *App) Subscribe(topics ...string) pubsub.Subscription {
-	return a.bus.Subscribe(topics...)
-}
-
-// Publish an event
-func (a *App) Publish(topic string, payload []byte) {
-	a.bus.Publish(topic, payload)
-}
-
-// TODO: allow this to be called multiple times after the app is ready
-func (a *App) Ready(ctx context.Context) error {
-	// Wait for the app to be ready or fail trying
-	a.log.Debug("testcli: waiting for app to be ready")
-	for {
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("testcli: app exited quickly after starting. %w", ctx.Err())
-		case err := <-a.cmdErrorSub.Wait():
-			return fmt.Errorf("testcli: error starting the generated app. %s", string(err))
-		case <-a.appReadySub.Wait():
-			a.log.Debug("testcli: app is ready")
-			return nil
-		case <-time.Tick(time.Second):
-			a.log.Debug("testcli: app is not ready yet")
-		}
-	}
+// Stderr at a point in time
+func (a *App) Stderr() string {
+	return a.stderr.String()
 }
 
 // Close the app down
-func (a *App) Close() (err error) {
-	// Cancel the CLI
-	a.cancel()
-	// Close the subscriptions
-	a.appReadySub.Close()
-	a.cmdErrorSub.Close()
-	// Close the writers
-	err = errs.Join(err, a.stdoutWriter.Close())
-	err = errs.Join(err, a.stderrWriter.Close())
-	// Wait for the CLI to finish
-	err = errs.Join(err, a.eg.Wait())
-	return err
+func (a *App) Close() error {
+	return a.close()
 }
+
+// // Subscribe to an event
+// func (a *App) Subscribe(topics ...string) pubsub.Subscription {
+// 	return a.bus.Subscribe(topics...)
+// }
+
+// // Publish an event
+// func (a *App) Publish(topic string, payload []byte) {
+// 	a.bus.Publish(topic, payload)
+// }
 
 // Hot connects to the event stream
 func (a *App) Hot(path string) (*hot.Stream, error) {

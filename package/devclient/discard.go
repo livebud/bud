@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	hot "github.com/livebud/bud/package/hot2"
+	"github.com/livebud/bud/package/hot"
 	"github.com/livebud/bud/runtime/view/ssr"
 )
 

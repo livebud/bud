@@ -19,8 +19,8 @@ func TestEmptyBuild(t *testing.T) {
 	is.NoErr(td.NotExists("bud/internal/app/web"))
 	result, err := cli.Run(ctx, "build")
 	is.NoErr(err)
-	is.Equal(result.Stdout, "")
-	is.Equal(result.Stderr, "")
+	is.Equal(result.Stdout(), "")
+	is.Equal(result.Stderr(), "")
 	// Empty builds generate the web directory
 	is.NoErr(td.Exists("bud/internal/app/web"))
 }

@@ -20,8 +20,8 @@ func TestToolV8(t *testing.T) {
 	cli.Stdin = bytes.NewBufferString("2+2")
 	result, err := cli.Run(ctx, "tool", "v8")
 	is.NoErr(err)
-	is.Equal(result.Stderr, "")
-	is.Equal(strings.TrimSpace(result.Stdout), "4")
+	is.Equal(result.Stderr(), "")
+	is.Equal(strings.TrimSpace(result.Stdout()), "4")
 	is.NoErr(td.NotExists(
 		"bud/internal/app",
 		"bud/app",

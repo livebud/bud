@@ -19,6 +19,7 @@ import (
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/cli/bud"
+	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/package/socket"
 )
@@ -145,13 +146,13 @@ func (c *Command) startApp(ctx context.Context, genfs *overlay.FileSystem, log l
 func (c *Command) restart(ctx context.Context, genfs *overlay.FileSystem, log log.Interface, module *gomod.Module, updatePaths ...string) (err error) {
 	if c.app != nil {
 		if canIncrementallyReload(updatePaths) {
-			log.Debug("run: incrementally reloading")
-			// Trigger an incremental reload. Star just means any path.
+			// Trigger an incremental reload.
+			log.Debug("run: publishing event", "topic", "page:update:*", "paths", updatePaths)
 			c.bus.Publish("page:update:*", nil)
 			return nil
 		}
 		// Reload the full server. Exclamation point just means full page reload.
-		log.Debug("run: reloading the page")
+		log.Debug("run: publishing event", "topic", "page:reload", "paths", updatePaths)
 		c.bus.Publish("page:reload", nil)
 		if err := closeProcess(c.app); err != nil {
 			return err
@@ -166,12 +167,27 @@ func (c *Command) restart(ctx context.Context, genfs *overlay.FileSystem, log lo
 		return err
 	}
 	// Start the app
-	app, err := c.bud.Start(module, c.webListener, c.budListener, c.Flag)
+	cmd := exec.Command(filepath.Join("bud", "app"))
+	cmd.Stdin = c.bud.Stdin
+	cmd.Stdout = c.bud.Stdout
+	cmd.Stderr = c.bud.Stderr
+	cmd.Env = c.bud.Env
+	// Run always runs the bud listener. This allows the app to connect to the bud
+	// server.
+	cmd.Env = append(cmd.Env, "BUD_LISTEN="+c.budListener.Addr().String())
+	cmd.Dir = module.Directory()
+	// Inject the web listener into the app
+	webFile, err := c.webListener.File()
 	if err != nil {
 		return err
 	}
-	go watchProcess(c.bus, app)
-	c.app = app
+	extrafile.Inject(&cmd.ExtraFiles, &cmd.Env, "WEB", webFile)
+	// Start the command
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	go watchProcess(c.bus, cmd)
+	c.app = cmd
 	return nil
 }
 
