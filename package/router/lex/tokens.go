@@ -3,6 +3,7 @@ package lex
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 )
 
 // token type
@@ -41,9 +42,9 @@ func (tokens Tokens) At(i int) string {
 	for _, token := range tokens {
 		switch token.Type {
 		case PathToken, SlashToken:
-			for j := 0; j < len(token.Value); j++ {
+			for _, char := range token.Value {
 				if i == 0 {
-					return string(token.Value[j])
+					return string(char)
 				}
 				i--
 			}
@@ -63,9 +64,7 @@ func (tokens Tokens) Size() (n int) {
 	for _, token := range tokens {
 		switch token.Type {
 		case PathToken, SlashToken:
-			for j := 0; j < len(token.Value); j++ {
-				n++
-			}
+			n += utf8.RuneCountInString(token.Value)
 		case SlotToken, QuestionToken, StarToken:
 			n++
 		}
@@ -79,7 +78,7 @@ func (tokens Tokens) Split(at int) []Tokens {
 	for i, token := range tokens {
 		switch token.Type {
 		case PathToken, SlashToken:
-			for j := 0; j < len(token.Value); j++ {
+			for j := range token.Value {
 				if at != 0 {
 					at--
 					continue

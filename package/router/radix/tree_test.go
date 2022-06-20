@@ -274,6 +274,20 @@ func TestMatch(t *testing.T) {
 	})
 }
 
+func TestMatchUnicode(t *testing.T) {
+	ok(t, &test{
+		inserts: []*insert{
+			{route: "/α"},
+			{route: "/β"},
+		},
+		requests: []*request{
+			{path: "/α", route: "/α"},
+			{path: "/β", route: "/β"},
+			{path: "/αβ", nomatch: true},
+		},
+	})
+}
+
 func TestOptional(t *testing.T) {
 	okp(t, &test{
 		inserts: []*insert{
