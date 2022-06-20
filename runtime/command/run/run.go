@@ -158,6 +158,8 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 			if hotServer != nil {
 				hotServer.Reload("*")
 				prompt.SuccessReload()
+			} else {
+				prompt.MadeNoReload()
 			}
 			return nil
 		}

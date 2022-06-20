@@ -4,7 +4,8 @@
 			 https://en.wikipedia.org/wiki/ANSI_escape_code
 
 	Promptings must be placed in the right order
-	Init -> Reloading -> Sucess Reload or Fail Reload -> Reloading -> ...
+		Init -> Reloading -> `Sucess reload` or `Fail reload` or `Made no reload` ->
+ 			Reloading -> ...
 
 	So cursor moving and clear lines work properly ("_" is current cursor position):
 		Reloading...               | -> _Reloading...   | -> Ready in 100ms (x23)
@@ -26,9 +27,10 @@ import (
 
 // States
 const (
-	fail    = "fail"
-	success = "success"
-	reload  = "reload"
+	fail     = "fail"
+	success  = "success"
+	reload   = "reload"
+	noReload = "no re"
 )
 
 // For prompting messages in the terminal
@@ -48,10 +50,11 @@ type Prompter struct {
 	paths    []string
 	oldPaths []string
 
-	// For store states (fail, success, reload,...)
+	// For storing states (fail, success, reload,...)
 	state    string
 	oldState string
 
+	reloadMessage    string
 	listeningAddress string
 }
 
@@ -69,12 +72,14 @@ func (p *Prompter) startTimer() {
 	p.startTime = time.Now()
 }
 
-// Init -> Reloading -> Sucess Reload or Fail Reload -> Reloading -> ...
+// Init -> Reloading -> `Sucess reload` or `Fail reload` or `Made no reload` ->
+// 		Reloading -> ...
 var nextState = map[string]string{
-	"init":  "reload",
-	reload:  "fail/success",
-	fail:    "reload",
-	success: "reload",
+	"init":   "reload",
+	reload:   "fail/success/no re",
+	fail:     "reload",
+	success:  "reload",
+	noReload: "reload",
 }
 
 // Ensure all states are in proper arrangement
@@ -158,15 +163,18 @@ func (p *Prompter) SuccessReload() {
 		clearLine()
 	}
 
+	// Reset counter if user changed working file
 	if different(p.paths, p.oldPaths) {
 		p.Counter = 1
 	}
 
-	console.Info(fmt.Sprintf("Ready on %s in %dms (x%d)",
+	p.reloadMessage = fmt.Sprintf("Ready on %s in %dms (x%d)",
 		p.listeningAddress,
 		time.Since(p.startTime).Milliseconds(),
 		p.Counter,
-	))
+	)
+
+	console.Info(p.reloadMessage)
 }
 
 // Prompt "Reloading..." message.
@@ -190,4 +198,22 @@ func (p *Prompter) Reloading(paths []string) {
 	p.startTimer()
 
 	console.Info("Reloading...")
+}
+
+// Don't change reload message currently in the terminal
+func (p Prompter) MadeNoReload() {
+	// Doesn't check for error, so it could be used multiple times in a row.
+	p.handleState(noReload)
+
+	// Prevent override
+	if p.blankStdErr() && p.blankStdOut() {
+		moveCursorUp()
+		clearLine()
+	}
+
+	if p.reloadMessage != "" {
+		console.Info(p.reloadMessage)
+	} else {
+		console.Info("Listening on " + p.listeningAddress)
+	}
 }
