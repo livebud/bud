@@ -212,6 +212,7 @@ func TestMatch(t *testing.T) {
 		},
 		requests: []*request{
 			{path: "/a", route: "/a"},
+			{path: "/A", route: "/a"},
 			{path: "/", nomatch: true},
 			{path: "/hi", route: "/hi"},
 			{path: "/about", route: "/about"},
