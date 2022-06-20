@@ -17,15 +17,23 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/livebud/bud/package/log/console"
 )
 
+// States
+const (
+	fail    = "fail"
+	success = "success"
+	reload  = "reload"
+)
+
 // For prompting messages in the terminal
 type Prompter struct {
 	Counter int
-	Error   string
 
 	// For calculating total time
 	startTime time.Time
@@ -36,8 +44,15 @@ type Prompter struct {
 	oldStdOut bytes.Buffer
 	oldStdErr bytes.Buffer
 
-	// Use to prevent overriding error messages while compiling
-	previousIsErr bool
+	// Path to changed files
+	paths    []string
+	oldPaths []string
+
+	// For store states (fail, success, reload,...)
+	state    string
+	oldState string
+
+	listeningAddress string
 }
 
 // Clear line with cursor on.
@@ -54,58 +69,125 @@ func (p *Prompter) startTimer() {
 	p.startTime = time.Now()
 }
 
-func (p *Prompter) Init() {
+// Init -> Reloading -> Sucess Reload or Fail Reload -> Reloading -> ...
+var nextState = map[string]string{
+	"init":  "reload",
+	reload:  "fail/success",
+	fail:    "reload",
+	success: "reload",
+}
+
+// Ensure all states are in proper arrangement
+func (p *Prompter) handleState(state string) error {
+	// Update state
+	p.oldState = p.state
+	p.state = state
+
+	switch {
+	case p.state == p.oldState:
+		return fmt.Errorf("duplicated state: %s", p.state)
+	case !strings.Contains(nextState[p.oldState], p.state):
+		return fmt.Errorf("invalid state, expected %s instead of %s", nextState[p.oldState], p.state)
+	}
+
+	return nil
+}
+
+func (p *Prompter) Init(listeningAddress string) {
+	p.state = "init"
 	p.Counter = 0 // Init counter
+	p.listeningAddress = listeningAddress
+}
+
+func (p *Prompter) blankStdOut() (result bool) {
+	result = p.StdOut.String() == p.oldStdOut.String()
+
+	// Update stdout
+	p.oldStdOut = p.StdOut
+
+	return result
+}
+
+func (p *Prompter) blankStdErr() (result bool) {
+	result = p.StdErr.String() == p.oldStdErr.String()
+
+	// Update stderr
+	p.oldStdErr = p.StdErr
+
+	return result
 }
 
 // Prompt failed reloads. Reset counter.
 func (p *Prompter) FailReload(err string) {
+	if err := p.handleState(fail); err != nil {
+		return
+	}
 	p.Counter = 0 // Reset counter
-	p.previousIsErr = true
 	console.Error(err)
+}
+
+func different(paths, oldPaths []string) bool {
+	if len(paths) != len(oldPaths) {
+		return true
+	}
+
+	sort.Strings(paths)
+	sort.Strings(oldPaths)
+	for i := range paths {
+		if paths[i] != oldPaths[i] {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Prompt sucessful reloads including time (in ms) and total times in a row.
 // Increase counter.
-// Example: Ready in 100ms (x23).
+// Example: Ready on http://127.0.0.1:3000 in 264ms (x141)
 func (p *Prompter) SuccessReload() {
-	p.previousIsErr = false
+	if err := p.handleState(success); err != nil {
+		return
+	}
+
 	p.Counter++ // Increase counter
 
-	// Prevent overriding errors in stderr.
-	if p.canOverridePreviousPrompt() {
+	// Prevent override
+	if p.blankStdErr() && p.blankStdOut() {
 		moveCursorUp()
 		clearLine()
 	}
 
-	console.Info(fmt.Sprintf("Ready in %dms (x%d)", time.Since(p.startTime).Milliseconds(), p.Counter))
-}
+	if different(p.paths, p.oldPaths) {
+		p.Counter = 1
+	}
 
-// If there are anything new in stdout or stderr, we must not move cursor up and clear line
-// since it will probably override its messages.
-// Example if there's a error (we don't want to override):
-// Error: This is a error -> _Error: This is a error -> Reloading...
-// _                                                    _
-func (p *Prompter) canOverridePreviousPrompt() bool {
-	newContentInStdOut := p.StdOut.String() != p.oldStdOut.String()
-	newContentInStdErr := p.StdErr.String() != p.oldStdErr.String()
-
-	// Renew stdout and stderr
-	p.oldStdOut = p.StdOut
-	p.oldStdErr = p.StdErr
-
-	// Only return true if there are nothing new on both stdout and stderr,
-	// and no error previously
-	return !newContentInStdErr && !newContentInStdOut && !p.previousIsErr
+	console.Info(fmt.Sprintf("Ready on %s in %dms (x%d)",
+		p.listeningAddress,
+		time.Since(p.startTime).Milliseconds(),
+		p.Counter,
+	))
 }
 
 // Prompt "Reloading..." message.
 // Start timer.
-func (p *Prompter) Reloading() {
-	p.startTimer() // For displaying reloading time in successful reloads
-	if p.canOverridePreviousPrompt() {
+func (p *Prompter) Reloading(paths []string) {
+	if err := p.handleState(reload); err != nil {
+		return
+	}
+
+	// Update paths
+	p.oldPaths = p.paths
+	p.paths = paths
+
+	// Prevent override
+	if p.blankStdErr() && p.blankStdOut() && p.oldState != fail {
 		moveCursorUp()
 		clearLine()
 	}
+
+	// For displaying reloading time in successful reloads
+	p.startTimer()
+
 	console.Info("Reloading...")
 }

@@ -113,7 +113,7 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 	}
 
 	// Create a terminal prompter
-	prompt.Init()
+	prompt.Init(web.Format(listener))
 
 	// Compile and start the project
 	process, err := c.compileAndStart(ctx, listener)
@@ -125,8 +125,8 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 		}
 		console.Error(err.Error())
 		// TODO: de-duplicate with the watcher below
-		if err := watcher.Watch(ctx, ".", func(_ []string) error {
-			prompt.Reloading()
+		if err := watcher.Watch(ctx, ".", func(paths []string) error {
+			prompt.Reloading(paths)
 			process, err = c.compileAndStart(ctx, listener)
 			if err != nil {
 				// Exit without logging if the context has been cancelled. This can
@@ -151,15 +151,16 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 	defer process.Close()
 	// Start watching
 	if err := watcher.Watch(ctx, ".", func(paths []string) error {
+		prompt.Reloading(paths)
 		// Check if the changed paths support an incremental reload
 		if canIncrementallyReload(paths) {
 			// Trigger a reload if there's a hot reload server configured
 			if hotServer != nil {
 				hotServer.Reload("*")
+				prompt.SuccessReload()
 			}
 			return nil
 		}
-		prompt.Reloading()
 		// Otherwise trigger a full reload if there's a hot reload server configured
 		if hotServer != nil {
 			// Exclamation point just means full page reload

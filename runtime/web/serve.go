@@ -35,7 +35,6 @@ func Listen(prefix, path string) (socket.Listener, error) {
 	if prefix == "APP" {
 		// Log here because this is the first time we've bound to a resource.
 		console.Info("Listening on " + Format(listener))
-		console.Info("")
 	}
 	return listener, nil
 }
