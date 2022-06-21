@@ -1900,3 +1900,49 @@ func TestCustomActions(t *testing.T) {
 	is.Equal(stdout.String(), "")
 	is.Equal(stderr.String(), "")
 }
+
+func TestHandlerFuncs(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["controller/foos/bars/controller.go"] = `
+		package controller
+		import "io"
+		import "net/http"
+		type Controller struct {}
+		func (c *Controller) Index() string {
+			return "hello"
+		}
+		func (c *Controller) Create(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(r.URL.Query().Get("foo_id")))
+			io.Copy(w, r.Body)
+		}
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(cli.New(dir))
+	app, stdout, stderr, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	// Test POST
+	res, err := app.Post("/foos/some/bars", bytes.NewBufferString("body"))
+	is.NoErr(err)
+	diff.TestHTTP(t, res.Headers().String(), `
+		HTTP/1.1 201 Created
+		Content-Type: text/plain; charset=utf-8
+	`)
+	is.Equal(res.Body().String(), `somebody`)
+	// Test that regular actions continue to work
+	res, err = app.GetJSON("/foos/some/bars")
+	is.NoErr(err)
+	diff.TestHTTP(t, res.Dump().String(), `
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		"hello"
+	`)
+	// Test stdio
+	is.Equal(stdout.String(), "")
+	is.Equal(stderr.String(), "")
+}

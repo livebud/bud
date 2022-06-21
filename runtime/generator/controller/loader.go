@@ -134,8 +134,13 @@ func (l *loader) loadControllerRoute(controllerPath string) string {
 }
 
 func (l *loader) loadActions(controller *Controller, stct *parser.Struct) (actions []*Action) {
+	var usesResponse bool
 	for _, method := range stct.PublicMethods() {
-		actions = append(actions, l.loadAction(controller, method))
+		action := l.loadAction(controller, method)
+		if !action.HandlerFunc {
+			usesResponse = true
+		}
+		actions = append(actions, action)
 	}
 	// Add the imports if we have more than one action
 	if len(actions) > 0 {
@@ -144,8 +149,10 @@ func (l *loader) loadActions(controller *Controller, stct *parser.Struct) (actio
 			l.Bail(err)
 		}
 		l.imports.Add(importPath)
-		l.imports.Add("github.com/livebud/bud/runtime/controller/response")
 		l.imports.Add("net/http")
+		if usesResponse {
+			l.imports.Add("github.com/livebud/bud/runtime/controller/response")
+		}
 	}
 	return actions
 }
@@ -160,9 +167,14 @@ func (l *loader) loadAction(controller *Controller, method *parser.Function) *Ac
 	action.Key = l.loadActionKey(controller.Path, action.Name)
 	action.View = l.loadView(controller.Path, action.Key, action.Route)
 	action.Method = l.loadActionMethod(action.Name)
-	action.Params = l.loadActionParams(method.Params())
-	action.Input = l.loadActionInput(action.Params)
-	action.Results = l.loadActionResults(method)
+	params := method.Params()
+	results := method.Results()
+	action.HandlerFunc = l.isHandlerFunc(params, results)
+	if !action.HandlerFunc {
+		action.Params = l.loadActionParams(params)
+		action.Input = l.loadActionInput(action.Params)
+		action.Results = l.loadActionResults(results)
+	}
 	action.RespondJSON = len(action.Results) > 0
 	action.RespondHTML = l.loadRespondHTML(action.Results)
 	action.Context = l.loadContext(controller, method)
@@ -172,6 +184,34 @@ func (l *loader) loadAction(controller *Controller, method *parser.Function) *Ac
 
 func (l *loader) loadActionKey(controllerPath, actionName string) string {
 	return path.Join(controllerPath, text.Lower(text.Path(actionName)))
+}
+
+func (l *loader) isHandlerFunc(params []*parser.Param, results []*parser.Result) bool {
+	if len(params) != 2 || len(results) != 0 {
+		return false
+	}
+
+	maybeW := params[0].Type()
+	isW, err := parser.IsImportType(maybeW, "net/http", "ResponseWriter")
+	if err != nil {
+		l.Bail(err)
+	}
+
+	if !isW {
+		return false
+	}
+
+	maybeR := params[1].Type()
+	isR, err := parser.IsImportType(maybeR, "net/http", "Request")
+	if err != nil {
+		l.Bail(err)
+	}
+
+	if !isR {
+		return false
+	}
+
+	return true
 }
 
 // Route to the action
@@ -323,8 +363,8 @@ func (l *loader) loadActionInputStruct(params []*ActionParam) string {
 	return b.String()
 }
 
-func (l *loader) loadActionResults(method *parser.Function) (outputs []*ActionResult) {
-	for order, result := range method.Results() {
+func (l *loader) loadActionResults(results []*parser.Result) (outputs []*ActionResult) {
+	for order, result := range results {
 		outputs = append(outputs, l.loadActionResult(order, result))
 	}
 	return outputs
