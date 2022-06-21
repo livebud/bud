@@ -75,7 +75,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// which can be differentiated by the browser.
 		//
 		// See: https://html.spec.whatwg.org/multipage/server-sent-events.html#server-sent-events-intro
-		case <-s.ps.Subscribe("page:reload").Wait():
+		case <-s.ps.Subscribe("watch:backend:update").Wait():
 			s.log.Debug("hot: got event", "topic", "page:reload")
 			reload(flusher, w)
 		}

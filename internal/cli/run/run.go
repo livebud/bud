@@ -112,6 +112,12 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		log:     log,
 		starter: starter,
 	}
+	// Start watching the filesystem
+	watchfs := &watchfs{
+		bus: bus,
+		dir: module.Directory(),
+		log: log,
+	}
 	// Start the servers
 	eg, ctx := errgroup.WithContext(ctx)
 	// Start the internal bud server
@@ -119,7 +125,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	// Start the internal app server
 	eg.Go(func() error { return appServer.Run(ctx) })
 	// Start the watcher
-	eg.Go(func() error { return appServer.Run(ctx) })
+	eg.Go(func() error { return watchfs.Run(ctx) })
 	// Wait until either the hot or web server exits
 	err = eg.Wait()
 	log.Debug("run: command finished", "err", err)

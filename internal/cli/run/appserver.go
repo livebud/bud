@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/livebud/bud/internal/exe"
 	"github.com/livebud/bud/internal/gobuild"
@@ -35,15 +36,30 @@ func (a *appServer) Run(ctx context.Context) error {
 		return err
 	}
 	// Subscribe to file change events
-	goFileSub := a.bus.Subscribe("file:update:go", "file:create:go", "file:delete:go")
-	defer goFileSub.Close()
+	sub := a.bus.Subscribe("watch:backend:update")
+	defer sub.Close()
 	for {
 		select {
 		case <-ctx.Done():
 			// Wait for the command to exit
 			return process.Wait()
-		case <-goFileSub.Wait():
-			fmt.Println("triggering a restart!")
+		case <-sub.Wait():
 		}
+		fmt.Println("triggering a restart!")
+		now := time.Now()
+		// Generate the app
+		if err := a.genfs.Sync("bud/internal/app"); err != nil {
+			return err
+		}
+		// Build the app
+		if err := a.builder.Build(ctx, "bud/internal/app/main.go", "bud/app"); err != nil {
+			return err
+		}
+		p, err := process.Restart(ctx)
+		if err != nil {
+			return err
+		}
+		fmt.Println("restarted in", time.Since(now))
+		process = p
 	}
 }
