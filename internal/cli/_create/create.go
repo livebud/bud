@@ -17,11 +17,11 @@ import (
 )
 
 func New(bud *bud.Command) *Command {
-	return &Command{bud: bud}
+	return &Command{}
 }
 
 type Command struct {
-	bud    *bud.Command
+	Log    string
 	Dir    string
 	Module string
 	Dev    bool

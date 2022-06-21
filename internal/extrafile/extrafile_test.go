@@ -7,14 +7,12 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/livebud/bud/package/exe"
-	"github.com/livebud/bud/package/js/v8client"
-	"github.com/livebud/bud/package/js/v8server"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/livebud/bud/internal/extrafile"
@@ -26,7 +24,7 @@ import (
 func TestNoFiles(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	cmd := exe.Command(ctx, "echo")
+	cmd := exec.CommandContext(ctx, "echo")
 	extrafile.Inject(&cmd.ExtraFiles, &cmd.Env, "APP")
 	is.Equal(len(cmd.Env), 0)
 	is.Equal(len(cmd.ExtraFiles), 0)
@@ -72,7 +70,7 @@ func TestUnixPassthrough(t *testing.T) {
 			}
 			args = append(args, arg)
 		}
-		cmd := exe.Command(ctx, os.Args[0], append(args, "-test.v=true", "-test.run=^"+t.Name()+"$")...)
+		cmd := exec.CommandContext(ctx, os.Args[0], append(args, "-test.v=true", "-test.run=^"+t.Name()+"$")...)
 		listener, err := socket.Listen(":0")
 		is.NoErr(err)
 		is.Equal(listener.Addr().Network(), "tcp")
@@ -208,7 +206,7 @@ func TestTCPPassthrough(t *testing.T) {
 			}
 			args = append(args, arg)
 		}
-		cmd := exe.Command(ctx, os.Args[0], append(args, "-test.v=true", "-test.run=^"+t.Name()+"$")...)
+		cmd := exec.CommandContext(ctx, os.Args[0], append(args, "-test.v=true", "-test.run=^"+t.Name()+"$")...)
 		listener, err := socket.Listen(":0")
 		is.NoErr(err)
 		is.Equal(listener.Addr().Network(), "tcp")
@@ -324,61 +322,61 @@ func TestTCPPassthrough(t *testing.T) {
 	}
 }
 
-func TestV8Passthrough(t *testing.T) {
-	// Parent process
-	parent := func(t testing.TB) {
-		is := is.New(t)
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		dir := t.TempDir()
-		v8server, err := v8server.Pipe()
-		is.NoErr(err)
-		defer v8server.Close()
-		// Ignore -test.count otherwise this will continue recursively
-		var args []string
-		for _, arg := range os.Args[1:] {
-			if strings.HasPrefix(arg, "-test.count=") {
-				continue
-			}
-			args = append(args, arg)
-		}
-		cmd := exe.Command(ctx, os.Args[0], append(args, "-test.v=true", "-test.run=^"+t.Name()+"$")...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Dir = dir
-		cmd.Env = append(os.Environ(), "CHILD=1")
-		extrafile.Inject(&cmd.ExtraFiles, &cmd.Env, "V8", v8server.Files()...)
-		is.NoErr(cmd.Start())
-		// Create the V8 server
-		eg := new(errgroup.Group)
-		eg.Go(v8server.Serve)
-		// Wait for the command to finish
-		is.NoErr(cmd.Wait())
-		// Restart and ensure the V8 server is ready to serve clients
-		is.NoErr(cmd.Restart(ctx))
-		is.NoErr(cmd.Wait())
-		// Close the V8 server
-		is.NoErr(v8server.Close())
-		is.NoErr(eg.Wait())
-	}
+// func TestV8Passthrough(t *testing.T) {
+// 	// Parent process
+// 	parent := func(t testing.TB) {
+// 		is := is.New(t)
+// 		ctx, cancel := context.WithCancel(context.Background())
+// 		defer cancel()
+// 		dir := t.TempDir()
+// 		v8server, err := v8server.Pipe()
+// 		is.NoErr(err)
+// 		defer v8server.Close()
+// 		// Ignore -test.count otherwise this will continue recursively
+// 		var args []string
+// 		for _, arg := range os.Args[1:] {
+// 			if strings.HasPrefix(arg, "-test.count=") {
+// 				continue
+// 			}
+// 			args = append(args, arg)
+// 		}
+// 		cmd := exec.CommandContext(ctx, os.Args[0], append(args, "-test.v=true", "-test.run=^"+t.Name()+"$")...)
+// 		cmd.Stdout = os.Stdout
+// 		cmd.Stderr = os.Stderr
+// 		cmd.Dir = dir
+// 		cmd.Env = append(os.Environ(), "CHILD=1")
+// 		extrafile.Inject(&cmd.ExtraFiles, &cmd.Env, "V8", v8server.Files()...)
+// 		is.NoErr(cmd.Start())
+// 		// Create the V8 server
+// 		eg := new(errgroup.Group)
+// 		eg.Go(v8server.Serve)
+// 		// Wait for the command to finish
+// 		is.NoErr(cmd.Wait())
+// 		// Restart and ensure the V8 server is ready to serve clients
+// 		is.NoErr(cmd.Restart(ctx))
+// 		is.NoErr(cmd.Wait())
+// 		// Close the V8 server
+// 		is.NoErr(v8server.Close())
+// 		is.NoErr(eg.Wait())
+// 	}
 
-	// Child process
-	child := func(t testing.TB) {
-		is := is.New(t)
-		client, err := v8client.From("V8")
-		is.NoErr(err)
-		result, err := client.Eval("eval.js", "2+2")
-		is.NoErr(err)
-		is.Equal(result, "4")
-		// Test that console.log doesn't mess things up
-		result, err = client.Eval("eval.js", "console.log('hi')")
-		is.NoErr(err)
-		is.Equal(result, "undefined")
-	}
+// 	// Child process
+// 	child := func(t testing.TB) {
+// 		is := is.New(t)
+// 		client, err := v8client.From("V8")
+// 		is.NoErr(err)
+// 		result, err := client.Eval("eval.js", "2+2")
+// 		is.NoErr(err)
+// 		is.Equal(result, "4")
+// 		// Test that console.log doesn't mess things up
+// 		result, err = client.Eval("eval.js", "console.log('hi')")
+// 		is.NoErr(err)
+// 		is.Equal(result, "undefined")
+// 	}
 
-	if value := os.Getenv("CHILD"); value != "" {
-		child(t)
-	} else {
-		parent(t)
-	}
-}
+// 	if value := os.Getenv("CHILD"); value != "" {
+// 		child(t)
+// 	} else {
+// 		parent(t)
+// 	}
+// }

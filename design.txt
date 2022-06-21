@@ -1,0 +1,33 @@
+main uses:
+
+cli uses: (bud process)
+  - ctx
+  - args
+  - run
+
+run uses: (bud process)
+  - eg
+  - app
+  - budserver
+
+app uses: (app process)
+  - module
+  - logger
+  - bus
+  - flag
+  - genfs
+  - builder
+  - stdout
+  - stderr
+  - stdin
+  - env
+  - budln
+  - webln
+  - watcher
+
+budserver uses: (bud process)
+  - logger
+  - v8
+  - bus
+  - servefs
+  - budln
