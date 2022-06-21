@@ -1900,3 +1900,38 @@ func TestCustomActions(t *testing.T) {
 	is.Equal(stdout.String(), "")
 	is.Equal(stderr.String(), "")
 }
+
+func TestHandlerFuncs(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["controller/foos/bars/controller.go"] = `
+		package controller
+		import "io"
+		import "net/http"
+		type Controller struct {}
+		func (c *Controller) Create(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusCreated)
+			w.Write([]byte(r.URL.Query().Get("foo_id")))
+			io.Copy(w, r.Body)
+		}
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(cli.New(dir))
+	app, stdout, stderr, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	res, err := app.Post("/foos/some/bars", bytes.NewBufferString("body"))
+	is.NoErr(err)
+	// HTML response
+	diff.TestHTTP(t, res.Headers().String(), `
+		HTTP/1.1 201 Created
+		Content-Type: text/plain; charset=utf-8
+	`)
+	is.Equal(res.Body().String(), `somebody`)
+
+	// Test stdio
+	is.Equal(stdout.String(), "")
+	is.Equal(stderr.String(), "")
+}
