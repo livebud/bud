@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"testing"
+	"time"
 
 	"github.com/livebud/bud/internal/cli"
 	"github.com/livebud/bud/internal/cli/testcli"
@@ -171,13 +172,14 @@ func TestEmbedFavicon(t *testing.T) {
 	favicon2 := []byte{0x00, 0x00, 0x01}
 	td.BFiles["public/favicon.ico"] = favicon2
 	is.NoErr(td.Write(ctx))
+	time.Sleep(500 * time.Millisecond)
 	// Favicon shouldn't have changed
 	res, err = app.Get("/favicon.ico")
 	is.NoErr(err)
 	is.Equal(200, res.Status())
 	is.Equal(res.Body().Bytes(), favicon)
 	is.Equal(stdout.String(), "")
-	is.Equal(stderr.String(), "")
+	is.In(stderr.String(), "Ready on")
 }
 
 func TestAppPluginOverlap(t *testing.T) {
