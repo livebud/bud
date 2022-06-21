@@ -279,10 +279,13 @@ func TestMatchUnicode(t *testing.T) {
 		inserts: []*insert{
 			{route: "/α"},
 			{route: "/β"},
+			{route: "/δ"},
 		},
 		requests: []*request{
 			{path: "/α", route: "/α"},
 			{path: "/β", route: "/β"},
+			{path: "/δ", route: "/δ"},
+			{path: "/Δ", route: "/δ"},
 			{path: "/αβ", nomatch: true},
 		},
 	})
