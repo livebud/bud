@@ -50,6 +50,13 @@ docker build -t bud:latest contributing
 docker run -it --rm -v $(pwd):/bud bud /bin/bash
 ```
 
+To build a Docker image based on another Node.js and/or Go version, run one of the following commands:
+```shell
+docker build --build-arg NODE_VERSION=18.4.0 -t bud:latest contributing
+docker build --build-arg GO_VERSION=1.18.2 -t bud:latest contributing
+docker build --build-arg NODE_VERSION=18.4.0 --build-arg GO_VERSION=1.18.2 -t bud:latest contributing
+```
+
 ## Developing Bud with a Project
 
 Now that you have Bud running locally, you can use the `-C, --chdir` functionality to test Bud against different projects.
