@@ -5,45 +5,44 @@ import (
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/cli/bud"
+	"github.com/livebud/bud/internal/gobuild"
 )
 
-func New(bud *bud.Command) *Command {
+// New command for bud build
+func New(bud *bud.Command, in *bud.Input) *Command {
 	return &Command{
 		bud:  bud,
+		in:   in,
 		Flag: new(framework.Flag),
 	}
 }
 
+// Command for running bud build
 type Command struct {
 	bud  *bud.Command
+	in   *bud.Input
 	Flag *framework.Flag
 }
 
 // Run the build command
-// 1. Setup
-// 2. Compile
-//   a. Generate generator (later!)
-//   	 i. Generate bud/internal/generator
-//     ii. Build bud/generator
-//     iii. Run bud/generator
-//   b. Generate app
-//     i. Generate bud/internal/app
-//     ii. Build into bud/app
 func (c *Command) Run(ctx context.Context) error {
-	log, err := c.bud.Logger()
+	// Find go.mod
+	module, err := bud.Module(c.bud.Dir)
 	if err != nil {
 		return err
 	}
-	module, err := c.bud.Module()
+	// Setup the logger
+	log, err := bud.Log(c.in.Stderr, c.bud.Log)
 	if err != nil {
 		return err
 	}
-	genfs, err := c.bud.FileSystem(log, module, c.Flag)
+	genfs, err := bud.FileSystem(log, module, c.Flag)
 	if err != nil {
 		return err
 	}
 	if err := genfs.Sync("bud/internal/app"); err != nil {
 		return err
 	}
-	return c.bud.Build(ctx, module, "bud/internal/app/main.go", "bud/app")
+	builder := gobuild.New(module)
+	return builder.Build(ctx, "bud/internal/app/main.go", "bud/app")
 }

@@ -2,11 +2,10 @@ package run
 
 import (
 	"context"
-	"errors"
-	"os"
-	"os/exec"
+	"io/fs"
+	"net"
 	"path/filepath"
-	"strings"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 
@@ -16,9 +15,16 @@ import (
 	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/gobuild"
 	"github.com/livebud/bud/internal/pubsub"
+	"github.com/livebud/bud/package/devserver"
+	v8 "github.com/livebud/bud/package/js/v8"
+	"github.com/livebud/bud/package/log"
+	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/socket"
+	"github.com/livebud/bud/package/watcher"
+	"github.com/livebud/bud/runtime/web"
 )
 
+// New command for bud run.
 func New(bud *bud.Command, in *bud.Input) *Command {
 	return &Command{
 		bud:  bud,
@@ -27,6 +33,7 @@ func New(bud *bud.Command, in *bud.Input) *Command {
 	}
 }
 
+// Command for bud run.
 type Command struct {
 	bud *bud.Command
 	in  *bud.Input
@@ -36,6 +43,7 @@ type Command struct {
 	Listen string // Web listener address
 }
 
+// Run the run command. That's a mouthful.
 func (c *Command) Run(ctx context.Context) (err error) {
 	// Find go.mod
 	module, err := bud.Module(c.bud.Dir)
@@ -106,17 +114,12 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	extrafile.Inject(&starter.ExtraFiles, &starter.Env, "WEB", webFile)
 	// Initialize the app server
 	appServer := &appServer{
+		dir:     module.Directory(),
 		builder: gobuild.New(module),
 		bus:     bus,
 		genfs:   genfs,
 		log:     log,
 		starter: starter,
-	}
-	// Start watching the filesystem
-	watchfs := &watchfs{
-		bus: bus,
-		dir: module.Directory(),
-		log: log,
 	}
 	// Start the servers
 	eg, ctx := errgroup.WithContext(ctx)
@@ -124,111 +127,101 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	eg.Go(func() error { return budServer.Run(ctx) })
 	// Start the internal app server
 	eg.Go(func() error { return appServer.Run(ctx) })
-	// Start the watcher
-	eg.Go(func() error { return watchfs.Run(ctx) })
 	// Wait until either the hot or web server exits
 	err = eg.Wait()
 	log.Debug("run: command finished", "err", err)
 	return err
 }
 
-// // 1. Trigger reload
-// // 2. Close existing process
-// // 3. Generate new codebase
-// // 4. Start new process
-// func startApp(ctx context.Context, genfs *overlay.FileSystem, log log.Interface, module *gomod.Module, webln socket.Listener) (err error) {
-// 	// Generate the app
-// 	if err := genfs.Sync("bud/internal/app"); err != nil {
-// 		return err
-// 	}
-// 	cmd := exec.Command(filepath.Join("bud", "app"))
-// 	// cmd.Stdin = stdin
-// 	// cmd.Stdout = stdout
-// 	// cmd.Stderr = stderr
-// 	// cmd.Env = env
-// 	// // Run always runs the bud listener. This allows the app to connect to the bud
-// 	// // server.
-// 	// cmd.Env = append(cmd.Env, "BUD_LISTEN="+budln.Addr().String())
-// 	cmd.Dir = module.Directory()
-// 	// Inject the web listener into the app
-// 	webFile, err := webln.File()
-// 	if err != nil {
-// 		return err
-// 	}
-// 	extrafile.Inject(&cmd.ExtraFiles, &cmd.Env, "WEB", webFile)
-// 	// Start the command
-// 	if err := cmd.Start(); err != nil {
-// 		return err
-// 	}
+// budServer runs the bud development server
+type budServer struct {
+	budln net.Listener
+	bus   pubsub.Client
+	fsys  fs.FS
+	log   log.Interface
+}
 
-// 	// Run the start function once upon booting
-// 	if err := c.restart(ctx, genfs, log, module); err != nil {
-// 		log.Error(err.Error())
-// 	}
-// 	// Watch the project
-// 	err = watcher.Watch(ctx, module.Directory(), func(paths []string) error {
-// 		log.Debug("run: files changed", "paths", paths)
-// 		if err := c.restart(ctx, genfs, log, module, paths...); err != nil {
-// 			log.Error(err.Error())
-// 		}
-// 		return nil
-// 	})
-// 	log.Debug("run: watcher closed", "err", err)
-// 	if c.app != nil {
-// 		err := closeProcess(c.app)
-// 		log.Debug("run: app server closed", "err", err)
-// 		return err
-// 	}
-// 	return nil
-// }
+// Run the bud server
+func (s *budServer) Run(ctx context.Context) error {
+	vm, err := v8.Load()
+	if err != nil {
+		return err
+	}
+	devServer := devserver.New(s.fsys, s.bus, s.log, vm)
+	err = web.Serve(ctx, s.budln, devServer)
+	s.log.Debug("run: bud server closed", "err", err)
+	return err
+}
 
-// func restart(ctx context.Context, genfs *overlay.FileSystem, log log.Interface, module *gomod.Module, updatePaths ...string) (err error) {
-// 	if c.app != nil {
-// 		if canIncrementallyReload(updatePaths) {
-// 			// Trigger an incremental reload.
-// 			log.Debug("run: publishing event", "topic", "page:update:*", "paths", updatePaths)
-// 			c.Bus.Publish("page:update:*", nil)
-// 			return nil
-// 		}
-// 		// Reload the full server. Exclamation point just means full page reload.
-// 		log.Debug("run: publishing event", "topic", "page:reload", "paths", updatePaths)
-// 		c.Bus.Publish("page:reload", nil)
-// 		if err := closeProcess(c.app); err != nil {
-// 			return err
-// 		}
-// 	}
-// 	// Generate the app
-// 	if err := genfs.Sync("bud/internal/app"); err != nil {
-// 		return err
-// 	}
-// 	// Build the app
-// 	// if err := c.bud.Build(ctx, module, "bud/internal/app/main.go", "bud/app"); err != nil {
-// 	// 	return err
-// 	// }
-// 	// Start the app
-// 	cmd := exec.Command(filepath.Join("bud", "app"))
-// 	// cmd.Stdin = c.bud.Stdin
-// 	// cmd.Stdout = c.bud.Stdout
-// 	// cmd.Stderr = c.bud.Stderr
-// 	// cmd.Env = c.bud.Env
-// 	// Run always runs the bud listener. This allows the app to connect to the bud
-// 	// server.
-// 	cmd.Env = append(cmd.Env, "BUD_LISTEN="+c.BudLn.Addr().String())
-// 	cmd.Dir = module.Directory()
-// 	// Inject the web listener into the app
-// 	webFile, err := c.WebLn.File()
-// 	if err != nil {
-// 		return err
-// 	}
-// 	extrafile.Inject(&cmd.ExtraFiles, &cmd.Env, "WEB", webFile)
-// 	// Start the command
-// 	if err := cmd.Start(); err != nil {
-// 		return err
-// 	}
-// 	go watchProcess(c.Bus, cmd)
-// 	c.app = cmd
-// 	return nil
-// }
+// appServer runs the generated web application
+type appServer struct {
+	dir     string
+	builder *gobuild.Builder
+	bus     pubsub.Client
+	genfs   *overlay.FileSystem
+	log     log.Interface
+	starter *exe.Command
+}
+
+// Run the app server
+func (a *appServer) Run(ctx context.Context) error {
+	// Generate the app
+	if err := a.genfs.Sync("bud/internal/app"); err != nil {
+		return err
+	}
+	// Build the app
+	if err := a.builder.Build(ctx, "bud/internal/app/main.go", "bud/app"); err != nil {
+		return err
+	}
+	// Start the built app
+	process, err := a.starter.Start(ctx, filepath.Join("bud", "app"))
+	if err != nil {
+		return err
+	}
+	// Watch for changes
+	return watcher.Watch(ctx, a.dir, logWrap(a.log, func(paths []string) error {
+		a.log.Debug("run: files changes", "paths", paths)
+		if canIncrementallyReload(paths) {
+			a.log.Debug("run: incrementally reloading")
+			a.bus.Publish("frontend:update", nil)
+			a.log.Debug("run: published event", "event", "frontend:update")
+			return nil
+		}
+		now := time.Now()
+		a.log.Debug("stopping the process")
+		if err := process.Close(); err != nil {
+			return err
+		}
+		a.bus.Publish("backend:update", nil)
+		a.log.Debug("run: published event", "event", "backend:update")
+		// Generate the app
+		if err := a.genfs.Sync("bud/internal/app"); err != nil {
+			return err
+		}
+		// Build the app
+		if err := a.builder.Build(ctx, "bud/internal/app/main.go", "bud/app"); err != nil {
+			return err
+		}
+		p, err := process.Restart(ctx)
+		if err != nil {
+			return err
+		}
+		a.log.Debug("restarted the process", "in", time.Since(now))
+		process = p
+		return nil
+	}))
+}
+
+// logWrap wraps the watch function in a handler that logs the error instead of
+// returning the error (and canceling the watcher)
+func logWrap(log log.Interface, fn func(paths []string) error) func(paths []string) error {
+	return func(paths []string) error {
+		if err := fn(paths); err != nil {
+			log.Error("run: watch error", "err", err)
+		}
+		return nil
+	}
+}
 
 // canIncrementallyReload returns true if we can incrementally reload a page
 func canIncrementallyReload(paths []string) bool {
@@ -238,42 +231,4 @@ func canIncrementallyReload(paths []string) bool {
 		}
 	}
 	return true
-}
-
-// watchProcess watches for a process to exit and publishes an event if there
-// was an error.
-func watchProcess(bus pubsub.Publisher, cmd *exec.Cmd) error {
-	if err := cmd.Wait(); err != nil {
-		if !isWaitError(err) {
-			bus.Publish("cmd:error", []byte(err.Error()))
-			return err
-		}
-	}
-	return nil
-}
-
-// Close the process down gracefully
-func closeProcess(cmd *exec.Cmd) error {
-	sp := cmd.Process
-	if sp == nil {
-		return nil
-	}
-	if err := sp.Signal(os.Interrupt); err != nil {
-		if errors.Is(err, os.ErrProcessDone) {
-			return nil
-		}
-		if err := sp.Kill(); err != nil {
-			return err
-		}
-	}
-	if err := cmd.Wait(); err != nil {
-		if !isWaitError(err) {
-			return err
-		}
-	}
-	return nil
-}
-
-func isWaitError(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "Wait was already called")
 }

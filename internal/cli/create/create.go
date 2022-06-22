@@ -16,7 +16,7 @@ import (
 	mod "github.com/livebud/bud/package/gomod"
 )
 
-func New(bud *bud.Command) *Command {
+func New(bud *bud.Command, in *bud.Input) *Command {
 	return &Command{}
 }
 
@@ -83,7 +83,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	// If we're linking to the development version of Bud, we need to
 	// find Bud's go.mod file.
 	if c.Dev {
-		c.budModule, err = c.bud.BudModule()
+		c.budModule, err = bud.BudModule()
 		if err != nil {
 			return err
 		}

@@ -8,8 +8,8 @@
   h1 {
     margin: 0;
     background: whitesmoke;
-    border-bottom: 2px dashed orange;
+    border-bottom: 2px dashed red;
     padding: 20px;
-    color: orange;
+    color: red;
   }
 </style>

@@ -99,7 +99,7 @@ func (c *Command) Load() (state *State, err error) {
 
 // Scaffold the files from state
 func (c *Command) Scaffold(state *State) error {
-	module, err := c.bud.Module()
+	module, err := bud.Module(c.bud.Dir)
 	if err != nil {
 		return err
 	}

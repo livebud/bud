@@ -14,12 +14,13 @@ import (
 	"github.com/livebud/bud/package/parser"
 )
 
-func New(bud *bud.Command) *Command {
-	return &Command{bud: bud}
+func New(bud *bud.Command, in *bud.Input) *Command {
+	return &Command{bud: bud, in: in}
 }
 
 type Command struct {
 	bud          *bud.Command
+	in           *bud.Input
 	Target       string
 	Map          map[string]string
 	Dependencies []string
@@ -29,11 +30,11 @@ type Command struct {
 }
 
 func (c *Command) Run(ctx context.Context) error {
-	log, err := c.bud.Logger()
+	log, err := bud.Log(c.in.Stderr, c.bud.Log)
 	if err != nil {
 		return err
 	}
-	module, err := c.bud.Module()
+	module, err := bud.Module(c.bud.Dir)
 	if err != nil {
 		return err
 	}

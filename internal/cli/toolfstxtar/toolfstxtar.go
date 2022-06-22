@@ -13,29 +13,31 @@ import (
 	"github.com/livebud/bud/internal/cli/bud"
 )
 
-func New(bud *bud.Command) *Command {
+func New(bud *bud.Command, in *bud.Input) *Command {
 	return &Command{
 		bud:  bud,
+		in:   in,
 		Flag: new(framework.Flag),
 	}
 }
 
 type Command struct {
 	bud  *bud.Command
+	in   *bud.Input
 	Flag *framework.Flag
 	Dir  string
 }
 
 func (c *Command) Run(ctx context.Context) error {
-	log, err := c.bud.Logger()
+	log, err := bud.Log(c.in.Stderr, c.bud.Log)
 	if err != nil {
 		return err
 	}
-	module, err := c.bud.Module()
+	module, err := bud.Module(c.Dir)
 	if err != nil {
 		return err
 	}
-	fsys, err := c.bud.FileSystem(log, module, c.Flag)
+	fsys, err := bud.FileSystem(log, module, c.Flag)
 	if err != nil {
 		return err
 	}

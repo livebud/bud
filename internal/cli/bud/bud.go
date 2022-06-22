@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 
+	"github.com/livebud/bud/internal/current"
 	"github.com/livebud/bud/internal/pubsub"
 
 	"github.com/livebud/bud/framework"
@@ -34,9 +35,12 @@ type Input struct {
 	Stdout io.Writer
 	Stderr io.Writer
 	Env    []string
-	BudLn  socket.Listener // Can be nil
-	WebLn  socket.Listener // Can be nil
-	Bus    pubsub.Client   // Can be nil
+
+	// Currently passed in only for testing
+	Dir   string          // Can be empty
+	BudLn socket.Listener // Can be nil
+	WebLn socket.Listener // Can be nil
+	Bus   pubsub.Client   // Can be nil
 }
 
 func New(in *Input) *Command {
@@ -69,6 +73,15 @@ func (c *Command) Run(ctx context.Context) error {
 // Module finds the go.mod file for the application
 func Module(dir string) (*gomod.Module, error) {
 	return gomod.Find(dir)
+}
+
+// BudModule finds the module not of your app, but of bud itself
+func BudModule() (*gomod.Module, error) {
+	dirname, err := current.Directory()
+	if err != nil {
+		return nil, err
+	}
+	return gomod.Find(dirname)
 }
 
 func Log(stderr io.Writer, logFilter string) (log.Interface, error) {

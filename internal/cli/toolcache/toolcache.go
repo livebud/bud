@@ -16,7 +16,7 @@ type Command struct {
 }
 
 func (c *Command) Run(ctx context.Context) error {
-	module, err := c.bud.Module()
+	module, err := bud.Module(c.bud.Dir)
 	if err != nil {
 		return err
 	}

@@ -44,10 +44,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Flush the headers
 	flusher.Flush()
 	// Subscribe to a specific page path or all pages
-	topics := []string{"page:update:*"}
+	topics := []string{"frontend:update"}
 	pagePath := pagePath(r.URL.Path)
 	if pagePath != "" {
-		topics = append(topics, `page:update:`+pagePath)
+		topics = append(topics, `frontend:update:`+pagePath)
 	}
 	subscription := s.ps.Subscribe(topics...)
 	s.log.Debug("hot: subscribed to topics", "topics", topics)
@@ -57,7 +57,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case <-ctx.Done():
 			return
 		case <-subscription.Wait():
-			s.log.Debug("hot: got event", "topic", "page:update")
+			s.log.Debug("hot: got event", "topic", "frontend:update")
 			if pagePath == "" {
 				s.log.Debug("hot: no page path, triggering a full reload")
 				reload(flusher, w)
@@ -75,7 +75,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// which can be differentiated by the browser.
 		//
 		// See: https://html.spec.whatwg.org/multipage/server-sent-events.html#server-sent-events-intro
-		case <-s.ps.Subscribe("watch:backend:update").Wait():
+		case <-s.ps.Subscribe("backend:update").Wait():
 			s.log.Debug("hot: got event", "topic", "page:reload")
 			reload(flusher, w)
 		}
