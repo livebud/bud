@@ -6,6 +6,40 @@ Get the latest release of Bud by running the following in your terminal:
 curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
 ```
 
+## v0.1.8
+
+- Support `func(w, r)` controller actions (#147) (thanks @vito!)
+
+  This release adds a highly-requested feature (atleast by me!) where you can now drop down to using the vanilla `http.HandlerFunc` signature.
+
+  This is a useful escape hatch for webhooks, streaming and other complex use cases.
+
+  ```go
+  package webhooks
+
+  type Controller struct {
+    GH *github.Client
+  }
+
+  func (c *Controller) Index() string {
+    return "GitHub webhook service!"
+  }
+
+  // Create handles incoming webhooks
+  func (c *Controller) Create(w http.ResponseWriter, r *http.Request) {
+    // Respond to the webhook using a vanilla HTTP handler function!
+  }
+  ```
+
+- Replace redirect with case-insensitive routing (#142) (thanks @vito!)
+
+  Prior to v0.1.8, if you defined the route `/bud`, but a user visited `/BUD`,
+  they would be redirected to `/bud`. This was originally done for SEO purposes to prevent different casing from appearing as separate pages.
+
+  However, this had an unfortunate side-effect in that you couldn't use parameters with mixed casing (e.g. base64 encoding).
+
+  In v0.1.8, we changed this so that URL routing is now case insensitive, so `/BUD` will run the `/bud` action. This doesn't address the SEO issue, but that will be a [follow-up task](https://github.com/livebud/bud/pull/142#issuecomment-1159824008) for a later time.
+
 ## v0.1.7
 
 - Ensure alignment between CLI and runtime round 2 (#128)

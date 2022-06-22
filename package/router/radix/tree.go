@@ -318,12 +318,10 @@ func matchExact(token lex.Token) matchFn {
 		if len(path) < rlen {
 			return -1, nil
 		}
-		for ; index < rlen; index++ {
-			if path[index] != route[index] {
-				return -1, nil
-			}
+		if !strings.EqualFold(path[:rlen], route) {
+			return -1, nil
 		}
-		return index, nil
+		return rlen, nil
 	}
 }
 

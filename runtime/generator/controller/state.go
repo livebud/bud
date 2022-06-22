@@ -51,6 +51,7 @@ type Action struct {
 	Method      string
 	Context     *Context
 	Params      []*ActionParam
+	HandlerFunc bool
 	Input       string
 	Results     ActionResults
 	RespondJSON bool

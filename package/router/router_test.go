@@ -188,10 +188,10 @@ func TestInsensitive(t *testing.T) {
 			{method: "GET", route: "/hi"},
 		},
 		requests: []*request{
-			{method: "GET", path: "/HI", status: 308, location: "/hi", body: "<a href=\"/hi\">Permanent Redirect</a>.\n\n"},
-			{method: "GET", path: "/Hi", status: 308, location: "/hi", body: "<a href=\"/hi\">Permanent Redirect</a>.\n\n"},
-			{method: "GET", path: "/hI", status: 308, location: "/hi", body: "<a href=\"/hi\">Permanent Redirect</a>.\n\n"},
-			{method: "GET", path: "/HI///", status: 308, location: "/hi", body: "<a href=\"/hi\">Permanent Redirect</a>.\n\n"},
+			{method: "GET", path: "/HI", status: 200},
+			{method: "GET", path: "/Hi", status: 200},
+			{method: "GET", path: "/hI", status: 200},
+			{method: "GET", path: "/HI///", status: 308, location: "/HI", body: "<a href=\"/HI\">Permanent Redirect</a>.\n\n"},
 		},
 	})
 }

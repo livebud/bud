@@ -212,6 +212,7 @@ func TestMatch(t *testing.T) {
 		},
 		requests: []*request{
 			{path: "/a", route: "/a"},
+			{path: "/A", route: "/a"},
 			{path: "/", nomatch: true},
 			{path: "/hi", route: "/hi"},
 			{path: "/about", route: "/about"},
@@ -269,6 +270,23 @@ func TestMatch(t *testing.T) {
 			{path: "/search/someth!ng+in+ünìcodé", route: "/search/:query", slots: "query=someth!ng+in+ünìcodé"},
 			{path: "/search/with spaces", route: "/search/:query", slots: "query=with spaces"},
 			{path: "/search/with/slashes", nomatch: true},
+		},
+	})
+}
+
+func TestMatchUnicode(t *testing.T) {
+	ok(t, &test{
+		inserts: []*insert{
+			{route: "/α"},
+			{route: "/β"},
+			{route: "/δ"},
+		},
+		requests: []*request{
+			{path: "/α", route: "/α"},
+			{path: "/β", route: "/β"},
+			{path: "/δ", route: "/δ"},
+			{path: "/Δ", route: "/δ"},
+			{path: "/αβ", nomatch: true},
 		},
 	})
 }
