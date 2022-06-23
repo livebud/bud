@@ -138,7 +138,7 @@ func TestProxyFile(t *testing.T) {
 	defer res.Body.Close()
 	is.Equal(res.StatusCode, 200)
 	is.Equal(len(res.Header), 4)
-	is.Equal(res.Header.Get("Content-Type"), "application/javascript")
+	is.In(res.Header.Get("Content-Type"), "/javascript")
 	is.Equal(res.Header.Get("Accept-Ranges"), "bytes")
 	is.True(res.Header["Content-Length"] != nil)
 	is.True(res.Header["Date"] != nil)

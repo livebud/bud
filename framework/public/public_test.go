@@ -86,7 +86,7 @@ func TestPublic(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(200, res.Status())
 	is.Equal(res.Body().String(), ga)
-	is.In(res.Header("Content-Type"), "javascript")
+	is.In(res.Header("Content-Type"), "/javascript")
 	// /normalize/normalize.css
 	res, err = app.Get("/normalize/normalize.css")
 	is.NoErr(err)
