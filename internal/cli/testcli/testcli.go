@@ -101,7 +101,7 @@ func listen(path string) (socket.Listener, *http.Client, error) {
 		return nil, nil, err
 	}
 	client := &http.Client{
-		Timeout:   5 * time.Second,
+		Timeout:   60 * time.Second,
 		Transport: transport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
@@ -141,7 +141,7 @@ func (c *CLI) Start(ctx context.Context, args ...string) (*Client, error) {
 	// Start running the CLI
 	eg.Go(func() error { return cli.Run(ctx, prependFlags(args)...) })
 	// App provides helpers and controls for the running CLI
-	return &Client{
+	client := &Client{
 		eg:     eg,
 		log:    log,
 		bus:    c.bus,
@@ -156,7 +156,12 @@ func (c *CLI) Start(ctx context.Context, args ...string) (*Client, error) {
 			// Wait for the CLI to finish
 			return eg.Wait()
 		},
-	}, nil
+	}
+	// Wait for the client to be ready
+	if err := client.Ready(ctx); err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
 // Client for interacting with the running app
@@ -189,7 +194,7 @@ func (c *Client) Close() error {
 
 // Hot connects to the event stream
 func (c *Client) Hot(path string) (*hot.Stream, error) {
-	return hot.DialWith(c.hotc, getURL(path))
+	return hot.DialWith(c.hotc, c.log, getURL(path))
 }
 
 func bufferHeaders(res *http.Response, body []byte) ([]byte, error) {
@@ -277,6 +282,24 @@ func (c *Client) Request(req *http.Request) (*Response, error) {
 
 func getURL(path string) string {
 	return "http://host" + path
+}
+
+// Wait for the application to be ready
+func (c *Client) Ready(ctx context.Context) error {
+	readySub := c.bus.Subscribe("app:ready")
+	errorSub := c.bus.Subscribe("app:error")
+	for {
+		select {
+		case <-readySub.Wait():
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		case err := <-errorSub.Wait():
+			return errors.New(string(err))
+		case <-time.After(time.Second * 1):
+			c.log.Debug("testcli: waiting for app to be ready")
+		}
+	}
 }
 
 func (c *Client) Get(path string) (*Response, error) {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/livebud/bud/internal/cli"
 	"github.com/livebud/bud/internal/cli/testcli"
 	"github.com/livebud/bud/internal/imhash"
 	"github.com/livebud/bud/internal/testdir"
@@ -26,18 +25,17 @@ func TestAppHash(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(cli.New(dir))
-	stdout, stderr, err := cli.Run(ctx, "build")
+	cli := testcli.New(dir)
+	result, err := cli.Run(ctx, "build")
 	is.NoErr(err)
-	is.Equal(stdout.String(), "")
-	is.Equal(stderr.String(), "")
+	is.Equal(result.Stdout(), "")
+	is.Equal(result.Stderr(), "")
 	is.NoErr(td.Exists(
-		"bud/.cli/main.go",
-		"bud/.app/main.go",
+		"bud/internal/app/main.go",
 	))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	hash1, err := imhash.Hash(module, "bud/.app")
+	hash1, err := imhash.Hash(module, "bud/internal/app")
 	is.NoErr(err)
 	is.Equal(len(hash1), 11)
 	// Update
@@ -49,15 +47,14 @@ func TestAppHash(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	stdout, stderr, err = cli.Run(ctx, "build")
+	result, err = cli.Run(ctx, "build")
 	is.NoErr(err)
-	is.Equal(stdout.String(), "")
-	is.Equal(stderr.String(), "")
+	is.Equal(result.Stdout(), "")
+	is.Equal(result.Stderr(), "")
 	is.NoErr(td.Exists(
-		"bud/.cli/main.go",
-		"bud/.app/main.go",
+		"bud/internal/app/main.go",
 	))
-	hash2, err := imhash.Hash(module, "bud/.app")
+	hash2, err := imhash.Hash(module, "bud/internal/app")
 	is.NoErr(err)
 	is.Equal(len(hash2), 11)
 	is.True(hash1 != hash2)

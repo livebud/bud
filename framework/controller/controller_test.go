@@ -256,7 +256,7 @@ func TestNoContent(t *testing.T) {
 	is.NoErr(res.Diff(`
 		HTTP/1.1 204 No Content
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestIndex500(t *testing.T) {
@@ -286,7 +286,7 @@ func TestIndex500(t *testing.T) {
 
 		{"error":"unable to list posts"}
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestIndexList500(t *testing.T) {
@@ -315,7 +315,7 @@ func TestIndexList500(t *testing.T) {
 		HTTP/1.1 302 Found
 		Location: /
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestIndexList200(t *testing.T) {
@@ -343,7 +343,7 @@ func TestIndexList200(t *testing.T) {
 		HTTP/1.1 302 Found
 		Location: /
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestIndexListObject500(t *testing.T) {
@@ -372,7 +372,7 @@ func TestIndexListObject500(t *testing.T) {
 		HTTP/1.1 302 Found
 		Location: /
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestIndexListObject200(t *testing.T) {
@@ -400,7 +400,7 @@ func TestIndexListObject200(t *testing.T) {
 		HTTP/1.1 302 Found
 		Location: /
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestIndexStructs200(t *testing.T) {
@@ -432,7 +432,7 @@ func TestIndexStructs200(t *testing.T) {
 
 		[{"id":0,"title":"a"},{"id":1,"title":"b"}]
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestJSONCreate204(t *testing.T) {
@@ -455,7 +455,7 @@ func TestJSONCreate204(t *testing.T) {
 	is.NoErr(res.Diff(`
 		HTTP/1.1 204 No Content
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestJSONCreate500(t *testing.T) {
@@ -484,7 +484,7 @@ func TestJSONCreate500(t *testing.T) {
 
 		{"error":"Not implemented yet"}
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestDependencyHoist(t *testing.T) {
@@ -520,7 +520,7 @@ func TestDependencyHoist(t *testing.T) {
 
 		1
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestDependencyRequest(t *testing.T) {
@@ -556,7 +556,7 @@ func TestDependencyRequest(t *testing.T) {
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), `/`)
-
+	is.NoErr(app.Close())
 }
 
 func TestShareStruct(t *testing.T) {
@@ -592,7 +592,7 @@ func TestShareStruct(t *testing.T) {
 
 		{"id":10,"title":"a"}
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestJSONCreateNested(t *testing.T) {
@@ -687,7 +687,7 @@ func TestJSONCreateNested(t *testing.T) {
 
 		{"id":4,"title":"d"}
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestJSONDelete500(t *testing.T) {
@@ -716,7 +716,7 @@ func TestJSONDelete500(t *testing.T) {
 
 		{"error":"Not implemented yet"}
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestJSONDelete200(t *testing.T) {
@@ -748,7 +748,7 @@ func TestJSONDelete200(t *testing.T) {
 
 		{"ID":1,"Title":"a"}
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestJSONMultipleActions(t *testing.T) {
@@ -788,7 +788,7 @@ func TestJSONMultipleActions(t *testing.T) {
 
 		10
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestJSONUpdate500(t *testing.T) {
@@ -817,7 +817,7 @@ func TestJSONUpdate500(t *testing.T) {
 
 		{"error":"Not implemented yet"}
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestJSONUpdate200(t *testing.T) {
@@ -849,7 +849,7 @@ func TestJSONUpdate200(t *testing.T) {
 
 		{"id":1,"title":"a"}
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestNestedResource(t *testing.T) {
@@ -935,7 +935,7 @@ func TestNestedResource(t *testing.T) {
 	is.NoErr(res.Diff(`
 		HTTP/1.1 204 No Content
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestDeepNestedResource(t *testing.T) {
@@ -1038,7 +1038,7 @@ func TestDeepNestedResource(t *testing.T) {
 
 		{"id":1,"post_id":2}
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestRedirectResource(t *testing.T) {
@@ -1180,7 +1180,7 @@ func TestRedirectResource(t *testing.T) {
 		HTTP/1.1 302 Found
 		Location: /posts/1/comments
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestViewUnnamed(t *testing.T) {
@@ -1329,7 +1329,7 @@ func TestViewUnnamed(t *testing.T) {
 	html, err = el.Html()
 	is.NoErr(err)
 	is.Equal(`<h1>edit: 10 e</h1>`, html)
-
+	is.NoErr(app.Close())
 }
 
 func TestViewNestedUnnamed(t *testing.T) {
@@ -1478,6 +1478,7 @@ func TestViewNestedUnnamed(t *testing.T) {
 	html, err = el.Html()
 	is.NoErr(err)
 	is.Equal(`<h1>edit: 10 e</h1>`, html)
+	is.NoErr(app.Close())
 }
 
 func TestViewDeepUnnamed(t *testing.T) {
@@ -1629,6 +1630,7 @@ func TestViewDeepUnnamed(t *testing.T) {
 	html, err = el.Html()
 	is.NoErr(err)
 	is.Equal(`<h1>edit: 10 e 2021-08-04T14:56:00Z</h1>`, html)
+	is.NoErr(app.Close())
 }
 
 func TestResourceContext(t *testing.T) {
@@ -1716,7 +1718,7 @@ func TestResourceContext(t *testing.T) {
 
 		{"id":2,"name":"a"}
 	`))
-
+	is.NoErr(app.Close())
 }
 
 func TestOkChangeOk(t *testing.T) {
@@ -1831,4 +1833,5 @@ func TestCustomActions(t *testing.T) {
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), `deactivate`)
+	is.NoErr(app.Close())
 }

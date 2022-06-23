@@ -176,8 +176,12 @@ func (a *appServer) Run(ctx context.Context) error {
 	// Start the built app
 	process, err := a.starter.Start(ctx, filepath.Join("bud", "app"))
 	if err != nil {
+		a.bus.Publish("app:error", []byte(err.Error()))
+		a.log.Debug("run: published event", "event", "app:error")
 		return err
 	}
+	a.bus.Publish("app:ready", nil)
+	a.log.Debug("run: published event", "event", "app:ready")
 	// Watch for changes
 	return watcher.Watch(ctx, a.dir, logWrap(a.log, func(paths []string) error {
 		a.log.Debug("run: files changes", "paths", paths)
@@ -185,10 +189,14 @@ func (a *appServer) Run(ctx context.Context) error {
 			a.log.Debug("run: incrementally reloading")
 			a.bus.Publish("frontend:update", nil)
 			a.log.Debug("run: published event", "event", "frontend:update")
+			// In this case, the app is still in the "ready" state, but this is useful
+			// for tests that write files and wait for the app to be ready.
+			a.bus.Publish("app:ready", nil)
+			a.log.Debug("run: published event", "event", "app:ready")
 			return nil
 		}
 		now := time.Now()
-		a.log.Debug("stopping the process")
+		a.log.Debug("run: restarting the process")
 		if err := process.Close(); err != nil {
 			return err
 		}
@@ -202,10 +210,15 @@ func (a *appServer) Run(ctx context.Context) error {
 		if err := a.builder.Build(ctx, "bud/internal/app/main.go", "bud/app"); err != nil {
 			return err
 		}
+		// Restart the process
 		p, err := process.Restart(ctx)
 		if err != nil {
+			a.bus.Publish("app:error", nil)
+			a.log.Debug("run: published event", "event", "app:error")
 			return err
 		}
+		a.bus.Publish("app:ready", nil)
+		a.log.Debug("run: published event", "event", "app:ready")
 		a.log.Debug("restarted the process", "in", time.Since(now))
 		process = p
 		return nil

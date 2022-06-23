@@ -92,3 +92,22 @@ func TestRunError(t *testing.T) {
 	}
 	testsub.Run(t, parent, child)
 }
+
+func TestCloseWaitWait(t *testing.T) {
+	is := is.New(t)
+	parent := func(t testing.TB, cmd *exec.Cmd) {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		ctx := context.Background()
+		p, err := exe.Start(ctx, cmd)
+		is.NoErr(err)
+		is.NoErr(p.Close())
+		is.NoErr(p.Wait())
+		is.NoErr(p.Wait())
+	}
+	child := func(t testing.TB) {
+		ctx := sig.Trap(context.Background(), os.Interrupt)
+		<-ctx.Done()
+	}
+	testsub.Run(t, parent, child)
+}

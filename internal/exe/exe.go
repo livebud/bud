@@ -74,7 +74,6 @@ type Process struct {
 
 func (p *Process) Start() error {
 	if err := p.cmd.Start(); err != nil {
-		close(p.exitCh)
 		return err
 	}
 	go p.wait()
@@ -108,7 +107,9 @@ func (p *Process) close() error {
 			return err
 		}
 	}
-	if err := <-p.exitCh; err != nil {
+	err := <-p.exitCh
+	close(p.exitCh)
+	if err != nil {
 		if !expectError(err) {
 			return err
 		}

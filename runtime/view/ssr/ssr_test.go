@@ -15,15 +15,16 @@ import (
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/js"
 	v8 "github.com/livebud/bud/package/js/v8"
+	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/svelte"
 	"github.com/livebud/bud/runtime/transform"
-	"github.com/livebud/bud/runtime/view"
 	"github.com/livebud/bud/runtime/view/ssr"
 )
 
 func TestSvelteHello(t *testing.T) {
 	is := is.New(t)
+	log := testlog.Log()
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)
@@ -37,7 +38,7 @@ func TestSvelteHello(t *testing.T) {
 	transformer := transform.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	overlay, err := overlay.Load(module)
+	overlay, err := overlay.Load(log, module)
 	is.NoErr(err)
 	overlay.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	// Read the wrapped version of index.svelte with node_modules rewritten
@@ -48,20 +49,21 @@ func TestSvelteHello(t *testing.T) {
 	is.True(strings.Contains(string(code), `views["/"] = `))
 	result, err := vm.Eval("render.js", string(code)+`; bud.render("/", {})`)
 	is.NoErr(err)
-	var res view.Response
+	var res ssr.Response
 	err = json.Unmarshal([]byte(result), &res)
 	is.NoErr(err)
 	is.Equal(res.Status, 200)
 	is.Equal(len(res.Headers), 1)
 	is.Equal(res.Headers["Content-Type"], "text/html")
 	is.True(strings.Contains(res.Body, `<script id="bud_props" type="text/template" defer>{}</script>`))
-	is.True(strings.Contains(res.Body, `<script type="module" src="/bud/view/_index.svelte" defer></script>`))
+	is.True(strings.Contains(res.Body, `<script type="module" src="/bud/view/_index.svelte.js" defer></script>`))
 	is.True(strings.Contains(res.Body, `<div id="bud_target">`))
 	is.True(strings.Contains(res.Body, `<h1>hi world</h1>`))
 }
 
 func TestSvelteAwait(t *testing.T) {
 	is := is.New(t)
+	log := testlog.Log()
 	ctx := context.Background()
 	dir := t.TempDir()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +94,7 @@ func TestSvelteAwait(t *testing.T) {
 	transformer := transform.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	overlay, err := overlay.Load(module)
+	overlay, err := overlay.Load(log, module)
 	is.NoErr(err)
 	overlay.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	// Read the wrapped version of index.svelte with node_modules rewritten
@@ -100,14 +102,14 @@ func TestSvelteAwait(t *testing.T) {
 	is.NoErr(err)
 	result, err := vm.Eval("render.js", string(code)+`; bud.render("/", {})`)
 	is.NoErr(err)
-	var res view.Response
+	var res ssr.Response
 	err = json.Unmarshal([]byte(result), &res)
 	is.NoErr(err)
 	is.Equal(res.Status, 200)
 	is.Equal(len(res.Headers), 1)
 	is.Equal(res.Headers["Content-Type"], "text/html")
 	is.True(strings.Contains(res.Body, `<script id="bud_props" type="text/template" defer>{}</script>`))
-	is.True(strings.Contains(res.Body, `<script type="module" src="/bud/view/_index.svelte" defer></script>`))
+	is.True(strings.Contains(res.Body, `<script type="module" src="/bud/view/_index.svelte.js" defer></script>`))
 	is.True(strings.Contains(res.Body, `<div id="bud_target">`))
 	is.True(strings.Contains(res.Body, `Loading...`))
 }
@@ -117,7 +119,7 @@ func wrap(key string, props interface{}) map[string]interface{} {
 	return map[string]interface{}{key: props}
 }
 
-func render(vm js.VM, code, path string, props interface{}) (*view.Response, error) {
+func render(vm js.VM, code, path string, props interface{}) (*ssr.Response, error) {
 	input, err := json.Marshal(props)
 	if err != nil {
 		return nil, err
@@ -126,7 +128,7 @@ func render(vm js.VM, code, path string, props interface{}) (*view.Response, err
 	if err != nil {
 		return nil, err
 	}
-	var res view.Response
+	var res ssr.Response
 	if err = json.Unmarshal([]byte(result), &res); err != nil {
 		return nil, err
 	}
@@ -135,6 +137,7 @@ func render(vm js.VM, code, path string, props interface{}) (*view.Response, err
 
 func TestSvelteProps(t *testing.T) {
 	is := is.New(t)
+	log := testlog.Log()
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)
@@ -183,7 +186,7 @@ func TestSvelteProps(t *testing.T) {
 	transformer := transform.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	overlay, err := overlay.Load(module)
+	overlay, err := overlay.Load(log, module)
 	is.NoErr(err)
 	overlay.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	// Read the wrapped version of index.svelte with node_modules rewritten
@@ -252,6 +255,7 @@ func TestSvelteProps(t *testing.T) {
 
 func TestSvelteLocalImports(t *testing.T) {
 	is := is.New(t)
+	log := testlog.Log()
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)
@@ -290,7 +294,7 @@ func TestSvelteLocalImports(t *testing.T) {
 	transformer := transform.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	overlay, err := overlay.Load(module)
+	overlay, err := overlay.Load(log, module)
 	is.NoErr(err)
 	overlay.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	// Read the wrapped version of index.svelte with node_modules rewritten

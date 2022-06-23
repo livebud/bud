@@ -2,7 +2,6 @@ package app_test
 
 import (
 	"context"
-	"io"
 	"testing"
 
 	"github.com/livebud/bud/internal/cli/testcli"
@@ -26,12 +25,8 @@ func TestWelcome(t *testing.T) {
 	is.Equal(res.Status(), 200)
 	is.In(res.Body().String(), "Hey Bud")
 	is.In(res.Body().String(), "Hey Bud") // should work multiple times
-	is.NoErr(app.Close())
-	stdout, err := io.ReadAll(app.Stdout())
-	is.NoErr(err)
-	is.In(string(stdout), "")
-	stderr, err := io.ReadAll(app.Stderr())
-	is.NoErr(err)
-	is.In(string(stderr), "")
+	is.Equal(app.Stdout(), "")
+	is.Equal(app.Stderr(), "")
 	is.NoErr(td.Exists("bud/app"))
+	is.NoErr(app.Close())
 }

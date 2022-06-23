@@ -7,10 +7,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 
+	"github.com/livebud/bud/internal/exe"
+
 	"github.com/livebud/bud/internal/extrafile"
-	"github.com/livebud/bud/package/exe"
 	"github.com/livebud/bud/package/socket"
 )
 
@@ -27,7 +29,7 @@ func run(ctx context.Context) error {
 	}
 	// run `go build`
 	childPath := filepath.Join(os.TempDir(), "test-socket-passthrough", "child")
-	cmd := exe.Command(ctx, "go", "build", "-o", childPath, "scripts/test-socket-passthrough/child/main.go")
+	cmd := exec.CommandContext(ctx, "go", "build", "-o", childPath, "scripts/test-socket-passthrough/child/main.go")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Env = os.Environ()
@@ -35,7 +37,7 @@ func run(ctx context.Context) error {
 		return err
 	}
 	// Start the web server
-	cmd = exe.Command(ctx, childPath)
+	cmd = exec.CommandContext(ctx, childPath)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Env = os.Environ()
@@ -44,7 +46,8 @@ func run(ctx context.Context) error {
 		return err
 	}
 	extrafile.Inject(&cmd.ExtraFiles, &cmd.Env, "APP", appFile)
-	if err := cmd.Start(); err != nil {
+	process, err := exe.Start(ctx, cmd)
+	if err != nil {
 		return err
 	}
 	res, err := http.DefaultClient.Get("http://" + listener.Addr().String())
@@ -59,7 +62,8 @@ func run(ctx context.Context) error {
 		return err
 	}
 	fmt.Println("Got body: " + string(body))
-	if err := cmd.Restart(context.Background()); err != nil {
+	process, err = process.Restart(context.Background())
+	if err != nil {
 		return err
 	}
 	fmt.Println("restarted")
@@ -75,10 +79,10 @@ func run(ctx context.Context) error {
 		return err
 	}
 	fmt.Println("Got body: " + string(body))
-	if err := cmd.Close(); err != nil {
+	if err := process.Close(); err != nil {
 		return err
 	}
-	if err := cmd.Wait(); err != nil {
+	if err := process.Wait(); err != nil {
 		return err
 	}
 	return nil

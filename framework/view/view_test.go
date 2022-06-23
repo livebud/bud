@@ -2,9 +2,7 @@ package view_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
-	"time"
 
 	"github.com/livebud/bud/internal/cli/testcli"
 	"github.com/livebud/bud/internal/is"
@@ -48,12 +46,12 @@ func TestHello(t *testing.T) {
 	td = testdir.New(dir)
 	td.Files["view/index.svelte"] = `<h1>hi</h1>`
 	is.NoErr(td.Write(ctx))
-	// Wait for the change event
-	eventCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-	event, err := hot.Next(eventCtx)
+	// Wait for the app to be ready again
+	app.Ready(ctx)
+	// Check that we received a hot reload event
+	event, err := hot.Next(ctx)
 	is.NoErr(err)
-	is.In(string(event.Data), `{"scripts":["view/index.svelte?ts=`)
+	is.In(string(event.Data), `{"scripts":["/bud/view/index.svelte?ts=`)
 	// Should change
 	res, err = app.Get("/")
 	is.NoErr(err)
@@ -102,13 +100,12 @@ func TestHelloEmbed(t *testing.T) {
 	td = testdir.New(dir)
 	td.Files["view/index.svelte"] = `<h1>hi</h1>`
 	is.NoErr(td.Write(ctx))
-	// Wait for the change event
-	eventCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	fmt.Println("waiting for event")
-	event, err := hot.Next(eventCtx)
+	// Wait for the the app to be ready again
+	is.NoErr(app.Ready(ctx))
+	// Ensure that we got a hot reload event
+	event, err := hot.Next(ctx)
 	is.NoErr(err)
-	is.In(string(event.Data), `{"scripts":["view/index.svelte?ts=`)
+	is.In(string(event.Data), `{"scripts":["/bud/view/index.svelte?ts=`)
 	// Shouldn't be any change
 	res, err = app.Get("/")
 	is.NoErr(err)

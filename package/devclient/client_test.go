@@ -5,7 +5,8 @@ import (
 	"io"
 	"net/http/httptest"
 	"testing"
-	"time"
+
+	"github.com/livebud/bud/package/log/testlog"
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/pubsub"
@@ -15,7 +16,6 @@ import (
 	"github.com/livebud/bud/package/devserver"
 	"github.com/livebud/bud/package/gomod"
 	v8 "github.com/livebud/bud/package/js/v8"
-	"github.com/livebud/bud/package/log/console"
 	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/svelte"
 	"github.com/livebud/bud/runtime/transform"
@@ -24,6 +24,7 @@ import (
 )
 
 func loadServer(bus pubsub.Client, dir string) (*httptest.Server, error) {
+	log := testlog.Log()
 	vm, err := v8.Load()
 	if err != nil {
 		return nil, err
@@ -40,14 +41,14 @@ func loadServer(bus pubsub.Client, dir string) (*httptest.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	genfs, err := overlay.Load(module)
+	genfs, err := overlay.Load(log, module)
 	if err != nil {
 		return nil, err
 	}
 	genfs.FileServer("bud/view", dom.New(module, transforms.DOM))
 	genfs.FileServer("bud/node_modules", dom.NodeModules(module))
 	genfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
-	handler := devserver.New(genfs, bus, console.Log, vm)
+	handler := devserver.New(genfs, bus, log, vm)
 	return httptest.NewServer(handler), nil
 }
 
@@ -179,34 +180,6 @@ func TestProxyFile(t *testing.T) {
 	is.NoErr(err)
 	is.In(string(body), `function element(`)
 	is.In(string(body), `function text(`)
-}
-
-func TestHot(t *testing.T) {
-	ctx := context.Background()
-	is := is.New(t)
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	is.NoErr(td.Write(ctx))
-	ps := pubsub.New()
-	server, err := loadServer(ps, dir)
-	is.NoErr(err)
-	defer server.Close()
-	client, err := devclient.Load(server.URL)
-	is.NoErr(err)
-	stream, err := client.Hot()
-	is.NoErr(err)
-	defer stream.Close()
-	ps.Publish("page:update:*", nil)
-	ctx, cancel := context.WithTimeout(ctx, time.Second)
-	defer cancel()
-	event, err := stream.Next(ctx)
-	is.NoErr(err)
-	is.Equal(event.ID, "")
-	is.Equal(event.Type, "")
-	is.In(string(event.Data), `{"scripts":["?ts=`)
-	is.In(string(event.Data), `]}`)
-	is.Equal(event.Retry, 0)
-	is.NoErr(stream.Close())
 }
 
 func TestEvents(t *testing.T) {

@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/internal/urlx"
-	"github.com/livebud/bud/package/hot"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/runtime/view/ssr"
 )
@@ -17,7 +16,7 @@ import (
 type Client interface {
 	Render(route string, props interface{}) (*ssr.Response, error)
 	Proxy(w http.ResponseWriter, r *http.Request)
-	Hot() (*hot.Stream, error)
+	// Hot() (*hot.Stream, error)
 	Publish(topic string, data []byte) error
 }
 
@@ -101,10 +100,6 @@ func (c *client) Proxy(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(res.StatusCode)
 	io.Copy(w, res.Body)
-}
-
-func (c *client) Hot() (*hot.Stream, error) {
-	return hot.DialWith(c.httpClient, c.baseURL+"/bud/hot")
 }
 
 type Event struct {
