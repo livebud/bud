@@ -8,11 +8,11 @@ RUN node -v
 
 # Install basic dependencies
 RUN apt-get -qq update \
-  && apt-get -qq -y install wget git make gcc g++ \
+  && apt-get -qq -y install curl git make gcc g++ \
   && rm -rf /var/lib/apt/lists/*
 
 # Install Go
-RUN wget -q -O - https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz | tar -xz -C /usr/local --strip-components 1
+RUN curl -L --output - https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz | tar -xz -C /usr/local --strip-components 1
 RUN go version
 ENV PATH "/root/go/bin:${PATH}"
 
