@@ -10,10 +10,10 @@ import (
 	"github.com/livebud/bud/internal/gotemplate"
 )
 
-//go:embed template.gotext
+//go:embed public.gotext
 var template string
 
-var generator = gotemplate.MustParse("framework/public/template.go", template)
+var generator = gotemplate.MustParse("framework/public/public.gotext", template)
 
 // Generate the public file
 func Generate(state *State) ([]byte, error) {

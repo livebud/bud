@@ -90,6 +90,9 @@ func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpReq
 	{{- else }}
 	fn := {{$.Name}}.{{$action.Name}}
 	{{- end }}
+	{{- if $action.HandlerFunc }}
+	return http.HandlerFunc(fn)
+	{{- else }}
 	// Call the controller
 	{{ $action.Results.Set }}fn(
 		{{- range $param := $action.Params }}
@@ -127,6 +130,7 @@ func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpReq
 		JSON: response.Status(204),
 		{{- end }}
 	}
+	{{- end }}
 }
 {{- end }}
 

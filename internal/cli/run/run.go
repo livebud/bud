@@ -15,6 +15,7 @@ import (
 	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/gobuild"
 	"github.com/livebud/bud/internal/pubsub"
+	"github.com/livebud/bud/internal/versions"
 	"github.com/livebud/bud/package/devserver"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log"
@@ -50,6 +51,10 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
+	// Ensure we have version alignment between the CLI and the runtime
+	if err := bud.EnsureVersionAlignment(ctx, module, versions.Bud); err != nil {
+		return err
+	}
 	// Setup the logger
 	log, err := bud.Log(c.in.Stderr, c.bud.Log)
 	if err != nil {
@@ -62,6 +67,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		if err != nil {
 			return err
 		}
+		defer webln.Close()
 		log.Info("Listening on http://" + webln.Addr().String())
 	}
 	// Setup the bud listener
@@ -71,6 +77,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		if err != nil {
 			return err
 		}
+		defer budln.Close()
 		log.Debug("run: bud server is listening", "url", "http://"+budln.Addr().String())
 	}
 	// Load the generator filesystem
@@ -167,10 +174,14 @@ type appServer struct {
 func (a *appServer) Run(ctx context.Context) error {
 	// Generate the app
 	if err := a.genfs.Sync("bud/internal/app"); err != nil {
+		a.bus.Publish("app:error", []byte(err.Error()))
+		a.log.Debug("run: published event", "event", "app:error")
 		return err
 	}
 	// Build the app
 	if err := a.builder.Build(ctx, "bud/internal/app/main.go", "bud/app"); err != nil {
+		a.bus.Publish("app:error", []byte(err.Error()))
+		a.log.Debug("run: published event", "event", "app:error")
 		return err
 	}
 	// Start the built app

@@ -10,10 +10,10 @@ import (
 	"github.com/livebud/bud/package/parser"
 )
 
-//go:embed template.gotext
+//go:embed web.gotext
 var template string
 
-var generator = gotemplate.MustParse("framework/web/template.gotext", template)
+var generator = gotemplate.MustParse("framework/web/web.gotext", template)
 
 // Generate the web server from state
 func Generate(state *State) ([]byte, error) {

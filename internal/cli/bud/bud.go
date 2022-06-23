@@ -3,6 +3,8 @@ package bud
 import (
 	"context"
 	"io"
+	"os"
+	"os/exec"
 
 	"github.com/livebud/bud/internal/current"
 	"github.com/livebud/bud/internal/pubsub"
@@ -142,38 +144,35 @@ func FileServer(log log.Interface, module *gomod.Module, flag *framework.Flag) (
 	return servefs, nil
 }
 
-// // Generate the app
-// func (c *Command) Generate(genfs *overlay.FileSystem, outDir string) error {
-// 	return genfs.Sync(outDir)
-// }
-
-// func (c *Command) Build(ctx context.Context, module *gomod.Module, mainPath, outPath string) error {
-// 	builder := gobuild.New(module)
-// 	return builder.Build(ctx, mainPath, outPath)
-// }
-
-// func (c *Command) Watch(ctx context.Context, module *gomod.Module, log log.Interface, fn func(isBoot, canHotReload bool) error) error {
-// 	// Wrap the function
-// 	watchFn := func(paths []string) error {
-// 		if err := fn(false, canHotReload(paths)); err != nil {
-// 			log.Error(err.Error())
-// 		}
-// 		return nil
-// 	}
-// 	// Call the function once manually to boot
-// 	if err := fn(true, false); err != nil {
-// 		log.Error(err.Error())
-// 	}
-// 	// Regardless of success, watch for changes
-// 	return watcher.Watch(ctx, module.Directory(), watchFn)
-// }
-
-// // canHotReload returns true if we can incrementally reload a page
-// func canHotReload(paths []string) bool {
-// 	for _, path := range paths {
-// 		if filepath.Ext(path) == ".go" {
-// 			return false
-// 		}
-// 	}
-// 	return true
-// }
+// EnsureVersionAlignment ensures that the CLI and runtime versions are aligned.
+// If they're not aligned, the CLI will correct the go.mod file to align them.
+func EnsureVersionAlignment(ctx context.Context, module *gomod.Module, budVersion string) error {
+	// Do nothing for the latest version
+	if budVersion == "latest" {
+		return nil
+	}
+	target := "v" + budVersion
+	modfile := module.File()
+	require := modfile.Require("github.com/livebud/bud")
+	// We're good, the CLI matches the runtime version
+	if require != nil && require.Version == target {
+		return nil
+	}
+	// Otherwise, update go.mod to match the CLI's version
+	if err := modfile.AddRequire("github.com/livebud/bud", target); err != nil {
+		return err
+	}
+	if err := os.WriteFile(module.Directory("go.mod"), modfile.Format(), 0644); err != nil {
+		return err
+	}
+	// Run `go mod download`
+	cmd := exec.CommandContext(ctx, "go", "mod", "download")
+	cmd.Dir = module.Directory()
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = os.Environ()
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+	return nil
+}

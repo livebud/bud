@@ -2,7 +2,11 @@ package bud_test
 
 import (
 	"context"
+	"os"
 	"testing"
+
+	"github.com/livebud/bud/internal/cli/bud"
+	"github.com/livebud/bud/package/gomod"
 
 	"github.com/livebud/bud/internal/cli/testcli"
 	"github.com/livebud/bud/internal/is"
@@ -112,4 +116,23 @@ func TestOutsideModuleHelp(t *testing.T) {
 		"bud/internal/app",
 		"bud/app",
 	))
+}
+
+func TestVersionAlignment(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Modules["github.com/livebud/bud"] = "v0.1.7"
+	is.NoErr(td.Write(ctx))
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	err = bud.EnsureVersionAlignment(ctx, module, "0.1.8")
+	is.NoErr(err)
+	modFile, err := os.ReadFile(td.Path("go.mod"))
+	is.NoErr(err)
+	module, err = gomod.Parse(td.Path("go.mod"), modFile)
+	is.NoErr(err)
+	version := module.File().Require("github.com/livebud/bud")
+	is.Equal(version.Version, "v0.1.8")
 }

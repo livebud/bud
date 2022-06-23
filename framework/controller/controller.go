@@ -13,10 +13,10 @@ import (
 	"github.com/livebud/bud/package/parser"
 )
 
-//go:embed template.gotext
+//go:embed controller.gotext
 var template string
 
-var generator = gotemplate.MustParse("framework/controller/template.gotext", template)
+var generator = gotemplate.MustParse("framework/controller/controller.gotext", template)
 
 // Generate the controller template from state
 func Generate(state *State) ([]byte, error) {

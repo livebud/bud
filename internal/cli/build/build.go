@@ -6,6 +6,7 @@ import (
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/cli/bud"
 	"github.com/livebud/bud/internal/gobuild"
+	"github.com/livebud/bud/internal/versions"
 )
 
 // New command for bud build
@@ -29,6 +30,10 @@ func (c *Command) Run(ctx context.Context) error {
 	// Find go.mod
 	module, err := bud.Module(c.bud.Dir)
 	if err != nil {
+		return err
+	}
+	// Ensure we have version alignment between the CLI and the runtime
+	if err := bud.EnsureVersionAlignment(ctx, module, versions.Bud); err != nil {
 		return err
 	}
 	// Setup the logger

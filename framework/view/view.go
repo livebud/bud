@@ -11,10 +11,10 @@ import (
 	"github.com/livebud/bud/runtime/transform"
 )
 
-//go:embed template.gotext
+//go:embed view.gotext
 var template string
 
-var generator = gotemplate.MustParse("framework/view/template.gotext", template)
+var generator = gotemplate.MustParse("framework/view/view.gotext", template)
 
 // Generate the view from state
 func Generate(state *State) ([]byte, error) {

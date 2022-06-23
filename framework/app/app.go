@@ -12,10 +12,10 @@ import (
 	"github.com/livebud/bud/package/gomod"
 )
 
-//go:embed template.gotext
+//go:embed app.gotext
 var template string
 
-var generator = gotemplate.MustParse("framework/app/template.gotext", template)
+var generator = gotemplate.MustParse("framework/app/app.gotext", template)
 
 func Generate(state *State) ([]byte, error) {
 	return generator.Generate(state)
