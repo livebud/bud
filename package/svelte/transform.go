@@ -1,16 +1,16 @@
 package svelte
 
 import (
-	"github.com/livebud/bud/runtime/transform"
+	"github.com/livebud/bud/framework/transform/transformrt"
 )
 
 func NewTransformable(compiler *Compiler) *Transformable {
 	return &Transformable{
 		From: ".svelte",
 		To:   ".js",
-		For: transform.Platforms{
+		For: transformrt.Platforms{
 			// DOM transform (browser)
-			transform.PlatformDOM: func(file *transform.File) error {
+			transformrt.PlatformDOM: func(file *transformrt.File) error {
 				dom, err := compiler.DOM(file.Path(), file.Code)
 				if err != nil {
 					return err
@@ -20,7 +20,7 @@ func NewTransformable(compiler *Compiler) *Transformable {
 			},
 
 			// SSR transform (server)
-			transform.PlatformSSR: func(file *transform.File) error {
+			transformrt.PlatformSSR: func(file *transformrt.File) error {
 				ssr, err := compiler.SSR(file.Path(), file.Code)
 				if err != nil {
 					return err
@@ -32,4 +32,4 @@ func NewTransformable(compiler *Compiler) *Transformable {
 	}
 }
 
-type Transformable = transform.Transformable
+type Transformable = transformrt.Transformable

@@ -8,6 +8,9 @@ import (
 
 	"github.com/livebud/bud/package/log/testlog"
 
+	"github.com/livebud/bud/framework/transform/transformrt"
+	"github.com/livebud/bud/framework/view/dom"
+	"github.com/livebud/bud/framework/view/ssr"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/internal/testdir"
@@ -18,9 +21,6 @@ import (
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/svelte"
-	"github.com/livebud/bud/runtime/transform"
-	"github.com/livebud/bud/runtime/view/dom"
-	"github.com/livebud/bud/runtime/view/ssr"
 )
 
 func loadServer(bus pubsub.Client, dir string) (*httptest.Server, error) {
@@ -33,7 +33,7 @@ func loadServer(bus pubsub.Client, dir string) (*httptest.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	transforms, err := transform.Load(svelte.NewTransformable(svelteCompiler))
+	transforms, err := transformrt.Load(svelte.NewTransformable(svelteCompiler))
 	if err != nil {
 		return nil, err
 	}

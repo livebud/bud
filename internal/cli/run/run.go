@@ -10,6 +10,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/livebud/bud/framework"
+	"github.com/livebud/bud/framework/web/webrt"
 	"github.com/livebud/bud/internal/cli/bud"
 	"github.com/livebud/bud/internal/exe"
 	"github.com/livebud/bud/internal/extrafile"
@@ -22,7 +23,6 @@ import (
 	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/package/watcher"
-	"github.com/livebud/bud/runtime/web"
 )
 
 // New command for bud run.
@@ -155,7 +155,7 @@ func (s *budServer) Run(ctx context.Context) error {
 		return err
 	}
 	devServer := devserver.New(s.fsys, s.bus, s.log, vm)
-	err = web.Serve(ctx, s.budln, devServer)
+	err = webrt.Serve(ctx, s.budln, devServer)
 	s.log.Debug("run: bud server closed", "err", err)
 	return err
 }

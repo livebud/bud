@@ -15,7 +15,7 @@ import (
 {{- if not $.Flag.Embed }}
 // Load the view server. Files are linked rather than embedded.
 func Load(client devclient.Client) Server {
-	return view.Proxy(client)
+	return viewrt.Proxy(client)
 }
 {{ else }}
 // New view server. Files are embedded rather than linked.
@@ -25,10 +25,10 @@ func New(module *mod.Module, fsys *overlay.FileSystem, vm js.VM) Server {
 		{{ if $embed.Data }}Data: []byte("{{ $embed.Data }}"),{{ end }}
 	})
 	{{- end }}
-	return view.Static(fsys, vm, func(path string, props interface{}) interface{} {
+	return viewrt.Static(fsys, vm, func(path string, props interface{}) interface{} {
 		return props
 	})
 }
 {{- end }}
 
-type Server = view.Server
+type Server = viewrt.Server

@@ -266,7 +266,7 @@ func TestModuleFindLocal(t *testing.T) {
 	module1, err := gomod.Find(wd)
 	is.NoErr(err)
 	// Find local web directory within module1
-	module2, err := module1.Find(module1.Import("runtime", "web"))
+	module2, err := module1.Find(module1.Import("framework", "web"))
 	is.NoErr(err)
 	is.Equal(module1.Directory(), module2.Directory())
 }

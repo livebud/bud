@@ -56,9 +56,9 @@ type Server struct {
 }
 
 func (s *Server) Serve(ctx context.Context, address string) error {
-	listener, err := web.Listen("WEB", address)
+	listener, err := webrt.Listen("WEB", address)
 	if err != nil {
 		return err
 	}
-	return web.Serve(ctx, listener, s)
+	return webrt.Serve(ctx, listener, s)
 }

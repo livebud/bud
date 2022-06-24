@@ -8,22 +8,22 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/runtime/view/dom"
-	"github.com/livebud/bud/runtime/view/ssr"
+	"github.com/livebud/bud/framework/view/dom"
+	"github.com/livebud/bud/framework/view/ssr"
 
+	"github.com/livebud/bud/framework/transform/transformrt"
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/embed"
 	"github.com/livebud/bud/internal/entrypoint"
 	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/package/gomod"
-	"github.com/livebud/bud/runtime/transform"
 )
 
 func Load(
 	ctx context.Context,
 	fsys fs.FS,
 	module *gomod.Module,
-	transform *transform.Map,
+	transform *transformrt.Map,
 	flag *framework.Flag,
 ) (*State, error) {
 	return (&loader{
@@ -38,7 +38,7 @@ func Load(
 type loader struct {
 	fsys      fs.FS
 	module    *gomod.Module
-	transform *transform.Map
+	transform *transformrt.Map
 	flag      *framework.Flag
 
 	bail.Struct
@@ -92,7 +92,7 @@ func (l *loader) Load(ctx context.Context) (state *State, err error) {
 	} else {
 		l.imports.AddNamed("devclient", "github.com/livebud/bud/package/devclient")
 	}
-	l.imports.AddNamed("view", "github.com/livebud/bud/runtime/view")
+	l.imports.AddNamed("viewrt", "github.com/livebud/bud/framework/view/viewrt")
 	state.Imports = l.imports.List()
 	return state, nil
 }

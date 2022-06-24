@@ -13,7 +13,10 @@ import (
 	"github.com/livebud/bud/framework/app"
 	"github.com/livebud/bud/framework/controller"
 	"github.com/livebud/bud/framework/public"
+	"github.com/livebud/bud/framework/transform/transformrt"
 	"github.com/livebud/bud/framework/view"
+	"github.com/livebud/bud/framework/view/dom"
+	"github.com/livebud/bud/framework/view/ssr"
 	"github.com/livebud/bud/framework/web"
 	"github.com/livebud/bud/package/commander"
 	"github.com/livebud/bud/package/di"
@@ -26,9 +29,6 @@ import (
 	"github.com/livebud/bud/package/parser"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/package/svelte"
-	"github.com/livebud/bud/runtime/transform"
-	"github.com/livebud/bud/runtime/view/dom"
-	"github.com/livebud/bud/runtime/view/ssr"
 )
 
 // Input contains the configuration that gets passed into the commands
@@ -109,7 +109,7 @@ func FileSystem(log log.Interface, module *gomod.Module, flag *framework.Flag) (
 	if err != nil {
 		return nil, err
 	}
-	transforms, err := transform.Load(svelte.NewTransformable(svelteCompiler))
+	transforms, err := transformrt.Load(svelte.NewTransformable(svelteCompiler))
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ func FileServer(log log.Interface, module *gomod.Module, flag *framework.Flag) (
 	if err != nil {
 		return nil, err
 	}
-	transforms, err := transform.Load(svelte.NewTransformable(svelteCompiler))
+	transforms, err := transformrt.Load(svelte.NewTransformable(svelteCompiler))
 	if err != nil {
 		return nil, err
 	}

@@ -5,10 +5,10 @@ import (
 	_ "embed"
 
 	"github.com/livebud/bud/framework"
+	"github.com/livebud/bud/framework/transform/transformrt"
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/overlay"
-	"github.com/livebud/bud/runtime/transform"
 )
 
 //go:embed view.gotext
@@ -21,7 +21,7 @@ func Generate(state *State) ([]byte, error) {
 	return generator.Generate(state)
 }
 
-func New(module *gomod.Module, transform *transform.Map, flag *framework.Flag) *Generator {
+func New(module *gomod.Module, transform *transformrt.Map, flag *framework.Flag) *Generator {
 	return &Generator{
 		flag:      flag,
 		module:    module,
@@ -32,7 +32,7 @@ func New(module *gomod.Module, transform *transform.Map, flag *framework.Flag) *
 type Generator struct {
 	flag      *framework.Flag
 	module    *gomod.Module
-	transform *transform.Map
+	transform *transformrt.Map
 }
 
 func (c *Generator) GenerateFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {

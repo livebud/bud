@@ -153,7 +153,7 @@ func (l *loader) loadActions(controller *Controller, stct *parser.Struct) (actio
 		l.imports.Add(importPath)
 		l.imports.Add("net/http")
 		if usesResponse {
-			l.imports.Add("github.com/livebud/bud/runtime/controller/response")
+			l.imports.Add("github.com/livebud/bud/framework/controller/controllerrt/response")
 		}
 	}
 	return actions
@@ -280,7 +280,7 @@ func (l *loader) loadActionParams(params []*parser.Param) (inputs []*ActionParam
 		inputs = append(inputs, l.loadActionParam(param, nth, numParams))
 	}
 	if len(inputs) > 0 {
-		l.imports.Add("github.com/livebud/bud/runtime/controller/request")
+		l.imports.Add("github.com/livebud/bud/framework/controller/controllerrt/request")
 	}
 	return inputs
 }
