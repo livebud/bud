@@ -56,7 +56,7 @@ func TestAppHash(t *testing.T) {
 	is.True(hash1 != hash2)
 }
 
-func TestAppHashEmbed(t *testing.T) {
+func TestAppHashEmbeds(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
