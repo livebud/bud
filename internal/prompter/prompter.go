@@ -18,7 +18,6 @@
 // TODO: find a better name for this package. Prompter sounds like it's reading
 // user input from stdin, whereas this package is about managing `bud run` state
 // and updating the terminal accordingly.
-// TODO: add tests for this package
 package prompter
 
 import (
