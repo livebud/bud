@@ -3,6 +3,7 @@ package run
 import (
 	"context"
 	"errors"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -21,6 +22,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/livebud/bud/runtime/command"
+	"github.com/livebud/bud/runtime/command/run/prompter"
 	"github.com/livebud/bud/runtime/web"
 )
 
@@ -59,6 +61,13 @@ func (c *Command) Run(ctx context.Context) error {
 	return nil
 }
 
+// The prompt need stdout and stderr's content.
+var (
+	prompt prompter.Prompter
+	stdout = io.MultiWriter(os.Stdout, &prompt.StdOut)
+	stderr = io.MultiWriter(os.Stderr, &prompt.StdErr)
+)
+
 func (c *Command) compileAndStart(ctx context.Context, listener socket.Listener) (*exe.Cmd, error) {
 	// Sync the application
 	if err := c.FS.Sync("bud/.app"); err != nil {
@@ -76,8 +85,8 @@ func (c *Command) compileAndStart(ctx context.Context, listener socket.Listener)
 
 	// Start the web server
 	process := exe.Command(ctx, "bud/app")
-	process.Stdout = os.Stdout
-	process.Stderr = os.Stderr
+	process.Stdout = stdout
+	process.Stderr = stderr
 	process.Env = os.Environ()
 	process.Dir = c.module.Directory()
 
@@ -102,6 +111,10 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 	if err != nil {
 		return err
 	}
+
+	// Create a terminal prompter
+	prompt.Init(web.Format(listener))
+
 	// Compile and start the project
 	process, err := c.compileAndStart(ctx, listener)
 	if err != nil {
@@ -110,9 +123,10 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 		if errors.Is(err, context.Canceled) {
 			return err
 		}
-		// TODO: de-duplicate with the watcher below
 		console.Error(err.Error())
-		if err := watcher.Watch(ctx, ".", func(_ []string) error {
+		// TODO: de-duplicate with the watcher below
+		if err := watcher.Watch(ctx, ".", func(paths []string) error {
+			prompt.Reloading(paths)
 			process, err = c.compileAndStart(ctx, listener)
 			if err != nil {
 				// Exit without logging if the context has been cancelled. This can
@@ -120,10 +134,10 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 				if errors.Is(err, context.Canceled) {
 					return err
 				}
-				console.Error(err.Error())
+				prompt.FailReload(err.Error())
 				return nil
 			}
-			console.Info("Ready on " + web.Format(listener))
+			prompt.SuccessReload()
 			return watcher.Stop
 		}); err != nil {
 			return err
@@ -137,11 +151,15 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 	defer process.Close()
 	// Start watching
 	if err := watcher.Watch(ctx, ".", func(paths []string) error {
+		prompt.Reloading(paths)
 		// Check if the changed paths support an incremental reload
 		if canIncrementallyReload(paths) {
 			// Trigger a reload if there's a hot reload server configured
 			if hotServer != nil {
 				hotServer.Reload("*")
+				prompt.SuccessReload()
+			} else {
+				prompt.MadeNoReload()
 			}
 			return nil
 		}
@@ -151,16 +169,16 @@ func (c *Command) startApp(ctx context.Context, hotServer *hot.Server) error {
 			hotServer.Reload("!")
 		}
 		if err := process.Close(); err != nil {
-			console.Error(err.Error())
+			prompt.FailReload(err.Error())
 			return nil
 		}
 		p, err := c.compileAndStart(ctx, listener)
 		if err != nil {
-			console.Error(err.Error())
+			prompt.FailReload(err.Error())
 			return nil
 		}
 		process = p
-		console.Info("Ready on " + web.Format(listener))
+		prompt.SuccessReload()
 		return nil
 
 	}); err != nil {
