@@ -206,9 +206,20 @@ func findDeps(fset *fileSet, imset *importSet, module *gomod.Module, dir string)
 		fset.Add(filepath.Join(dir, path))
 	}
 	// Add all the embeds
-	// TODO: resolve patterns
 	for _, path := range imported.EmbedPatterns {
-		fset.Add(filepath.Join(dir, path))
+		files, err := filepath.Glob(module.Directory(dir, path))
+		if err != nil {
+			return err
+		}
+
+		for _, file := range files {
+			relPath, err := filepath.Rel(module.Directory(), file)
+			if err != nil {
+				return err
+			}
+
+			fset.Add(relPath)
+		}
 	}
 	// Traverse imports and compute a hash
 	eg := new(errgroup.Group)
