@@ -1,4 +1,4 @@
-package devclient_test
+package budclient_test
 
 import (
 	"context"
@@ -15,8 +15,8 @@ import (
 	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/internal/versions"
-	"github.com/livebud/bud/package/devclient"
-	"github.com/livebud/bud/package/devserver"
+	"github.com/livebud/bud/package/budclient"
+	"github.com/livebud/bud/package/budserver"
 	"github.com/livebud/bud/package/gomod"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/overlay"
@@ -24,7 +24,7 @@ import (
 )
 
 func loadServer(bus pubsub.Client, dir string) (*httptest.Server, error) {
-	log := testlog.Log()
+	log := testlog.New()
 	vm, err := v8.Load()
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func loadServer(bus pubsub.Client, dir string) (*httptest.Server, error) {
 	genfs.FileServer("bud/view", dom.New(module, transforms.DOM))
 	genfs.FileServer("bud/node_modules", dom.NodeModules(module))
 	genfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
-	handler := devserver.New(genfs, bus, log, vm)
+	handler := budserver.New(genfs, bus, log, vm)
 	return httptest.NewServer(handler), nil
 }
 
@@ -69,7 +69,7 @@ func TestRender(t *testing.T) {
 	server, err := loadServer(ps, dir)
 	is.NoErr(err)
 	defer server.Close()
-	client, err := devclient.Load(server.URL)
+	client, err := budclient.Load(server.URL)
 	is.NoErr(err)
 	res, err := client.Render("/", map[string]interface{}{
 		"_string": "marshmallow",
@@ -98,7 +98,7 @@ func TestRenderNested(t *testing.T) {
 	server, err := loadServer(ps, dir)
 	is.NoErr(err)
 	defer server.Close()
-	client, err := devclient.Load(server.URL)
+	client, err := budclient.Load(server.URL)
 	is.NoErr(err)
 	res, err := client.Render("/posts/:post_id/comments/:id/edit", map[string]interface{}{
 		"_string": "marshmallow",
@@ -127,7 +127,7 @@ func TestProxyFile(t *testing.T) {
 	server, err := loadServer(bus, dir)
 	is.NoErr(err)
 	defer server.Close()
-	client, err := devclient.Load(server.URL)
+	client, err := budclient.Load(server.URL)
 	is.NoErr(err)
 
 	// Check the entrypoint
@@ -192,7 +192,7 @@ func TestEvents(t *testing.T) {
 	server, err := loadServer(ps, dir)
 	is.NoErr(err)
 	defer server.Close()
-	client, err := devclient.Load(server.URL)
+	client, err := budclient.Load(server.URL)
 	is.NoErr(err)
 	sub := ps.Subscribe("ready")
 	defer sub.Close()

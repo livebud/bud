@@ -24,7 +24,7 @@ import (
 
 func TestSvelteHello(t *testing.T) {
 	is := is.New(t)
-	log := testlog.Log()
+	log := testlog.New()
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)
@@ -63,7 +63,7 @@ func TestSvelteHello(t *testing.T) {
 
 func TestSvelteAwait(t *testing.T) {
 	is := is.New(t)
-	log := testlog.Log()
+	log := testlog.New()
 	ctx := context.Background()
 	dir := t.TempDir()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -137,7 +137,7 @@ func render(vm js.VM, code, path string, props interface{}) (*ssr.Response, erro
 
 func TestSvelteProps(t *testing.T) {
 	is := is.New(t)
-	log := testlog.Log()
+	log := testlog.New()
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)
@@ -255,7 +255,7 @@ func TestSvelteProps(t *testing.T) {
 
 func TestSvelteLocalImports(t *testing.T) {
 	is := is.New(t)
-	log := testlog.Log()
+	log := testlog.New()
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)

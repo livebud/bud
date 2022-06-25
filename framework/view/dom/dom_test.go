@@ -23,7 +23,7 @@ import (
 
 func TestServeFile(t *testing.T) {
 	is := is.New(t)
-	log := testlog.Log()
+	log := testlog.New()
 	ctx := context.Background()
 	dir := t.TempDir()
 	vm, err := v8.Load()
@@ -87,7 +87,7 @@ func TestServeFile(t *testing.T) {
 
 func TestNodeModules(t *testing.T) {
 	is := is.New(t)
-	log := testlog.Log()
+	log := testlog.New()
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)
@@ -108,7 +108,7 @@ func TestNodeModules(t *testing.T) {
 
 func TestGenerateDir(t *testing.T) {
 	is := is.New(t)
-	log := testlog.Log()
+	log := testlog.New()
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)

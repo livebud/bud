@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/framework/view/ssr"
-	"github.com/livebud/bud/package/devclient"
+	"github.com/livebud/bud/package/budclient"
 	"github.com/livebud/bud/package/js"
 )
 
@@ -22,12 +22,12 @@ type Server interface {
 	Handler(route string, props interface{}) http.Handler
 }
 
-func Proxy(client devclient.Client) *liveServer {
+func Proxy(client budclient.Client) *liveServer {
 	return &liveServer{client}
 }
 
 type liveServer struct {
-	client devclient.Client
+	client budclient.Client
 }
 
 var _ Server = (*liveServer)(nil)

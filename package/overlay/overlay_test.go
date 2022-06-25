@@ -19,7 +19,7 @@ import (
 func TestPlugins(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	log := testlog.Log()
+	log := testlog.New()
 	dir := t.TempDir()
 	td := testdir.New(dir)
 	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.8"
@@ -43,7 +43,7 @@ func TestPlugins(t *testing.T) {
 func TestReadRoot(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	log := testlog.Log()
+	log := testlog.New()
 	dir := t.TempDir()
 	td := testdir.New(dir)
 	td.Files["controller/controller.go"] = `package controller`

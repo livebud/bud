@@ -30,9 +30,7 @@ func TestAppHash(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(result.Stdout(), "")
 	is.Equal(result.Stderr(), "")
-	is.NoErr(td.Exists(
-		"bud/internal/app/main.go",
-	))
+	is.NoErr(td.Exists("bud/internal/app/main.go"))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
 	hash1, err := imhash.Hash(module, "bud/internal/app")
@@ -51,9 +49,7 @@ func TestAppHash(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(result.Stdout(), "")
 	is.Equal(result.Stderr(), "")
-	is.NoErr(td.Exists(
-		"bud/internal/app/main.go",
-	))
+	is.NoErr(td.Exists("bud/internal/app/main.go"))
 	hash2, err := imhash.Hash(module, "bud/internal/app")
 	is.NoErr(err)
 	is.Equal(len(hash2), 11)
@@ -82,18 +78,15 @@ func TestAppHashEmbed(t *testing.T) {
 	td.Files["controller/css/a.css"] = `body { font-family: Comic Sans; }`
 	td.Files["controller/css/b.css"] = `body { color: red; }`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(cli.New(dir))
-	stdout, stderr, err := cli.Run(ctx, "build")
-	is.NoErr(td.Exists(
-		"bud/.cli/main.go",
-		"bud/.app/main.go",
-	))
+	cli := testcli.New(dir)
+	result, err := cli.Run(ctx, "build")
+	is.NoErr(td.Exists("bud/internal/app/main.go"))
 	is.NoErr(err)
-	is.Equal(stdout.String(), "")
-	is.Equal(stderr.String(), "")
+	is.Equal(result.Stdout(), "")
+	is.Equal(result.Stderr(), "")
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	hash1, err := imhash.Hash(module, "bud")
+	hash1, err := imhash.Hash(module, "bud/internal/app")
 	is.NoErr(err)
 	is.Equal(len(hash1), 11)
 
@@ -101,15 +94,11 @@ func TestAppHashEmbed(t *testing.T) {
 	td.Files["controller/2.up.sql"] = `ALTER UNIVERSE;`
 	td.Files["controller/2.down.sql"] = `UNALTER UNIVERSE;`
 	is.NoErr(td.Write(ctx))
-	stdout, _, err = cli.Run(ctx, "build")
+	result, err = cli.Run(ctx, "build")
 	is.NoErr(err)
-	is.Equal(stdout.String(), "")
-	is.Equal(stderr.String(), "")
-	is.NoErr(td.Exists(
-		"bud/.cli/main.go",
-		"bud/.app/main.go",
-	))
-	hash2, err := imhash.Hash(module, "bud")
+	is.Equal(result.Stdout(), "")
+	is.NoErr(td.Exists("bud/internal/app/main.go"))
+	hash2, err := imhash.Hash(module, "bud/internal/app")
 	is.NoErr(err)
 	is.Equal(len(hash2), 11)
 	is.True(hash1 != hash2)
@@ -117,15 +106,11 @@ func TestAppHashEmbed(t *testing.T) {
 	// Update a CSS file
 	td.Files["controller/css/b.css"] = `body { color: green; }`
 	is.NoErr(td.Write(ctx))
-	stdout, _, err = cli.Run(ctx, "build")
+	result, err = cli.Run(ctx, "build")
 	is.NoErr(err)
-	is.Equal(stdout.String(), "")
-	is.Equal(stderr.String(), "")
-	is.NoErr(td.Exists(
-		"bud/.cli/main.go",
-		"bud/.app/main.go",
-	))
-	hash3, err := imhash.Hash(module, "bud")
+	is.Equal(result.Stdout(), "")
+	is.NoErr(td.Exists("bud/internal/app/main.go"))
+	hash3, err := imhash.Hash(module, "bud/internal/app")
 	is.NoErr(err)
 	is.Equal(len(hash3), 11)
 	is.True(hash2 != hash3)
@@ -133,15 +118,11 @@ func TestAppHashEmbed(t *testing.T) {
 	// Update the HTML file
 	td.Files["controller/html/index.html"] = `<strong>hi</strong>`
 	is.NoErr(td.Write(ctx))
-	stdout, _, err = cli.Run(ctx, "build")
+	result, err = cli.Run(ctx, "build")
 	is.NoErr(err)
-	is.Equal(stdout.String(), "")
-	is.Equal(stderr.String(), "")
-	is.NoErr(td.Exists(
-		"bud/.cli/main.go",
-		"bud/.app/main.go",
-	))
-	hash4, err := imhash.Hash(module, "bud")
+	is.Equal(result.Stdout(), "")
+	is.NoErr(td.Exists("bud/internal/app/main.go"))
+	hash4, err := imhash.Hash(module, "bud/internal/app")
 	is.NoErr(err)
 	is.Equal(len(hash3), 11)
 	is.True(hash3 != hash4)
@@ -149,15 +130,11 @@ func TestAppHashEmbed(t *testing.T) {
 	// Update an unembedded HTML file
 	td.Files["controller/html/other.html"] = `doesnt matter`
 	is.NoErr(td.Write(ctx))
-	stdout, _, err = cli.Run(ctx, "build")
+	result, err = cli.Run(ctx, "build")
 	is.NoErr(err)
-	is.Equal(stdout.String(), "")
-	is.Equal(stderr.String(), "")
-	is.NoErr(td.Exists(
-		"bud/.cli/main.go",
-		"bud/.app/main.go",
-	))
-	hash5, err := imhash.Hash(module, "bud")
+	is.Equal(result.Stdout(), "")
+	is.NoErr(td.Exists("bud/internal/app/main.go"))
+	hash5, err := imhash.Hash(module, "bud/internal/app")
 	is.NoErr(err)
 	is.Equal(len(hash3), 11)
 	is.Equal(hash4, hash5)

@@ -1,4 +1,4 @@
-package devserver
+package budserver
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/livebud/bud/package/devclient"
+	"github.com/livebud/bud/package/budclient"
 	"github.com/livebud/bud/package/hot"
 	"github.com/livebud/bud/package/log"
 
@@ -112,7 +112,7 @@ func (s *Server) createEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Unmarshal the request body into an event
-	var event devclient.Event
+	var event budclient.Event
 	if err := json.Unmarshal(body, &event); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

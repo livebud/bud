@@ -111,7 +111,7 @@ func listen(path string) (socket.Listener, *http.Client, error) {
 }
 
 func (c *CLI) Start(ctx context.Context, args ...string) (*Client, error) {
-	log := testlog.Log()
+	log := testlog.New()
 	// TODO: listen unix and create client
 	webln, webc, err := listen(":0")
 	if err != nil {

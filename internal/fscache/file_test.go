@@ -11,7 +11,7 @@ import (
 
 func TestFakeDir(t *testing.T) {
 	is := is.New(t)
-	fmap := fscache.New(testlog.Log())
+	fmap := fscache.New(testlog.New())
 	fmap.Set("index.svelte", &fscache.File{
 		Name: "index.svelte",
 		Data: []byte(`<h1>hello</h1>`),
@@ -24,7 +24,7 @@ func TestFakeDir(t *testing.T) {
 
 func TestFile(t *testing.T) {
 	is := is.New(t)
-	fmap := fscache.New(testlog.Log())
+	fmap := fscache.New(testlog.New())
 	fmap.Set("index.svelte", &fscache.File{
 		Name: "index.svelte",
 		Data: []byte(`<h1>hello</h1>`),

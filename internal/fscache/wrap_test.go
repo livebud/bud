@@ -14,7 +14,7 @@ import (
 
 func TestReadDirFile(t *testing.T) {
 	is := is.New(t)
-	cache := fscache.New(testlog.Log())
+	cache := fscache.New(testlog.New())
 	afs := &fstest.MapFS{
 		"a.txt": &fstest.MapFile{Data: []byte("a")},
 	}
@@ -38,7 +38,7 @@ func TestSize(t *testing.T) {
 	fsys := fstest.MapFS{
 		"a.txt": &fstest.MapFile{Data: []byte("a")},
 	}
-	cache := fscache.New(testlog.Log())
+	cache := fscache.New(testlog.New())
 	cfs := cache.Wrap("a", fsys)
 	stat, err := fs.Stat(cfs, "a.txt")
 	is.NoErr(err)
@@ -52,7 +52,7 @@ func TestSize(t *testing.T) {
 
 func TestTransparent(t *testing.T) {
 	is := is.New(t)
-	cache := fscache.New(testlog.Log())
+	cache := fscache.New(testlog.New())
 	afs := &fstest.MapFS{
 		"a.txt": &fstest.MapFile{Data: []byte("a")},
 	}

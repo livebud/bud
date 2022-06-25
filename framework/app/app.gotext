@@ -56,7 +56,7 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	devClient, err := devclient.Try(os.Getenv("BUD_LISTEN"))
+	budClient, err := budclient.Try(os.Getenv("BUD_LISTEN"))
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func (a *App) Run(ctx context.Context) error {
 	webServer, err := loadWeb(
 		{{/* Order matters. Ordered by package name */}}
 		{{- if $.Provider.Variable "context.Context" }}ctx,{{ end }}
-		{{- if $.Provider.Variable "github.com/livebud/bud/package/devclient.Client" }}devClient,{{ end }}
+		{{- if $.Provider.Variable "github.com/livebud/bud/package/budclient.Client" }}budClient,{{ end }}
 		{{- if $.Provider.Variable "github.com/livebud/bud/package/gomod.*Module" }}module,{{ end }}
 		{{- if $.Provider.Variable "github.com/livebud/bud/package/log.Interface" }}log,{{ end }}
 	)
@@ -79,7 +79,7 @@ func (a *App) Run(ctx context.Context) error {
 		return err
 	}
 	// Inform bud that we're ready
-	devClient.Publish("app:ready", nil)
+	budClient.Publish("app:ready", nil)
 	// Start serving requests
 	log.Debug("app: listening on", "listen", a.Listen)
 	return webServer.Serve(ctx, a.Listen)

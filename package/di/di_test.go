@@ -50,7 +50,7 @@ type Test struct {
 func runTest(t testing.TB, test Test) {
 	t.Helper()
 	is := is.New(t)
-	log := testlog.Log()
+	log := testlog.New()
 	ctx := context.Background()
 	appDir := t.TempDir()
 	appFS := os.DirFS(appDir)
