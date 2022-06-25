@@ -5,23 +5,26 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/livebud/bud/internal/pubsub"
+	"github.com/livebud/bud/package/log"
 )
 
 // New server-sent event (SSE) server
-func New() *Server {
-	return &Server{pubsub.New(), time.Now}
+func New(log log.Interface, ps pubsub.Subscriber) *Server {
+	return &Server{log, ps, time.Now}
 }
 
 type Server struct {
-	ps  pubsub.Client
+	log log.Interface
+	ps  pubsub.Subscriber
 	Now func() time.Time // Used for testing
 }
 
-func (s *Server) Reload(path string) {
-	s.ps.Publish(path, nil)
+func pagePath(url string) string {
+	return strings.TrimPrefix(strings.TrimPrefix(url, "/bud/hot"), "/")
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -41,19 +44,27 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Flush the headers
 	flusher.Flush()
 	// Subscribe to a specific page path or all pages
-	pagePath := r.URL.Query().Get("page")
-	topics := []string{"*"}
+	topics := []string{"frontend:update"}
+	pagePath := pagePath(r.URL.Path)
 	if pagePath != "" {
-		topics = append(topics, pagePath[1:])
+		topics = append(topics, `frontend:update:`+pagePath)
 	}
 	subscription := s.ps.Subscribe(topics...)
+	s.log.Debug("hot: subscribed to topics", "topics", topics)
 	ctx := r.Context()
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-subscription.Wait():
-			scriptPath := fmt.Sprintf("%s?ts=%d", pagePath, s.Now().UnixMilli())
+			s.log.Debug("hot: got event", "topic", "frontend:update")
+			if pagePath == "" {
+				s.log.Debug("hot: no page path, triggering a full reload")
+				reload(flusher, w)
+				continue
+			}
+			// Add /bud/ because we'll be requesting a generated file
+			scriptPath := fmt.Sprintf("%s?ts=%d", "/bud/"+pagePath, s.Now().UnixMilli())
 			event := &Event{
 				Data: []byte(fmt.Sprintf(`{"scripts":[%q]}`, scriptPath)),
 			}
@@ -64,14 +75,19 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// which can be differentiated by the browser.
 		//
 		// See: https://html.spec.whatwg.org/multipage/server-sent-events.html#server-sent-events-intro
-		case <-s.ps.Subscribe("!").Wait():
-			event := &Event{
-				Data: []byte(`{"reload":true}`),
-			}
-			w.Write(event.Format().Bytes())
-			flusher.Flush()
+		case <-s.ps.Subscribe("backend:update").Wait():
+			s.log.Debug("hot: got event", "topic", "page:reload")
+			reload(flusher, w)
 		}
 	}
+}
+
+func reload(flusher http.Flusher, w http.ResponseWriter) {
+	event := &Event{
+		Data: []byte(`{"reload":true}`),
+	}
+	w.Write(event.Format().Bytes())
+	flusher.Flush()
 }
 
 // https://html.spec.whatwg.org/multipage/server-sent-events.html#event-stream-interpretation

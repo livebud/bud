@@ -10,6 +10,7 @@ import (
 	"io/fs"
 
 	"github.com/livebud/bud/internal/dag"
+	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/merged"
 
 	"github.com/livebud/bud/package/conjure"
@@ -18,8 +19,8 @@ import (
 )
 
 // Load the overlay filesystem
-func Load(module *gomod.Module) (*FileSystem, error) {
-	cache := fscache.New()
+func Load(log log.Interface, module *gomod.Module) (*FileSystem, error) {
+	cache := fscache.New(log)
 	pluginFS, err := pluginfs.Load(module)
 	if err != nil {
 		return nil, err
@@ -33,7 +34,7 @@ func Load(module *gomod.Module) (*FileSystem, error) {
 
 // Serve is just load without the cache
 // TODO: consolidate
-func Serve(module *gomod.Module) (*Server, error) {
+func Serve(log log.Interface, module *gomod.Module) (*Server, error) {
 	pluginFS, err := pluginfs.Load(module)
 	if err != nil {
 		return nil, err
@@ -42,7 +43,7 @@ func Serve(module *gomod.Module) (*Server, error) {
 	merged := merged.Merge(cfs, pluginFS)
 	dag := dag.New()
 	ps := pubsub.New()
-	return &FileSystem{fscache.New(), cfs, dag, merged, module, ps}, nil
+	return &FileSystem{fscache.New(log), cfs, dag, merged, module, ps}, nil
 }
 
 type Server = FileSystem

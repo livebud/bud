@@ -1,0 +1,34 @@
+package view
+
+// GENERATED. DO NOT EDIT.
+
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+{{- if not $.Flag.Embed }}
+// Load the view server. Files are linked rather than embedded.
+func Load(client budclient.Client) Server {
+	return viewrt.Proxy(client)
+}
+{{ else }}
+// New view server. Files are embedded rather than linked.
+func New(module *mod.Module, fsys *overlay.FileSystem, vm js.VM) Server {
+	{{- range $embed := $.Embeds }}
+	fsys.FileGenerator(`{{ $embed.Path }}`, &overlay.Embed{
+		{{ if $embed.Data }}Data: []byte("{{ $embed.Data }}"),{{ end }}
+	})
+	{{- end }}
+	return viewrt.Static(fsys, vm, func(path string, props interface{}) interface{} {
+		return props
+	})
+}
+{{- end }}
+
+type Server = viewrt.Server

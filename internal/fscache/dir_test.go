@@ -6,11 +6,12 @@ import (
 
 	"github.com/livebud/bud/internal/fscache"
 	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/package/log/testlog"
 )
 
 func TestDir(t *testing.T) {
 	is := is.New(t)
-	fmap := fscache.New()
+	fmap := fscache.New(testlog.New())
 	// Set the cache
 	fmap.Set("view/users", &fscache.Dir{
 		Name: "users",
@@ -59,7 +60,7 @@ func TestDir(t *testing.T) {
 
 func TestFakeFile(t *testing.T) {
 	is := is.New(t)
-	fmap := fscache.New()
+	fmap := fscache.New(testlog.New())
 	fmap.Set("view", &fscache.Dir{
 		Name: "view",
 		Mode: 0755 &^ fs.ModeDir,

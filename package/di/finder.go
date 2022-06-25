@@ -18,6 +18,7 @@ type Finder interface {
 }
 
 func (i *Injector) Find(currModule *gomod.Module, dep Dependency) (Declaration, error) {
+	i.log.Debug("di: finding declaration", "for", dep.ID())
 	// If modfile is nil, we default to the project modfile
 	if currModule == nil {
 		currModule = i.module
@@ -59,6 +60,7 @@ func (i *Injector) Find(currModule *gomod.Module, dep Dependency) (Declaration, 
 			}
 			return nil, err
 		}
+		i.log.Debug("di: found function declaration", "id", decl.ID(), "for", dep.ID())
 		return decl, nil
 	}
 	// Look through the structs
@@ -70,6 +72,7 @@ func (i *Injector) Find(currModule *gomod.Module, dep Dependency) (Declaration, 
 			}
 			return nil, err
 		}
+		i.log.Debug("di: found struct declaration", "id", decl.ID(), "for", dep.ID())
 		return decl, nil
 	}
 	// TODO: add breadcrumbs to help with finding the root of this error

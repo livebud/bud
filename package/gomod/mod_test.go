@@ -13,6 +13,7 @@ import (
 	"github.com/livebud/bud/internal/fscache"
 	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/modcache"
 	"github.com/livebud/bud/package/vfs"
 
@@ -211,6 +212,7 @@ func TestOpen(t *testing.T) {
 
 func TestFileCacheDir(t *testing.T) {
 	t.SkipNow()
+	log := testlog.New()
 	is := is.New(t)
 	appDir := t.TempDir()
 	err := vfs.Write(appDir, vfs.Map{
@@ -218,7 +220,7 @@ func TestFileCacheDir(t *testing.T) {
 		"main.go": []byte(`package main`),
 	})
 	is.NoErr(err)
-	fmap := fscache.New()
+	fmap := fscache.New(log)
 	module, err := gomod.Find(appDir, gomod.WithFSCache(fmap))
 	is.NoErr(err)
 	// Check initial
@@ -264,7 +266,7 @@ func TestModuleFindLocal(t *testing.T) {
 	module1, err := gomod.Find(wd)
 	is.NoErr(err)
 	// Find local web directory within module1
-	module2, err := module1.Find(module1.Import("runtime", "web"))
+	module2, err := module1.Find(module1.Import("framework", "web"))
 	is.NoErr(err)
 	is.Equal(module1.Directory(), module2.Directory())
 }

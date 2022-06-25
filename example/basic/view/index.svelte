@@ -6,8 +6,10 @@
 
 <style>
   h1 {
-    background: blue;
+    margin: 0;
+    background: whitesmoke;
+    border-bottom: 2px dashed red;
     padding: 20px;
-    color: white;
+    color: red;
   }
 </style>

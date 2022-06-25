@@ -1,0 +1,88 @@
+package main
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+func main() {
+	os.Exit(run(context.Background(), os.Args[1:]...))
+}
+
+// Run the cli
+func run(ctx context.Context, args ...string) int {
+	if err := parse(ctx, args...); err != nil {
+		if errors.Is(err, context.Canceled) {
+			return 0
+		}
+		console.Error(err.Error())
+		return 1
+	}
+	return 0
+}
+
+// Parse the arguments
+func parse(ctx context.Context, args ...string) error {
+	cli := commander.New("bud")
+	app := new(App)
+	cli.Flag("listen", "address to listen to").String(&app.Listen).Default(":3000")
+	cli.Flag("log", "filter logs with a pattern").Short('L').String(&app.Log).Default("info")
+	cli.Run(app.Run)
+	return cli.Parse(ctx, args)
+}
+
+// App command
+type App struct {
+	Listen string
+	Log string
+}
+
+// logger creates a structured log that supports filtering
+func (a *App) logger() (log.Interface, error) {
+	handler, err := filter.Load(console.New(os.Stderr), a.Log)
+	if err != nil {
+		return nil, err
+	}
+	return log.New(handler), nil
+}
+
+// Run your app
+func (a *App) Run(ctx context.Context) error {
+	log, err := a.logger()
+	if err != nil {
+		return err
+	}
+	budClient, err := budclient.Try(os.Getenv("BUD_LISTEN"))
+	if err != nil {
+		return err
+	}
+	{{- if $.Provider.Variable "github.com/livebud/bud/package/gomod.*Module" }}
+	// Load the module dependency
+	module, err := gomod.Find(".")
+	if err != nil {
+		return err
+	}
+	{{- end }}
+	// Load the web server
+	webServer, err := loadWeb(
+		{{/* Order matters. Ordered by package name */}}
+		{{- if $.Provider.Variable "context.Context" }}ctx,{{ end }}
+		{{- if $.Provider.Variable "github.com/livebud/bud/package/budclient.Client" }}budClient,{{ end }}
+		{{- if $.Provider.Variable "github.com/livebud/bud/package/gomod.*Module" }}module,{{ end }}
+		{{- if $.Provider.Variable "github.com/livebud/bud/package/log.Interface" }}log,{{ end }}
+	)
+	if err != nil {
+		return err
+	}
+	// Inform bud that we're ready
+	budClient.Publish("app:ready", nil)
+	// Start serving requests
+	log.Debug("app: listening on", "listen", a.Listen)
+	return webServer.Serve(ctx, a.Listen)
+}
+
+{{ $.Provider.Function }}

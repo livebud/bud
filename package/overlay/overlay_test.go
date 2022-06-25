@@ -9,6 +9,7 @@ import (
 
 	"io/fs"
 
+	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/overlay"
 
 	"github.com/livebud/bud/internal/is"
@@ -18,6 +19,7 @@ import (
 func TestPlugins(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
+	log := testlog.New()
 	dir := t.TempDir()
 	td := testdir.New(dir)
 	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.8"
@@ -27,7 +29,7 @@ func TestPlugins(t *testing.T) {
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
 	// Load the overlay
-	ofs, err := overlay.Load(module)
+	ofs, err := overlay.Load(log, module)
 	is.NoErr(err)
 	// Test that we can read files from the overlay
 	code, err := fs.ReadFile(ofs, "view/index.svelte")
@@ -36,4 +38,23 @@ func TestPlugins(t *testing.T) {
 	code, err = fs.ReadFile(ofs, "public/admin.css")
 	is.NoErr(err)
 	is.True(strings.Contains(string(code), `/* admin.css */`))
+}
+
+func TestReadRoot(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	log := testlog.New()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["controller/controller.go"] = `package controller`
+	err := td.Write(ctx)
+	is.NoErr(err)
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	// Load the overlay
+	ofs, err := overlay.Load(log, module)
+	is.NoErr(err)
+	des, err := fs.ReadDir(ofs, ".")
+	is.NoErr(err)
+	is.True(len(des) > 1)
 }

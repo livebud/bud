@@ -2,20 +2,27 @@ package fscache
 
 import (
 	"io/fs"
+
+	"github.com/livebud/bud/package/log"
 )
 
 type Wrapped struct {
-	name string
-	fs   fs.FS
-	c    *Cache
+	log    log.Interface
+	fsname string
+	fs     fs.FS
+	c      *Cache
+}
+
+func (w *Wrapped) mount(name string) string {
+	return w.fsname + ":" + name
 }
 
 func (w *Wrapped) Open(name string) (fs.File, error) {
 	if w.c.Has(name) {
-		// fmt.Println("  ", w.name, "cache hit", name)
+		w.log.Debug("fscache: cache hit", "file", name)
 		return w.c.Open(name)
 	}
-	// fmt.Println("  ", w.name, "cache miss", name)
+	w.log.Debug("fscache: cache miss", "file", name)
 	file, err := w.fs.Open(name)
 	if err != nil {
 		return nil, err

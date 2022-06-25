@@ -50,7 +50,7 @@ example.hn.watch:
 # Go
 ##
 
-GO_SOURCE := ./internal/... ./package/... ./runtime/...
+GO_SOURCE := ./internal/... ./package/... ./framework/...
 
 go.tools:
 	@ go install \

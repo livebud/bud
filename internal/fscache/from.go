@@ -41,6 +41,7 @@ func fromDir(file fs.File, stat fs.FileInfo) (virtual Entry, err error) {
 				ModTime: fi.ModTime(),
 				Mode:    fi.Mode(),
 				Sys:     fi.Sys(),
+				Size:    fi.Size(),
 			})
 		}
 	}

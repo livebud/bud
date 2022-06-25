@@ -72,6 +72,16 @@ func Import(fsys fs.FS, dir string) (*build.Package, error) {
 	return imported, nil
 }
 
+// Check is a convenience function for tests to check Go code for syntax errors.
+func Check(code []byte) error {
+	fset := token.NewFileSet()
+	_, err := parser.ParseFile(fset, "", code, parser.DeclarationErrors)
+	if err != nil {
+		return fmt.Errorf("parser: unable to parse code the following:\n\n%s\n%w", string(code), err)
+	}
+	return nil
+}
+
 // A Context specifies the supporting context for a build. We mostly use the
 // default context, but we want to override some of the values. This should be
 // kept in sync with the keys in *build.Context

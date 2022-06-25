@@ -188,7 +188,11 @@ func Watch(ctx context.Context, dir string, fn func(paths []string) error) error
 		if err != nil {
 			return err
 		}
-		if err := shouldIgnore(path, de); err != nil {
+		relPath, err := filepath.Rel(dir, path)
+		if err != nil {
+			return err
+		}
+		if err := shouldIgnore(relPath, de); err != nil {
 			return err
 		}
 		watcher.Add(path)

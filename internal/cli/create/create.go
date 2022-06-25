@@ -3,149 +3,195 @@ package create
 import (
 	"context"
 	_ "embed"
-	"errors"
-	"fmt"
-	"io/fs"
-	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
-	"golang.org/x/sync/errgroup"
-
-	"github.com/livebud/bud/internal/current"
+	"github.com/livebud/bud/internal/bail"
+	"github.com/livebud/bud/internal/cli/bud"
+	"github.com/livebud/bud/internal/format"
+	"github.com/livebud/bud/internal/scaffolder"
 	"github.com/livebud/bud/internal/versions"
-	"github.com/livebud/bud/package/gomod"
-	"github.com/otiai10/copy"
+	mod "github.com/livebud/bud/package/gomod"
 )
 
+func New(bud *bud.Command, in *bud.Input) *Command {
+	return &Command{}
+}
+
 type Command struct {
-	Dir string
+	Log    string
+	Dir    string
+	Module string
+	Dev    bool
+
+	// Private
+	bail      bail.Struct
+	budModule *mod.Module
+	absDir    string
 }
 
-func (c *Command) Run(ctx context.Context) error {
-	// Check if we can write into the directory
-	if err := checkDir(c.Dir); err != nil {
-		return err
+type State struct {
+	Module  *Module
+	Package *Package
+}
+
+type Module struct {
+	Name     string
+	Requires []*Require
+	Replaces []*Replace
+}
+
+func (m *Module) Version() string {
+	version := strings.TrimPrefix(runtime.Version(), "go")
+	parts := strings.SplitN(version, ".", 3)
+	switch len(parts) {
+	case 1:
+		return parts[0] + ".0"
+	case 2:
+		return strings.Join(parts, ".")
+	default:
+		return strings.Join(parts[0:2], ".")
 	}
-	tmpDir, err := ioutil.TempDir("", "bud-create-*")
+}
+
+type Require struct {
+	Import   string
+	Version  string
+	Indirect bool
+}
+
+type Replace struct {
+	From string
+	To   string
+}
+
+type Package struct {
+	Name         string            `json:"name,omitempty"`
+	Private      bool              `json:"private,omitempty"`
+	Dependencies map[string]string `json:"dependencies,omitempty"`
+}
+
+func (c *Command) Run(ctx context.Context) (err error) {
+	// Get the absolutely directory that's required later
+	workDir, err := os.Getwd()
 	if err != nil {
 		return err
 	}
-
-	// This is run synchronously because if the module path can't be inferred, it
-	// will prompt the user to provide one manually.
-	if err := c.generateGoMod(ctx, tmpDir); err != nil {
-		return err
-	}
-
-	eg, ctx2 := errgroup.WithContext(ctx)
-	eg.Go(func() error { return c.generateGitIgnore(ctx2, tmpDir) })
-	eg.Go(func() error { return c.generatePackageJSON(ctx2, tmpDir, filepath.Base(c.Dir)) })
-	if err := eg.Wait(); err != nil {
-		return err
-	}
-	// Create the project directory
-	if err := os.MkdirAll(filepath.Dir(c.Dir), 0755); err != nil {
-		return err
-	}
-	// Try moving the temporary build path to the project directory
-	if err := move(tmpDir, c.Dir); err != nil {
-		// Can't rename on top of an existing directory
-		if !errors.Is(err, fs.ErrExist) {
-			return err
-		}
-		// Move inner files over
-		fis, err := os.ReadDir(tmpDir)
+	c.absDir = filepath.Join(workDir, c.Dir)
+	// If we're linking to the development version of Bud, we need to
+	// find Bud's go.mod file.
+	if c.Dev {
+		c.budModule, err = bud.BudModule()
 		if err != nil {
 			return err
 		}
-		for _, fi := range fis {
-			if err := move(filepath.Join(tmpDir, fi.Name()), filepath.Join(c.Dir, fi.Name())); err != nil {
-				return err
-			}
-		}
 	}
-	// TODO: clean this mess up.
-	// It's breaking out of the packagejson.go file, but moving symlinks via
-	// os.Rename doesn't seem to work.
-	if versions.Bud == "latest" {
-		npm, err := exec.LookPath("npm")
-		if err != nil {
-			return err
-		}
-		budDir, err := findBudDir()
-		if err != nil {
-			return err
-		}
-		cmd := exec.CommandContext(ctx, npm, "link", "--loglevel=error", "livebud", filepath.Join(budDir, "livebud"))
-		cmd.Dir = c.Dir
-		cmd.Stderr = os.Stderr
-		cmd.Env = []string{
-			"HOME=" + os.Getenv("HOME"),
-			"PATH=" + os.Getenv("PATH"),
-			"NO_COLOR=1",
-		}
-		if err := cmd.Run(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func checkDir(dir string) error {
-	if _, err := os.Stat(dir); err != nil {
-		// If it doesn't exist, treat it as empty
-		if errors.Is(err, fs.ErrNotExist) {
-			return nil
-		}
-		// All other errors should cause a failure
-		return err
-	}
-	// Check if to see if the directory is empty
-	fis, err := os.ReadDir(dir)
+	// Load the template state
+	state, err := c.Load()
 	if err != nil {
 		return err
 	}
-	if len(fis) > 0 {
-		return fmt.Errorf("%q must be empty", dir)
-	}
-	return nil
+	// Scaffold files from the template state
+	return c.Scaffold(state)
 }
 
-func findBudDir() (string, error) {
-	currentDir, err := current.Directory()
+func (c *Command) Load() (state *State, err error) {
+	defer c.bail.Recover2(&err, "create")
+	state = new(State)
+	state.Module = c.loadModule()
+	state.Package = c.loadPackage(filepath.Base(c.Dir))
+	return state, nil
+}
+
+func (c *Command) loadModule() *Module {
+	module := new(Module)
+	// Get the module name
+	module.Name = mod.Infer(c.absDir)
+	if module.Name == "" {
+		c.bail.Bail(format.Errorf(`
+			Unable to infer a module name. Try again using the module <path> name.
+
+			For example,
+				bud create --module=github.com/my/app %s
+		`, c.Dir))
+	}
+	// Add the required runtime
+	module.Requires = []*Require{
+		{
+			Import:  "github.com/livebud/bud",
+			Version: c.budVersion(),
+		},
+	}
+	// Link to local copy
+	if c.Dev {
+		module.Replaces = []*Replace{
+			{
+				From: "github.com/livebud/bud",
+				To:   c.budModule.Directory(),
+			},
+		}
+	}
+	return module
+}
+
+func (c *Command) loadPackage(name string) *Package {
+	pkg := new(Package)
+	pkg.Name = name
+	pkg.Private = true
+	pkg.Dependencies = map[string]string{
+		"livebud": versions.Bud,
+		"svelte":  versions.Svelte,
+	}
+	return pkg
+}
+
+//go:embed gomod.gotext
+var gomod string
+
+//go:embed gitignore.gotext
+var gitignore string
+
+// Scaffold state into the specified directory
+func (c *Command) Scaffold(state *State) error {
+	scaffold, err := scaffolder.Load()
 	if err != nil {
-		return "", err
+		return err
 	}
-	return gomod.Absolute(currentDir)
-}
-
-func findBudModule() (*gomod.Module, error) {
-	dir, err := findBudDir()
+	// Generate files from state
+	err = scaffold.Generate(
+		scaffold.Template("go.mod", gomod, state.Module),
+		scaffold.Template("gitignore", gitignore, nil),
+		scaffold.JSON("package.json", state.Package),
+	)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return gomod.Find(dir)
-}
-
-// Move first tries to rename a directory `from` one location `to` another.
-// If `from` is on a different partition than `to`, the underlying os.Rename can
-// fail with an "invalid cross-device link" error. If this occurs we'll fallback
-// to copying the files over recursively.
-func move(from, to string) error {
-	if err := os.Rename(from, to); err != nil {
-		// If it's not an invalid cross-device link error, return the error
-		if !isInvalidCrossLink(err) {
+	// Download the dependencies in go.mod to GOMODCACHE
+	// Run `go mod download all`
+	// TODO: do we need `all`?
+	if err := scaffold.Command("go", "mod", "download", "all").Run(); err != nil {
+		return err
+	}
+	// Install node modules
+	if err := scaffold.Command("npm", "install", "--loglevel=error", "--no-progress", "--save").Run(); err != nil {
+		return err
+	}
+	if c.Dev {
+		// Link node modules
+		if err := scaffold.Command("npm", "link", "--loglevel=error", "livebud", c.budModule.Directory("livebud")).Run(); err != nil {
 			return err
 		}
-		// Fallback to copying files recursively
-		return copy.Copy(from, to)
 	}
-	return nil
+	// Move from a temporary directory to the specified directory
+	return scaffold.Move(c.absDir)
 }
 
-func isInvalidCrossLink(err error) bool {
-	return strings.Contains(err.Error(), "invalid cross-device link")
+func (c *Command) budVersion() string {
+	version := versions.Bud
+	if c.Dev && version == "latest" {
+		return "v0.0.0"
+	}
+	return "v" + version
 }

@@ -1,0 +1,149 @@
+package controller
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+{{- define "controller" }}
+
+// Controller struct
+type {{ $.Pascal }}Controller struct {
+	{{- range $action := $.Actions }}
+	{{$action.Pascal}} *{{ $.Pascal }}{{$action.Pascal}}Action
+	{{- end }}
+	{{- range $controller := $.Controllers }}
+	{{$controller.Last.Pascal}} *{{$controller.Pascal}}Controller
+	{{- end }}
+}
+
+{{- range $action := $.Actions }}
+
+// {{ $.Pascal }}{{$action.Pascal}}Action struct
+type {{ $.Pascal }}{{$action.Pascal}}Action struct {
+	{{- if $action.View }}
+	View view.Server
+	{{- end }}
+	{{- if $action.Context }}
+	{{- range $field := $action.Context.Fields }}
+	{{- if $field.Hoisted }}
+	{{$field.Name}} {{$field.Type}}
+	{{- end }}
+	{{- end }}
+	{{- end }}
+}
+
+// Key is a unique identifier of this action
+func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) Key() string {
+	return "{{$action.Key}}"
+}
+
+// Path is the default RESTful path to this action
+func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) Path() string {
+	return "{{$action.Route}}"
+}
+
+// Method is the default RESTful method of this action
+func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) Method() string {
+	return "{{$action.Method}}"
+}
+
+// ServeHTTP fn
+func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	{{$action.Short}}.handler(r).ServeHTTP(w, r)
+}
+
+// Handler function
+func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpRequest *http.Request) http.Handler {
+	{{- if $action.Params }}
+	// Define the input struct
+	var in {{ $action.Input}}
+	// Unmarshal the request body
+	if err := request.Unmarshal(httpRequest, &in); err != nil {
+		return &response.Format{
+			JSON: response.Status(400).Set("Content-Type", "application/json").JSON(map[string]string{"error": err.Error()}),
+		}
+	}
+	{{- end }}
+	{{- if $action.Context }}
+	{{ $action.Context.Results.List }} := {{ $action.Context.Function }}(
+		{{- range $field := $action.Context.Fields }}
+		{{- if $field.Hoisted }}
+		{{ $action.Short }}.{{ $field.Name }},
+		{{- else }}
+		{{ $field.Variable }},
+		{{- end }}
+		{{- end }}
+	)
+	{{- if $action.Context.Results.Error }}
+	if {{ $action.Context.Results.Error }} != nil {
+		return &response.Format{
+			JSON: response.Status(500).Set("Content-Type", "application/json").JSON(map[string]string{"error": {{ $action.Context.Results.Error }}.Error()}),
+		}
+	}
+	{{- end }}
+	fn := {{$action.Context.Results.Result}}.{{$action.Name}}
+	{{- else }}
+	fn := {{$.Name}}.{{$action.Name}}
+	{{- end }}
+	{{- if $action.HandlerFunc }}
+	return http.HandlerFunc(fn)
+	{{- else }}
+	// Call the controller
+	{{ $action.Results.Set }}fn(
+		{{- range $param := $action.Params }}
+		{{ $param.Variable }},
+		{{- end }}
+	)
+	{{- if $action.Results.Error }}
+	if {{ $action.Results.Error }} != nil {
+		return &response.Format{
+			JSON: response.Status(500).Set("Content-Type", "application/json").JSON(map[string]string{"error": {{ $action.Results.Error }}.Error()}),
+		}
+	}
+	{{- end }}
+
+	// Respond
+	return &response.Format{
+		{{- if eq $action.Method "GET" }}
+		{{- if $action.View }}
+		HTML: {{ $action.Short }}.View.Handler("{{$action.View.Route}}", {{ $action.Results.ViewResult }}),
+		{{- else if $action.RespondHTML }}
+		HTML: response.HTML({{ $action.Results.Result }}),
+		{{- end }}
+		{{- else }}
+		HTML: response.Status(302).Redirect(response.RedirectPath(httpRequest, {{$action.Redirect}})),
+		{{- end }}
+		{{- if $action.RespondJSON }}
+		{{- if $action.Results.Result }}
+		JSON: response.JSON({{ $action.Results.Result }}),
+		{{- else if $action.Results.IsOnlyError }}
+		JSON: response.Status(204),
+		{{- else }}
+		JSON: response.Status(200).Set("Content-Type", "application/json"),
+		{{- end }}
+		{{- else }}
+		JSON: response.Status(204),
+		{{- end }}
+	}
+	{{- end }}
+}
+{{- end }}
+
+{{- range $controller := $.Controllers }}
+
+{{- template "controller" $controller }}
+{{- end }}
+
+{{- end }}
+
+{{- template "controller" $.Controller }}
+
+{{- range $context := $.Contexts }}
+
+{{$context.Code}}
+{{- end }}

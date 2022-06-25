@@ -158,7 +158,7 @@ func listViews(fsys fs.FS, tree *tree, dir string) (views []*View, err error) {
 			Layout: tree.Layout(dir, ext),
 			Error:  tree.Error(dir, ext),
 			Type:   strings.TrimPrefix(ext, "."),
-			Hot:    true, // TODO: remove
+			Hot:    ":35729", // TODO: configurable
 		})
 	}
 	return views, nil
@@ -213,5 +213,5 @@ func route(dir, name string) string {
 // that
 func client(name string) string {
 	dir, path := filepath.Split(name)
-	return fmt.Sprintf("bud/%s_%s", dir, path)
+	return fmt.Sprintf("bud/%s_%s.js", dir, path)
 }

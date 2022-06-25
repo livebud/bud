@@ -2,7 +2,6 @@ package entrypoint
 
 import (
 	"encoding/base64"
-	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -49,7 +48,7 @@ type View struct {
 	Layout Path
 	Error  Path
 	Client string
-	Hot    bool
+	Hot    string
 }
 
 func (v *View) ServerImports() (imports []Path) {
@@ -71,13 +70,6 @@ func (v *View) BrowserImports() (imports []Path) {
 		imports = append(imports, v.Error)
 	}
 	return imports
-}
-
-// View data as a query string for the hot page
-func (v *View) Query() string {
-	values := url.Values{}
-	values.Set("page", "/bud/"+string(v.Page))
-	return values.Encode()
 }
 
 type Path string

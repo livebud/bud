@@ -4,77 +4,91 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httputil"
 	"os"
-	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/livebud/bud/internal/cli"
-	"github.com/livebud/bud/internal/errs"
+	"github.com/lithammer/dedent"
+	"github.com/livebud/bud/internal/cli/bud"
 	"github.com/livebud/bud/internal/once"
-	"github.com/livebud/bud/package/exe"
+	"github.com/livebud/bud/internal/pubsub"
+	"github.com/matthewmueller/diff"
+
 	"github.com/livebud/bud/package/hot"
+	"github.com/livebud/bud/package/log"
+	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/socket"
+
+	"golang.org/x/sync/errgroup"
+
+	"github.com/livebud/bud/internal/cli"
+	"github.com/livebud/bud/internal/envs"
 )
 
-func New(cli *cli.CLI) *TestCLI {
-	cli.Env["NO_COLOR"] = "1"
-	return &TestCLI{cli: cli}
-}
-
-type TestCLI struct {
-	cli *cli.CLI
-
-	// make the temporary directory once
-	mkTemp once.String
-}
-
-func (c *TestCLI) stdio() (stdout, stderr *bytes.Buffer) {
-	stdout = new(bytes.Buffer)
-	stderr = new(bytes.Buffer)
-	// Write to stdio as well so debugging doesn't become too confusing
-	c.cli.Stdout = io.MultiWriter(stdout, os.Stdout)
-	c.cli.Stderr = io.MultiWriter(stderr, os.Stderr)
-	return stdout, stderr
-}
-
-// makeTemp creates a temporary directory exactly once per run
-func (c *TestCLI) makeTemp() (dir string, err error) {
-	return c.mkTemp.Do(func() (string, error) {
-		absPath, err := filepath.Abs(c.cli.Dir())
-		if err != nil {
-			return "", err
-		}
-		tmpDir := filepath.Join(absPath, "bud", "tmp")
-		if err := os.MkdirAll(tmpDir, 0755); err != nil {
-			return "", err
-		}
-		return tmpDir, nil
-	})
-}
-
-// Env sets an environment variable, overriding any existing key.
-func (c *TestCLI) Env(key, value string) {
-	c.cli.Env[key] = value
-}
-
-// Stdin adds a reader as standard input.
-func (c *TestCLI) Stdin(stdin io.Reader) {
-	c.cli.Stdin = stdin
-}
-
-// Run the CLI with the provided args
-func (c *TestCLI) Run(ctx context.Context, args ...string) (stdout, stderr *bytes.Buffer, err error) {
-	stdout, stderr = c.stdio()
-	if err := c.cli.Run(ctx, args...); err != nil {
-		return stdout, stderr, err
+func New(dir string) *CLI {
+	ps := pubsub.New()
+	return &CLI{
+		dir: dir,
+		bus: ps,
+		Env: envs.Map{
+			"NO_COLOR": "1",
+			"HOME":     os.Getenv("HOME"),
+			"PATH":     os.Getenv("PATH"),
+			"GOPATH":   os.Getenv("GOPATH"),
+			"TMPDIR":   os.TempDir(),
+		},
+		Stdin: nil,
 	}
-	return stdout, stderr, nil
+}
+
+type CLI struct {
+	dir   string
+	bus   pubsub.Client
+	Env   envs.Map
+	Stdin io.Reader
+}
+
+// Flags that can be set from the test suite
+// These can be overriden by more specific flags
+func prependFlags(args []string) []string {
+	return append([]string{
+		"--log=" + testlog.Pattern(),
+	}, args...)
+}
+
+func (c *CLI) Run(ctx context.Context, args ...string) (*Result, error) {
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	cli := cli.New(&bud.Input{
+		Dir:    c.dir,
+		Bus:    c.bus,
+		Env:    c.Env.List(),
+		Stdin:  c.Stdin,
+		Stdout: io.MultiWriter(os.Stdout, stdout),
+		Stderr: io.MultiWriter(os.Stderr, stderr),
+	})
+	err := cli.Run(ctx, prependFlags(args)...)
+	return &Result{stdout, stderr}, err
+}
+
+type Result struct {
+	stdout *bytes.Buffer
+	stderr *bytes.Buffer
+}
+
+func (r *Result) Stdout() string {
+	return r.stdout.String()
+}
+
+func (r *Result) Stderr() string {
+	return r.stderr.String()
 }
 
 func listen(path string) (socket.Listener, *http.Client, error) {
@@ -87,13 +101,6 @@ func listen(path string) (socket.Listener, *http.Client, error) {
 		return nil, nil, err
 	}
 	client := &http.Client{
-		// This is extra high right now because we don't currently have any signal
-		// that we've built the app and `bud run --embed` can take a long time. This
-		// is going to slow down legitimately failing requests, so it's a very
-		// temporary solution.
-		//
-		// TODO: support getting a signal that we've built the app, then lower this
-		// deadline.
 		Timeout:   60 * time.Second,
 		Transport: transport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -103,196 +110,91 @@ func listen(path string) (socket.Listener, *http.Client, error) {
 	return listener, client, nil
 }
 
-func (c *TestCLI) Start(ctx context.Context, args ...string) (app *App, stdout *bytes.Buffer, stderr *bytes.Buffer, err error) {
-	// Create the temporary directory
-	tmpDir, err := c.makeTemp()
+func (c *CLI) Start(ctx context.Context, args ...string) (*Client, error) {
+	log := testlog.New()
+	// TODO: listen unix and create client
+	webln, webc, err := listen(":0")
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
-	// Start listening on a unix domain socket for the app
-	appSocketPath := filepath.Join(tmpDir, "app.sock")
-	appListener, appClient, err := listen(appSocketPath)
+	// TODO: listen unix and create client
+	budln, budc, err := listen(":0")
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("unable to listen on socket path %q: %s", appSocketPath, err)
+		return nil, err
 	}
-	appFile, err := appListener.File()
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("unable to get the app file listener %q: %s", appSocketPath, err)
-	}
-	// extrafile.Inject()
-	if err := c.cli.Inject("APP", appFile); err != nil {
-		return nil, nil, nil, err
-	}
-	// Start listening on a unix domain socket for the hot
-	hotSocketPath := filepath.Join(tmpDir, "hot.sock")
-	hotListener, hotClient, err := listen(hotSocketPath)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("unable to listen on socket path %q: %s", hotSocketPath, err)
-	}
-	hotFile, err := hotListener.File()
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("unable to get the hot file listener %q: %s", hotSocketPath, err)
-	}
-	if err := c.cli.Inject("HOT", hotFile); err != nil {
-		return nil, nil, nil, err
-	}
-	// Attach to stdout and stderr
-	stdout, stderr = c.stdio()
-	// Start the process
-	process, err := c.cli.Start(ctx, args...)
-	if err != nil {
-		return nil, stdout, stderr, err
-	}
-	// Create a process
-	return &App{
-		process:   process,
-		appClient: appClient,
-		hotClient: hotClient,
-		// Add resources to be cleaned up in order once
-		resources: []*resource{
-			&resource{"app process", process.Close},
-			&resource{"app socket", appListener.Close},
-			&resource{"hot socket", hotListener.Close},
-		},
-	}, stdout, stderr, nil
-}
-
-type resource struct {
-	Name  string
-	Close func() error
-}
-
-type App struct {
-	process   *exe.Cmd
-	appClient *http.Client
-	hotClient *http.Client
-	once      once.Error
-	resources []*resource
-}
-
-// Wait for the app to finish. This isn't typically necessary
-func (a *App) Wait() error {
-	return a.process.Wait()
-}
-
-// Close cleans up resources exactly once
-func (a *App) Close() (err error) {
-	return a.once.Do(func() (err error) {
-		for _, r := range a.resources {
-			if e := r.Close(); e != nil {
-				err = errs.Join(e)
-			}
-		}
-		return err
+	// Setup the CLI
+	stdout := new(bytes.Buffer)
+	stderr := new(bytes.Buffer)
+	cli := cli.New(&bud.Input{
+		Dir:    c.dir,
+		Env:    c.Env.List(),
+		Stdin:  c.Stdin,
+		Stdout: io.MultiWriter(os.Stdout, stdout),
+		Stderr: io.MultiWriter(os.Stderr, stderr),
+		Bus:    c.bus,
+		WebLn:  webln,
+		BudLn:  budln,
 	})
+	// Run the CLI
+	ctx, cancel := context.WithCancel(ctx)
+	eg, ctx := errgroup.WithContext(ctx)
+	// Start running the CLI
+	eg.Go(func() error { return cli.Run(ctx, prependFlags(args)...) })
+	// App provides helpers and controls for the running CLI
+	client := &Client{
+		eg:     eg,
+		log:    log,
+		bus:    c.bus,
+		stdout: stdout,
+		stderr: stderr,
+		webc:   webc,
+		hotc:   budc,
+		// Close function
+		close: func() error {
+			// Cancel the CLI
+			cancel()
+			// Wait for the CLI to finish
+			return eg.Wait()
+		},
+	}
+	// Wait for the client to be ready
+	if err := client.Ready(ctx); err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
-func getURL(path string) string {
-	return "http://host" + path
+// Client for interacting with the running app
+type Client struct {
+	eg     *errgroup.Group
+	log    log.Interface
+	bus    pubsub.Client
+	stdout *bytes.Buffer
+	stderr *bytes.Buffer
+	webc   *http.Client
+	hotc   *http.Client
+	once   once.Error
+	close  func() error
 }
 
-func (a *App) Get(path string) (*Response, error) {
-	req, err := http.NewRequest(http.MethodGet, getURL(path), nil)
-	if err != nil {
-		return nil, err
-	}
-	return a.Request(req)
+// Stdout at a point in time
+func (c *Client) Stdout() string {
+	return c.stdout.String()
 }
 
-func (a *App) GetJSON(path string) (*Response, error) {
-	req, err := http.NewRequest(http.MethodGet, getURL(path), nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Accept", "application/json")
-	return a.Request(req)
+// Stderr at a point in time
+func (c *Client) Stderr() string {
+	return c.stderr.String()
 }
 
-func (a *App) Post(path string, body io.Reader) (*Response, error) {
-	req, err := http.NewRequest(http.MethodPost, getURL(path), body)
-	if err != nil {
-		return nil, err
-	}
-	return a.Request(req)
-}
-
-func (a *App) PostJSON(path string, body io.Reader) (*Response, error) {
-	req, err := http.NewRequest(http.MethodPost, getURL(path), body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-	return a.Request(req)
-}
-
-func (a *App) Patch(path string, body io.Reader) (*Response, error) {
-	req, err := http.NewRequest(http.MethodPatch, getURL(path), body)
-	if err != nil {
-		return nil, err
-	}
-	return a.Request(req)
-}
-
-func (a *App) PatchJSON(path string, body io.Reader) (*Response, error) {
-	req, err := http.NewRequest(http.MethodPatch, getURL(path), body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-	return a.Request(req)
-}
-
-func (a *App) Delete(path string, body io.Reader) (*Response, error) {
-	req, err := http.NewRequest(http.MethodDelete, getURL(path), body)
-	if err != nil {
-		return nil, err
-	}
-	return a.Request(req)
-}
-
-func (a *App) DeleteJSON(path string, body io.Reader) (*Response, error) {
-	req, err := http.NewRequest(http.MethodDelete, getURL(path), body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-	return a.Request(req)
-}
-
-func (a *App) Request(req *http.Request) (*Response, error) {
-	res, err := a.appClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-	// Verify content-length, then remove it to make tests less fragile
-	if err := checkContentLength(res, body); err != nil {
-		return nil, err
-	}
-	res.Header.Del("Content-Length")
-	// Check date, then remove it to make tests repeatable
-	if err := checkDate(res); err != nil {
-		return nil, err
-	}
-	res.Header.Del("Date")
-	// Buffer the headers response
-	headers, err := bufferHeaders(res, body)
-	if err != nil {
-		return nil, err
-	}
-	return &Response{res, headers, body}, nil
+// Close the app down
+func (c *Client) Close() error {
+	return c.once.Do(c.close)
 }
 
 // Hot connects to the event stream
-func (a *App) Hot(path string) (*hot.Stream, error) {
-	return hot.DialWith(a.hotClient, getURL(path))
+func (c *Client) Hot(path string) (*hot.Stream, error) {
+	return hot.DialWith(c.hotc, c.log, getURL(path))
 }
 
 func bufferHeaders(res *http.Response, body []byte) ([]byte, error) {
@@ -350,6 +252,135 @@ func checkDate(res *http.Response) error {
 	return nil
 }
 
+func (c *Client) Request(req *http.Request) (*Response, error) {
+	res, err := c.webc.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	// Verify content-length, then remove it to make tests less fragile
+	if err := checkContentLength(res, body); err != nil {
+		return nil, err
+	}
+	res.Header.Del("Content-Length")
+	// Check date, then remove it to make tests repeatable
+	if err := checkDate(res); err != nil {
+		return nil, err
+	}
+	res.Header.Del("Date")
+	// Buffer the headers response
+	headers, err := bufferHeaders(res, body)
+	if err != nil {
+		return nil, err
+	}
+	return &Response{res, headers, body}, nil
+}
+
+func getURL(path string) string {
+	return "http://host" + path
+}
+
+// Wait for the application to be ready
+func (c *Client) Ready(ctx context.Context) error {
+	readySub := c.bus.Subscribe("app:ready")
+	errorSub := c.bus.Subscribe("app:error")
+	for {
+		select {
+		case <-readySub.Wait():
+			return nil
+		case <-ctx.Done():
+			return ctx.Err()
+		case err := <-errorSub.Wait():
+			return errors.New(string(err))
+		case <-time.After(time.Second * 1):
+			c.log.Debug("testcli: waiting for app to be ready")
+		}
+	}
+}
+
+func (c *Client) Get(path string) (*Response, error) {
+	c.log.Debug("testcli: get request", "path", path)
+	req, err := http.NewRequest(http.MethodGet, getURL(path), nil)
+	if err != nil {
+		return nil, err
+	}
+	return c.Request(req)
+}
+
+func (c *Client) GetJSON(path string) (*Response, error) {
+	c.log.Debug("testcli: get json request", "path", path)
+	req, err := http.NewRequest(http.MethodGet, getURL(path), nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+	return c.Request(req)
+}
+
+func (c *Client) Post(path string, body io.Reader) (*Response, error) {
+	c.log.Debug("testcli: post request", "path", path)
+	req, err := http.NewRequest(http.MethodPost, getURL(path), body)
+	if err != nil {
+		return nil, err
+	}
+	return c.Request(req)
+}
+
+func (c *Client) PostJSON(path string, body io.Reader) (*Response, error) {
+	c.log.Debug("testcli: post json request", "path", path)
+	req, err := http.NewRequest(http.MethodPost, getURL(path), body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	return c.Request(req)
+}
+
+func (c *Client) Patch(path string, body io.Reader) (*Response, error) {
+	c.log.Debug("testcli: patch request", "path", path)
+	req, err := http.NewRequest(http.MethodPatch, getURL(path), body)
+	if err != nil {
+		return nil, err
+	}
+	return c.Request(req)
+}
+
+func (c *Client) PatchJSON(path string, body io.Reader) (*Response, error) {
+	c.log.Debug("testcli: patch json request", "path", path)
+	req, err := http.NewRequest(http.MethodPatch, getURL(path), body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	return c.Request(req)
+}
+
+func (c *Client) Delete(path string, body io.Reader) (*Response, error) {
+	c.log.Debug("testcli: delete request", "path", path)
+	req, err := http.NewRequest(http.MethodDelete, getURL(path), body)
+	if err != nil {
+		return nil, err
+	}
+	return c.Request(req)
+}
+
+func (c *Client) DeleteJSON(path string, body io.Reader) (*Response, error) {
+	c.log.Debug("testcli: delete json request", "path", path)
+	req, err := http.NewRequest(http.MethodDelete, getURL(path), body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	return c.Request(req)
+}
+
 type Response struct {
 	res     *http.Response
 	headers []byte
@@ -376,6 +407,35 @@ func (r *Response) Dump() *bytes.Buffer {
 	b.WriteByte('\n')
 	b.Write(r.body)
 	return b
+}
+
+func (r *Response) Diff(expected string) error {
+	expected = strings.TrimSpace(dedent.Dedent(expected))
+	actual := strings.TrimSpace(r.Dump().String())
+	return difference(expected, actual)
+}
+
+func (r *Response) DiffHeaders(expected string) error {
+	expected = strings.TrimSpace(dedent.Dedent(expected))
+	actual := strings.TrimSpace(r.Headers().String())
+	return difference(expected, actual)
+}
+
+func difference(expected, actual string) error {
+	if expected == actual {
+		return nil
+	}
+	var b bytes.Buffer
+	b.WriteString("\n\x1b[4mExpected\x1b[0m:\n")
+	b.WriteString(expected)
+	b.WriteString("\n\n")
+	b.WriteString("\x1b[4mActual\x1b[0m: \n")
+	b.WriteString(actual)
+	b.WriteString("\n\n")
+	b.WriteString("\x1b[4mDifference\x1b[0m: \n")
+	b.WriteString(diff.String(expected, actual))
+	b.WriteString("\n")
+	return errors.New(b.String())
 }
 
 // Header gets a value from a key

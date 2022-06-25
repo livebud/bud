@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"path/filepath"
 	"testing"
 	"time"
@@ -12,26 +11,31 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/package/hot"
+	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/socket"
 )
 
 var now = time.Date(2021, 8, 4, 14, 56, 0, 0, time.UTC)
 
-func TestServer(t *testing.T) {
+func TestNoPathUpdate(t *testing.T) {
 	is := is.New(t)
-	ctx := context.Background()
-	hotServer := hot.New()
+	log := testlog.New()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	ps := pubsub.New()
+	hotServer := hot.New(log, ps)
 	hotServer.Now = func() time.Time { return now }
 	testServer := httptest.NewServer(hotServer)
-	hotClient, err := hot.Dial(testServer.URL)
+	hotClient, err := hot.Dial(log, testServer.URL)
 	is.NoErr(err)
-	hotServer.Reload("*")
+	ps.Publish("frontend:update", nil)
 	event, err := hotClient.Next(ctx)
 	is.NoErr(err)
 	is.Equal(event.ID, "")
 	is.Equal(event.Type, "")
-	is.Equal(string(event.Data), `{"scripts":["?ts=1628088960000"]}`)
+	is.Equal(string(event.Data), `{"reload":true}`)
 	is.Equal(event.Retry, 0)
 	is.NoErr(hotClient.Close())
 	testServer.Close()
@@ -39,29 +43,30 @@ func TestServer(t *testing.T) {
 
 func TestPage(t *testing.T) {
 	is := is.New(t)
-	ctx := context.Background()
-	hotServer := hot.New()
+	log := testlog.New()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	ps := pubsub.New()
+	hotServer := hot.New(log, ps)
 	hotServer.Now = func() time.Time { return now }
 	testServer := httptest.NewServer(hotServer)
-	query := url.Values{}
-	query.Add("page", "/bud/view/index.svelte")
-	hotClient, err := hot.Dial(testServer.URL + "?" + query.Encode())
+	hotClient, err := hot.Dial(log, testServer.URL+"/bud/hot/view/index.svelte")
 	is.NoErr(err)
-	hotServer.Reload("bud/view/index.svelte")
+	ps.Publish("frontend:update:view/index.svelte", nil)
 	event, err := hotClient.Next(ctx)
 	is.NoErr(err)
 	is.Equal(event.ID, "")
 	is.Equal(event.Type, "")
 	is.Equal(string(event.Data), `{"scripts":["/bud/view/index.svelte?ts=1628088960000"]}`)
 	is.Equal(event.Retry, 0)
-	hotServer.Reload("bud/view/index.svelte")
+	ps.Publish("frontend:update:view/index.svelte", nil)
 	event, err = hotClient.Next(ctx)
 	is.NoErr(err)
 	is.Equal(event.ID, "")
 	is.Equal(event.Type, "")
 	is.Equal(string(event.Data), `{"scripts":["/bud/view/index.svelte?ts=1628088960000"]}`)
 	is.Equal(event.Retry, 0)
-	hotServer.Reload("*")
+	ps.Publish("frontend:update", nil)
 	event, err = hotClient.Next(ctx)
 	is.NoErr(err)
 	is.Equal(event.ID, "")
@@ -74,15 +79,16 @@ func TestPage(t *testing.T) {
 
 func TestReload(t *testing.T) {
 	is := is.New(t)
-	ctx := context.Background()
-	hotServer := hot.New()
+	log := testlog.New()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	ps := pubsub.New()
+	hotServer := hot.New(log, ps)
 	hotServer.Now = func() time.Time { return now }
 	testServer := httptest.NewServer(hotServer)
-	query := url.Values{}
-	query.Add("page", "/bud/view/index.svelte")
-	hotClient, err := hot.Dial(testServer.URL + "?" + query.Encode())
+	hotClient, err := hot.Dial(log, testServer.URL+`/bud/hot/view/index.svelte`)
 	is.NoErr(err)
-	hotServer.Reload("!")
+	ps.Publish("backend:update", nil)
 	event, err := hotClient.Next(ctx)
 	is.NoErr(err)
 	is.Equal(event.ID, "")
@@ -115,10 +121,13 @@ func listen(path string) (socket.Listener, *http.Client, error) {
 
 func TestUnixListener(t *testing.T) {
 	is := is.New(t)
-	ctx := context.Background()
+	log := testlog.New()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	listener, client, err := listen(filepath.Join(t.TempDir(), "test.sock"))
 	is.NoErr(err)
-	hotServer := hot.New()
+	ps := pubsub.New()
+	hotServer := hot.New(log, ps)
 	hotServer.Now = func() time.Time { return now }
 	server := &http.Server{
 		Addr:    listener.Addr().String(),
@@ -127,14 +136,14 @@ func TestUnixListener(t *testing.T) {
 	defer server.Shutdown(ctx)
 	eg := new(errgroup.Group)
 	eg.Go(func() error { return server.Serve(listener) })
-	hotClient, err := hot.DialWith(client, "http://host/")
+	hotClient, err := hot.DialWith(client, log, "http://host/")
 	is.NoErr(err)
-	hotServer.Reload("*")
+	ps.Publish("frontend:update", nil)
 	event, err := hotClient.Next(ctx)
 	is.NoErr(err)
 	is.Equal(event.ID, "")
 	is.Equal(event.Type, "")
-	is.Equal(string(event.Data), `{"scripts":["?ts=1628088960000"]}`)
+	is.Equal(string(event.Data), `{"reload":true}`)
 	is.Equal(event.Retry, 0)
 	is.NoErr(hotClient.Close())
 	is.NoErr(server.Shutdown(ctx))
@@ -142,10 +151,13 @@ func TestUnixListener(t *testing.T) {
 
 func TestNoWait(t *testing.T) {
 	is := is.New(t)
-	ctx := context.Background()
+	log := testlog.New()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	listener, client, err := listen(filepath.Join(t.TempDir(), "test.sock"))
 	is.NoErr(err)
-	hotServer := hot.New()
+	ps := pubsub.New()
+	hotServer := hot.New(log, ps)
 	hotServer.Now = func() time.Time { return now }
 	server := &http.Server{
 		Addr:    listener.Addr().String(),
@@ -154,17 +166,20 @@ func TestNoWait(t *testing.T) {
 	defer server.Shutdown(ctx)
 	eg := new(errgroup.Group)
 	eg.Go(func() error { return server.Serve(listener) })
-	hotClient, err := hot.DialWith(client, "http://host/")
+	hotClient, err := hot.DialWith(client, log, "http://host/")
 	is.NoErr(err)
 	is.NoErr(hotClient.Close())
 }
 
 func TestDrainBeforeClose(t *testing.T) {
 	is := is.New(t)
-	ctx := context.Background()
+	log := testlog.New()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	listener, client, err := listen(filepath.Join(t.TempDir(), "test.sock"))
 	is.NoErr(err)
-	hotServer := hot.New()
+	ps := pubsub.New()
+	hotServer := hot.New(log, ps)
 	hotServer.Now = func() time.Time { return now }
 	server := &http.Server{
 		Addr:    listener.Addr().String(),
@@ -173,11 +188,11 @@ func TestDrainBeforeClose(t *testing.T) {
 	defer server.Shutdown(ctx)
 	eg := new(errgroup.Group)
 	eg.Go(func() error { return server.Serve(listener) })
-	hotClient, err := hot.DialWith(client, "http://host/")
+	hotClient, err := hot.DialWith(client, log, "http://host/")
 	is.NoErr(err)
-	hotServer.Reload("*")
-	hotServer.Reload("*")
-	hotServer.Reload("*")
-	hotServer.Reload("*")
+	ps.Publish("frontend:update", nil)
+	ps.Publish("frontend:update", nil)
+	ps.Publish("frontend:update", nil)
+	ps.Publish("frontend:update", nil)
 	is.NoErr(hotClient.Close())
 }

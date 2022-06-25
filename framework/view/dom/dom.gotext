@@ -1,0 +1,42 @@
+import { mount } from "livebud/runtime"
+import createView from "livebud/runtime/{{$.Type}}"
+{{- if $.Hot }}
+import Hot from "livebud/runtime/hot"
+{{- end }}
+
+import {{$.Page.Pascal}} from "./{{$.Page}}"
+{{- range $frame := $.Frames }}
+import {{ $frame.Pascal }} from "./{{$frame}}"
+{{- end }}
+{{- if $.Error }}
+import {{ $.Error.Pascal }} from "./{{$.Error}}"
+{{- end }}
+
+const components = {
+  "/bud/{{$.Page}}": {{$.Page.Pascal}},
+  {{- range $frame := $.Frames }}
+  "/bud/{{$frame}}": {{ $frame.Pascal }},
+  {{- end }}
+  {{- if $.Error }}
+  "/bud/{{$.Error}}": {{ $.Error.Pascal }},
+  {{- end }}
+}
+
+// Mount the view
+export default mount({
+  createView: createView,
+  components: components,
+  page: "/bud/{{$.Page}}",
+  frames: [
+    {{- range $frame := $.Frames }}
+    "/bud/{{$frame}}"
+    {{- end }}
+  ],
+  {{- if $.Error }}
+  error: "/bud/{{$.Error}}",
+  {{- end }}
+  target: document.getElementById("bud_target"),
+  {{- if $.Hot }}
+  hot: new Hot("http://127.0.0.1:35729/bud/hot/{{$.Page}}", components),
+  {{- end }}
+})

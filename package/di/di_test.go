@@ -15,6 +15,7 @@ import (
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/modcache"
 	"github.com/livebud/bud/package/parser"
 	"github.com/livebud/bud/package/vfs"
@@ -49,22 +50,11 @@ type Test struct {
 func runTest(t testing.TB, test Test) {
 	t.Helper()
 	is := is.New(t)
+	log := testlog.New()
 	ctx := context.Background()
 	appDir := t.TempDir()
 	appFS := os.DirFS(appDir)
 	modCache := modcache.Default()
-	// Write modules
-	// if test.Modules != nil {
-	// 	modDir := t.TempDir()
-	// 	modCache = modcache.New(modDir)
-	// 	for moduleVersion, files := range test.Modules {
-	// 		for path, code := range files {
-	// 			test.Modules[moduleVersion][path] = redent(code)
-	// 		}
-	// 	}
-	// 	err := modCache.Write(test.Modules)
-	// 	is.NoErr(err)
-	// }
 	// Write application files
 	if test.Files != nil {
 		vmap := vfs.Map{}
@@ -77,7 +67,7 @@ func runTest(t testing.TB, test Test) {
 	module, err := gomod.Find(appDir, gomod.WithModCache(modCache))
 	is.NoErr(err)
 	parser := parser.New(appFS, module)
-	injector := di.New(appFS, module, parser)
+	injector := di.New(appFS, log, module, parser)
 	node, err := injector.Load(test.Function)
 	if err != nil {
 		is.Equal(test.Expect, err.Error())

@@ -8,21 +8,23 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/livebud/bud/internal/errs"
 	"github.com/livebud/bud/internal/once"
+	"github.com/livebud/bud/package/log"
 )
 
 // Dial creates a server-sent event (SSE) stream. This stream has been adapted
 // from the following minimal eventsource stream:
 // - https://github.com/neelance/eventsource/blob/master/client/client.go
 // Thanks Richard!
-func Dial(url string) (*Stream, error) {
-	return DialWith(http.DefaultClient, url)
+func Dial(log log.Interface, url string) (*Stream, error) {
+	return DialWith(http.DefaultClient, log, url)
 }
 
 // DialWith creates a server-sent event (SSE) stream with a custom HTTP client.
-func DialWith(client *http.Client, url string) (*Stream, error) {
+func DialWith(client *http.Client, log log.Interface, url string) (*Stream, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -34,6 +36,7 @@ func DialWith(client *http.Client, url string) (*Stream, error) {
 		return nil, err
 	}
 	stream := &Stream{
+		log:     log,
 		res:     res,
 		eventCh: make(chan *Event, 1),
 		errorCh: make(chan error),
@@ -44,6 +47,7 @@ func DialWith(client *http.Client, url string) (*Stream, error) {
 }
 
 type Stream struct {
+	log     log.Interface
 	res     *http.Response
 	eventCh chan *Event
 	errorCh chan error
@@ -89,13 +93,17 @@ func (s *Stream) loop() {
 }
 
 func (s *Stream) Next(ctx context.Context) (*Event, error) {
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case evt := <-s.eventCh:
-		return evt, nil
-	case err := <-s.errorCh:
-		return nil, err
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case evt := <-s.eventCh:
+			return evt, nil
+		case err := <-s.errorCh:
+			return nil, err
+		case <-time.Tick(time.Second):
+			s.log.Debug("hot: client waiting for next event")
+		}
 	}
 }
 
