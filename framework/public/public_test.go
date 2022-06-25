@@ -173,6 +173,7 @@ func TestEmbedFavicon(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(200, res.Status())
 	is.Equal(res.Body().Bytes(), favicon)
+	is.NoErr(app.Close())
 }
 
 func TestAppPluginOverlap(t *testing.T) {
@@ -199,4 +200,5 @@ func TestDefaults(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(200, res.Status())
 	is.Equal(res.Body().Bytes(), embedded.Favicon())
+	is.NoErr(app.Close())
 }

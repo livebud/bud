@@ -1,17 +1,24 @@
-/*
-	Terminal manipulation based on ANSI Escape Sequences.
-	Reference: https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
-			 https://en.wikipedia.org/wiki/ANSI_escape_code
-
-	Promptings must be placed in the right order
-		Init -> Reloading -> `Sucess reload` or `Fail reload` or `Made no reload` ->
- 			Reloading -> ...
-
-	So cursor moving and clear lines work properly ("_" is current cursor position):
-		Reloading...               | -> _Reloading...   | -> Ready in 100ms (x23)
-		_                          |                    |    _
-		(current cursor position)  |  (move cursor up)  | (clear line and write new)
-*/
+// Package prompter is a small state machine for manipulating the terminal
+// output during `bud run`.
+//
+// The public methods must be called in the right order:
+//   1. Init
+//   2. Reloading
+//   3. SuccessReload or FailReload or NoReload
+//   4. Reloading
+//
+// So the cursor can moves and clear lines properly. The behavior of the cursor
+// across the different states looks like the following:
+//
+// | Ready         | Reloading            | Ready Again   |
+// | :------------ | :------------------- | :------------ |
+// | $ Ready on... | $ _Reloading...      | $ Ready on... |
+// |   _           |   (move cursor up)   |   _           |
+//
+// TODO: find a better name for this package. Prompter sounds like it's reading
+// user input from stdin, whereas this package is about managing `bud run` state
+// and updating the terminal accordingly.
+// TODO: add tests for this package
 package prompter
 
 import (
@@ -201,7 +208,7 @@ func (p *Prompter) Reloading(paths []string) {
 }
 
 // Don't change reload message currently in the terminal
-func (p Prompter) MadeNoReload() {
+func (p Prompter) NoReload() {
 	// Doesn't check for error, so it could be used multiple times in a row.
 	p.handleState(noReload)
 
