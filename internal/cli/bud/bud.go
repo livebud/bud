@@ -149,6 +149,17 @@ func FileServer(log log.Interface, module *gomod.Module, flag *framework.Flag) (
 func EnsureVersionAlignment(ctx context.Context, module *gomod.Module, budVersion string) error {
 	// Do nothing for the latest version
 	if budVersion == "latest" {
+		// Run `go get github.com/livebud/bud@main`. This is best effort and won't
+		// work if the breaking runtime changes aren't on the main branch. In that
+		// case, you'll want to replace the current version with your local copy.
+		cmd := exec.CommandContext(ctx, "go", "get", "github.com/livebud/bud@main")
+		cmd.Dir = module.Directory()
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Env = os.Environ()
+		if err := cmd.Run(); err != nil {
+			return err
+		}
 		return nil
 	}
 	target := "v" + budVersion
