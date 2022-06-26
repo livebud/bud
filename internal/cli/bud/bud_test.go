@@ -27,9 +27,9 @@ func TestHelp(t *testing.T) {
 	is.In(result.Stdout(), "build")
 	is.In(result.Stdout(), "run")
 	is.In(result.Stdout(), "new")
-	is.NoErr(td.NotExists(
-		"bud/app",
-	))
+	is.In(result.Stdout(), "tool")
+	is.In(result.Stdout(), "version")
+	is.NoErr(td.NotExists("bud/app"))
 }
 
 func TestChdir(t *testing.T) {
@@ -65,9 +65,7 @@ func TestChdirHelp(t *testing.T) {
 	is.In(result.Stdout(), "  new")
 	is.In(result.Stdout(), "  tool")
 	is.In(result.Stdout(), "  version")
-	is.NoErr(td.NotExists(
-		"bud/app",
-	))
+	is.NoErr(td.NotExists("bud/app"))
 }
 
 func TestOutsideModule(t *testing.T) {
@@ -135,4 +133,30 @@ func TestVersionAlignment(t *testing.T) {
 	is.NoErr(err)
 	version := module.File().Require("github.com/livebud/bud")
 	is.Equal(version.Version, "v0.1.8")
+}
+
+// TODO: This test might go away at some point. Right now testcli isn't setup
+// to run `bud build`, then start the built process. It's setup for running
+// commands to completion and `bud run`. This is alright because `bud run`
+// currently can behave exactly like `bud build` by setting the right flags.
+// This test aims to maintain this.
+func TestBuildRunAlignment(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	buildResult, err := cli.Run(ctx, "build", "--help")
+	is.NoErr(err)
+	is.Equal(buildResult.Stderr(), "")
+	runResult, err := cli.Run(ctx, "run", "--help")
+	is.NoErr(err)
+	is.Equal(runResult.Stderr(), "")
+	is.In(buildResult.Stdout(), "build")
+	is.In(buildResult.Stdout(), "--minify")
+	is.In(buildResult.Stdout(), "--embed")
+	is.In(runResult.Stdout(), "run")
+	is.In(runResult.Stdout(), "--minify")
+	is.In(runResult.Stdout(), "--embed")
 }
