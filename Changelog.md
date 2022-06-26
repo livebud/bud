@@ -6,6 +6,30 @@ Get the latest release of Bud by running the following in your terminal:
 curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
 ```
 
+## v0.1.9
+
+- Better hot reload DX with `bud run` (#131) thanks to @012e
+
+  Prior to v0.1.9, whenever a file change occurs it would rebuild and print a ready message if successful or an error message if unsuccessful. The ready messages would often clutter the terminal over time.
+
+  <a href="https://share.cleanshot.com/XCdkEnOr8BlCNgV035pu"><video src='https://share.cleanshot.com/XCdkEnOr8BlCNgV035pu/download' width='100%'/></a>
+
+- Large internal refactor (#133). The goals of this refactor:
+
+  1. Make it easier to understand. The double generated binary building was something that often confused me.
+  2. Make it easier to contribute. I'm so impressed with the contributions so far, with this refactor it should be even easier.
+  3. Make it faster during development. The slowest step in the build process is running `go build`. We now only run `go build` once on boot, not twice.
+
+  Learn more details [in this comment](https://github.com/livebud/bud/pull/133#issuecomment-1166371510). This PR concludes the work necessary to release [v0.2](https://github.com/livebud/bud/discussions/18).
+
+- Support glob embeds (#150) thanks to @vito
+
+  Build caching now understands embedded globs like `// go:embed *.sql`. You'll no longer get stale builds when changing a file within an embedded glob.
+
+- Improved Dockerfile in contributing (#140) thanks to @wheinze
+
+  The Dockerfile now supports passing Node and Go versions to build a custom container. It also uses a smaller base image.
+
 ## v0.1.8
 
 - Support `func(w, r)` controller actions (#147) (thanks @vito!)
