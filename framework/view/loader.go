@@ -2,10 +2,8 @@ package view
 
 import (
 	"context"
-	"fmt"
 	"io/fs"
 	"path"
-	"strings"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/view/dom"
@@ -71,7 +69,6 @@ func (l *loader) Load(ctx context.Context) (state *State, err error) {
 		domCompiler := dom.New(l.module, l.transform.DOM)
 		files, err := domCompiler.Compile(ctx, l.fsys)
 		if err != nil {
-			fmt.Println("error compiling", err)
 			return nil, err
 		}
 		for _, file := range files {
@@ -79,7 +76,7 @@ func (l *loader) Load(ctx context.Context) (state *State, err error) {
 			// because the router always lower-cases things, but the generated chunks
 			// contain are upper values
 			state.Embeds = append(state.Embeds, &embed.File{
-				Path: path.Join("bud/view", strings.ToLower(file.Path)) + ".js",
+				Path: path.Join("bud/view", file.Path),
 				Data: file.Contents,
 			})
 		}
