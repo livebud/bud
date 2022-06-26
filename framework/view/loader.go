@@ -72,9 +72,6 @@ func (l *loader) Load(ctx context.Context) (state *State, err error) {
 			return nil, err
 		}
 		for _, file := range files {
-			// TODO: decide if we should be doing strings.ToLower here. It's needed
-			// because the router always lower-cases things, but the generated chunks
-			// contain are upper values
 			state.Embeds = append(state.Embeds, &embed.File{
 				Path: path.Join("bud/view", file.Path),
 				Data: file.Contents,
