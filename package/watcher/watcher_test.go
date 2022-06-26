@@ -205,3 +205,37 @@ func TestWithScaffold(t *testing.T) {
 	cancel()
 	is.NoErr(eg.Wait())
 }
+
+func TestWithRootDotFile(t *testing.T) {
+	is := is.New(t)
+	dir := t.TempDir()
+	ctx := context.Background()
+	event := make(chan []string)
+	err := writeFiles(dir, map[string]string{
+		"controller/controller.go": `package controller`,
+		".envrc":                   `export FOO=bar`,
+		".gitignore":               `.envrc`,
+	})
+	is.NoErr(err)
+	eg := new(errgroup.Group)
+	eg.Go(func() error {
+		return watcher.Watch(ctx, dir, func(paths []string) error {
+			select {
+			case event <- paths:
+			case <-ctx.Done():
+			}
+			return nil
+		})
+	})
+	time.Sleep(waitForEvents)
+	// Update the event
+	err = writeFiles(dir, map[string]string{
+		"controller/controller.go": `package controller2`,
+	})
+	is.NoErr(err)
+	// Get event
+	paths, err := getEvent(event)
+	is.NoErr(err)
+	is.Equal(len(paths), 1)
+	is.Equal(paths[0], filepath.Join(dir, "controller/controller.go"))
+}

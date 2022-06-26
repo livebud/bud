@@ -64,6 +64,8 @@ func Watch(ctx context.Context, dir string, fn func(paths []string) error) error
 		return err
 	}
 	defer watcher.Close()
+	// Don't watch files in .gitignore
+	gitIgnore := gitignore.From(dir)
 	// Trigger is debounced to group events together
 	errorCh := make(chan error)
 	pathset := newPathSet()
@@ -91,14 +93,6 @@ func Watch(ctx context.Context, dir string, fn func(paths []string) error) error
 		}
 		duplicates[stamp] = struct{}{}
 		return false
-	}
-	gitIgnore := gitignore.From(dir)
-	// Files to ignore while walking the directory
-	shouldIgnore := func(path string, de fs.DirEntry) error {
-		if gitIgnore(path, de.IsDir()) || filepath.Base(path) == ".git" {
-			return filepath.SkipDir
-		}
-		return nil
 	}
 	// For some reason renames are often emitted instead of
 	// Remove. Check it and correct.
@@ -192,10 +186,20 @@ func Watch(ctx context.Context, dir string, fn func(paths []string) error) error
 		if err != nil {
 			return err
 		}
-		if err := shouldIgnore(relPath, de); err != nil {
+		// Support .gitignore
+		isDir := de.IsDir()
+		if gitIgnore(relPath, isDir) || filepath.Base(relPath) == ".git" {
+			// Skip directories
+			if isDir {
+				return filepath.SkipDir
+			}
+			// Ignore files
+			return nil
+		}
+		// Add the path to the watcher
+		if err := watcher.Add(path); err != nil {
 			return err
 		}
-		watcher.Add(path)
 		return nil
 	}); err != nil {
 		return err
