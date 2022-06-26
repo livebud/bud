@@ -96,9 +96,14 @@ Check out the Hacker News [demo](https://www.youtube.com/watch?v=LoypcRqn-xA), r
 
 Recent discussions: [Reddit](https://www.reddit.com/r/golang/comments/uoxocj/bud_the_fullstack_web_framework_for_go_developers/), [Hacker News](https://news.ycombinator.com/item?id=31371340), [Twitter](https://twitter.com/golivebud)
 
-# How did Bud come into existence?
+# Real-World Projects
 
-I started working on Bud 2 years ago after seeing how productive people could be in [Laravel](https://laravel.com/). I wanted the same for Go, so I decided to try creating Laravel for the Go ecosystem. However, my first version after 6 months needed to scaffold many files just to get started. If you are coming from [Rails](https://github.com/rails/rails) or Laravel, you may shrug and consider this as pretty normal.
+- [Bass Loop](https://github.com/vito/bass-loop): a CI/CD stack for https://bass-lang.org/.
+- [Welcome Page](https://github.com/livebud/welcome): Bud's welcome page is written in Bud.
+
+# History of Bud
+
+I started working on Bud in April 2019 after seeing how productive developers could be in [Laravel](https://laravel.com/). I wanted the same for Go, so I decided to try creating Laravel for the Go ecosystem. However, my first version after 6 months needed to scaffold many files just to get started. If you are coming from [Rails](https://github.com/rails/rails) or Laravel, you may shrug and consider this as pretty normal.
 
 Unfortunately, I have been spoiled by the renaissance in frontend frameworks like [Next.js](https://nextjs.org/) that start barebones but every file you add incrementally enhances your web application. This keeps the initial complexity under control.
 
