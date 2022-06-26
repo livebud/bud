@@ -147,23 +147,29 @@ func FileServer(log log.Interface, module *gomod.Module, flag *framework.Flag) (
 // EnsureVersionAlignment ensures that the CLI and runtime versions are aligned.
 // If they're not aligned, the CLI will correct the go.mod file to align them.
 func EnsureVersionAlignment(ctx context.Context, module *gomod.Module, budVersion string) error {
+	modfile := module.File()
 	// Do nothing for the latest version
 	if budVersion == "latest" {
-		// Run `go get github.com/livebud/bud@main`. This is best effort and won't
-		// work if the breaking runtime changes aren't on the main branch. In that
-		// case, you'll want to replace the current version with your local copy.
-		cmd := exec.CommandContext(ctx, "go", "get", "github.com/livebud/bud@main")
-		cmd.Dir = module.Directory()
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Env = os.Environ()
-		if err := cmd.Run(); err != nil {
+		// If the module file already replaces bud, don't do anything.
+		if modfile.Replace(`github.com/livebud/bud`) != nil {
+			return nil
+		}
+		// Best effort attempt to replace bud with the latest version.
+		budModule, err := BudModule()
+		if err != nil {
+			return nil
+		}
+		// Replace bud with the local version if we found it.
+		if err := modfile.AddReplace("github.com/livebud/bud", "", budModule.Directory(), ""); err != nil {
+			return err
+		}
+		// Write the go.mod file back to disk.
+		if err := os.WriteFile(module.Directory("go.mod"), modfile.Format(), 0644); err != nil {
 			return err
 		}
 		return nil
 	}
 	target := "v" + budVersion
-	modfile := module.File()
 	require := modfile.Require("github.com/livebud/bud")
 	// We're good, the CLI matches the runtime version
 	if require != nil && require.Version == target {
