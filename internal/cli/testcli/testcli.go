@@ -198,6 +198,10 @@ func (c *Client) Hot(path string) (*hot.Stream, error) {
 }
 
 func bufferHeaders(res *http.Response, body []byte) ([]byte, error) {
+	// Coerce mime types before buffering the header
+	if err := coerceMimes(res); err != nil {
+		return nil, err
+	}
 	dump, err := httputil.DumpResponse(res, false)
 	if err != nil {
 		return nil, err
@@ -248,6 +252,21 @@ func checkDate(res *http.Response) error {
 	elapsed := time.Now().Sub(dt)
 	if elapsed > time.Minute {
 		return fmt.Errorf("Date header is too old %s", elapsed)
+	}
+	return nil
+}
+
+// Mime types are platform-specific. This function coerces them to a common
+// name so they can be tested. This list will grow over time.
+func coerceMimes(res *http.Response) error {
+	contentType := res.Header.Get("Content-Type")
+	if contentType == "" {
+		return nil
+	}
+	// Coerce the JS content types to application/javascript
+	switch contentType {
+	case `text/javascript; charset=utf-8`:
+		res.Header.Set("Content-Type", "application/javascript")
 	}
 	return nil
 }
