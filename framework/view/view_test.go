@@ -239,3 +239,9 @@ func TestConsoleLog(t *testing.T) {
 	is.In(app.Stdout(), "") // TODO: console.log() should go to stdout
 	is.In(app.Stderr(), "")
 }
+
+func TestConsoleError(t *testing.T) {
+	// TODO: console.error needs to be added to:
+	// https://github.com/kuoruan/v8go-polyfills
+	t.SkipNow()
+}
