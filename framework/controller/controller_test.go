@@ -1911,3 +1911,32 @@ func TestEnvSupport(t *testing.T) {
 	`)
 	is.NoErr(app.Close())
 }
+
+func TestStructInStruct(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["model/post/post.go"] = `
+		package post
+		type Model struct {}
+	`
+	td.Files["controller/controller.go"] = `
+		package controller
+		import "context"
+		import "app.com/model/post"
+		type Controller struct {}
+		type Post struct {
+			Model post.Model
+		}
+		func (c *Controller) Show(ctx context.Context, id int) (post *Post, err error) {
+			return &Post{}, nil
+		}
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	result, err := cli.Run(ctx, "build")
+	is.NoErr(err)
+	is.Equal(result.Stdout(), "")
+	is.Equal(result.Stderr(), "")
+}
