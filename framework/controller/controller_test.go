@@ -1880,3 +1880,34 @@ func TestHandlerFuncs(t *testing.T) {
 	`)
 	is.NoErr(app.Close())
 }
+
+func TestEnvSupport(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["controller/controller.go"] = `
+		package controller
+		import "os"
+		type Controller struct {}
+		func (c *Controller) Index() string {
+			return os.Getenv("BUDDY")
+		}
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	cli.Env["BUDDY"] = "buddy"
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	// Test GET /
+	res, err := app.Get("/")
+	is.NoErr(err)
+	res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		"buddy"
+	`)
+	is.NoErr(app.Close())
+}
