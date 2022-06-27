@@ -12,6 +12,31 @@ import (
 	"github.com/matthewmueller/diff"
 )
 
+func TestNoActions(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["controller/controller.go"] = `
+		package controller
+		type Controller struct {}
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	// HTML response
+	res, err := app.Get("/")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 404 Not Found
+		Content-Type: text/plain; charset=utf-8
+		X-Content-Type-Options: nosniff
+	`))
+	is.NoErr(app.Close())
+}
+
 func TestIndexString(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()

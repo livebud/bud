@@ -69,8 +69,10 @@ func (l *loader) Load() (state *State, err error) {
 	}
 	// Load the controllers
 	if exist["bud/internal/app/controller/controller.go"] {
-		l.imports.AddNamed("controller", l.module.Import("bud/internal/app/controller"))
 		state.Actions = l.loadControllerActions()
+		if len(state.Actions) > 0 {
+			l.imports.AddNamed("controller", l.module.Import("bud/internal/app/controller"))
+		}
 	}
 	// state.Command = l.loadRoot("command")
 	// Load the imports
