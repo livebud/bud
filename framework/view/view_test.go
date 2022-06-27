@@ -26,7 +26,6 @@ func TestHello(t *testing.T) {
 	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["livebud"] = "*"
 	is.NoErr(td.Write(ctx))
-
 	cli := testcli.New(dir)
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
@@ -203,4 +202,46 @@ func TestChunks(t *testing.T) {
 	`))
 	is.In(res.Body().String(), "bud_props")
 	is.NoErr(app.Close())
+}
+
+func TestConsoleLog(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["controller/controller.go"] = `
+		package controller
+		type Controller struct {}
+		func (c *Controller) Index() string { return "" }
+	`
+	td.Files["view/index.svelte"] = `
+		<script>
+			console.log("log", "!", "!")
+		</script>
+		<h1>hello</h1>
+	`
+	td.NodeModules["svelte"] = versions.Svelte
+	td.NodeModules["livebud"] = "*"
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	res, err := app.Get("/")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Transfer-Encoding: chunked
+		Content-Type: text/html
+	`))
+	is.In(res.Body().String(), "<h1>hello</h1>")
+	is.NoErr(app.Close())
+	is.In(app.Stdout(), "") // TODO: console.log() should go to stdout
+	is.In(app.Stderr(), "")
+}
+
+func TestConsoleError(t *testing.T) {
+	// TODO: console.error needs to be added to:
+	// https://github.com/kuoruan/v8go-polyfills
+	t.SkipNow()
 }
