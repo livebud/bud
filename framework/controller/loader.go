@@ -515,6 +515,7 @@ func (l *loader) loadContext(controller *Controller, method *parser.Function) *C
 				Import: importPath,
 				Type:   recv.Type().String(),
 			},
+			&di.Error{},
 		},
 		Params: []di.Dependency{
 			di.ToType("net/http", "ResponseWriter"),

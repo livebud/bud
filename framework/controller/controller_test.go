@@ -1940,3 +1940,34 @@ func TestStructInStruct(t *testing.T) {
 	is.Equal(result.Stdout(), "")
 	is.Equal(result.Stderr(), "")
 }
+
+// https://github.com/livebud/bud/issues/101
+func TestLoadController(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["controller/controller.go"] = `
+		package controller
+		func Load() (*Controller, error) {
+			return &Controller{}, nil
+		}
+		type Controller struct {}
+		func (c *Controller) Index() string { return "" }
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	// Test GET /
+	res, err := app.Get("/")
+	is.NoErr(err)
+	res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		""
+	`)
+	is.NoErr(app.Close())
+}
