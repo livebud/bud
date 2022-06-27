@@ -412,13 +412,9 @@ func (l *loader) loadActionResultFields(result *parser.Result, def parser.Declar
 		l.Bail(fmt.Errorf("controller: unable to find struct for %s", result.Type()))
 	}
 	for _, field := range stct.PublicFields() {
-		def, err := field.Definition()
-		if err != nil {
-			l.Bail(fmt.Errorf("controller: unable to load definition for field %s in %s . %w", field.Name(), result.Name(), err))
-		}
 		fields = append(fields, &ActionResultField{
 			Name: field.Name(),
-			Type: l.loadType(field.Type(), def),
+			Type: field.Type().String(),
 		})
 	}
 	return fields
