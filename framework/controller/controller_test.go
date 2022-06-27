@@ -1971,3 +1971,44 @@ func TestLoadController(t *testing.T) {
 	`)
 	is.NoErr(app.Close())
 }
+
+// https://github.com/livebud/bud/issues/135
+func TestSameNestedName(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["controller/users/controller.go"] = `
+		package controller
+		type Controller struct {}
+		func (c *Controller) Index() string { return "/users" }
+	`
+	td.Files["controller/admins/users/controller.go"] = `
+		package controller
+		type Controller struct {}
+		func (c *Controller) Index() string { return "/admins/:id/users" }
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	res, err := app.Get("/users")
+	is.NoErr(err)
+	res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		"/users"
+	`)
+	is.NoErr(app.Close())
+	res, err = app.Get("/admins/10/users")
+	is.NoErr(err)
+	res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		"/admins/:id/users"
+	`)
+	is.NoErr(app.Close())
+}

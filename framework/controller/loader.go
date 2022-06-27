@@ -507,9 +507,10 @@ func (l *loader) loadContext(controller *Controller, method *parser.Function) *C
 	}
 	fnName := gotext.Camel("load " + controller.Name + " " + def.Name())
 	provider, err := l.injector.Wire(&di.Function{
-		Name:   fnName,
-		Target: l.module.Import("bud", "controller"),
-		Hoist:  true,
+		Name:    fnName,
+		Target:  l.module.Import("bud", "controller"),
+		Imports: l.imports,
+		Hoist:   true,
 		Results: []di.Dependency{
 			&di.Type{
 				Import: importPath,
