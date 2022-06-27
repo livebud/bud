@@ -62,10 +62,17 @@ func (a *App) Run(ctx context.Context) error {
 	}
 	{{- if $.Provider.Variable "github.com/livebud/bud/package/gomod.*Module" }}
 	// Load the module dependency
+	{{- if $.Flag.Embed }}
+	module, err := gomod.Parse("go.mod", []byte("module e"))
+	if err != nil {
+		return err
+	}
+	{{- else }}
 	module, err := gomod.Find(".")
 	if err != nil {
 		return err
 	}
+	{{- end }}
 	{{- end }}
 	// Load the web server
 	webServer, err := loadWeb(
