@@ -3,7 +3,6 @@ package create
 import (
 	"context"
 	_ "embed"
-	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -74,12 +73,11 @@ type Package struct {
 }
 
 func (c *Command) Run(ctx context.Context) (err error) {
-	// Get the absolutely directory that's required later
-	workDir, err := os.Getwd()
+	// Get the absolutely directory
+	c.absDir, err = filepath.Abs(c.Dir)
 	if err != nil {
 		return err
 	}
-	c.absDir = filepath.Join(workDir, c.Dir)
 	// If we're linking to the development version of Bud, we need to
 	// find Bud's go.mod file.
 	if c.Dev {
@@ -107,15 +105,20 @@ func (c *Command) Load() (state *State, err error) {
 
 func (c *Command) loadModule() *Module {
 	module := new(Module)
-	// Get the module name
-	module.Name = mod.Infer(c.absDir)
+	// Get the module path that's passed in as a flag
+	module.Name = c.Module
 	if module.Name == "" {
-		c.bail.Bail(format.Errorf(`
+		// Try inferring the module name from the directory
+		module.Name = mod.Infer(c.absDir)
+		if module.Name == "" {
+			// Fail that you need to pass in a module path
+			c.bail.Bail(format.Errorf(`
 			Unable to infer a module name. Try again using the module <path> name.
 
 			For example,
 				bud create --module=github.com/my/app %s
 		`, c.Dir))
+		}
 	}
 	// Add the required runtime
 	module.Requires = []*Require{
