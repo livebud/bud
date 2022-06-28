@@ -288,7 +288,7 @@ func (l *loader) loadActionParams(params []*parser.Param) (inputs []*ActionParam
 func (l *loader) loadActionParam(param *parser.Param, nth, numParams int) *ActionParam {
 	dec, err := param.Definition()
 	if err != nil {
-		l.Bail(fmt.Errorf("controller: unable to find param definition for %s . %w", param.Type(), err))
+		l.Bail(fmt.Errorf("controller: unable to find param definition for %s. %w", param.Type(), err))
 	}
 	ap := new(ActionParam)
 	ap.Name = l.loadActionParamName(param, nth)

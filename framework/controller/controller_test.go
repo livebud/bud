@@ -2080,3 +2080,105 @@ func TestControllerChange(t *testing.T) {
 	`))
 	is.NoErr(app.Close())
 }
+
+func TestRequestMap(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["controller/posts/comments/controller.go"] = `
+		package comments
+		type Controller struct {}
+		type Input struct {
+			PostID int ` + "`" + `json:"post_id"` + "`" + `
+			Order string ` + "`" + `json:"order"` + "`" + `
+			Author *string ` + "`" + `json:"author"` + "`" + `
+		}
+		func (c *Controller) Index(in *Input) *Input {
+			return in
+		}
+		func (c *Controller) Create(in *Input) *Input {
+			return in
+		}
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	res, err := app.GetJSON("/posts/10/comments?order=asc&author=Alice")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		{"post_id":10,"order":"asc","author":"Alice"}
+	`))
+	res, err = app.PostJSON("/posts/10/comments?order=asc", bytes.NewBufferString(`{"author":"Alice"}`))
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		{"post_id":10,"order":"asc","author":"Alice"}
+	`))
+	// Test optional
+	res, err = app.PostJSON("/posts/10/comments?order=asc", nil)
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		{"post_id":10,"order":"asc","author":null}
+	`))
+	is.NoErr(app.Close())
+}
+
+func TestComplexInput(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["controller/controller.go"] = `
+		package controller
+		type Controller struct {}
+		type Email string
+		type Op struct {
+			Name string   ` + "`" + `json:"name"` + "`" + `
+			Params []*Param ` + "`" + `json:"params"` + "`" + `
+		}
+		type Param struct {
+			Version int
+			Update bool ` + "`" + `json:"update"` + "`" + `
+		}
+		type Result struct {
+			ID string
+			Email string
+			Op *Op
+		}
+		func (c *Controller) Update(id string, email string, op *Op) *Result {
+			return &Result{id, email, op}
+		}
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	res, err := app.PatchJSON("/123?email=alice@livebud.com", bytes.NewBufferString(`{
+		"op": {
+			"name": "update",
+			"params": [
+				{ "Version": 1, "update": true },
+				{ "Version": 2 }
+			]
+		}
+	}`))
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		{"ID":"123","Email":"alice@livebud.com","Op":{"name":"update","params":[{"Version":1,"update":true},{"Version":2,"update":false}]}}
+	`))
+}
