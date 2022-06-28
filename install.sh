@@ -29,7 +29,10 @@ parse_args() {
     esac
   done
   shift $((OPTIND - 1))
-  VERSION=$1
+  # Only explicitly set version if there's an argument
+  if [ -n "$1" ]; then
+    VERSION=$1
+  fi
 }
 # this function wraps all the destructive operations
 # if a curl|bash cuts off the end of the script due to
@@ -98,6 +101,7 @@ check_platform() {
   fi
 }
 adjust_version() {
+  echo "${VERSION}"
   if [ -z "${VERSION}" ]; then
     echo "$PREFIX: checking GitHub for latest version"
     VERSION=$(github_last_release "$OWNER/$REPO")
