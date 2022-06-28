@@ -6,6 +6,12 @@ Get the latest release of Bud by running the following in your terminal:
 curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
 ```
 
+## v0.1.10
+
+- Fix regression when running `bud create` outside of a `$GOPATH` (#167)
+- Fix cache clear before code generation to ensure there's no stale generated code. Prior to v0.1.10, we were clearing part of the cache not all of it (#168)
+- Allow explicit versions to be installed with `curl` by setting the `VERSION` environment variable (#168)
+
 ## v0.1.9
 
 - Better hot reload DX with `bud run` (#131) thanks to @012e
