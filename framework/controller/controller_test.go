@@ -2037,3 +2037,46 @@ func TestSameNestedName(t *testing.T) {
 	`)
 	is.NoErr(app.Close())
 }
+
+func TestControllerChange(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["controller/controller.go"] = `
+		package controller
+		type Controller struct {}
+		func (c *Controller) Index() (string, error) { return "/", nil }
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	res, err := app.GetJSON("/")
+	is.NoErr(err)
+	res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		"/"
+	`)
+	// Update file
+	td.Files["controller/controller.go"] = `
+		package controller
+		type Controller struct {}
+		func (c *Controller) Index() string { return "/" }
+	`
+	is.NoErr(td.Write(ctx))
+	is.NoErr(app.Ready(ctx))
+	// Try again with the new file
+	res, err = app.GetJSON("/")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		"/"
+	`))
+	is.NoErr(app.Close())
+}

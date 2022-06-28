@@ -14,15 +14,15 @@ import (
 
 func TestReadDirFile(t *testing.T) {
 	is := is.New(t)
-	cache := fscache.New(testlog.New())
+	log := testlog.New()
 	afs := &fstest.MapFS{
 		"a.txt": &fstest.MapFile{Data: []byte("a")},
 	}
 	bfs := &fstest.MapFS{
 		"b.txt": &fstest.MapFile{Data: []byte("b")},
 	}
-	acfs := cache.Wrap("a", afs)
-	bcfs := cache.Wrap("b", bfs)
+	acfs := fscache.Wrap(afs, log, "a")
+	bcfs := fscache.Wrap(bfs, log, "b")
 	merge := merged.Merge(acfs, bcfs)
 	file, err := merge.Open(".")
 	is.NoErr(err)
@@ -35,11 +35,11 @@ func TestReadDirFile(t *testing.T) {
 
 func TestSize(t *testing.T) {
 	is := is.New(t)
+	log := testlog.New()
 	fsys := fstest.MapFS{
 		"a.txt": &fstest.MapFile{Data: []byte("a")},
 	}
-	cache := fscache.New(testlog.New())
-	cfs := cache.Wrap("a", fsys)
+	cfs := fscache.Wrap(fsys, log, "a")
 	stat, err := fs.Stat(cfs, "a.txt")
 	is.NoErr(err)
 	des, err := fs.ReadDir(cfs, ".")
@@ -52,7 +52,7 @@ func TestSize(t *testing.T) {
 
 func TestTransparent(t *testing.T) {
 	is := is.New(t)
-	cache := fscache.New(testlog.New())
+	log := testlog.New()
 	afs := &fstest.MapFS{
 		"a.txt": &fstest.MapFile{Data: []byte("a")},
 	}
@@ -61,8 +61,8 @@ func TestTransparent(t *testing.T) {
 	}
 	merge := merged.Merge(afs, bfs)
 	is.NoErr(fstest.TestFS(merge, "a.txt", "b.txt"))
-	acfs := cache.Wrap("a", afs)
-	bcfs := cache.Wrap("b", bfs)
+	acfs := fscache.Wrap(afs, log, "a")
+	bcfs := fscache.Wrap(bfs, log, "b")
 	cmerge := merged.Merge(acfs, bcfs)
 	is.NoErr(fstest.TestFS(cmerge, "a.txt", "b.txt"))
 }
