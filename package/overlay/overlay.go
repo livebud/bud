@@ -20,16 +20,21 @@ import (
 
 // Load the overlay filesystem
 func Load(log log.Interface, module *gomod.Module) (*FileSystem, error) {
-	cache := fscache.New(log)
 	pluginFS, err := pluginfs.Load(module)
 	if err != nil {
 		return nil, err
 	}
 	cfs := conjure.New()
-	merged := merged.Merge(cache.Wrap("cfs", cfs), cache.Wrap("pluginfs", pluginFS))
+	cfsCache := fscache.Wrap(cfs, log, "cfs")
+	pluginCache := fscache.Wrap(pluginFS, log, "pluginfs")
+	merged := merged.Merge(cfsCache, pluginCache)
 	dag := dag.New()
 	ps := pubsub.New()
-	return &FileSystem{cache, cfs, dag, merged, module, ps}, nil
+	clear := func() {
+		cfsCache.Clear()
+		pluginCache.Clear()
+	}
+	return &FileSystem{cfs, dag, merged, module, ps, clear}, nil
 }
 
 // Serve is just load without the cache
@@ -43,7 +48,8 @@ func Serve(log log.Interface, module *gomod.Module) (*Server, error) {
 	merged := merged.Merge(cfs, pluginFS)
 	dag := dag.New()
 	ps := pubsub.New()
-	return &FileSystem{fscache.New(log), cfs, dag, merged, module, ps}, nil
+	clear := func() {}
+	return &FileSystem{cfs, dag, merged, module, ps, clear}, nil
 }
 
 type Server = FileSystem
@@ -54,12 +60,12 @@ type F interface {
 }
 
 type FileSystem struct {
-	cache  *fscache.Cache
 	cfs    *conjure.FileSystem
 	dag    *dag.Graph
 	fsys   fs.FS
 	module *gomod.Module
 	ps     pubsub.Client
+	clear  func() // Clear the cache
 }
 
 func (f *FileSystem) Link(from, to string) {
@@ -133,6 +139,6 @@ func (f *FileSystem) FileServer(path string, server FileServer) {
 // Sync the overlay to the filesystem
 func (f *FileSystem) Sync(dir string) error {
 	// Clear the filesystem cache before syncing again
-	f.cache.Clear()
+	f.clear()
 	return dsync.Dir(f.fsys, dir, f.module.DirFS(dir), ".")
 }

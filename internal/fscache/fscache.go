@@ -65,10 +65,6 @@ func (c *Cache) Clear() {
 	c.sm = sync.Map{}
 }
 
-func (c *Cache) Wrap(fsname string, fsys fs.FS) fs.FS {
-	return &Wrapped{c.log, fsname, fsys, New(c.log)}
-}
-
 // File events
 
 // Update event
