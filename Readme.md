@@ -19,7 +19,7 @@ Bud ships as a single binary that runs on Linux and Mac. You can follow along fo
 The easiest way to get started is by copying and pasting the command below in your terminal:
 
 ```diff
-$ curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
+curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
 ```
 
 This script will download the right binary for your operating system and move the binary to the right location in your `$PATH`.
