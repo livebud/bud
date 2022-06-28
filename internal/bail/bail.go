@@ -24,7 +24,7 @@ func (s *Struct) Recover2(err *error, prefix string) {
 		if _, ok := e.(bail); !ok {
 			panic(e)
 		}
-		*err = fmt.Errorf(prefix+". %w", s.err)
+		*err = fmt.Errorf(prefix+": %w", s.err)
 	}
 }
 
