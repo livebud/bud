@@ -380,3 +380,19 @@ func TestFormKey(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(1, s.PostID)
 }
+
+func TestJSONGet(t *testing.T) {
+	is := is.New(t)
+	type S struct {
+		PostID int    `json:"post_id"`
+		Order  string `json:"order"`
+		Author string `json:"author"`
+	}
+	s := S{}
+	r := httptest.NewRequest("GET", "/?post_id=10&order=asc&author=Alice", nil)
+	err := Unmarshal(r, &s)
+	is.NoErr(err)
+	is.Equal(10, s.PostID)
+	is.Equal("asc", s.Order)
+	is.Equal("Alice", s.Author)
+}
