@@ -11,7 +11,7 @@ import (
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/cli/bud"
 	"github.com/livebud/bud/internal/imports"
-	"github.com/livebud/bud/internal/scaffolder"
+	"github.com/livebud/bud/internal/scaffold"
 	"github.com/matthewmueller/gotext"
 	"github.com/matthewmueller/text"
 )
@@ -103,20 +103,20 @@ func (c *Command) Scaffold(state *State) error {
 	if err != nil {
 		return err
 	}
-	scaffold, err := scaffolder.Load()
-	if err != nil {
-		return err
-	}
-	generators := []scaffolder.Generator{
+	scaffolds := []scaffold.Scaffolding{
 		scaffold.Template(state.Controller.path, controller, state.Controller),
 	}
 	for _, view := range state.Views {
-		generators = append(generators, scaffold.Template(view.Path, view.template, view))
+		scaffolds = append(scaffolds, scaffold.Template(view.Path, view.template, view))
 	}
-	if err := scaffold.Generate(generators...); err != nil {
+	fsys := scaffold.MapFS{}
+	if err := scaffold.Scaffold(fsys, scaffolds...); err != nil {
 		return err
 	}
-	return scaffold.Move(module.Directory())
+	if err := scaffold.Write(fsys, module.Directory()); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *Command) controller() *Controller {

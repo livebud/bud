@@ -3,6 +3,7 @@ package create
 import (
 	"context"
 	_ "embed"
+	"io/ioutil"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -10,7 +11,7 @@ import (
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/cli/bud"
 	"github.com/livebud/bud/internal/format"
-	"github.com/livebud/bud/internal/scaffolder"
+	"github.com/livebud/bud/internal/scaffold"
 	"github.com/livebud/bud/internal/versions"
 	mod "github.com/livebud/bud/package/gomod"
 )
@@ -158,37 +159,37 @@ var gitignore string
 
 // Scaffold state into the specified directory
 func (c *Command) Scaffold(state *State) error {
-	scaffold, err := scaffolder.Load()
+	// Create a temporary directory
+	tmpdir, err := ioutil.TempDir("", "bud-scaffold-*")
 	if err != nil {
 		return err
 	}
-	// Generate files from state
-	err = scaffold.Generate(
+	// Scaffold into that directory
+	if err := scaffold.Scaffold(scaffold.OSFS(tmpdir),
 		scaffold.Template("go.mod", gomod, state.Module),
 		scaffold.Template("gitignore", gitignore, nil),
 		scaffold.JSON("package.json", state.Package),
-	)
-	if err != nil {
+	); err != nil {
 		return err
 	}
 	// Download the dependencies in go.mod to GOMODCACHE
 	// Run `go mod download all`
 	// TODO: do we need `all`?
-	if err := scaffold.Command("go", "mod", "download", "all").Run(); err != nil {
+	if err := scaffold.Command(tmpdir, "go", "mod", "download", "all").Run(); err != nil {
 		return err
 	}
 	// Install node modules
-	if err := scaffold.Command("npm", "install", "--loglevel=error", "--no-progress", "--save").Run(); err != nil {
+	if err := scaffold.Command(tmpdir, "npm", "install", "--loglevel=error", "--no-progress", "--save").Run(); err != nil {
 		return err
 	}
 	if c.Dev {
 		// Link node modules
-		if err := scaffold.Command("npm", "link", "--loglevel=error", "livebud", c.budModule.Directory("livebud")).Run(); err != nil {
+		if err := scaffold.Command(tmpdir, "npm", "link", "--loglevel=error", "livebud", c.budModule.Directory("livebud")).Run(); err != nil {
 			return err
 		}
 	}
 	// Move from a temporary directory to the specified directory
-	return scaffold.Move(c.absDir)
+	return scaffold.Move(tmpdir, c.absDir)
 }
 
 func (c *Command) budVersion() string {
