@@ -6,6 +6,10 @@ Get the latest release of Bud by running the following in your terminal:
 curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
 ```
 
+## v0.1.11
+
+- Fixed regression when using `bud new controller` (#173)
+
 ## v0.1.10
 
 - Fix regression when running `bud create` outside of a `$GOPATH` (#167)
