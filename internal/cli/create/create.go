@@ -3,7 +3,6 @@ package create
 import (
 	"context"
 	_ "embed"
-	"io/ioutil"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -159,13 +158,8 @@ var gitignore string
 
 // Scaffold state into the specified directory
 func (c *Command) Scaffold(state *State) error {
-	// Create a temporary directory
-	tmpdir, err := ioutil.TempDir("", "bud-scaffold-*")
-	if err != nil {
-		return err
-	}
 	// Scaffold into that directory
-	if err := scaffold.Scaffold(scaffold.OSFS(tmpdir),
+	if err := scaffold.Scaffold(scaffold.OSFS(c.absDir),
 		scaffold.Template("go.mod", gomod, state.Module),
 		scaffold.Template("gitignore", gitignore, nil),
 		scaffold.JSON("package.json", state.Package),
@@ -175,21 +169,20 @@ func (c *Command) Scaffold(state *State) error {
 	// Download the dependencies in go.mod to GOMODCACHE
 	// Run `go mod download all`
 	// TODO: do we need `all`?
-	if err := scaffold.Command(tmpdir, "go", "mod", "download", "all").Run(); err != nil {
+	if err := scaffold.Command(c.absDir, "go", "mod", "download", "all").Run(); err != nil {
 		return err
 	}
 	// Install node modules
-	if err := scaffold.Command(tmpdir, "npm", "install", "--loglevel=error", "--no-progress", "--save").Run(); err != nil {
+	if err := scaffold.Command(c.absDir, "npm", "install", "--loglevel=error", "--no-progress", "--save").Run(); err != nil {
 		return err
 	}
 	if c.Dev {
 		// Link node modules
-		if err := scaffold.Command(tmpdir, "npm", "link", "--loglevel=error", "livebud", c.budModule.Directory("livebud")).Run(); err != nil {
+		if err := scaffold.Command(c.absDir, "npm", "link", "--loglevel=error", "livebud", c.budModule.Directory("livebud")).Run(); err != nil {
 			return err
 		}
 	}
-	// Move from a temporary directory to the specified directory
-	return scaffold.Move(tmpdir, c.absDir)
+	return nil
 }
 
 func (c *Command) budVersion() string {
