@@ -2182,3 +2182,86 @@ func TestComplexInput(t *testing.T) {
 		{"ID":"123","Email":"alice@livebud.com","Op":{"name":"update","params":[{"Version":1,"update":true},{"Version":2,"update":false}]}}
 	`))
 }
+
+func TestRedirectBack(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["controller/controller.go"] = `
+		package controller
+		import "errors"
+		type Controller struct {}
+		func (c *Controller) Index() string {
+			return "index"
+		}
+		func (c *Controller) New() string {
+			return "new"
+		}
+		func (c *Controller) Edit() string {
+			return "new"
+		}
+		func (c *Controller) Create() error {
+			return errors.New("create error")
+		}
+		func (c *Controller) Update() error {
+			return errors.New("update error")
+		}
+		func (c *Controller) Delete() error {
+			return errors.New("update error")
+		}
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	// Post request
+	req, err := app.PostRequest("/", nil)
+	is.NoErr(err)
+	req.Header.Set("Referer", "/new")
+	res, err := app.Do(req)
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 303 See Other
+		Location: /new
+	`))
+	// Post request, no referer
+	req, err = app.PostRequest("/", nil)
+	is.NoErr(err)
+	res, err = app.Do(req)
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 303 See Other
+		Location: /
+	`))
+	// Patch request
+	req, err = app.PatchRequest("/10", nil)
+	is.NoErr(err)
+	req.Header.Set("Referer", "/10/edit")
+	res, err = app.Do(req)
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 303 See Other
+		Location: /10/edit
+	`))
+	// Patch request, no referer
+	req, err = app.PatchRequest("/10", nil)
+	is.NoErr(err)
+	res, err = app.Do(req)
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 303 See Other
+		Location: /10
+	`))
+	// Delete request
+	req, err = app.DeleteRequest("/10", nil)
+	is.NoErr(err)
+	req.Header.Set("Referer", "/10")
+	res, err = app.Do(req)
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 303 See Other
+		Location: /10
+	`))
+}

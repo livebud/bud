@@ -50,7 +50,7 @@ func (res *Response) Set(key, value string) *Response {
 	return res
 }
 
-// Redirect to url
+// Redirect to path
 func (res *Response) Redirect(path string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Attach all preset headers
@@ -64,6 +64,18 @@ func (res *Response) Redirect(path string) http.Handler {
 		}
 		// Redirect the response
 		http.Redirect(w, r, path, res.status)
+	})
+}
+
+// RedirectBack tries using the referrer to redirect to the previous page.
+// If the referrer isn't set, it uses the fallback path.
+func (res *Response) RedirectBack(fallback string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.Referer()
+		if path == "" {
+			path = fallback
+		}
+		res.Redirect(path).ServeHTTP(w, r)
 	})
 }
 

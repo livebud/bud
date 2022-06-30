@@ -21,6 +21,7 @@ import (
 	"github.com/livebud/bud/package/commander"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/js"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/log/console"
@@ -121,12 +122,8 @@ func FileSystem(log log.Interface, module *gomod.Module, flag *framework.Flag) (
 	return genfs, nil
 }
 
-func FileServer(log log.Interface, module *gomod.Module, flag *framework.Flag) (*overlay.Server, error) {
+func FileServer(log log.Interface, module *gomod.Module, vm js.VM, flag *framework.Flag) (*overlay.Server, error) {
 	servefs, err := overlay.Serve(log, module)
-	if err != nil {
-		return nil, err
-	}
-	vm, err := v8.Load()
 	if err != nil {
 		return nil, err
 	}
