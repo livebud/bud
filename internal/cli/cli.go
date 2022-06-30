@@ -9,6 +9,7 @@ import (
 	"github.com/livebud/bud/internal/cli/create"
 	"github.com/livebud/bud/internal/cli/newcontroller"
 	"github.com/livebud/bud/internal/cli/run"
+	"github.com/livebud/bud/internal/cli/toolbs"
 	"github.com/livebud/bud/internal/cli/toolcache"
 	"github.com/livebud/bud/internal/cli/tooldi"
 	"github.com/livebud/bud/internal/cli/toolfscat"
@@ -82,6 +83,15 @@ func (c *CLI) Run(ctx context.Context, args ...string) error {
 
 	{ // $ bud tool
 		cli := cli.Command("tool", "extra tools")
+
+		{ // $ bud tool bs
+			cmd := toolbs.New(cmd, c.in)
+			cli := cli.Command("bs", "run the bud server")
+			cli.Flag("embed", "embed assets").Bool(&cmd.Flag.Embed).Default(false)
+			cli.Flag("hot", "hot reloading").Bool(&cmd.Flag.Hot).Default(true)
+			cli.Flag("minify", "minify assets").Bool(&cmd.Flag.Minify).Default(false)
+			cli.Run(cmd.Run)
+		}
 
 		{ // $ bud tool di
 			cmd := tooldi.New(cmd, c.in)

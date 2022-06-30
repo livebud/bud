@@ -65,6 +65,9 @@ func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpReq
 	// Unmarshal the request body
 	if err := request.Unmarshal(httpRequest, &in); err != nil {
 		return &response.Format{
+			{{- if ne $action.Method "GET" }}
+			HTML: response.Status(http.StatusSeeOther).RedirectBack(httpRequest.URL.Path),
+			{{- end }}
 			JSON: response.Status(400).Set("Content-Type", "application/json").JSON(map[string]string{"error": err.Error()}),
 		}
 	}
@@ -82,6 +85,9 @@ func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpReq
 	{{- if $action.Context.Results.Error }}
 	if {{ $action.Context.Results.Error }} != nil {
 		return &response.Format{
+			{{- if ne $action.Method "GET" }}
+			HTML: response.Status(http.StatusSeeOther).RedirectBack(httpRequest.URL.Path),
+			{{- end }}
 			JSON: response.Status(500).Set("Content-Type", "application/json").JSON(map[string]string{"error": {{ $action.Context.Results.Error }}.Error()}),
 		}
 	}
@@ -102,6 +108,9 @@ func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpReq
 	{{- if $action.Results.Error }}
 	if {{ $action.Results.Error }} != nil {
 		return &response.Format{
+			{{- if ne $action.Method "GET" }}
+			HTML: response.Status(http.StatusSeeOther).RedirectBack(httpRequest.URL.Path),
+			{{- end }}
 			JSON: response.Status(500).Set("Content-Type", "application/json").JSON(map[string]string{"error": {{ $action.Results.Error }}.Error()}),
 		}
 	}

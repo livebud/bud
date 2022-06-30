@@ -3,7 +3,7 @@ module github.com/livebud/bud/example/hn
 go 1.17
 
 require (
-	github.com/livebud/bud v0.0.0
+	github.com/livebud/bud v0.1.11
 	github.com/matthewmueller/hackernews v0.3.0
 )
 

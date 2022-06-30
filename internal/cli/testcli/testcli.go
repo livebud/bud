@@ -271,7 +271,7 @@ func coerceMimes(res *http.Response) error {
 	return nil
 }
 
-func (c *Client) Request(req *http.Request) (*Response, error) {
+func (c *Client) Do(req *http.Request) (*Response, error) {
 	res, err := c.webc.Do(req)
 	if err != nil {
 		return nil, err
@@ -323,81 +323,97 @@ func (c *Client) Ready(ctx context.Context) error {
 
 func (c *Client) Get(path string) (*Response, error) {
 	c.log.Debug("testcli: get request", "path", path)
-	req, err := http.NewRequest(http.MethodGet, getURL(path), nil)
+	req, err := c.GetRequest(path)
 	if err != nil {
 		return nil, err
 	}
-	return c.Request(req)
+	return c.Do(req)
 }
 
 func (c *Client) GetJSON(path string) (*Response, error) {
 	c.log.Debug("testcli: get json request", "path", path)
-	req, err := http.NewRequest(http.MethodGet, getURL(path), nil)
+	req, err := c.GetRequest(path)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
-	return c.Request(req)
+	return c.Do(req)
+}
+
+func (c *Client) GetRequest(path string) (*http.Request, error) {
+	return http.NewRequest(http.MethodGet, getURL(path), nil)
 }
 
 func (c *Client) Post(path string, body io.Reader) (*Response, error) {
 	c.log.Debug("testcli: post request", "path", path)
-	req, err := http.NewRequest(http.MethodPost, getURL(path), body)
+	req, err := c.PostRequest(path, body)
 	if err != nil {
 		return nil, err
 	}
-	return c.Request(req)
+	return c.Do(req)
 }
 
 func (c *Client) PostJSON(path string, body io.Reader) (*Response, error) {
 	c.log.Debug("testcli: post json request", "path", path)
-	req, err := http.NewRequest(http.MethodPost, getURL(path), body)
+	req, err := c.PostRequest(path, body)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	return c.Request(req)
+	return c.Do(req)
+}
+
+func (c *Client) PostRequest(path string, body io.Reader) (*http.Request, error) {
+	return http.NewRequest(http.MethodPost, getURL(path), body)
 }
 
 func (c *Client) Patch(path string, body io.Reader) (*Response, error) {
 	c.log.Debug("testcli: patch request", "path", path)
-	req, err := http.NewRequest(http.MethodPatch, getURL(path), body)
+	req, err := c.PatchRequest(path, body)
 	if err != nil {
 		return nil, err
 	}
-	return c.Request(req)
+	return c.Do(req)
 }
 
 func (c *Client) PatchJSON(path string, body io.Reader) (*Response, error) {
 	c.log.Debug("testcli: patch json request", "path", path)
-	req, err := http.NewRequest(http.MethodPatch, getURL(path), body)
+	req, err := c.PatchRequest(path, body)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	return c.Request(req)
+	return c.Do(req)
+}
+
+func (c *Client) PatchRequest(path string, body io.Reader) (*http.Request, error) {
+	return http.NewRequest(http.MethodPatch, getURL(path), body)
 }
 
 func (c *Client) Delete(path string, body io.Reader) (*Response, error) {
 	c.log.Debug("testcli: delete request", "path", path)
-	req, err := http.NewRequest(http.MethodDelete, getURL(path), body)
+	req, err := c.DeleteRequest(path, body)
 	if err != nil {
 		return nil, err
 	}
-	return c.Request(req)
+	return c.Do(req)
 }
 
 func (c *Client) DeleteJSON(path string, body io.Reader) (*Response, error) {
 	c.log.Debug("testcli: delete json request", "path", path)
-	req, err := http.NewRequest(http.MethodDelete, getURL(path), body)
+	req, err := c.DeleteRequest(path, body)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	return c.Request(req)
+	return c.Do(req)
+}
+
+func (c *Client) DeleteRequest(path string, body io.Reader) (*http.Request, error) {
+	return http.NewRequest(http.MethodDelete, getURL(path), body)
 }
 
 type Response struct {

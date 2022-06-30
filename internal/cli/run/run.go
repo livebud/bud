@@ -94,8 +94,13 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
+	// Load V8
+	vm, err := v8.Load()
+	if err != nil {
+		return err
+	}
 	// Load the file server
-	servefs, err := bud.FileServer(log, module, c.Flag)
+	servefs, err := bud.FileServer(log, module, vm, c.Flag)
 	if err != nil {
 		return err
 	}
