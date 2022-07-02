@@ -51,6 +51,7 @@ docker run -it --rm -v $(pwd):/bud bud /bin/bash
 ```
 
 To build a Docker image based on another Node.js and/or Go version, run one of the following commands:
+
 ```shell
 docker build --build-arg NODE_VERSION=18.4.0 -t bud:latest contributing
 docker build --build-arg GO_VERSION=1.18.2 -t bud:latest contributing
@@ -83,6 +84,34 @@ go run main.go -C hello run
 # Build a binary for the hello application
 go run main.go -C hello build
 ```
+
+## Disabling Code Generation
+
+Sometimes you want to hack on the generated code in `bud/`, but if you run `bud run` any changes you make will be overriden. To avoid this, you can call your app's `main.go` file directly:
+
+```sh
+go run bud/internal/app/main.go
+```
+
+You may encounter an error like this:
+
+```sh
+budclient: discard client does not support render
+```
+
+This occurs because apps built with `bud run` depends on a bud server to provide hot reloads and client-side file bundling. To start a bud server, run the following:
+
+```sh
+bud tool bs
+```
+
+This will start a bud server. Next, restart your app server and pass the bud server address in as an environment variable:
+
+```
+BUD_LISTEN=<bud server address> go run bud/internal/app/main.go
+```
+
+Finally, reload the page and you should be good to go. Happy hacking!
 
 ## Issues to Work On
 
