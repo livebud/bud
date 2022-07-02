@@ -111,7 +111,7 @@ This will start a bud server. Next, restart your app server and pass the bud ser
 BUD_LISTEN=<bud server address> go run bud/internal/app/main.go
 ```
 
-Then reload the page and you should be good to go. Happy hacking!
+Finally, reload the page and you should be good to go. Happy hacking!
 
 ## Issues to Work On
 
