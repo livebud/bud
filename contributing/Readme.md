@@ -99,7 +99,7 @@ You may encounter an error like this:
 budclient: discard client does not support render
 ```
 
-This occurs because apps built with `bud run` depend on a bud server to provide hot reloads and client-side file bundling. To start a bud server, run the following:
+This occurs because apps built with `bud run` depends on a bud server to provide hot reloads and client-side file bundling. To start a bud server, run the following:
 
 ```sh
 bud tool bs
