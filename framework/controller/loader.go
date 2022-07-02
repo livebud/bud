@@ -539,45 +539,6 @@ func (l *loader) loadProvider(controller *Controller, method *parser.Function) *
 	return provider
 }
 
-// func (l *loader) loadContextInputs(provider *di.Provider) (fields []*ContextField) {
-// 	for _, param := range provider.Externals {
-// 		fields = append(fields, l.loadContextField(param))
-// 	}
-// 	return fields
-// }
-
-// func (l *loader) loadContextField(param *di.External) *ContextField {
-// 	field := new(ContextField)
-// 	field.Name = param.Key
-// 	field.Variable = param.Variable.Name
-// 	field.Hoisted = param.Hoisted
-// 	field.Type = param.FullType
-// 	return field
-// }
-
-// func (l *loader) loadContextInputName(dataType string) (typeName string) {
-// 	parts := strings.Split(dataType, ".")
-// 	if len(parts) > 1 {
-// 		typeName = parts[len(parts)-1]
-// 	} else {
-// 		typeName = parts[0]
-// 	}
-// 	return strings.TrimLeft(typeName, "[]*")
-// }
-
-// func (l *loader) loadContextResults(provider *di.Provider) (outputs []*ContextResult) {
-// 	for _, result := range provider.Results {
-// 		outputs = append(outputs, l.loadContextResult(result))
-// 	}
-// 	return outputs
-// }
-
-// func (l *loader) loadContextResult(result *di.Variable) *ContextResult {
-// 	output := new(ContextResult)
-// 	output.Variable = gotext.Camel(result.Name)
-// 	return output
-// }
-
 func newProviderSet() *providerSet {
 	return &providerSet{map[string]*di.Provider{}}
 }

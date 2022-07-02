@@ -5,7 +5,6 @@ import (
 	// Embed templates
 	"context"
 	_ "embed"
-	"fmt"
 
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/package/di"
@@ -45,7 +44,6 @@ func (g *Generator) GenerateFile(ctx context.Context, fsys overlay.F, file *over
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(code))
 	file.Data = code
 	return nil
 }
