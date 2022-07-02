@@ -2269,7 +2269,7 @@ func TestRedirectBack(t *testing.T) {
 func TestSession(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := "_tmp"
+	dir := t.TempDir()
 	td := testdir.New(dir)
 	td.Files["log/log.go"] = `
 		package log
