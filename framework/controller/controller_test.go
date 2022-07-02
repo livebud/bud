@@ -2269,10 +2269,10 @@ func TestRedirectBack(t *testing.T) {
 func TestSession(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
+	dir := "_tmp"
 	td := testdir.New(dir)
-	td.Files["logz/logz.go"] = `
-		package logz
+	td.Files["log/log.go"] = `
+		package log
 		func New() *Logger { return &Logger{} }
 		type Logger struct {}
 		func (l *Logger) Info(msg string) {}
@@ -2280,12 +2280,12 @@ func TestSession(t *testing.T) {
 	td.Files["session/session.go"] = `
 		package session
 		import "net/http"
-		import "app.com/logz"
-		func New(log *logz.Logger, w http.ResponseWriter, r *http.Request) *Session {
+		import "app.com/log"
+		func New(log *log.Logger, w http.ResponseWriter, r *http.Request) *Session {
 			return &Session{log, w, r}
 		}
 		type Session struct {
-			log *logz.Logger
+			log *log.Logger
 			w http.ResponseWriter
 			r *http.Request
 		}

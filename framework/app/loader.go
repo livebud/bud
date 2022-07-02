@@ -38,8 +38,6 @@ type loader struct {
 func (l *loader) Load() (state *State, err error) {
 	defer l.Recover2(&err, "app: unable to load state")
 	state = new(State)
-	state.Provider = l.loadProvider()
-	state.Flag = l.flag
 	l.imports.AddStd("os", "context", "errors")
 	l.imports.AddNamed("commander", "github.com/livebud/bud/package/commander")
 	l.imports.AddNamed("budclient", "github.com/livebud/bud/package/budclient")
@@ -47,6 +45,8 @@ func (l *loader) Load() (state *State, err error) {
 	l.imports.AddNamed("log", "github.com/livebud/bud/package/log")
 	l.imports.AddNamed("filter", "github.com/livebud/bud/package/log/filter")
 	l.imports.Add(l.module.Import("bud/internal/app/web"))
+	state.Provider = l.loadProvider()
+	state.Flag = l.flag
 	state.Imports = l.imports.List()
 	return state, nil
 }
@@ -54,8 +54,9 @@ func (l *loader) Load() (state *State, err error) {
 func (l *loader) loadProvider() *di.Provider {
 	jsVM := di.ToType("github.com/livebud/bud/package/js", "VM")
 	fn := &di.Function{
-		Name:   "loadWeb",
-		Target: l.module.Import("bud", "program"),
+		Name:    "loadWeb",
+		Imports: l.imports,
+		Target:  l.module.Import("bud", "program"),
 		Params: []di.Dependency{
 			di.ToType("github.com/livebud/bud/package/log", "Interface"),
 			di.ToType("github.com/livebud/bud/package/gomod", "*Module"),
@@ -80,10 +81,6 @@ func (l *loader) loadProvider() *di.Provider {
 		// Intentionally don't wrap the error. The error gets swallowed up too
 		// easily
 		l.Bail(fmt.Errorf("app: unable to wire. %s", err))
-	}
-	// Add imports
-	for _, im := range provider.Imports {
-		l.imports.AddNamed(im.Name, im.Path)
 	}
 	return provider
 }
