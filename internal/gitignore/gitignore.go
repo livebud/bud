@@ -1,41 +1,42 @@
 package gitignore
 
 import (
-	"bytes"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
-	"github.com/monochromegane/go-gitignore"
+	gitignore "github.com/sabhiram/go-gitignore"
 )
 
-func defaultIgnore(path string, isDir bool) bool {
-	if !isDir {
-		return false
-	}
-	if path == "bud" {
-		return true
-	}
-	base := filepath.Base(path)
-	return base == "node_modules" || base == ".git"
+var alwaysIgnore = []string{
+	"node_modules",
+	".git",
+	".DS_Store",
 }
 
-func FromFS(fsys fs.FS) (ignore func(path string, isDir bool) bool) {
-	gi, err := fs.ReadFile(fsys, ".gitignore")
+var defaultIgnores = append([]string{"/bud"}, alwaysIgnore...)
+
+var defaultIgnore = gitignore.CompileIgnoreLines(defaultIgnores...).MatchesPath
+
+func FromFS(fsys fs.FS) (ignore func(path string) bool) {
+	code, err := fs.ReadFile(fsys, ".gitignore")
 	if err != nil {
 		return defaultIgnore
 	}
-	matcher := gitignore.NewGitIgnoreFromReader(".gitignore", bytes.NewBuffer(gi))
-	return matcher.Match
+	lines := strings.Split(string(code), "\n")
+	lines = append(lines, alwaysIgnore...)
+	ignorer := gitignore.CompileIgnoreLines(lines...)
+	return ignorer.MatchesPath
 }
 
-func From(dir string) (ignore func(path string, isDir bool) bool) {
+func From(dir string) (ignore func(path string) bool) {
 	code, err := os.ReadFile(filepath.Join(dir, ".gitignore"))
 	if err != nil {
 		return defaultIgnore
 	}
-	matcher := gitignore.NewGitIgnoreFromReader(".gitignore", bytes.NewBuffer(code))
-	return func(path string, isDir bool) bool {
-		return matcher.Match(path, isDir)
-	}
+	lines := strings.Split(string(code), "\n")
+	lines = append(lines, alwaysIgnore...)
+	ignorer := gitignore.CompileIgnoreLines(lines...)
+	return ignorer.MatchesPath
 }
