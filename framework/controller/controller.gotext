@@ -28,11 +28,9 @@ type {{ $.Pascal }}{{$action.Pascal}}Action struct {
 	{{- if $action.View }}
 	View view.Server
 	{{- end }}
-	{{- if $action.Context }}
-	{{- range $field := $action.Context.Fields }}
-	{{- if $field.Hoisted }}
-	{{$field.Name}} {{$field.Type}}
-	{{- end }}
+	{{- with $provider := $action.Provider }}
+	{{- range $param := $provider.Hoisted }}
+	{{$param.Key}} {{$param.FullType}}
 	{{- end }}
 	{{- end }}
 }
@@ -54,11 +52,11 @@ func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) Method() string
 
 // ServeHTTP fn
 func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	{{$action.Short}}.handler(r).ServeHTTP(w, r)
+	{{$action.Short}}.handler(w, r).ServeHTTP(w, r)
 }
 
 // Handler function
-func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpRequest *http.Request) http.Handler {
+func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpResponse http.ResponseWriter, httpRequest *http.Request) http.Handler {
 	{{- if $action.Params }}
 	// Define the input struct
 	var in {{ $action.Input}}
@@ -72,35 +70,30 @@ func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpReq
 		}
 	}
 	{{- end }}
-	{{- if $action.Context }}
-	{{ $action.Context.Results.List }} := {{ $action.Context.Function }}(
-		{{- range $field := $action.Context.Fields }}
-		{{- if $field.Hoisted }}
-		{{ $action.Short }}.{{ $field.Name }},
-		{{- else }}
-		{{ $field.Variable }},
+	{{- with $provider := $action.Provider }}
+	controller, err := {{ $provider.Name }}(
+		{{- range $param := $provider.Hoisted }}
+		{{ $action.Short }}.{{ $param.Key }},
 		{{- end }}
-		{{- end }}
+		{{- if $provider.Variable "context.Context" }}httpRequest.Context(),{{ end }}
+		{{- if $provider.Variable "net/http.*Request" }}httpRequest,{{ end }}
+		{{- if $provider.Variable "net/http.ResponseWriter" }}httpResponse,{{ end }}
 	)
-	{{- if $action.Context.Results.Error }}
-	if {{ $action.Context.Results.Error }} != nil {
+	{{- end }}
+	if err != nil {
 		return &response.Format{
 			{{- if ne $action.Method "GET" }}
 			HTML: response.Status(http.StatusSeeOther).RedirectBack(httpRequest.URL.Path),
 			{{- end }}
-			JSON: response.Status(500).Set("Content-Type", "application/json").JSON(map[string]string{"error": {{ $action.Context.Results.Error }}.Error()}),
+			JSON: response.Status(500).Set("Content-Type", "application/json").JSON(map[string]string{"error": err.Error()}),
 		}
 	}
-	{{- end }}
-	fn := {{$action.Context.Results.Result}}.{{$action.Name}}
-	{{- else }}
-	fn := {{$.Name}}.{{$action.Name}}
-	{{- end }}
+	handler := controller.{{$action.Name}}
 	{{- if $action.HandlerFunc }}
-	return http.HandlerFunc(fn)
+	return http.HandlerFunc(handler)
 	{{- else }}
 	// Call the controller
-	{{ $action.Results.Set }}fn(
+	{{ $action.Results.Set }}handler(
 		{{- range $param := $action.Params }}
 		{{ $param.Variable }},
 		{{- end }}
@@ -152,7 +145,7 @@ func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpReq
 
 {{- template "controller" $.Controller }}
 
-{{- range $context := $.Contexts }}
+{{- range $provider := $.Providers }}
 
-{{$context.Code}}
+{{ $provider.Function }}
 {{- end }}
