@@ -6,6 +6,89 @@ Get the latest release of Bud by running the following in your terminal:
 curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
 ```
 
+## v0.2.0
+
+- Improve support for injecting request-specific dependencies (#181)
+
+  In v0.2.0, you can now create controller dependencies that have access to the request and response and are scoped to the request-response lifecycle.
+
+  ```go
+  package controller
+
+  // Flash is a session flash that could be in a separate package
+  type Flash struct {
+    Writer http.ResponseWriter
+  }
+
+  func (f *Flash) Set(msg string) {
+    http.Cookie(f.Writer, &http.Cookie{
+      Name: "flash",
+      Value: msg,
+    })
+  }
+
+  // Based on: https://www.alexedwards.net/blog/simple-flash-messages-in-golang
+  func (f *Flash) Get() string {
+    c, err := r.Cookie(name)
+    if err != nil {
+      return ""
+    }
+    http.SetCookie(f.Writer, &http.Cookie{
+      Name: name,
+      MaxAge: -1,
+      Expires: time.Unix(1, 0),
+    })
+    return c.Value
+  }
+
+  type Controller struct {
+    Flash *Flash
+  }
+
+  func (c *Controller) Create() (*User, error) {
+    // ... create the user
+    c.Flash.Set("Successfully created a user!")
+    return user, nil
+  }
+
+  func (c *Controller) Show(id int) (*Page, error) {
+    // ... load the user
+    page := &Page{
+      User: user,
+      Flash: c.Flash.Get()
+    }
+    return page, nil
+  }
+
+  // Note: in the future, there will be a way to access the flash from views
+  // without needing to pull it out and add it to your props.
+  // See: https://github.com/livebud/bud/pull/185 for more details.
+  type Page struct {
+    User *User
+    Flash string
+  }
+  ```
+
+  It may seem like if you had a database client within the `Session` it will be re-initialize the database for every request. This is not the case.
+
+  Dependency injection uses a technique called hoisting to avoid re-initiazation of dependencies that don't depend on the scoped parameters (in this case `*http.Request` and `http.ResponseWriter`).
+
+- Add rudimentary redirects on form submissions that have errors
+
+  Prior to this release, form errors would return a JSON response even if you submitted from an HTML page.
+
+  In this release, we now redirect back to the page that submitted the form. You don't yet have access to what failed. This will come in a future release.
+
+- Add `bud tool bs` for starting the local bud server
+
+  This is helpful for hacking on your generated bud files without the generators clobbering your changes. See [this section](https://github.com/livebud/bud/tree/main/contributing#disabling-code-generation) in the contributing guide for more details.
+
+- Use a more .gitignore compliant matcher.
+
+  The previous matcher just used globbing, but .gitignore has a more sophisticated way of ignoring files. For example `bud/` will ignore all inner files. This is something the previous matcher didn't understand.
+
+  This fixes some watch looping due to an unexpected failure to match a `.gitignore` line item.
+
 ## v0.1.11
 
 - Fixed regression when using `bud new controller` (#173)
