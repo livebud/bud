@@ -2,7 +2,6 @@ package di
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/livebud/bud/internal/imports"
@@ -62,19 +61,21 @@ func (p *Provider) Function() string {
 	return c.String()
 }
 
-// Sort the variables by name so the order is always consistent.
-func sortByName(externals []*External) []*External {
-	sort.Slice(externals, func(i, j int) bool {
-		return externals[i].Variable.Name < externals[j].Variable.Name
-	})
-	return externals
-}
-
 func (p *Provider) Params() (params Params) {
-	for _, external := range sortByName(p.Externals) {
+	for _, external := range p.Externals {
 		params = append(params, external.Variable.Name+" "+external.FullType)
 	}
 	return params
+}
+
+// Hoisted returns a list of hoisted externals
+func (p *Provider) Hoisted() (externals []*External) {
+	for _, external := range p.Externals {
+		if external.Hoisted {
+			externals = append(externals, external)
+		}
+	}
+	return externals
 }
 
 type Params []string

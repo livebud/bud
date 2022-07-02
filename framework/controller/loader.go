@@ -30,13 +30,13 @@ func Load(fsys fs.FS, injector *di.Injector, module *gomod.Module, parser *parse
 		return nil, fs.ErrNotExist
 	}
 	loader := &loader{
-		fsys:     fsys,
-		contexts: newContextSet(),
-		imports:  imports.New(),
-		injector: injector,
-		module:   module,
-		parser:   parser,
-		exist:    exist,
+		fsys:      fsys,
+		providers: newProviderSet(),
+		imports:   imports.New(),
+		injector:  injector,
+		module:    module,
+		parser:    parser,
+		exist:     exist,
 	}
 	return loader.Load()
 }
@@ -44,13 +44,13 @@ func Load(fsys fs.FS, injector *di.Injector, module *gomod.Module, parser *parse
 // loader struct
 type loader struct {
 	bail.Struct
-	fsys     fs.FS
-	injector *di.Injector
-	imports  *imports.Set
-	contexts *contextSet
-	module   *gomod.Module
-	parser   *parser.Parser
-	exist    map[string]bool
+	fsys      fs.FS
+	injector  *di.Injector
+	imports   *imports.Set
+	providers *providerSet
+	module    *gomod.Module
+	parser    *parser.Parser
+	exist     map[string]bool
 }
 
 // load fn
@@ -58,7 +58,7 @@ func (l *loader) Load() (state *State, err error) {
 	defer l.Recover2(&err, "controller: unable to load")
 	state = new(State)
 	state.Controller = l.loadController("controller")
-	state.Contexts = l.contexts.List()
+	state.Providers = l.providers.List()
 	state.Imports = l.imports.List()
 	return state, nil
 }
@@ -179,7 +179,7 @@ func (l *loader) loadAction(controller *Controller, method *parser.Function) *Ac
 	}
 	action.RespondJSON = len(action.Results) > 0
 	action.RespondHTML = l.loadRespondHTML(action.Results)
-	action.Context = l.loadContext(controller, method)
+	action.Provider = l.loadProvider(controller, method)
 	action.Redirect = l.loadActionRedirect(action)
 	return action
 }
@@ -492,7 +492,7 @@ func (l *loader) loadRespondHTML(results ActionResults) bool {
 	return false
 }
 
-func (l *loader) loadContext(controller *Controller, method *parser.Function) *Context {
+func (l *loader) loadProvider(controller *Controller, method *parser.Function) *di.Provider {
 	recv := method.Receiver()
 	if recv == nil {
 		return nil
@@ -519,9 +519,9 @@ func (l *loader) loadContext(controller *Controller, method *parser.Function) *C
 			&di.Error{},
 		},
 		Params: []di.Dependency{
-			di.ToType("net/http", "ResponseWriter"),
-			di.ToType("net/http", "*Request"),
 			di.ToType("context", "Context"),
+			di.ToType("net/http", "*Request"),
+			di.ToType("net/http", "ResponseWriter"),
 		},
 		Aliases: di.Aliases{
 			di.ToType("github.com/livebud/bud/runtime/view", "Renderer"): di.ToType("github.com/livebud/bud/runtime/view", "*Server"),
@@ -534,76 +534,31 @@ func (l *loader) loadContext(controller *Controller, method *parser.Function) *C
 	for _, imp := range provider.Imports {
 		l.imports.AddNamed(imp.Name, imp.Path)
 	}
-	// Create the context
-	context := new(Context)
-	context.Function = fnName
-	context.Code = provider.Function()
-	context.Fields = l.loadContextInputs(provider)
-	context.Results = l.loadContextResults(provider)
-	// Add the context to the context set
-	l.contexts.Add(context)
-	return context
+	// Add the context to the provider set
+	l.providers.Add(provider)
+	return provider
 }
 
-func (l *loader) loadContextInputs(provider *di.Provider) (fields []*ContextField) {
-	for _, param := range provider.Externals {
-		fields = append(fields, l.loadContextField(param))
+func newProviderSet() *providerSet {
+	return &providerSet{map[string]*di.Provider{}}
+}
+
+type providerSet struct {
+	providerMap map[string]*di.Provider
+}
+
+func (c *providerSet) Add(provider *di.Provider) {
+	c.providerMap[provider.Name] = provider
+}
+
+func (c *providerSet) List() (providers []*di.Provider) {
+	for _, provider := range c.providerMap {
+		providers = append(providers, provider)
 	}
-	return fields
-}
-
-func (l *loader) loadContextField(param *di.External) *ContextField {
-	field := new(ContextField)
-	field.Name = param.Key
-	field.Variable = param.Variable.Name
-	field.Hoisted = param.Hoisted
-	field.Type = param.FullType
-	return field
-}
-
-// func (l *loader) loadContextInputName(dataType string) (typeName string) {
-// 	parts := strings.Split(dataType, ".")
-// 	if len(parts) > 1 {
-// 		typeName = parts[len(parts)-1]
-// 	} else {
-// 		typeName = parts[0]
-// 	}
-// 	return strings.TrimLeft(typeName, "[]*")
-// }
-
-func (l *loader) loadContextResults(provider *di.Provider) (outputs []*ContextResult) {
-	for _, result := range provider.Results {
-		outputs = append(outputs, l.loadContextResult(result))
-	}
-	return outputs
-}
-
-func (l *loader) loadContextResult(result *di.Variable) *ContextResult {
-	output := new(ContextResult)
-	output.Variable = gotext.Camel(result.Name)
-	return output
-}
-
-func newContextSet() *contextSet {
-	return &contextSet{map[string]*Context{}}
-}
-
-type contextSet struct {
-	contextMap map[string]*Context
-}
-
-func (c *contextSet) Add(context *Context) {
-	c.contextMap[context.Function] = context
-}
-
-func (c *contextSet) List() (contexts []*Context) {
-	for _, context := range c.contextMap {
-		contexts = append(contexts, context)
-	}
-	sort.Slice(contexts, func(i, j int) bool {
-		return contexts[i].Function < contexts[j].Function
+	sort.Slice(providers, func(i, j int) bool {
+		return providers[i].Name < providers[j].Name
 	})
-	return contexts
+	return providers
 }
 
 func tagValue(snake string) (out string) {

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/parser"
 	"github.com/matthewmueller/gotext"
 	"github.com/matthewmueller/text"
@@ -13,7 +14,7 @@ import (
 type State struct {
 	Imports    []*imports.Import
 	Controller *Controller
-	Contexts   []*Context
+	Providers  []*di.Provider
 }
 
 // Controller is the target controller state
@@ -49,7 +50,7 @@ type Action struct {
 	Route       string // Route to this action
 	Redirect    string
 	Method      string
-	Context     *Context
+	Provider    *di.Provider
 	Params      []*ActionParam
 	HandlerFunc bool
 	Input       string
@@ -227,53 +228,4 @@ type ActionResultField struct {
 
 // ActionResultMethod struct
 type ActionResultMethod struct {
-}
-
-// Context is the target context state
-type Context struct {
-	Function string // Name of the function
-	Code     string // Function code
-	Fields   []*ContextField
-	Results  ContextResults
-}
-
-// ContextField struct
-type ContextField struct {
-	Name     string
-	Variable string
-	Hoisted  bool
-	Type     string
-}
-
-// ContextResult struct
-type ContextResult struct {
-	Variable string
-}
-
-// ContextResults is a list of context results
-type ContextResults []*ContextResult
-
-// List joins the outputs with a comma
-func (outputs ContextResults) List() string {
-	var outs []string
-	for _, output := range outputs {
-		outs = append(outs, output.Variable)
-	}
-	return strings.Join(outs, ", ")
-}
-
-// Result returns the result variable if there is one
-func (outputs ContextResults) Result() string {
-	if len(outputs) > 0 {
-		return gotext.Camel(outputs[0].Variable)
-	}
-	return ""
-}
-
-// Error returns the error variable if there is one
-func (outputs ContextResults) Error() string {
-	if len(outputs) > 1 {
-		return gotext.Camel(outputs[1].Variable)
-	}
-	return ""
 }

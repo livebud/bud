@@ -2265,3 +2265,60 @@ func TestRedirectBack(t *testing.T) {
 		Location: /10
 	`))
 }
+
+func TestSession(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["log/log.go"] = `
+		package log
+		func New() *Logger { return &Logger{} }
+		type Logger struct {}
+		func (l *Logger) Info(msg string) {}
+	`
+	td.Files["session/session.go"] = `
+		package session
+		import "net/http"
+		import "app.com/log"
+		func New(log *log.Logger, w http.ResponseWriter, r *http.Request) *Session {
+			return &Session{log, w, r}
+		}
+		type Session struct {
+			log *log.Logger
+			w http.ResponseWriter
+			r *http.Request
+		}
+		func (s *Session) Set(key, value string) {
+			s.log.Info("setting session")
+			http.SetCookie(s.w, &http.Cookie{Name: key, Value: value })
+		}
+	`
+	td.Files["controller/controller.go"] = `
+		package controller
+		import "app.com/session"
+		type Controller struct {
+			Session *session.Session
+		}
+		func (c *Controller) Create() error {
+			c.Session.Set("sessionid", "some-key")
+			return nil
+		}
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	// Post request
+	req, err := app.PostRequest("/", nil)
+	is.NoErr(err)
+	req.Header.Set("Referer", "/new")
+	res, err := app.Do(req)
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 302 Found
+		Location: /
+		Set-Cookie: sessionid=some-key
+	`))
+}
