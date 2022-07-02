@@ -2,6 +2,7 @@ package di
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/livebud/bud/internal/imports"
@@ -57,7 +58,7 @@ func (n *Node) Generate(imports *imports.Set, fnName, target string) *Provider {
 		Name:        fnName,
 		Target:      target,
 		Imports:     g.Imports.List(),
-		Externals:   g.Externals,
+		Externals:   sortExternals(g.Externals),
 		Code:        g.Code.String(),
 		Results:     outputs,
 		externalMap: externalMap(g.Externals),
@@ -244,6 +245,18 @@ func toTypeName(dataType string) string {
 	parts := strings.SplitN(dataType, ".", 2)
 	last := parts[len(parts)-1]
 	return strings.TrimLeft(last, "[]*")
+}
+
+// Sort the variables by name so the order is always consistent.
+func sortExternals(externals []*External) []*External {
+	sort.Slice(externals, func(i, j int) bool {
+		// Hoisted params always come before non-hoisted params
+		if externals[i].Hoisted != externals[j].Hoisted {
+			return externals[i].Hoisted && !externals[j].Hoisted
+		}
+		return externals[i].Variable.Name < externals[j].Variable.Name
+	})
+	return externals
 }
 
 // Turn the results into a map for faster provider lookup

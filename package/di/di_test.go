@@ -1175,6 +1175,10 @@ func TestHoistFull(t *testing.T) {
 					value: "log",
 					Env:   &web.Env{value: "env"},
 				},
+				Workflow: &web.Workflow{Log: &web.Log{
+					value: "log",
+					Env:   &web.Env{value: "env"},
+				}},
 			}
 		`,
 		Files: map[string]string{
@@ -1195,9 +1199,10 @@ func TestHoistFull(t *testing.T) {
 					env := web.NewEnv()
 					log := web.NewLog(env)
 					pg := &web.Postgres{log}
+					wf := &web.Workflow{log}
 					// request and dependencies that don't rely on request
 					// get hoisted up.
-					actual := genweb.Load(log, pg, request)
+					actual := genweb.Load(log, pg, wf, request)
 					fmt.Fprintf(os.Stdout, "%s\n", valast.String(actual))
 				}
 			`,
@@ -1230,6 +1235,10 @@ func TestHoistFull(t *testing.T) {
 
 				type Request struct {}
 
+				type Workflow struct {
+					Log *Log
+				}
+
 				type Session struct {
 					*Request
 					DB *Postgres
@@ -1239,6 +1248,7 @@ func TestHoistFull(t *testing.T) {
 				type Web struct {
 					*Session
 					*Log
+					*Workflow
 				}
 			`,
 		},
