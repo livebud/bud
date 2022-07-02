@@ -105,7 +105,7 @@ This occurs because apps built with `bud run` depends on a bud server to provide
 bud tool bs
 ```
 
-This will start a bud server. Next restart your app server and pass the bud server address in as an environment variable:
+This will start a bud server. Next, restart your app server and pass the bud server address in as an environment variable:
 
 ```
 BUD_LISTEN=<bud server address> go run bud/internal/app/main.go
