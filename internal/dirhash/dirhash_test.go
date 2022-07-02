@@ -59,8 +59,8 @@ func TestSkip(t *testing.T) {
 	is.True(h1 != h2)
 
 	// Skip node_modules
-	skipModules := func(path string, isDir bool) bool {
-		return isDir && path == "node_modules"
+	skipModules := func(path string) bool {
+		return path == "node_modules"
 	}
 	h3, err := dirhash.Hash(fsys, dirhash.WithSkip(skipModules))
 	is.NoErr(err)

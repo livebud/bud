@@ -9,7 +9,7 @@ import (
 	"github.com/cespare/xxhash"
 )
 
-type skipFunc = func(name string, isDir bool) bool
+type skipFunc = func(name string) bool
 
 type option struct {
 	Skip skipFunc
@@ -29,9 +29,9 @@ func WithSkip(skips ...skipFunc) Option {
 }
 
 func composeSkips(skips []skipFunc) skipFunc {
-	return func(name string, isDir bool) bool {
+	return func(name string) bool {
 		for _, skip := range skips {
-			if skip(name, isDir) {
+			if skip(name) {
 				return true
 			}
 		}
@@ -42,7 +42,7 @@ func composeSkips(skips []skipFunc) skipFunc {
 // Hash a filesystem. Based on the sumdb/dirhash.
 func Hash(fsys fs.FS, options ...Option) (string, error) {
 	opt := &option{
-		Skip: func(string, bool) bool { return false },
+		Skip: func(string) bool { return false },
 	}
 	for _, option := range options {
 		option(opt)
@@ -51,7 +51,7 @@ func Hash(fsys fs.FS, options ...Option) (string, error) {
 	err := fs.WalkDir(fsys, ".", func(path string, de fs.DirEntry, err error) error {
 		if err != nil {
 			return err
-		} else if opt.Skip(path, de.IsDir()) {
+		} else if opt.Skip(path) {
 			return fs.SkipDir
 		} else if de.IsDir() {
 			return nil

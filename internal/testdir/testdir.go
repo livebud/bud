@@ -168,7 +168,7 @@ func (d *Dir) mapfs() (fstest.MapFS, error) {
 	// TODO: cleanup this mess
 	var hashes []byte
 	for _, rep := range modFile.Replace {
-		var skips []func(name string, isDir bool) bool
+		var skips []func(name string) bool
 		// Handle
 		if rep.New.Path == budDir {
 			skips = append(skips, gitignore.From(budDir))

@@ -130,7 +130,11 @@ func Watch(ctx context.Context, dir string, fn func(paths []string) error) error
 		if err != nil {
 			return nil
 		}
-		if gitIgnore(path, stat.IsDir()) {
+		relPath, err := filepath.Rel(dir, path)
+		if err != nil {
+			return err
+		}
+		if gitIgnore(relPath) {
 			return nil
 		}
 		if isDuplicate(path, stat) {
@@ -161,12 +165,16 @@ func Watch(ctx context.Context, dir string, fn func(paths []string) error) error
 	}
 	// A file or directory has been updated. Notify our matchers.
 	write := func(path string) error {
+		relPath, err := filepath.Rel(dir, path)
+		if err != nil {
+			return err
+		}
+		if gitIgnore(relPath) {
+			return nil
+		}
 		// Stat the file
 		stat, err := os.Stat(path)
 		if err != nil {
-			return nil
-		}
-		if gitIgnore(path, stat.IsDir()) {
 			return nil
 		}
 		if isDuplicate(path, stat) {
@@ -187,10 +195,9 @@ func Watch(ctx context.Context, dir string, fn func(paths []string) error) error
 			return err
 		}
 		// Support .gitignore
-		isDir := de.IsDir()
-		if gitIgnore(relPath, isDir) || filepath.Base(relPath) == ".git" {
+		if gitIgnore(relPath) {
 			// Skip directories
-			if isDir {
+			if de.IsDir() {
 				return filepath.SkipDir
 			}
 			// Ignore files
