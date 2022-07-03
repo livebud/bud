@@ -518,10 +518,10 @@ func (l *loader) loadProvider(controller *Controller, method *parser.Function) *
 			},
 			&di.Error{},
 		},
-		Params: []di.Dependency{
-			di.ToType("context", "Context"),
-			di.ToType("net/http", "*Request"),
-			di.ToType("net/http", "ResponseWriter"),
+		Params: []*di.Param{
+			{Import: "context", Type: "Context", Hoist: true},
+			{Import: "net/http", Type: "*Request"},
+			{Import: "net/http", Type: "ResponseWriter"},
 		},
 		Aliases: di.Aliases{
 			di.ToType("github.com/livebud/bud/runtime/view", "Renderer"): di.ToType("github.com/livebud/bud/runtime/view", "*Server"),

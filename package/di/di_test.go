@@ -145,18 +145,13 @@ func main() {
 }
 `
 
-// Helper function for building types
-func toType(importPath string, dataType string) *di.Type {
-	return &di.Type{Import: importPath, Type: dataType}
-}
-
 func TestFunctionAll(t *testing.T) {
 	runTest(t, Test{
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 				&di.Error{},
 			},
 		},
@@ -326,7 +321,7 @@ func TestFunctionNeedsDeref(t *testing.T) {
 			Name:   "Load",
 			Target: "app.com/gen/web",
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 		},
 		Expect: `
@@ -370,7 +365,7 @@ func TestFunctionNeedsPointer(t *testing.T) {
 			Name:   "Load",
 			Target: "app.com/gen/web",
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 		},
 		Expect: `
@@ -414,7 +409,7 @@ func TestFunctionHasError(t *testing.T) {
 			Name:   "Load",
 			Target: "app.com/gen/web",
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 				&di.Error{},
 			},
 		},
@@ -484,7 +479,7 @@ func TestStructAll(t *testing.T) {
 			Name:   "Load",
 			Target: "app.com/gen/web",
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 		},
 		Expect: `
@@ -596,7 +591,7 @@ func TestStructNeedsDeref(t *testing.T) {
 			Name:   "Load",
 			Target: "app.com/gen/web",
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 		},
 		Expect: `
@@ -642,7 +637,7 @@ func TestStructNeedsPointer(t *testing.T) {
 			Name:   "Load",
 			Target: "app.com/gen/web",
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 		},
 		Expect: `
@@ -689,7 +684,7 @@ func TestNestedModules(t *testing.T) {
 			Name:   "Load",
 			Target: "app.com/gen/web",
 			Results: []di.Dependency{
-				toType("app.com/one", "*One"),
+				di.ToType("app.com/one", "*One"),
 			},
 		},
 		Expect: `
@@ -780,7 +775,7 @@ func TestAlias(t *testing.T) {
 			Name:   "Load",
 			Target: "app.com/gen/web",
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 		},
 		Expect: `
@@ -843,7 +838,7 @@ func TestAliasPointer(t *testing.T) {
 			Name:   "Load",
 			Target: "app.com/gen/web",
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 		},
 		Expect: `
@@ -891,12 +886,12 @@ func TestExternalInFile(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{
-				toType("app.com/web", "*A"),
-				toType("app.com/web", "*B"),
+			Params: []*di.Param{
+				{Import: "app.com/web", Type: "*A"},
+				{Import: "app.com/web", Type: "*B"},
 			},
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 		},
 		Expect: `
@@ -956,13 +951,13 @@ func TestExternalShared(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{
-				toType("app.com/web", "*A"),
-				toType("app.com/web", "*B"),
-				toType("app.com/web", "*C"),
+			Params: []*di.Param{
+				{Import: "app.com/web", Type: "*A"},
+				{Import: "app.com/web", Type: "*B"},
+				{Import: "app.com/web", Type: "*C"},
 			},
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 		},
 		Expect: `
@@ -1031,11 +1026,11 @@ func TestExternalStdlib(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{
-				toType("net/http", "*Request"),
+			Params: []*di.Param{
+				{Import: "net/http", Type: "*Request"},
 			},
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 		},
 		Expect: `
@@ -1093,12 +1088,12 @@ func TestExternalUnused(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{
-				toType("app.com/web", "*A"),
-				toType("app.com/web", "*B"),
+			Params: []*di.Param{
+				{Import: "app.com/web", Type: "*A"},
+				{Import: "app.com/web", Type: "*B"},
 			},
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 		},
 		Expect: `
@@ -1155,11 +1150,11 @@ func TestHoistFull(t *testing.T) {
 			Name:   "Load",
 			Hoist:  true,
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{
-				toType("app.com/web", "*Request"),
+			Params: []*di.Param{
+				{Import: "app.com/web", Type: "*Request"},
 			},
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 		},
 		Expect: `
@@ -1260,11 +1255,11 @@ func TestInterfaceExternal(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{
-				toType("app.com/log", "Log"),
+			Params: []*di.Param{
+				{Import: "app.com/log", Type: "Log"},
 			},
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 		},
 		Expect: `
@@ -1324,9 +1319,8 @@ func TestInterfaceInput(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{},
 			Results: []di.Dependency{
-				toType("app.com/web", "Log"),
+				di.ToType("app.com/web", "Log"),
 			},
 		},
 		Expect: `
@@ -1361,9 +1355,8 @@ func TestInterface(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{},
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 		},
 		Expect: `
@@ -1411,9 +1404,8 @@ func TestPointers(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{},
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 		},
 		Expect: `
@@ -1460,9 +1452,8 @@ func TestSameDataType(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{},
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 		},
 		Expect: `
@@ -1512,9 +1503,8 @@ func TestSamePackage(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{},
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 		},
 		Expect: `
@@ -1557,9 +1547,8 @@ func TestSameTarget(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/web",
-			Params: []di.Dependency{},
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 		},
 		Expect: `
@@ -1616,9 +1605,8 @@ func TestSlice(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{},
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 		},
 		Expect: `
@@ -1668,12 +1656,11 @@ func TestStructMap(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{},
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 			Aliases: di.Aliases{
-				toType("app.com/js", "VM"): toType("app.com/js/v8", "*V8"),
+				di.ToType("app.com/js", "VM"): di.ToType("app.com/js/v8", "*V8"),
 			},
 		},
 		Expect: `
@@ -1718,12 +1705,11 @@ func TestFunctionMap(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{},
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 			Aliases: di.Aliases{
-				toType("app.com/js", "VM"): toType("app.com/js/v8", "*V8"),
+				di.ToType("app.com/js", "VM"): di.ToType("app.com/js/v8", "*V8"),
 			},
 		},
 		Expect: `
@@ -1772,12 +1758,11 @@ func TestStructMapNeedsPointer(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{},
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 			Aliases: di.Aliases{
-				toType("app.com/js", "VM"): toType("app.com/js/v8", "*V8"),
+				di.ToType("app.com/js", "VM"): di.ToType("app.com/js/v8", "*V8"),
 			},
 		},
 		Expect: `
@@ -1826,12 +1811,11 @@ func TestFunctionMapNeedsPointer(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{},
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 			Aliases: di.Aliases{
-				toType("app.com/js", "VM"): toType("app.com/js/v8", "*V8"),
+				di.ToType("app.com/js", "VM"): di.ToType("app.com/js/v8", "*V8"),
 			},
 		},
 		Expect: `
@@ -1884,7 +1868,6 @@ func TestInputStruct(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{},
 			Results: []di.Dependency{
 				&di.Struct{
 					Import: "app.com/gen/web",
@@ -1948,7 +1931,6 @@ func TestInputStructPointer(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{},
 			Results: []di.Dependency{
 				&di.Struct{
 					Import: "app.com/gen/web",
@@ -2012,9 +1994,8 @@ func TestErrorResultNoError(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{},
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 				&di.Error{},
 			},
 		},
@@ -2045,9 +2026,8 @@ func TestErrorResultWithError(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{},
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 				&di.Error{},
 			},
 		},
@@ -2080,14 +2060,14 @@ func TestMappedExternal(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{
-				toType("app.com/gen", "*FileSystem"),
+			Params: []*di.Param{
+				{Import: "app.com/gen", Type: "*FileSystem"},
 			},
 			Results: []di.Dependency{
-				toType("app.com/web", "*Web"),
+				di.ToType("app.com/web", "*Web"),
 			},
 			Aliases: di.Aliases{
-				toType("app.com/gen", "FS"): toType("app.com/gen", "*FileSystem"),
+				di.ToType("app.com/gen", "FS"): di.ToType("app.com/gen", "*FileSystem"),
 			},
 		},
 		Expect: `
@@ -2155,12 +2135,12 @@ func TestHoistEmpty(t *testing.T) {
 			Hoist:  true,
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{
-				toType("net/http", "ResponseWriter"),
-				toType("net/http", "*Request"),
+			Params: []*di.Param{
+				{Import: "net/http", Type: "ResponseWriter"},
+				{Import: "net/http", Type: "*Request"},
 			},
 			Results: []di.Dependency{
-				toType("app.com/web", "*Controller"),
+				di.ToType("app.com/web", "*Controller"),
 			},
 		},
 		Expect: `
@@ -2183,9 +2163,8 @@ func TestSkipMethods(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{},
 			Results: []di.Dependency{
-				toType("app.com/parser", "*Parser"),
+				di.ToType("app.com/parser", "*Parser"),
 			},
 		},
 		Expect: `
@@ -2221,9 +2200,8 @@ func TestDuplicates(t *testing.T) {
 		Function: &di.Function{
 			Name:   "Load",
 			Target: "app.com/gen/web",
-			Params: []di.Dependency{},
 			Results: []di.Dependency{
-				toType("app.com/controller", "*Controller"),
+				di.ToType("app.com/controller", "*Controller"),
 			},
 		},
 		Expect: `
@@ -2260,6 +2238,97 @@ func TestDuplicates(t *testing.T) {
 				package comments
 				func New() *Comment { return &Comment{2} }
 				type Comment struct { Two int }
+			`,
+		},
+	})
+}
+
+func TestHoistable(t *testing.T) {
+	runTest(t, Test{
+		Function: &di.Function{
+			Name:   "Load",
+			Hoist:  true,
+			Target: "app.com/gen/web",
+			Params: []*di.Param{
+				{Import: "context", Type: "Context", Hoist: true},
+				{Import: "app.com/web", Type: "*Request"},
+			},
+			Results: []di.Dependency{
+				di.ToType("app.com/web", "*Web"),
+				&di.Error{},
+			},
+		},
+		Expect: `
+			&web.Web{
+				Session: &web.Session{
+					DB: &web.DB{
+						URL:    "url",
+						Loaded: 1,
+					},
+					Request: &web.Request{Path: "/"},
+				},
+				DB: &web.DB{
+					URL:    "url",
+					Loaded: 1,
+				},
+			}
+		`,
+		Files: map[string]string{
+			"go.mod": goMod,
+			"main.go": `
+				package main
+
+				import (
+					"os"
+					"fmt"
+					"context"
+					"github.com/hexops/valast"
+					web "app.com/web"
+					genweb "app.com/gen/web"
+				)
+
+				func main() {
+					ctx := context.Background()
+					db, err := web.LoadDB(ctx)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+						return
+					}
+					req := web.NewRequest()
+					actual, err := genweb.Load(db, req)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+						return
+					}
+					fmt.Fprintf(os.Stdout, "%s\n", valast.String(actual))
+				}
+			`,
+			"web/web.go": `
+				package web
+				import "context"
+				var loaded = 0
+				func LoadDB(ctx context.Context) (*DB, error) {
+					loaded++
+					return &DB{"url", loaded}, nil
+				}
+				type DB struct {
+					URL string
+					Loaded int
+				}
+				func NewRequest() *Request {
+					return &Request{Path: "/"}
+				}
+				type Request struct {
+					Path string
+				}
+				type Session struct {
+					DB *DB
+					Request *Request
+				}
+				type Web struct {
+					Session *Session
+					DB *DB
+				}
 			`,
 		},
 	})

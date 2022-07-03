@@ -19,10 +19,24 @@ type Node struct {
 	Declaration Declaration
 	// Dependencies that the declaration relies on to be able to instantiate
 	Dependencies []*Node
-	// External types are passed in, not instantiated. This is true if the type
-	// matches an external dependency or this dependency is hoisted up.
+	// External is true if the type matches an external dependency. External types
+	// are passed in, not instantiated.
 	External bool
+	// Hoisted is true if the dependency has been hoisted up. Hoisted types are
+	// passed in, not instantiated.
+	Hoist bool
 }
+
+// type Mode uint8
+
+// const (
+// 	// External is true if the type matches an external dependency. External types
+// 	// are passed in, not instantiated.
+// 	ModeExternal = 1 << iota
+// 	// Hoistable indicates that this dependency is eligible to be hoisted up.
+// 	ModeHoistable
+// 	ModeHoisted
+// )
 
 func (n *Node) ID() string {
 	if n.Declaration != nil {
@@ -81,7 +95,7 @@ func (g *generator) Generate(node *Node, params ...*Variable) []*Variable {
 		return outputs
 	}
 	var results []*Variable
-	if node.External {
+	if node.External || node.Hoist {
 		external := g.External(node)
 		results = append(results, external.Variable)
 		g.Seen[id] = results
@@ -103,7 +117,7 @@ func (g *generator) External(n *Node) *External {
 	dataType := n.Type
 	ex := &External{
 		Key:      toTypeName(dataType),
-		Hoisted:  n.Declaration != nil,
+		Hoisted:  n.Hoist,
 		FullType: g.DataType(importPath, dataType),
 		Variable: &Variable{
 			Import: importPath,

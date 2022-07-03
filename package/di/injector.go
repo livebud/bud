@@ -43,10 +43,10 @@ func (i *Injector) Load(fn *Function) (*Node, error) {
 	for from, to := range fn.Aliases {
 		aliases[from.ID()] = to
 	}
-	externals := map[string]bool{}
+	externals := map[string]*Param{}
 	for _, param := range fn.Params {
 		id := param.ID()
-		externals[id] = true
+		externals[id] = param
 	}
 	root := &Node{
 		Import:      fn.Target,
@@ -69,7 +69,7 @@ func (i *Injector) Load(fn *Function) (*Node, error) {
 }
 
 // Load the dependencies recursively. This produces a dependency graph of nodes.
-func (i *Injector) load(externals map[string]bool, aliases map[string]Dependency, dep Dependency) (*Node, error) {
+func (i *Injector) load(externals map[string]*Param, aliases map[string]Dependency, dep Dependency) (*Node, error) {
 	// Replace dep with mapped type alias if we have one
 	if alias, ok := aliases[dep.ID()]; ok {
 		i.log.Debug("di: aliased dep", "from", dep.ID(), "to", alias.ID())
@@ -79,12 +79,13 @@ func (i *Injector) load(externals map[string]bool, aliases map[string]Dependency
 	importPath := dep.ImportPath()
 	typeName := dep.TypeName()
 	id := dep.ID()
-	if externals[id] {
+	if param, ok := externals[id]; ok {
 		i.log.Debug("di: marked external", "id", id)
 		return &Node{
 			Import:   importPath,
 			Type:     typeName,
 			External: true,
+			Hoist:    param.Hoist,
 		}, nil
 	}
 	// Find the declaration that would instantiate this dependency

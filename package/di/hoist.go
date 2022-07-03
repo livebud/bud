@@ -21,7 +21,7 @@ func hoist(node *Node) (shouldHoist bool) {
 	// Default to hoisting
 	shouldHoist = true
 	// Dependencies that rely on an external node cannot be hoisted.
-	if node.External {
+	if node.External && !node.Hoist {
 		return false
 	}
 	// Loop over the inputs. If any input is non-hoistable, this node is becomes
@@ -32,6 +32,6 @@ func hoist(node *Node) (shouldHoist bool) {
 		shouldHoist = hoist(dep) && shouldHoist
 	}
 	// If shouldHoist is true, we externalize the node.
-	node.External = shouldHoist
+	node.Hoist = shouldHoist
 	return shouldHoist
 }

@@ -57,11 +57,11 @@ func (l *loader) loadProvider() *di.Provider {
 		Name:    "loadWeb",
 		Imports: l.imports,
 		Target:  l.module.Import("bud", "program"),
-		Params: []di.Dependency{
-			di.ToType("github.com/livebud/bud/package/log", "Interface"),
-			di.ToType("github.com/livebud/bud/package/gomod", "*Module"),
-			di.ToType("github.com/livebud/bud/package/budclient", "Client"),
-			di.ToType("context", "Context"),
+		Params: []*di.Param{
+			{Import: "github.com/livebud/bud/package/log", Type: "Interface"},
+			{Import: "github.com/livebud/bud/package/gomod", Type: "*Module"},
+			{Import: "github.com/livebud/bud/package/budclient", Type: "Client"},
+			{Import: "context", Type: "Context"},
 		},
 		Results: []di.Dependency{
 			di.ToType(l.module.Import("bud/internal/app/web"), "*Server"),
