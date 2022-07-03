@@ -2,7 +2,6 @@ package create_test
 
 import (
 	"context"
-	"path/filepath"
 	"testing"
 
 	"github.com/livebud/bud/internal/cli/testcli"
@@ -30,9 +29,15 @@ func TestCreateOutsideGoPathModulePath(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
+	td := testdir.New(dir)
 	cli := testcli.New(dir)
-	result, err := cli.Run(ctx, "create", "--module=github.com/my/app", filepath.Join(dir, "app"))
+	is.NoErr(td.NotExists(".gitignore"))
+	result, err := cli.Run(ctx, "create", "--module=github.com/my/app", dir)
 	is.NoErr(err)
 	is.Equal(result.Stdout(), "")
 	is.Equal(result.Stderr(), "")
+	is.NoErr(td.Exists(".gitignore"))
+	is.NoErr(td.Exists("go.sum"))
+	is.NoErr(td.Exists("package.json"))
+	is.NoErr(td.Exists("package-lock.json"))
 }

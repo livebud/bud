@@ -161,7 +161,7 @@ func (c *Command) Scaffold(state *State) error {
 	// Scaffold into that directory
 	if err := scaffold.Scaffold(scaffold.OSFS(c.absDir),
 		scaffold.Template("go.mod", gomod, state.Module),
-		scaffold.Template("gitignore", gitignore, nil),
+		scaffold.Template(".gitignore", gitignore, nil),
 		scaffold.JSON("package.json", state.Package),
 	); err != nil {
 		return err
