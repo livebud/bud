@@ -76,9 +76,10 @@ func (c *Command) Run(ctx context.Context) error {
 	return commander.Usage()
 }
 
-const minimumGoVersion = "v1.17"
+const minGoVersion = "v1.17"
 
-var ErrMinimumGoVersion = fmt.Errorf("bud requires Go %s or later", minimumGoVersion)
+// ErrMinGoVersion error is returned when Bud needs a newer version of Go
+var ErrMinGoVersion = fmt.Errorf("bud requires Go %s or later", minGoVersion)
 
 // CheckGoVersion checks if the current version of Go is greater than the
 // minimum required Go version.
@@ -90,8 +91,8 @@ func CheckGoVersion(currentVersion string) error {
 	if !semver.IsValid(currentVersion) {
 		return nil
 	}
-	if semver.Compare(currentVersion, minimumGoVersion) < 0 {
-		return ErrMinimumGoVersion
+	if semver.Compare(currentVersion, minGoVersion) < 0 {
+		return ErrMinGoVersion
 	}
 	return nil
 }
