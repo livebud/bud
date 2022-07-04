@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"errors"
+	"runtime"
 
 	"github.com/livebud/bud/internal/cli/bud"
 	"github.com/livebud/bud/internal/cli/build"
@@ -31,6 +32,10 @@ type CLI struct {
 }
 
 func (c *CLI) Run(ctx context.Context, args ...string) error {
+	// Check that we have a valid Go version
+	if err := bud.CheckGoVersion(runtime.Version()); err != nil {
+		return err
+	}
 	// $ bud [args...]
 	cmd := bud.New(c.in)
 	cli := commander.New("bud").Writer(c.in.Stdout)

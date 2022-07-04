@@ -2,12 +2,15 @@ package bud
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/livebud/bud/internal/current"
 	"github.com/livebud/bud/internal/pubsub"
+	"golang.org/x/mod/semver"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/app"
@@ -71,6 +74,26 @@ type Command struct {
 // 2. Run bud/command/${name}
 func (c *Command) Run(ctx context.Context) error {
 	return commander.Usage()
+}
+
+const minimumGoVersion = "v1.17"
+
+var ErrMinimumGoVersion = fmt.Errorf("bud requires Go %s or later", minimumGoVersion)
+
+// CheckGoVersion checks if the current version of Go is greater than the
+// minimum required Go version.
+func CheckGoVersion(currentVersion string) error {
+	currentVersion = "v" + strings.TrimPrefix(currentVersion, "go")
+	// If we encounter an invalid version, it's probably a development version of
+	// Go. We'll let those pass through. Reference:
+	// https://github.com/golang/go/blob/3cf79d96105d890d7097d274804644b2a2093df1/src/runtime/extern.go#L273-L275
+	if !semver.IsValid(currentVersion) {
+		return nil
+	}
+	if semver.Compare(currentVersion, minimumGoVersion) < 0 {
+		return ErrMinimumGoVersion
+	}
+	return nil
 }
 
 // Module finds the go.mod file for the application
