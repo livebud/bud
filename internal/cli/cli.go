@@ -3,10 +3,13 @@ package cli
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os"
 
 	"github.com/livebud/bud/internal/cli/bud"
 	"github.com/livebud/bud/internal/cli/build"
 	"github.com/livebud/bud/internal/cli/create"
+	"github.com/livebud/bud/internal/cli/goversion"
 	"github.com/livebud/bud/internal/cli/newcontroller"
 	"github.com/livebud/bud/internal/cli/run"
 	"github.com/livebud/bud/internal/cli/toolbs"
@@ -30,7 +33,20 @@ type CLI struct {
 	in *bud.Input
 }
 
+var REQUIRED_GO_VERSION = goversion.NewVersion(1, 18, 0)
+
 func (c *CLI) Run(ctx context.Context, args ...string) error {
+
+	currentGoVersion := goversion.CurrentVersion()
+	if currentGoVersion.CompareTo(REQUIRED_GO_VERSION) < 0 {
+		
+		fmt.Printf("Current go version '%s' is less than required '%s'.",
+			currentGoVersion.ToString(), REQUIRED_GO_VERSION.ToString())
+		fmt.Println()
+		
+		os.Exit(1)
+	}
+	
 	// $ bud [args...]
 	cmd := bud.New(c.in)
 	cli := commander.New("bud").Writer(c.in.Stdout)
