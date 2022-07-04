@@ -2,6 +2,7 @@ package bud_test
 
 import (
 	"context"
+	"errors"
 	"os"
 	"testing"
 
@@ -159,4 +160,14 @@ func TestBuildRunAlignment(t *testing.T) {
 	is.In(runResult.Stdout(), "run")
 	is.In(runResult.Stdout(), "--minify")
 	is.In(runResult.Stdout(), "--embed")
+}
+
+func TestGoVersion(t *testing.T) {
+	is := is.New(t)
+	is.NoErr(bud.CheckGoVersion("go1.17"))
+	is.NoErr(bud.CheckGoVersion("go1.18"))
+	is.True(errors.Is(bud.CheckGoVersion("go1.16"), bud.ErrMinGoVersion))
+	is.True(errors.Is(bud.CheckGoVersion("go1.16.5"), bud.ErrMinGoVersion))
+	is.True(errors.Is(bud.CheckGoVersion("go1.8"), bud.ErrMinGoVersion))
+	is.NoErr(bud.CheckGoVersion("abc123"))
 }

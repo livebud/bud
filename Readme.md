@@ -55,7 +55,7 @@ The following software is required to use Bud.
 
   This is a temporary requirement that we plan to remove in [v0.3](https://github.com/livebud/bud/discussions/21)
 
-- Go v1.16+
+- Go v1.17+
 
   Bud relies heavily on `io/fs` and will take advantage of generics in the future, so while Go v1.16 will work, we suggest running Go v1.18+ if you can.
 
