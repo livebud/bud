@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime"
 	"os"
 
 	"github.com/livebud/bud/internal/cli/bud"
@@ -38,7 +39,10 @@ var REQUIRED_GO_VERSION = goversion.NewVersion(1, 18, 0)
 func (c *CLI) Run(ctx context.Context, args ...string) error {
 
 	currentGoVersion := goversion.CurrentVersion()
-	if currentGoVersion.CompareTo(REQUIRED_GO_VERSION) < 0 {
+	if currentGoVersion.IsValid() {
+		fmt.Printf("Non-standard go version '%s' returned, cannot ensure compliance.",
+			runtime.Version())
+	} else if currentGoVersion.CompareTo(REQUIRED_GO_VERSION) < 0 {
 		
 		fmt.Printf("Current go version '%s' is less than required '%s'.",
 			currentGoVersion.ToString(), REQUIRED_GO_VERSION.ToString())
