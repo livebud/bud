@@ -6,6 +6,12 @@ Get the latest release of Bud by running the following in your terminal:
 curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
 ```
 
+## v0.2.1
+
+- Fix typo in scaffolding .gitignore (#189)
+- Fix minor spelling in transform error output (#190) thanks to @jfmario
+- Add `Hoist` option to dependency injection framework so dependents of external parameters can still be eligible for hoisting (#192)
+
 ## v0.2.0
 
 - Improve support for injecting request-specific dependencies (#181)
