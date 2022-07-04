@@ -9,6 +9,16 @@ import (
 	"github.com/livebud/bud/package/parser"
 )
 
+type Param struct {
+	Import string
+	Type   string
+	Hoist  bool
+}
+
+func (p *Param) ID() string {
+	return getID(p.Import, p.Type)
+}
+
 // Function is the top-level load function that we generate to provide all the
 // dependencies
 type Function struct {
@@ -17,7 +27,7 @@ type Function struct {
 	// Imports to pass through
 	Imports *imports.Set
 	// Params are the external parameters that are passed in
-	Params []Dependency
+	Params []*Param
 	// Results are the dependencies that need to be loaded
 	Results []Dependency
 	// Hoist dependencies that don't depend on externals, turning them into

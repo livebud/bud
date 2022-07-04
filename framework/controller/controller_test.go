@@ -2266,7 +2266,7 @@ func TestRedirectBack(t *testing.T) {
 	`))
 }
 
-func TestSession(t *testing.T) {
+func TestInject(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
@@ -2279,6 +2279,7 @@ func TestSession(t *testing.T) {
 	`
 	td.Files["session/session.go"] = `
 		package session
+		import "errors"
 		import "net/http"
 		import "app.com/log"
 		func New(log *log.Logger, w http.ResponseWriter, r *http.Request) *Session {
@@ -2293,16 +2294,40 @@ func TestSession(t *testing.T) {
 			s.log.Info("setting session")
 			http.SetCookie(s.w, &http.Cookie{Name: key, Value: value })
 		}
+		func (s *Session) Clear() error {
+			return errors.New("session: unable to clear")
+		}
+	`
+	td.Files["db/db.go"] = `
+		package db
+		import "context"
+		var loaded = 0
+		func Load(ctx context.Context) (*Client, error) {
+			loaded++
+			return &Client{}, nil
+		}
+		type Client struct{}
+		func (c *Client) Loaded() int {
+			return loaded
+		}
 	`
 	td.Files["controller/controller.go"] = `
 		package controller
 		import "app.com/session"
+		import "app.com/db"
 		type Controller struct {
 			Session *session.Session
+			DB *db.Client
 		}
 		func (c *Controller) Create() error {
 			c.Session.Set("sessionid", "some-key")
 			return nil
+		}
+		func (c *Controller) Delete() error {
+			return c.Session.Clear()
+		}
+		func (c *Controller) Index() int {
+			return c.DB.Loaded()
 		}
 	`
 	is.NoErr(td.Write(ctx))
@@ -2310,15 +2335,29 @@ func TestSession(t *testing.T) {
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
-	// Post request
-	req, err := app.PostRequest("/", nil)
+	// Test errors from dependencies
+	res, err := app.DeleteJSON("/10", nil)
 	is.NoErr(err)
-	req.Header.Set("Referer", "/new")
-	res, err := app.Do(req)
+	is.NoErr(res.Diff(`
+			HTTP/1.1 500 Internal Server Error
+			Content-Type: application/json
+
+			{"error":"session: unable to clear"}
+		`))
+	// Post request continue to work
+	res, err = app.PostJSON("/", nil)
 	is.NoErr(err)
-	is.NoErr(res.DiffHeaders(`
-		HTTP/1.1 302 Found
-		Location: /
+	is.NoErr(res.Diff(`
+		HTTP/1.1 204 No Content
 		Set-Cookie: sessionid=some-key
+	`))
+	// Post request continue to work
+	res, err = app.GetJSON("/")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		1
 	`))
 }

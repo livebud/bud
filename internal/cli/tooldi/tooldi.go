@@ -79,7 +79,10 @@ func (c *Command) Run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		fn.Params = append(fn.Params, ext)
+		fn.Params = append(fn.Params, &di.Param{
+			Import: ext.ImportPath(),
+			Type:   ext.TypeName(),
+		})
 	}
 	injector := di.New(overlay, log, module, parser)
 	node, err := injector.Load(fn)
