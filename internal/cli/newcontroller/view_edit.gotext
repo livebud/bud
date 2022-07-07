@@ -1,0 +1,12 @@
+<script>
+  export let {{$.Variable}} = {}
+</script>
+
+<h1>Edit {{$.Singular}}</h1>
+
+<form method="post" action="{{ $.Action.Route }}">
+  <!-- Add input fields here -->
+  <input type="submit" value="Edit {{$.Singular}}" />
+</form>
+
+<a href="..">Back</a>

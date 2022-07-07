@@ -1,0 +1,8 @@
+<h1>New {{$.Singular}}</h1>
+
+<form method="post" action="{{ $.Action.Route }}">
+  <!-- Add input fields here -->
+  <input type="submit" value="Create {{$.Singular}}" />
+</form>
+
+<a href="..">Back</a>

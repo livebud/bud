@@ -38,9 +38,17 @@ var indexView string
 //go:embed view_show.gotext
 var showView string
 
+//go:embed view_edit.gotext
+var editView string
+
+//go:embed view_new.gotext
+var newView string
+
 var views = map[string]string{
 	"index": indexView,
 	"show":  showView,
+	"edit":  editView,
+	"new":   newView,
 }
 
 type State struct {
@@ -67,13 +75,19 @@ type Action struct {
 	Route  string
 	Result string
 
-	Index bool
-	Show  bool
+	Index  bool
+	New    bool
+	Create bool
+	Show   bool
+	Edit   bool
+	Update bool
+	Delete bool
 }
 
 type View struct {
 	template   string
 	Controller *Controller
+	Action     *Action
 	Path       string
 	Title      string
 	Variable   string
@@ -152,12 +166,47 @@ func (c *Command) controllerAction(controller *Controller, a string) *Action {
 		// 	Template: index,
 		// }
 		action.Result = gotext.Camel(controller.Plural)
+	case "new":
+		action.New = true
+		action.Route = path.Join(controller.Route, "/new")
+		action.Result = gotext.Camel(controller.Singular)
+	case "create":
+		action.Create = true
+		action.Route = controller.Route
+		action.Result = gotext.Camel(controller.Singular)
 	case "show":
 		action.Show = true
 		action.Route = path.Join(controller.Route, "/:id")
 		action.Result = gotext.Camel(controller.Singular)
+	case "edit":
+		action.Edit = true
+		action.Route = path.Join(controller.Route, "/:id/edit")
+		action.Result = gotext.Camel(controller.Singular)
+	case "update":
+		action.Update = true
+		action.Route = path.Join(controller.Route, "/:id")
+		action.Result = gotext.Camel(controller.Singular)
+	case "delete":
+		action.Delete = true
+		action.Route = path.Join(controller.Route, "/:id")
+		action.Result = gotext.Camel(controller.Singular)
 	default:
-		c.bail.Bail(fmt.Errorf("invalid path:resource %q", a))
+		validActions := []string{
+			"\"index\"",
+			"\"new\"",
+			"\"create\"",
+			"\"show\"",
+			"\"edit\"",
+			"\"update\"",
+			"\"delete\"",
+		}
+		validActionsStr := strings.Join(validActions, ", ")
+		// TODO: Add link to docs in error when available
+		c.bail.Bail(
+			fmt.Errorf("invalid action specified %q\nRecognized actions:\n%s",
+				a,
+				validActionsStr,
+			))
 	}
 	return action
 }
@@ -170,6 +219,7 @@ func (c *Command) views(controller *Controller) (views []*View) {
 }
 
 func (c *Command) view(controller *Controller, action *Action) *View {
+	fmt.Println(action.Name)
 	template, ok := views[action.Name]
 	if !ok {
 		template = ""
@@ -177,6 +227,7 @@ func (c *Command) view(controller *Controller, action *Action) *View {
 	return &View{
 		template:   template,
 		Controller: controller,
+		Action:     action,
 		Path:       filepath.Join("view", controller.key, action.Name+".svelte"),
 		Title:      text.Title(controller.Struct),
 		Variable:   text.Camel(action.Result),
