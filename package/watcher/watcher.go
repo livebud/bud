@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -18,6 +17,18 @@ import (
 	"github.com/livebud/bud/internal/gitignore"
 )
 
+const (
+	ChangeEventType = iota
+	CreateEventType
+	RenameEventType
+	RemoveEventType
+)
+
+type UpdateEvent struct {
+	Path      string
+	EventType int
+}
+
 var Stop = errors.New("stop watching")
 
 // Arbitrarily picked after some manual testing. OSX is pretty fast, but Ubuntu
@@ -25,40 +36,41 @@ var Stop = errors.New("stop watching")
 // this snappy.
 var debounceDelay = 20 * time.Millisecond
 
-func newPathSet() *pathSet {
-	return &pathSet{
-		paths: map[string]struct{}{},
+func newUpdateSet() *UpdateSet {
+	return &UpdateSet{
+		updates: make(map[string]int),
 	}
 }
 
-// pathset is used to collect paths that have changed and flush them all at once
-// when the watch function is triggered.
-type pathSet struct {
-	mu    sync.RWMutex
-	paths map[string]struct{}
+// UpdateSet is used to collect update events for paths that have changed and
+// flush them all at once when the watch function is triggered.
+type UpdateSet struct {
+	mu      sync.RWMutex
+	updates map[string]int
 }
 
 // Add a path to the set
-func (p *pathSet) Add(path string) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.paths[path] = struct{}{}
+func (u *UpdateSet) Add(path string, updateType int) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	u.updates[path] = updateType
 }
 
 // Flush the stored paths and clear the path set.
-func (p *pathSet) Flush() (paths []string) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	for path := range p.paths {
-		paths = append(paths, path)
+func (u *UpdateSet) Flush() []UpdateEvent {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+	updates := []UpdateEvent{}
+	for path := range u.updates {
+		updates = append(updates, UpdateEvent{path, u.updates[path]})
 	}
-	sort.Strings(paths)
-	p.paths = map[string]struct{}{}
-	return paths
+	//sort.Strings(paths)
+	u.updates = make(map[string]int)
+	return updates
 }
 
 // Watch function
-func Watch(ctx context.Context, dir string, fn func(paths []string) error) error {
+func Watch(ctx context.Context, dir string, fn func([]UpdateEvent) error) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return err
@@ -68,12 +80,12 @@ func Watch(ctx context.Context, dir string, fn func(paths []string) error) error
 	gitIgnore := gitignore.From(dir)
 	// Trigger is debounced to group events together
 	errorCh := make(chan error)
-	pathset := newPathSet()
+	updateSet := newUpdateSet()
 	debounce := debounce.New(debounceDelay)
-	trigger := func(path string) {
-		pathset.Add(path)
+	trigger := func(path string, eventType int) {
+		updateSet.Add(path, eventType)
 		debounce(func() {
-			if err := fn(pathset.Flush()); err != nil {
+			if err := fn(updateSet.Flush()); err != nil {
 				errorCh <- err
 			}
 		})
@@ -108,7 +120,7 @@ func Watch(ctx context.Context, dir string, fn func(paths []string) error) error
 		// Remove the path and emit an update
 		watcher.Remove(path)
 		// Trigger an update
-		trigger(path)
+		trigger(path, RenameEventType)
 		return nil
 	}
 	// Remove the file or directory from the watcher.
@@ -116,7 +128,7 @@ func Watch(ctx context.Context, dir string, fn func(paths []string) error) error
 	remove := func(path string) error {
 		watcher.Remove(path)
 		// Trigger an update
-		trigger(path)
+		trigger(path, RemoveEventType)
 		return nil
 	}
 	// Watching a file or directory as long as it's not inside .gitignore.
@@ -156,11 +168,11 @@ func Watch(ctx context.Context, dir string, fn func(paths []string) error) error
 					return err
 				}
 			}
-			trigger(path)
+			trigger(path, CreateEventType)
 			return nil
 		}
 		// Otherwise, trigger the create
-		trigger(path)
+		trigger(path, CreateEventType)
 		return nil
 	}
 	// A file or directory has been updated. Notify our matchers.
@@ -181,7 +193,7 @@ func Watch(ctx context.Context, dir string, fn func(paths []string) error) error
 			return nil
 		}
 		// Trigger an update
-		trigger(path)
+		trigger(path, ChangeEventType)
 		return nil
 	}
 

@@ -1,4 +1,4 @@
-package watcher_test
+package watcher
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/livebud/bud/package/watcher"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/livebud/bud/internal/is"
@@ -32,7 +31,7 @@ func writeFiles(dir string, files map[string]string) error {
 	return eg.Wait()
 }
 
-func getEvent(event <-chan []string) ([]string, error) {
+func getEvent(event <-chan []UpdateEvent) ([]UpdateEvent, error) {
 	select {
 	case paths := <-event:
 		return paths, nil
@@ -49,14 +48,14 @@ func TestChange(t *testing.T) {
 	})
 	is.NoErr(err)
 	ctx := context.Background()
-	event := make(chan []string)
+	eventChan := make(chan []UpdateEvent)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	eg := new(errgroup.Group)
 	eg.Go(func() error {
-		return watcher.Watch(ctx, dir, func(paths []string) error {
+		return Watch(ctx, dir, func(events []UpdateEvent) error {
 			select {
-			case event <- paths:
+			case eventChan <- events:
 			case <-ctx.Done():
 			}
 			return nil
@@ -65,10 +64,11 @@ func TestChange(t *testing.T) {
 	time.Sleep(waitForEvents)
 	err = os.WriteFile(filepath.Join(dir, "a.txt"), []byte("b"), 0644)
 	is.NoErr(err)
-	paths, err := getEvent(event)
+	events, err := getEvent(eventChan)
 	is.NoErr(err)
-	is.Equal(len(paths), 1)
-	is.Equal(paths[0], filepath.Join(dir, "a.txt"))
+	is.Equal(len(events), 1)
+	is.Equal(events[0].Path, filepath.Join(dir, "a.txt"))
+	is.Equal(events[0].EventType, ChangeEventType)
 	cancel()
 	is.NoErr(eg.Wait())
 }
@@ -81,14 +81,14 @@ func TestDelete(t *testing.T) {
 	})
 	is.NoErr(err)
 	ctx := context.Background()
-	event := make(chan []string)
+	eventChan := make(chan []UpdateEvent)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	eg := new(errgroup.Group)
 	eg.Go(func() error {
-		return watcher.Watch(ctx, dir, func(paths []string) error {
+		return Watch(ctx, dir, func(events []UpdateEvent) error {
 			select {
-			case event <- paths:
+			case eventChan <- events:
 			case <-ctx.Done():
 			}
 			return nil
@@ -97,10 +97,11 @@ func TestDelete(t *testing.T) {
 	time.Sleep(waitForEvents)
 	err = os.RemoveAll(filepath.Join(dir, "a.txt"))
 	is.NoErr(err)
-	paths, err := getEvent(event)
+	events, err := getEvent(eventChan)
 	is.NoErr(err)
-	is.Equal(len(paths), 1)
-	is.Equal(paths[0], filepath.Join(dir, "a.txt"))
+	is.Equal(len(events), 1)
+	is.Equal(events[0].Path, filepath.Join(dir, "a.txt"))
+	is.Equal(events[0].EventType, RemoveEventType)
 	cancel()
 	is.NoErr(eg.Wait())
 }
@@ -109,14 +110,14 @@ func TestCreate(t *testing.T) {
 	is := is.New(t)
 	dir := t.TempDir()
 	ctx := context.Background()
-	event := make(chan []string)
+	eventChan := make(chan []UpdateEvent)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	eg := new(errgroup.Group)
 	eg.Go(func() error {
-		return watcher.Watch(ctx, dir, func(paths []string) error {
+		return Watch(ctx, dir, func(events []UpdateEvent) error {
 			select {
-			case event <- paths:
+			case eventChan <- events:
 			case <-ctx.Done():
 			}
 			return nil
@@ -125,10 +126,10 @@ func TestCreate(t *testing.T) {
 	time.Sleep(waitForEvents)
 	err := os.WriteFile(filepath.Join(dir, "a.txt"), []byte("b"), 0644)
 	is.NoErr(err)
-	paths, err := getEvent(event)
+	events, err := getEvent(eventChan)
 	is.NoErr(err)
-	is.Equal(len(paths), 1)
-	is.Equal(paths[0], filepath.Join(dir, "a.txt"))
+	is.Equal(len(events), 1)
+	is.Equal(events[0].Path, filepath.Join(dir, "a.txt"))
 	cancel()
 	is.NoErr(eg.Wait())
 }
@@ -137,14 +138,14 @@ func TestCreateRecursive(t *testing.T) {
 	is := is.New(t)
 	dir := t.TempDir()
 	ctx := context.Background()
-	event := make(chan []string)
+	eventChan := make(chan []UpdateEvent)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	eg := new(errgroup.Group)
 	eg.Go(func() error {
-		return watcher.Watch(ctx, dir, func(paths []string) error {
+		return Watch(ctx, dir, func(events []UpdateEvent) error {
 			select {
-			case event <- paths:
+			case eventChan <- events:
 			case <-ctx.Done():
 			}
 			return nil
@@ -155,11 +156,19 @@ func TestCreateRecursive(t *testing.T) {
 	is.NoErr(err)
 	err = os.WriteFile(filepath.Join(dir, "b", "a.txt"), []byte("b"), 0644)
 	is.NoErr(err)
-	paths, err := getEvent(event)
+	events, err := getEvent(eventChan)
 	is.NoErr(err)
-	is.Equal(len(paths), 2)
-	is.Equal(paths[0], filepath.Join(dir, "b"))
-	is.Equal(paths[1], filepath.Join(dir, "b/a.txt"))
+	is.Equal(len(events), 2)
+	expectedUpdates := []string{
+		filepath.Join(dir, "b"),
+		filepath.Join(dir, "b/a.txt"),
+	}
+
+	is.In(expectedUpdates, events[0].Path)
+	is.In(expectedUpdates, events[1].Path)
+	if events[0].Path == events[1].Path {
+		is.Fail("expected paths to not be the same")
+	}
 	cancel()
 	is.NoErr(eg.Wait())
 }
@@ -168,14 +177,14 @@ func TestWithScaffold(t *testing.T) {
 	is := is.New(t)
 	dir := t.TempDir()
 	ctx := context.Background()
-	event := make(chan []string)
+	eventChan := make(chan []UpdateEvent)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	eg := new(errgroup.Group)
 	eg.Go(func() error {
-		return watcher.Watch(ctx, dir, func(paths []string) error {
+		return Watch(ctx, dir, func(events []UpdateEvent) error {
 			select {
-			case event <- paths:
+			case eventChan <- events:
 			case <-ctx.Done():
 			}
 			return nil
@@ -188,17 +197,23 @@ func TestWithScaffold(t *testing.T) {
 		"view/show.svelte":         `<h1>show</h1>`,
 	})
 	is.NoErr(err)
-	paths, err := getEvent(event)
+	events, err := getEvent(eventChan)
 	is.NoErr(err)
-	is.Equal(len(paths), 5)
-	is.Equal(paths[0], filepath.Join(dir, "controller"))
-	is.Equal(paths[1], filepath.Join(dir, "controller/controller.go"))
-	is.Equal(paths[2], filepath.Join(dir, "view"))
-	is.Equal(paths[3], filepath.Join(dir, "view/index.svelte"))
-	is.Equal(paths[4], filepath.Join(dir, "view/show.svelte"))
+	is.Equal(len(events), 5)
+	expectedPaths := []string{
+		filepath.Join(dir, "controller"),
+		filepath.Join(dir, "controller/controller.go"),
+		filepath.Join(dir, "view"),
+		filepath.Join(dir, "view/index.svelte"),
+		filepath.Join(dir, "view/show.svelte"),
+	}
+
+	for _, event := range events {
+		is.In(expectedPaths, event.Path)
+	}
 	// Test that there's only been one event
 	select {
-	case <-event:
+	case <-eventChan:
 		t.Fatalf("unexpected extra event")
 	case <-time.Tick(waitForEvents):
 	}
@@ -210,7 +225,7 @@ func TestWithRootDotFile(t *testing.T) {
 	is := is.New(t)
 	dir := t.TempDir()
 	ctx := context.Background()
-	event := make(chan []string)
+	eventChan := make(chan []UpdateEvent)
 	err := writeFiles(dir, map[string]string{
 		"controller/controller.go": `package controller`,
 		".envrc":                   `export FOO=bar`,
@@ -219,9 +234,9 @@ func TestWithRootDotFile(t *testing.T) {
 	is.NoErr(err)
 	eg := new(errgroup.Group)
 	eg.Go(func() error {
-		return watcher.Watch(ctx, dir, func(paths []string) error {
+		return Watch(ctx, dir, func(events []UpdateEvent) error {
 			select {
-			case event <- paths:
+			case eventChan <- events:
 			case <-ctx.Done():
 			}
 			return nil
@@ -234,8 +249,8 @@ func TestWithRootDotFile(t *testing.T) {
 	})
 	is.NoErr(err)
 	// Get event
-	paths, err := getEvent(event)
+	events, err := getEvent(eventChan)
 	is.NoErr(err)
-	is.Equal(len(paths), 1)
-	is.Equal(paths[0], filepath.Join(dir, "controller/controller.go"))
+	is.Equal(len(events), 1)
+	is.Equal(events[0].Path, filepath.Join(dir, "controller/controller.go"))
 }

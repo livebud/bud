@@ -27,6 +27,10 @@ import (
 	"github.com/livebud/bud/package/watcher"
 )
 
+var viewSuffixes map[string]struct{} = map[string]struct{}{
+	".svelte": {},
+}
+
 // New command for bud run.
 func New(bud *bud.Command, in *bud.Input) *Command {
 	return &Command{
@@ -210,10 +214,10 @@ func (a *appServer) Run(ctx context.Context) error {
 	a.bus.Publish("app:ready", nil)
 	a.log.Debug("run: published event", "event", "app:ready")
 	// Watch for changes
-	return watcher.Watch(ctx, a.dir, catchError(a.prompter, func(paths []string) error {
-		a.log.Debug("run: files changes", "paths", paths)
-		a.prompter.Reloading(paths)
-		if canIncrementallyReload(paths) {
+	return watcher.Watch(ctx, a.dir, catchError(a.prompter, func(events []watcher.UpdateEvent) error {
+		a.log.Debug("run: files changes", "events", events)
+		a.prompter.Reloading(pathsFromWatchEvents(events))
+		if canIncrementallyReload(events) {
 			a.log.Debug("run: incrementally reloading")
 			// Publish the frontend:update event
 			a.bus.Publish("frontend:update", nil)
@@ -258,9 +262,11 @@ func (a *appServer) Run(ctx context.Context) error {
 
 // logWrap wraps the watch function in a handler that logs the error instead of
 // returning the error (and canceling the watcher)
-func catchError(prompter *prompter.Prompter, fn func(paths []string) error) func(paths []string) error {
-	return func(paths []string) error {
-		if err := fn(paths); err != nil {
+func catchError(
+	prompter *prompter.Prompter,
+	fn func(events []watcher.UpdateEvent) error) func(events []watcher.UpdateEvent) error {
+	return func(events []watcher.UpdateEvent) error {
+		if err := fn(events); err != nil {
 			prompter.FailReload(err.Error())
 		}
 		return nil
@@ -268,11 +274,29 @@ func catchError(prompter *prompter.Prompter, fn func(paths []string) error) func
 }
 
 // canIncrementallyReload returns true if we can incrementally reload a page
-func canIncrementallyReload(paths []string) bool {
-	for _, path := range paths {
-		if filepath.Ext(path) == ".go" {
+func canIncrementallyReload(events []watcher.UpdateEvent) bool {
+	for _, event := range events {
+		if event.EventType != watcher.ChangeEventType &&
+			isViewFile(event.Path) {
+			return false
+		}
+
+		if filepath.Ext(event.Path) == ".go" {
 			return false
 		}
 	}
 	return true
+}
+
+func isViewFile(path string) bool {
+	_, found := viewSuffixes[filepath.Ext(path)]
+	return found
+}
+
+func pathsFromWatchEvents(events []watcher.UpdateEvent) []string {
+	paths := []string{}
+	for _, event := range events {
+		paths = append(paths, event.Path)
+	}
+	return paths
 }
