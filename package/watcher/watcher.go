@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	ChangeEventType = iota
+	EditEventType = iota
 	CreateEventType
 	RenameEventType
 	RemoveEventType
@@ -192,7 +192,7 @@ func Watch(ctx context.Context, dir string, fn func([]UpdateEvent) error) error 
 			return nil
 		}
 		// Trigger an update
-		trigger(path, ChangeEventType)
+		trigger(path, EditEventType)
 		return nil
 	}
 

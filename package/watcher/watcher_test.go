@@ -68,7 +68,7 @@ func TestChange(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(len(events), 1)
 	is.Equal(events[0].Path, filepath.Join(dir, "a.txt"))
-	is.Equal(events[0].EventType, ChangeEventType)
+	is.Equal(events[0].EventType, EditEventType)
 	cancel()
 	is.NoErr(eg.Wait())
 }

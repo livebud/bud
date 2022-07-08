@@ -276,7 +276,7 @@ func catchError(
 // canIncrementallyReload returns true if we can incrementally reload a page
 func canIncrementallyReload(events []watcher.UpdateEvent) bool {
 	for _, event := range events {
-		if event.EventType != watcher.ChangeEventType &&
+		if event.EventType != watcher.EditEventType &&
 			isViewFile(event.Path) {
 			return false
 		}
