@@ -64,7 +64,6 @@ func (u *UpdateSet) Flush() []UpdateEvent {
 	for path := range u.updates {
 		updates = append(updates, UpdateEvent{path, u.updates[path]})
 	}
-	//sort.Strings(paths)
 	u.updates = make(map[string]int)
 	return updates
 }
