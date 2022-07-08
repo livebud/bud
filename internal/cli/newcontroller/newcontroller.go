@@ -219,7 +219,6 @@ func (c *Command) views(controller *Controller) (views []*View) {
 }
 
 func (c *Command) view(controller *Controller, action *Action) *View {
-	fmt.Println(action.Name)
 	template, ok := views[action.Name]
 	if !ok {
 		template = ""
