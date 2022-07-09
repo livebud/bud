@@ -10,6 +10,7 @@ install:
 	go mod tidy
 	npm install
 	(cd livebud && npm install)
+	$(MAKE) go.generate
 
 ##
 # Examples

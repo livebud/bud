@@ -1,4 +1,4 @@
-import { createView } from "./bud/view/_svelte.ts"
+import { createView } from "./bud/view/_svelte.js"
 {{- range $import := $.ServerImports }}
 import {{$import.Pascal}} from "./{{$import}}"
 {{- end }}
