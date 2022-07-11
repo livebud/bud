@@ -1,5 +1,7 @@
 package ssr
 
+//go:generate go run github.com/evanw/esbuild/cmd/esbuild svelte.ts --outfile=svelte.js --log-level=warning --format=esm --bundle
+
 import (
 	"context"
 	"fmt"
@@ -274,7 +276,7 @@ func sveltePlugin(osfs fs.FS, dir string) esbuild.Plugin {
 	}
 }
 
-//go:embed svelte.ts
+//go:embed svelte.js
 var svelteRuntime string
 
 // Generate the svelte runtime for the entry files
@@ -282,7 +284,7 @@ func svelteRuntimePlugin(osfs fs.FS, dir string) esbuild.Plugin {
 	return esbuild.Plugin{
 		Name: "svelte_runtime",
 		Setup: func(epb esbuild.PluginBuild) {
-			epb.OnResolve(esbuild.OnResolveOptions{Filter: `^\./bud/view/_svelte\.ts$`}, func(args esbuild.OnResolveArgs) (result esbuild.OnResolveResult, err error) {
+			epb.OnResolve(esbuild.OnResolveOptions{Filter: `^\./bud/view/_svelte\.js$`}, func(args esbuild.OnResolveArgs) (result esbuild.OnResolveResult, err error) {
 				result.Path = args.Path
 				result.Namespace = "svelte_runtime"
 				return result, nil

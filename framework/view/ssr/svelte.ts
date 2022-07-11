@@ -1,3 +1,5 @@
+import jsesc from 'jsesc'
+
 type View = {
   page: any
   frames: any[]
@@ -19,7 +21,7 @@ export function createView(view: View) {
     let html = page.html
     let head = page.head
     // Render the layout
-    const hydrate = JSON.stringify(props)
+    const hydrate = jsesc(props, { isScriptContext: true, json: true })
     const layout = view.layout.render(props, {
       head: function () {
         return `

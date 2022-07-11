@@ -2361,3 +2361,41 @@ func TestInject(t *testing.T) {
 		1
 	`))
 }
+
+func TestEscapeProps(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.NodeModules["svelte"] = versions.Svelte
+	td.Files["controller/controller.go"] = `
+		package controller
+		type Controller struct {}
+		type Post struct {
+			HTML string ` + "`json:\"html\"`" + `
+		}
+		func (c *Controller) Show(id string) *Post {
+			return &Post{HTML: ` + "`" + `<b>hello ` + "`" + ` + id + ` + "`" + `<script type="text/javascript">alert('xss!')</script></b>` + "`" + `}
+		}
+	`
+	td.Files["view/show.svelte"] = `
+		<script>
+			export let post = {}
+		</script>
+		<h1>{post.html}</h1>
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	// Post request
+	res, err := app.Get("/alice")
+	is.NoErr(err)
+	props, err := res.Query("#bud_props")
+	is.NoErr(err)
+	is.Equal(props.Text(), `{"post":{"html":"<b>hello alice<script type=\"text/javascript\">alert('xss!')<\/script></b>"}}`)
+	target, err := res.Query("#bud_target")
+	is.NoErr(err)
+	is.Equal(target.Text(), `<b>hello alice<script type="text/javascript">alert('xss!')</script></b>`)
+}
