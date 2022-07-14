@@ -7,6 +7,7 @@ import (
 	"github.com/livebud/bud/internal/cli/testcli"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
+	"github.com/livebud/bud/internal/versions"
 )
 
 func TestNewControllerNoActions(t *testing.T) {
@@ -97,5 +98,98 @@ func TestNewControllerIndexShow(t *testing.T) {
 
 		{}
 	`))
+	is.NoErr(app.Close())
+}
+
+func TestNewControllerAll(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.NodeModules["svelte"] = versions.Svelte
+	err := td.Write(ctx)
+	is.NoErr(err)
+	cli := testcli.New(dir)
+	result, err := cli.Run(ctx, "new", "controller", "posts", "index", "show", "create", "update", "delete", "edit", "new")
+	is.NoErr(err)
+	is.Equal(result.Stdout(), "")
+	is.Equal(result.Stderr(), "")
+	is.NoErr(td.Exists("controller/posts/controller.go"))
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+
+	// Post index
+	res, err := app.Get("/posts")
+	is.NoErr(err)
+	is.Equal(res.Status(), 200)
+	sel, err := res.Query("#bud_target")
+	is.NoErr(err)
+	html, err := sel.Html()
+	is.NoErr(err)
+	is.In(html, `<h1>Post Index</h1>`)
+	is.In(html, `<table `)
+	is.In(html, `</table>`)
+
+	// New post
+	res, err = app.Get("/posts/new")
+	is.NoErr(err)
+	is.Equal(res.Status(), 200)
+	sel, err = res.Query("#bud_target")
+	is.NoErr(err)
+	html, err = sel.Html()
+	is.NoErr(err)
+	is.In(html, `<h1>New Post</h1>`)
+	is.In(html, `<form method="post" action="/posts">`)
+	is.In(html, `<input type="submit" value="Create Post"/>`)
+	is.In(html, `</form>`)
+	is.In(html, `<a href="..">Back</a>`)
+
+	// Create post
+	res, err = app.Post("/posts", nil)
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 302 Found
+		Location: /posts/0
+	`))
+
+	// Edit post
+	res, err = app.Get("/posts/10/edit")
+	is.NoErr(err)
+	is.Equal(res.Status(), 200)
+	sel, err = res.Query("#bud_target")
+	is.NoErr(err)
+	html, err = sel.Html()
+	is.NoErr(err)
+	is.In(html, `<h1>Edit Post</h1>`)
+	is.In(html, `<form method="post" action="/posts/10">`)
+	is.In(html, `<input type="hidden" name="_method" value="patch"/>`)
+	is.In(html, `<input type="submit" value="Update Post"/>`)
+	is.In(html, `</form>`)
+	is.In(html, `<a href="..">Back</a>`)
+
+	// Update post (via method override)
+	res, err = app.Post("/posts/10?_method=patch", nil)
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 302 Found
+		Location: /posts/10
+	`))
+	// Update post with patch
+	res, err = app.Patch("/posts/10", nil)
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 302 Found
+		Location: /posts/10
+	`))
+
+	// Delete post
+	res, err = app.Delete("/posts/10", nil)
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 302 Found
+		Location: /posts
+	`))
+
 	is.NoErr(app.Close())
 }

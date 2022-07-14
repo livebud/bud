@@ -163,10 +163,14 @@ func (l *loader) loadActionRoute(basePath, actionName string) string {
 	case "Index", "Create":
 		return basePath
 	default:
-		return path.Join(basePath, text.Lower(text.Path(actionName)))
+		return path.Join(basePath, text.Lower(text.Snake(actionName)))
 	}
 }
 
 func (l *loader) loadActionCallName(basePath, actionName string) string {
-	return text.Dot(text.Title(basePath + " " + actionName))
+	baseCaller := text.Dot(text.Title(basePath))
+	if baseCaller == "" {
+		return actionName
+	}
+	return baseCaller + "." + actionName
 }

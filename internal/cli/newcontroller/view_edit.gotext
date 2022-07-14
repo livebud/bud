@@ -1,0 +1,13 @@
+<script>
+  export let {{ $.Singular }} = {}
+</script>
+
+<h1>Edit {{ $.Title }}</h1>
+
+<form method="post" action={`{{ $.Controller.Route }}/${ {{- $.Singular }}.id}`}>
+	<input type="hidden" name="_method" value="patch">
+	<!-- Add input fields here -->
+	<input type="submit" value="Update {{ $.Title }}" />
+</form>
+
+<a href="..">Back</a>

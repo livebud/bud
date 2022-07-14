@@ -13,7 +13,6 @@ import (
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/package/vfs"
 	"github.com/otiai10/copy"
-	"golang.org/x/sync/errgroup"
 )
 
 type MapFS = vfs.Memory
@@ -72,13 +71,11 @@ func (j *jsonFile) Scaffold(fsys vfs.ReadWritable) error {
 }
 
 func Scaffold(fsys vfs.ReadWritable, scaffoldings ...Scaffolding) error {
-	eg := new(errgroup.Group)
+	// TODO: make concurrency safe then refactor to use errgroup.
 	for _, s := range scaffoldings {
-		s := s
-		eg.Go(func() error { return s.Scaffold(fsys) })
-	}
-	if err := eg.Wait(); err != nil {
-		return err
+		if err := s.Scaffold(fsys); err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -724,9 +724,10 @@ func TestJSONDelete500(t *testing.T) {
 	td.Files["controller/controller.go"] = `
 		package controller
 		import "errors"
+		import "context"
 		type Controller struct {}
-		func (c *Controller) Delete() (string, error) {
-			return "", errors.New("Not implemented yet")
+		func (c *Controller) Delete(ctx context.Context, id int) (err error) {
+			return errors.New("Not implemented yet")
 		}
 	`
 	is.NoErr(td.Write(ctx))
@@ -2398,4 +2399,310 @@ func TestEscapeProps(t *testing.T) {
 	target, err := res.Query("#bud_target")
 	is.NoErr(err)
 	is.Equal(target.Text(), `<b>hello alice<script type="text/javascript">alert('xss!')</script></b>`)
+}
+
+func TestProtocol(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.NodeModules["svelte"] = versions.Svelte
+	td.NodeModules["livebud"] = "*"
+	td.Files["model/model.go"] = `
+		package model
+		type Article struct {
+			SlugID string
+		}
+	`
+	td.Files["controller/controller.go"] = `
+		package controller
+		import "app.com/model"
+		type Controller struct {}
+		type Post struct {
+			ID string ` + "`" + `json:"id"` + "`" + `
+		}
+		func (c *Controller) Index() string { return "index" }
+		func (c *Controller) IndexErr() (string, error) { return "index_err", nil }
+		func (c *Controller) Named() (name string) { return "named" }
+		func (c *Controller) NamedErr() (string, error) { return "named_err", nil }
+		func (c *Controller) Post() *Post { return &Post{ID:"post"} }
+		func (c *Controller) PostErr() (*Post, error) { return &Post{ID:"post_err"}, nil }
+		func (c *Controller) NamedPost() (post *Post) { return &Post{ID:"named_post"} }
+		func (c *Controller) NamedPostErr() (post *Post, err error) { return &Post{ID:"named_post_err"}, nil }
+		func (c *Controller) Article() *model.Article { return &model.Article{SlugID:"article"} }
+		func (c *Controller) ArticleErr() (*model.Article, error) { return &model.Article{SlugID:"article_err"}, nil }
+		func (c *Controller) NamedArticle() (article *model.Article) { return &model.Article{SlugID:"named_article"} }
+		func (c *Controller) NamedArticleErr() (article *model.Article, err error) { return &model.Article{SlugID:"named_article_err"}, nil }
+	`
+	td.Files["view/index.svelte"] = `
+		<script>
+			export let _string = ""
+		</script>
+		<h1>{_string}</h1>
+	`
+	td.Files["view/index_err.svelte"] = `
+		<script>
+			export let _string = ""
+		</script>
+		<h1>{_string}</h1>
+	`
+	td.Files["view/named.svelte"] = `
+		<script>
+			export let name = ""
+		</script>
+		<h1>{name}</h1>
+	`
+	td.Files["view/named_err.svelte"] = `
+		<script>
+			export let name = ""
+		</script>
+		<h1>{name}</h1>
+	`
+	td.Files["view/post.svelte"] = `
+		<script>
+			export let post = {}
+		</script>
+		<h1>{post.id}</h1>
+	`
+	td.Files["view/post_err.svelte"] = `
+		<script>
+		export let post = {}
+		</script>
+		<h1>{post.id}</h1>
+	`
+	td.Files["view/named_post.svelte"] = `
+		<script>
+			export let post = {}
+		</script>
+		<h1>{post.id}</h1>
+	`
+	td.Files["view/named_post_err.svelte"] = `
+		<script>
+		export let post = {}
+		</script>
+		<h1>{post.id}</h1>
+	`
+	td.Files["view/article.svelte"] = `
+		<script>
+			export let article = {}
+		</script>
+		<h1>{article.SlugID}</h1>
+	`
+	td.Files["view/article_err.svelte"] = `
+		<script>
+		export let article = {}
+		</script>
+		<h1>{article.SlugID}</h1>
+	`
+	td.Files["view/named_article.svelte"] = `
+		<script>
+			export let article = {}
+		</script>
+		<h1>{article.SlugID}</h1>
+	`
+	td.Files["view/named_article_err.svelte"] = `
+		<script>
+		export let article = {}
+		</script>
+		<h1>{article.SlugID}</h1>
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	// index
+	res, err := app.GetJSON("/")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		"index"
+	`))
+	res, err = app.Get("/")
+	is.NoErr(err)
+	sel, err := res.Query("#bud_target")
+	is.NoErr(err)
+	html, err := sel.Html()
+	is.NoErr(err)
+	is.Equal(html, `<h1>index</h1>`)
+	// index error
+	res, err = app.GetJSON("/index_err")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		"index_err"
+	`))
+	res, err = app.Get("/index_err")
+	is.NoErr(err)
+	sel, err = res.Query("#bud_target")
+	is.NoErr(err)
+	html, err = sel.Html()
+	is.NoErr(err)
+	is.Equal(html, `<h1>index_err</h1>`)
+	// named
+	res, err = app.GetJSON("/named")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		"named"
+	`))
+	res, err = app.Get("/named")
+	is.NoErr(err)
+	sel, err = res.Query("#bud_target")
+	is.NoErr(err)
+	html, err = sel.Html()
+	is.NoErr(err)
+	is.Equal(html, `<h1>named</h1>`)
+	// named err
+	res, err = app.GetJSON("/named_err")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		"named_err"
+	`))
+	res, err = app.Get("/named_err")
+	is.NoErr(err)
+	sel, err = res.Query("#bud_target")
+	is.NoErr(err)
+	html, err = sel.Html()
+	is.NoErr(err)
+	is.Equal(html, `<h1>named_err</h1>`)
+	// post
+	res, err = app.GetJSON("/post")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		{"id":"post"}
+	`))
+	res, err = app.Get("/post")
+	is.NoErr(err)
+	sel, err = res.Query("#bud_target")
+	is.NoErr(err)
+	html, err = sel.Html()
+	is.NoErr(err)
+	is.Equal(html, `<h1>post</h1>`)
+	// post err
+	res, err = app.GetJSON("/post_err")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		{"id":"post_err"}
+	`))
+	res, err = app.Get("/post_err")
+	is.NoErr(err)
+	sel, err = res.Query("#bud_target")
+	is.NoErr(err)
+	html, err = sel.Html()
+	is.NoErr(err)
+	is.Equal(html, `<h1>post_err</h1>`)
+	// named post
+	res, err = app.GetJSON("/named_post")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		{"id":"named_post"}
+	`))
+	res, err = app.Get("/named_post")
+	is.NoErr(err)
+	sel, err = res.Query("#bud_target")
+	is.NoErr(err)
+	html, err = sel.Html()
+	is.NoErr(err)
+	is.Equal(html, `<h1>named_post</h1>`)
+	// named post err
+	res, err = app.GetJSON("/named_post_err")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		{"id":"named_post_err"}
+	`))
+	res, err = app.Get("/named_post_err")
+	is.NoErr(err)
+	sel, err = res.Query("#bud_target")
+	is.NoErr(err)
+	html, err = sel.Html()
+	is.NoErr(err)
+	is.Equal(html, `<h1>named_post_err</h1>`)
+	// article
+	res, err = app.GetJSON("/article")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		{"SlugID":"article"}
+	`))
+	res, err = app.Get("/article")
+	is.NoErr(err)
+	sel, err = res.Query("#bud_target")
+	is.NoErr(err)
+	html, err = sel.Html()
+	is.NoErr(err)
+	is.Equal(html, `<h1>article</h1>`)
+	// article err
+	res, err = app.GetJSON("/article_err")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		{"SlugID":"article_err"}
+	`))
+	res, err = app.Get("/article_err")
+	is.NoErr(err)
+	sel, err = res.Query("#bud_target")
+	is.NoErr(err)
+	html, err = sel.Html()
+	is.NoErr(err)
+	is.Equal(html, `<h1>article_err</h1>`)
+	// named article
+	res, err = app.GetJSON("/named_article")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		{"SlugID":"named_article"}
+	`))
+	res, err = app.Get("/named_article")
+	is.NoErr(err)
+	sel, err = res.Query("#bud_target")
+	is.NoErr(err)
+	html, err = sel.Html()
+	is.NoErr(err)
+	is.Equal(html, `<h1>named_article</h1>`)
+	// named article err
+	res, err = app.GetJSON("/named_article_err")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		{"SlugID":"named_article_err"}
+	`))
+	res, err = app.Get("/named_article_err")
+	is.NoErr(err)
+	sel, err = res.Query("#bud_target")
+	is.NoErr(err)
+	html, err = sel.Html()
+	is.NoErr(err)
+	is.Equal(html, `<h1>named_article_err</h1>`)
+	// close the app
+	is.NoErr(app.Close())
 }

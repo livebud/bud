@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/livebud/bud/internal/bail"
@@ -35,11 +36,19 @@ var controller string
 //go:embed view_index.gotext
 var indexView string
 
+//go:embed view_new.gotext
+var newView string
+
+//go:embed view_edit.gotext
+var editView string
+
 //go:embed view_show.gotext
 var showView string
 
 var views = map[string]string{
 	"index": indexView,
+	"new":   newView,
+	"edit":  editView,
 	"show":  showView,
 }
 
@@ -67,8 +76,13 @@ type Action struct {
 	Route  string
 	Result string
 
-	Index bool
-	Show  bool
+	Index  bool
+	Create bool
+	New    bool
+	Show   bool
+	Edit   bool
+	Update bool
+	Delete bool
 }
 
 type View struct {
@@ -92,8 +106,8 @@ func (c *Command) Run(ctx context.Context) (err error) {
 func (c *Command) Load() (state *State, err error) {
 	defer c.bail.Recover2(&err, "new controller")
 	state = new(State)
-	state.Controller = c.controller()
-	state.Views = c.views(state.Controller)
+	state.Controller = c.loadController()
+	state.Views = c.loadViews(state.Controller)
 	return state, nil
 }
 
@@ -119,7 +133,7 @@ func (c *Command) Scaffold(state *State) error {
 	return nil
 }
 
-func (c *Command) controller() *Controller {
+func (c *Command) loadController() *Controller {
 	controller := new(Controller)
 	imports := imports.New()
 	imports.AddStd("context")
@@ -135,25 +149,57 @@ func (c *Command) controller() *Controller {
 	controller.Package = gotext.Snake(controller.Name)
 	controller.Pascal = gotext.Pascal(controller.Name)
 	for _, action := range c.Actions {
-		controller.Actions = append(controller.Actions, c.controllerAction(controller, action))
+		controller.Actions = append(controller.Actions, c.loadControllerAction(controller, action))
 	}
+	// Consistent action names
+	sort.Slice(controller.Actions, func(i, j int) bool {
+		left := actionRank[controller.Actions[i].Name]
+		right := actionRank[controller.Actions[j].Name]
+		return left > right
+	})
 	return controller
 }
 
-func (c *Command) controllerAction(controller *Controller, a string) *Action {
+// Rank in the order in which the actions are typically called
+var actionRank = map[string]int{
+	"index":  7,
+	"new":    6,
+	"create": 5,
+	"show":   4,
+	"edit":   3,
+	"update": 2,
+	"delete": 1,
+}
+
+func (c *Command) loadControllerAction(controller *Controller, a string) *Action {
 	action := new(Action)
 	action.Name = strings.ToLower(a)
 	switch action.Name {
 	case "index":
 		action.Index = true
 		action.Route = controller.Route
-		// action.View = &View{
-		// 	Path:     filepath.Join("view", controller.key, "index.svelte"),
-		// 	Template: index,
-		// }
 		action.Result = gotext.Camel(controller.Plural)
+	case "new":
+		action.New = true
+		action.Route = path.Join(controller.Route, "/new")
+	case "create":
+		action.Create = true
+		action.Route = controller.Route
+		action.Result = gotext.Camel(controller.Singular)
 	case "show":
 		action.Show = true
+		action.Route = path.Join(controller.Route, "/:id")
+		action.Result = gotext.Camel(controller.Singular)
+	case "edit":
+		action.Edit = true
+		action.Route = path.Join(controller.Route, "/:id/edit")
+		action.Result = gotext.Camel(controller.Singular)
+	case "update":
+		action.Update = true
+		action.Route = path.Join(controller.Route, "/:id")
+		action.Result = gotext.Camel(controller.Singular)
+	case "delete":
+		action.Delete = true
 		action.Route = path.Join(controller.Route, "/:id")
 		action.Result = gotext.Camel(controller.Singular)
 	default:
@@ -162,17 +208,21 @@ func (c *Command) controllerAction(controller *Controller, a string) *Action {
 	return action
 }
 
-func (c *Command) views(controller *Controller) (views []*View) {
+func (c *Command) loadViews(controller *Controller) (views []*View) {
 	for _, action := range controller.Actions {
-		views = append(views, c.view(controller, action))
+		view := c.loadView(controller, action)
+		if view == nil {
+			continue
+		}
+		views = append(views, view)
 	}
 	return views
 }
 
-func (c *Command) view(controller *Controller, action *Action) *View {
+func (c *Command) loadView(controller *Controller, action *Action) *View {
 	template, ok := views[action.Name]
 	if !ok {
-		template = ""
+		return nil
 	}
 	return &View{
 		template:   template,
@@ -180,8 +230,8 @@ func (c *Command) view(controller *Controller, action *Action) *View {
 		Path:       filepath.Join("view", controller.key, action.Name+".svelte"),
 		Title:      text.Title(controller.Struct),
 		Variable:   text.Camel(action.Result),
-		Singular:   text.Camel(text.Singular(action.Result)),
-		Plural:     text.Camel(text.Plural(action.Result)),
+		Singular:   text.Camel(controller.Singular),
+		Plural:     text.Camel(controller.Plural),
 	}
 }
 
