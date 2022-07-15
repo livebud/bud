@@ -153,7 +153,7 @@ func different(paths, oldPaths []string) bool {
 	return false
 }
 
-// Prompt sucessful reloads including time (in ms) and total times in a row.
+// Prompt successful reloads including time (in ms) and total times in a row.
 // Increase counter.
 // Example: Ready on http://127.0.0.1:3000 in 264ms (x141)
 func (p *Prompter) SuccessReload() {
