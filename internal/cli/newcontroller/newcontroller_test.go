@@ -1,7 +1,10 @@
 package newcontroller_test
 
 import (
+	"bytes"
 	"context"
+	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/livebud/bud/internal/cli/testcli"
@@ -168,15 +171,20 @@ func TestNewControllerAll(t *testing.T) {
 	is.In(html, `</form>`)
 	is.In(html, `<a href="..">Back</a>`)
 
-	// Update post (via method override)
-	res, err = app.Post("/posts/10?_method=patch", nil)
+	// Update post with patch
+	res, err = app.Patch("/posts/10", nil)
 	is.NoErr(err)
 	is.NoErr(res.Diff(`
 		HTTP/1.1 302 Found
 		Location: /posts/10
 	`))
-	// Update post with patch
-	res, err = app.Patch("/posts/10", nil)
+	// Update post using method override
+	values := url.Values{}
+	values.Set("_method", http.MethodPatch)
+	req, err := app.PostRequest("/posts/10", bytes.NewBufferString(values.Encode()))
+	is.NoErr(err)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	res, err = app.Do(req)
 	is.NoErr(err)
 	is.NoErr(res.Diff(`
 		HTTP/1.1 302 Found

@@ -3,6 +3,7 @@ package controller_test
 import (
 	"bytes"
 	"context"
+	"os"
 	"testing"
 
 	"github.com/livebud/bud/internal/cli/testcli"
@@ -2404,13 +2405,14 @@ func TestEscapeProps(t *testing.T) {
 func TestProtocol(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
+	is.NoErr(os.RemoveAll("_tmp"))
+	dir := "_tmp"
 	td := testdir.New(dir)
 	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["livebud"] = "*"
 	td.Files["model/model.go"] = `
 		package model
-		type Article struct {
+		type MyArticle struct {
 			SlugID string
 		}
 	`
@@ -2418,21 +2420,21 @@ func TestProtocol(t *testing.T) {
 		package controller
 		import "app.com/model"
 		type Controller struct {}
-		type Post struct {
+		type MyPost struct {
 			ID string ` + "`" + `json:"id"` + "`" + `
 		}
 		func (c *Controller) Index() string { return "index" }
 		func (c *Controller) IndexErr() (string, error) { return "index_err", nil }
 		func (c *Controller) Named() (name string) { return "named" }
-		func (c *Controller) NamedErr() (string, error) { return "named_err", nil }
-		func (c *Controller) Post() *Post { return &Post{ID:"post"} }
-		func (c *Controller) PostErr() (*Post, error) { return &Post{ID:"post_err"}, nil }
-		func (c *Controller) NamedPost() (post *Post) { return &Post{ID:"named_post"} }
-		func (c *Controller) NamedPostErr() (post *Post, err error) { return &Post{ID:"named_post_err"}, nil }
-		func (c *Controller) Article() *model.Article { return &model.Article{SlugID:"article"} }
-		func (c *Controller) ArticleErr() (*model.Article, error) { return &model.Article{SlugID:"article_err"}, nil }
-		func (c *Controller) NamedArticle() (article *model.Article) { return &model.Article{SlugID:"named_article"} }
-		func (c *Controller) NamedArticleErr() (article *model.Article, err error) { return &model.Article{SlugID:"named_article_err"}, nil }
+		func (c *Controller) NamedErr() (name string, err error) { return "named_err", nil }
+		func (c *Controller) Post() *MyPost { return &MyPost{ID:"post"} }
+		func (c *Controller) PostErr() (*MyPost, error) { return &MyPost{ID:"post_err"}, nil }
+		func (c *Controller) NamedPost() (post *MyPost) { return &MyPost{ID:"named_post"} }
+		func (c *Controller) NamedPostErr() (post *MyPost, err error) { return &MyPost{ID:"named_post_err"}, nil }
+		func (c *Controller) Article() *model.MyArticle { return &model.MyArticle{SlugID:"article"} }
+		func (c *Controller) ArticleErr() (*model.MyArticle, error) { return &model.MyArticle{SlugID:"article_err"}, nil }
+		func (c *Controller) NamedArticle() (article *model.MyArticle) { return &model.MyArticle{SlugID:"named_article"} }
+		func (c *Controller) NamedArticleErr() (article *model.MyArticle, err error) { return &model.MyArticle{SlugID:"named_article_err"}, nil }
 	`
 	td.Files["view/index.svelte"] = `
 		<script>
@@ -2460,15 +2462,15 @@ func TestProtocol(t *testing.T) {
 	`
 	td.Files["view/post.svelte"] = `
 		<script>
-			export let post = {}
+			export let myPost = {}
 		</script>
-		<h1>{post.id}</h1>
+		<h1>{myPost.id}</h1>
 	`
 	td.Files["view/post_err.svelte"] = `
 		<script>
-		export let post = {}
+		export let myPost = {}
 		</script>
-		<h1>{post.id}</h1>
+		<h1>{myPost.id}</h1>
 	`
 	td.Files["view/named_post.svelte"] = `
 		<script>
@@ -2484,15 +2486,15 @@ func TestProtocol(t *testing.T) {
 	`
 	td.Files["view/article.svelte"] = `
 		<script>
-			export let article = {}
+			export let myArticle = {}
 		</script>
-		<h1>{article.SlugID}</h1>
+		<h1>{myArticle.SlugID}</h1>
 	`
 	td.Files["view/article_err.svelte"] = `
 		<script>
-		export let article = {}
+		export let myArticle = {}
 		</script>
-		<h1>{article.SlugID}</h1>
+		<h1>{myArticle.SlugID}</h1>
 	`
 	td.Files["view/named_article.svelte"] = `
 		<script>
@@ -2538,6 +2540,7 @@ func TestProtocol(t *testing.T) {
 	`))
 	res, err = app.Get("/index_err")
 	is.NoErr(err)
+	is.Equal(res.Status(), 200)
 	sel, err = res.Query("#bud_target")
 	is.NoErr(err)
 	html, err = sel.Html()

@@ -35,6 +35,7 @@ func New(
 	{{- end }}
 	// Compose the middleware together
 	middleware := middleware.Compose(
+		middleware.MethodOverride(),
 		router,
 		{{- if $.ShowWelcome }}
 		welcome,
