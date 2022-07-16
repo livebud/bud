@@ -270,7 +270,7 @@ func catchError(prompter *prompter.Prompter, fn func(events []watcher.Event) err
 // canIncrementallyReload returns true if we can incrementally reload a page
 func canIncrementallyReload(events []watcher.Event) bool {
 	for _, event := range events {
-		if filepath.Ext(event.Path) == ".go" {
+		if event.Op != watcher.OpUpdate || filepath.Ext(event.Path) == ".go" {
 			return false
 		}
 	}
