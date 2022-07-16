@@ -14,18 +14,18 @@ type Post struct {
 }
 
 // Index of posts
-// GET /
+// GET
 func (c *Controller) Index(ctx context.Context) (posts []*Post, err error) {
 	return []*Post{}, nil
 }
 
 // New returns a view for creating a new post
-// GET /new
+// GET new
 func (c *Controller) New(ctx context.Context) {
 }
 
 // Create post
-// POST /
+// POST
 func (c *Controller) Create(ctx context.Context) (post *Post, err error) {
 	return &Post{
 		ID: 0,
@@ -33,7 +33,7 @@ func (c *Controller) Create(ctx context.Context) (post *Post, err error) {
 }
 
 // Show post
-// GET /:id
+// GET :id
 func (c *Controller) Show(ctx context.Context, id int) (post *Post, err error) {
 	return &Post{
 		ID: id,
@@ -41,7 +41,7 @@ func (c *Controller) Show(ctx context.Context, id int) (post *Post, err error) {
 }
 
 // Edit returns a view for editing a post
-// GET /:id/edit
+// GET :id/edit
 func (c *Controller) Edit(ctx context.Context, id int) (post *Post, err error) {
 	return &Post{
 		ID: id,
@@ -49,7 +49,7 @@ func (c *Controller) Edit(ctx context.Context, id int) (post *Post, err error) {
 }
 
 // Update post
-// PATCH /:id
+// PATCH :id
 func (c *Controller) Update(ctx context.Context, id int) (post *Post, err error) {
 	return &Post{
 		ID: id,
@@ -57,7 +57,7 @@ func (c *Controller) Update(ctx context.Context, id int) (post *Post, err error)
 }
 
 // Delete post
-// DELETE /:id
+// DELETE :id
 func (c *Controller) Delete(ctx context.Context, id int) error {
 	return nil
 }

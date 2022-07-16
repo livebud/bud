@@ -19,7 +19,7 @@
 
 <br />
 
-<a href="/">Back</a>
+<a href={"" || "/"}>Back</a>
 <span> | </span>
 <a href={`/${post.id}/edit`}>Edit</a>
 

@@ -146,7 +146,7 @@ func TestNewControllerAll(t *testing.T) {
 	is.In(html, `<form method="post" action="/posts">`)
 	is.In(html, `<input type="submit" value="Create Post"/>`)
 	is.In(html, `</form>`)
-	is.In(html, `<a href="..">Back</a>`)
+	is.In(html, `<a href="/posts">Back</a>`)
 
 	// Create post
 	res, err = app.Post("/posts", nil)
@@ -169,7 +169,7 @@ func TestNewControllerAll(t *testing.T) {
 	is.In(html, `<input type="hidden" name="_method" value="patch"/>`)
 	is.In(html, `<input type="submit" value="Update Post"/>`)
 	is.In(html, `</form>`)
-	is.In(html, `<a href="..">Back</a>`)
+	is.In(html, `<a href="/posts">Back</a>`)
 
 	// Update post with patch
 	res, err = app.Patch("/posts/10", nil)

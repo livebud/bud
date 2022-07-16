@@ -19,9 +19,9 @@
 
 <br />
 
-<a href="{{ $.Controller.Route }}">Back</a>
+<a href={"{{ $.Controller.Route }}" || "/"}>Back</a>
 <span> | </span>
-<a href={`{{ $.Controller.Route }}${ {{- $.Singular }}.id}/edit`}>Edit</a>
+<a href={`{{ $.Controller.Route }}/${ {{- $.Singular }}.id}/edit`}>Edit</a>
 
 <style>
   table {

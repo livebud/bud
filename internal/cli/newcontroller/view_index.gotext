@@ -27,7 +27,7 @@
 
 <br />
 
-<a href="./new">New {{ $.Title }}</a>
+<a href="{{ $.Controller.Route }}/new">New {{ $.Title }}</a>
 
 <style>
   table {

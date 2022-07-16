@@ -4,7 +4,7 @@
 
 <h1>Edit {{ $.Title }}</h1>
 
-<form method="post" action={`{{ $.Controller.Route }}${ {{- $.Singular }}.id}`}>
+<form method="post" action={`{{ $.Controller.Route }}/${ {{- $.Singular }}.id}`}>
 	<input type="hidden" name="_method" value="patch">
 	<!-- Add input fields here -->
 	<input type="submit" value="Update {{ $.Title }}" />
@@ -12,6 +12,6 @@
 
 <br />
 
-<a href="{{ $.Controller.Route }}">Back</a>
+<a href={"{{ $.Controller.Route }}" || "/"}>Back</a>
 <span> | </span>
-<a href={`{{- $.Controller.Route }}${ {{- $.Singular }}.id}`}>Show</a>
+<a href={`{{- $.Controller.Route }}/${ {{- $.Singular }}.id}`}>Show</a>

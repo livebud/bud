@@ -284,7 +284,7 @@ func controllerRoute(controllerKey string) string {
 		}
 		path.WriteString(text.Slug(segments[i]))
 	}
-	return "/" + strings.TrimSuffix(path.String(), "/")
+	return strings.TrimSuffix("/"+path.String(), "/")
 }
 
 func viewPath(controllerKey, path string) string {

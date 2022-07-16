@@ -16,7 +16,7 @@
     <tr>
       {#each Object.keys(post) as key}
         {#if key.toLowerCase() === "id"}
-          <td><a href={`//${post[key]}`}>{post[key]}</a></td>
+          <td><a href={`/${post[key]}`}>{post[key]}</a></td>
         {:else}
           <td>{post[key]}</td>
         {/if}
@@ -27,7 +27,7 @@
 
 <br />
 
-<a href="./new">New Post</a>
+<a href="/new">New Post</a>
 
 <style>
   table {
