@@ -2,7 +2,7 @@
   export let {{ $.Singular }} = {}
 </script>
 
-<h1>Showing {{ $.Title }}</h1>
+<h1>Show {{ $.Title }}</h1>
 
 <table border="1" cellpadding="10">
   <thead>
@@ -19,7 +19,9 @@
 
 <br />
 
-<a href="{{ $.Controller.Route }}">Back</a>
+<a href={`{{ $.Controller.IndexPath }}`}>Back</a>
+<span> | </span>
+<a href={`{{ $.Controller.EditPath }}`}>Edit</a>
 
 <style>
   table {

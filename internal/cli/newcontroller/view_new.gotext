@@ -1,0 +1,10 @@
+<h1>New {{ $.Title }}</h1>
+
+<form method="post" action={`{{ $.Controller.IndexPath }}`}>
+  <!-- Add input fields here -->
+  <input type="submit" value="Create {{ $.Title }}" />
+</form>
+
+<br />
+
+<a href={`{{ $.Controller.IndexPath }}`}>Back</a>

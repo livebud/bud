@@ -11,35 +11,6 @@ import (
 	"github.com/matthewmueller/gotext"
 )
 
-// type State struct {
-// 	Views []*View
-// }
-
-// func (s *State) Pages(suffixes ...string) (pages []string) {
-// 	suffix := strings.Join(suffixes, "")
-// 	for _, view := range s.Views {
-// 		pages = append(pages, string(view.Page)+suffix)
-// 	}
-// 	return pages
-// }
-
-// func (s *State) Imports() (imports []Path, err error) {
-// 	for _, view := range s.Views {
-// 		imports = append(imports, view.Page)
-// 	}
-// 	return imports, nil
-// }
-
-// func (s *State) FindViewByPage(page string) (*View, error) {
-// 	page = filepath.Clean(page)
-// 	for _, view := range s.Views {
-// 		if string(view.Page) == page {
-// 			return view, nil
-// 		}
-// 	}
-// 	return nil, fmt.Errorf("state: no view with a page named %q", page)
-// }
-
 type View struct {
 	Page   Path   // Path to the page
 	Type   string // View extension

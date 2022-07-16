@@ -77,7 +77,7 @@ func (c *CLI) Run(ctx context.Context, args ...string) error {
 		cli := cli.Command("new", "scaffold code for your app")
 
 		{ // $ bud new controller <name> [actions...]
-			cmd := newcontroller.New(cmd)
+			cmd := newcontroller.New(cmd, c.in)
 			cli := cli.Command("controller", "scaffold a new controller")
 			cli.Arg("path").String(&cmd.Path)
 			cli.Args("actions").Strings(&cmd.Actions)

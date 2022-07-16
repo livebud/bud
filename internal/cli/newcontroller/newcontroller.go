@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/livebud/bud/internal/bail"
@@ -16,12 +17,14 @@ import (
 	"github.com/matthewmueller/text"
 )
 
-func New(bud *bud.Command) *Command {
-	return &Command{bud: bud}
+func New(bud *bud.Command, in *bud.Input) *Command {
+	return &Command{bud: bud, in: in}
 }
 
 type Command struct {
-	bud     *bud.Command
+	bud *bud.Command
+	in  *bud.Input
+
 	Path    string
 	Actions []string
 
@@ -35,11 +38,19 @@ var controller string
 //go:embed view_index.gotext
 var indexView string
 
+//go:embed view_new.gotext
+var newView string
+
+//go:embed view_edit.gotext
+var editView string
+
 //go:embed view_show.gotext
 var showView string
 
 var views = map[string]string{
 	"index": indexView,
+	"new":   newView,
+	"edit":  editView,
 	"show":  showView,
 }
 
@@ -60,6 +71,12 @@ type Controller struct {
 	Plural   string
 	Singular string
 	Actions  []*Action
+
+	// Paths
+	IndexPath string
+	EditPath  string
+	ShowPath  string
+	NewPath   string
 }
 
 type Action struct {
@@ -67,8 +84,13 @@ type Action struct {
 	Route  string
 	Result string
 
-	Index bool
-	Show  bool
+	Index  bool
+	Create bool
+	New    bool
+	Show   bool
+	Edit   bool
+	Update bool
+	Delete bool
 }
 
 type View struct {
@@ -92,8 +114,8 @@ func (c *Command) Run(ctx context.Context) (err error) {
 func (c *Command) Load() (state *State, err error) {
 	defer c.bail.Recover2(&err, "new controller")
 	state = new(State)
-	state.Controller = c.controller()
-	state.Views = c.views(state.Controller)
+	state.Controller = c.loadController()
+	state.Views = c.loadViews(state.Controller)
 	return state, nil
 }
 
@@ -119,60 +141,106 @@ func (c *Command) Scaffold(state *State) error {
 	return nil
 }
 
-func (c *Command) controller() *Controller {
+func (c *Command) loadController() *Controller {
 	controller := new(Controller)
 	imports := imports.New()
 	imports.AddStd("context")
 	controller.Imports = imports.List()
 	key, resource := splitKeyAndResource(c.Path)
+	// TODO: remove this constraint
+	if strings.Contains(key, "/") && hasOneOrMore(c.Actions, "index", "new") {
+		c.bail.Bail(fmt.Errorf(`scaffolding the "index" or "new" action of a nested resource like %q isn't supported yet, see https://github.com/livebud/bud/issues/209 for details`, c.Path))
+	}
 	controller.key = key
 	controller.path = controllerPath(key)
 	controller.Name = controllerName(key)
 	controller.Struct = gotext.Pascal(text.Singular(resource))
 	controller.Plural = text.Plural(resource)
 	controller.Singular = text.Singular(resource)
-	controller.Route = controllerRoute(controller.key)
+	controller.Route = controllerRoute(key)
 	controller.Package = gotext.Snake(controller.Name)
 	controller.Pascal = gotext.Pascal(controller.Name)
+	// Load paths
+	controller.IndexPath = controllerIndexPath(controller.key, controller.Singular)
+	controller.ShowPath = controllerShowPath(controller.IndexPath, controller.Singular)
+	controller.NewPath = controllerNewPath(controller.IndexPath, controller.Singular)
+	controller.EditPath = controllerEditPath(controller.ShowPath, controller.Singular)
+	// Load the actions
 	for _, action := range c.Actions {
-		controller.Actions = append(controller.Actions, c.controllerAction(controller, action))
+		controller.Actions = append(controller.Actions, c.loadControllerAction(controller, action))
 	}
+	// Consistent action names
+	sort.Slice(controller.Actions, func(i, j int) bool {
+		left := actionRank[controller.Actions[i].Name]
+		right := actionRank[controller.Actions[j].Name]
+		return left > right
+	})
 	return controller
 }
 
-func (c *Command) controllerAction(controller *Controller, a string) *Action {
+// Rank in the order in which the actions are typically called
+var actionRank = map[string]int{
+	"index":  7,
+	"new":    6,
+	"create": 5,
+	"show":   4,
+	"edit":   3,
+	"update": 2,
+	"delete": 1,
+}
+
+func (c *Command) loadControllerAction(controller *Controller, a string) *Action {
 	action := new(Action)
 	action.Name = strings.ToLower(a)
 	switch action.Name {
 	case "index":
 		action.Index = true
 		action.Route = controller.Route
-		// action.View = &View{
-		// 	Path:     filepath.Join("view", controller.key, "index.svelte"),
-		// 	Template: index,
-		// }
 		action.Result = gotext.Camel(controller.Plural)
+	case "new":
+		action.New = true
+		action.Route = path.Join(controller.Route, "new")
+	case "create":
+		action.Create = true
+		action.Route = controller.Route
+		action.Result = gotext.Camel(controller.Singular)
 	case "show":
 		action.Show = true
-		action.Route = path.Join(controller.Route, "/:id")
+		action.Route = path.Join(controller.Route, ":id")
+		action.Result = gotext.Camel(controller.Singular)
+	case "edit":
+		action.Edit = true
+		action.Route = path.Join(controller.Route, ":id/edit")
+		action.Result = gotext.Camel(controller.Singular)
+	case "update":
+		action.Update = true
+		action.Route = path.Join(controller.Route, ":id")
+		action.Result = gotext.Camel(controller.Singular)
+	case "delete":
+		action.Delete = true
+		action.Route = path.Join(controller.Route, ":id")
 		action.Result = gotext.Camel(controller.Singular)
 	default:
-		c.bail.Bail(fmt.Errorf("invalid path:resource %q", a))
+		c.bail.Bail(fmt.Errorf(`invalid action %q, expected "index", "new", "create", "show", "edit", "update" or "delete"`, a))
 	}
 	return action
 }
 
-func (c *Command) views(controller *Controller) (views []*View) {
+func (c *Command) loadViews(controller *Controller) (views []*View) {
 	for _, action := range controller.Actions {
-		views = append(views, c.view(controller, action))
+		view := c.loadView(controller, action)
+		if view == nil {
+			continue
+		}
+		views = append(views, view)
 	}
 	return views
 }
 
-func (c *Command) view(controller *Controller, action *Action) *View {
+func (c *Command) loadView(controller *Controller, action *Action) *View {
 	template, ok := views[action.Name]
 	if !ok {
-		template = ""
+		return nil
 	}
 	return &View{
 		template:   template,
@@ -180,8 +248,8 @@ func (c *Command) view(controller *Controller, action *Action) *View {
 		Path:       filepath.Join("view", controller.key, action.Name+".svelte"),
 		Title:      text.Title(controller.Struct),
 		Variable:   text.Camel(action.Result),
-		Singular:   text.Camel(text.Singular(action.Result)),
-		Plural:     text.Camel(text.Plural(action.Result)),
+		Singular:   text.Camel(controller.Singular),
+		Plural:     text.Camel(controller.Plural),
 	}
 }
 
@@ -237,6 +305,39 @@ func controllerRoute(controllerKey string) string {
 	return strings.TrimSuffix("/"+path.String(), "/")
 }
 
-func viewPath(controllerKey, path string) string {
-	return filepath.Join("view", controllerKey, text.Snake(strings.ToLower(path))+".svelte")
+func controllerIndexPath(controllerKey, propVar string) string {
+	segments := strings.Split(controllerKey, "/")
+	path := new(strings.Builder)
+	for i := 0; i < len(segments); i++ {
+		if i%2 != 0 {
+			path.WriteString("/")
+			path.WriteString("${" + propVar + "." + text.Slug(text.Singular(segments[i-1])) + "_id || 0}")
+			path.WriteString("/")
+		}
+		path.WriteString(text.Slug(segments[i]))
+	}
+	return "/" + strings.TrimSuffix(path.String(), "/")
+}
+
+func controllerNewPath(controllerIndexPath, propVar string) string {
+	return path.Join(controllerIndexPath, "new")
+}
+
+func controllerShowPath(controllerIndexPath, propVar string) string {
+	return path.Join(controllerIndexPath, "${"+propVar+".id || 0}")
+}
+
+func controllerEditPath(controllerShowPath, propVar string) string {
+	return path.Join(controllerShowPath, "edit")
+}
+
+func hasOneOrMore(actions []string, matches ...string) bool {
+	for _, a := range actions {
+		for _, m := range matches {
+			if a == m {
+				return true
+			}
+		}
+	}
+	return false
 }
