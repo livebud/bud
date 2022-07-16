@@ -248,7 +248,7 @@ func TestWithRootDotFile(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(len(events), 1)
 	is.Equal(events[0].Path, filepath.Join(dir, "controller/controller.go"))
-	is.Equal(events[0].Op, watcher.OpCreate)
+	is.Equal(events[0].Op, watcher.OpUpdate)
 }
 
 func TestRename(t *testing.T) {
