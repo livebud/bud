@@ -5,9 +5,9 @@
 <h1>Edit {{ $.Title }}</h1>
 
 <form method="post" action={`{{ $.Controller.ShowPath }}`}>
-	<input type="hidden" name="_method" value="patch">
-	<!-- Add input fields here -->
-	<input type="submit" value="Update {{ $.Title }}" />
+  <input type="hidden" name="_method" value="patch" />
+  <!-- Add input fields here -->
+  <input type="submit" value="Update {{ $.Title }}" />
 </form>
 
 <br />
