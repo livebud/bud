@@ -14,10 +14,10 @@ import (
 // Controller struct
 type {{ $.Pascal }}Controller struct {
 	{{- range $action := $.Actions }}
-	{{$action.Pascal}} *{{ $.Pascal }}{{$action.Pascal}}Action
+	{{$action.Pascal}}action *{{ $.Pascal }}{{$action.Pascal}}Action
 	{{- end }}
 	{{- range $controller := $.Controllers }}
-	{{$controller.Last.Pascal}}controller *{{$controller.Pascal}}Controller
+	{{$controller.Last.Pascal}} *{{$controller.Pascal}}Controller
 	{{- end }}
 }
 
