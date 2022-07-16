@@ -9,14 +9,13 @@ import (
 )
 {{- end }}
 
+// Controller for {{ $.Plural }}
 type Controller struct {
-	// Dependencies...
 }
 
 // {{ $.Struct }} struct
 type {{ $.Struct }} struct {
-	ID int `json:"id"` // Primary key
-	// Fields...
+	ID int `json:"id"`
 }
 
 {{- range $action := $.Actions }}

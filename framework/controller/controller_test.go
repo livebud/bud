@@ -3,7 +3,6 @@ package controller_test
 import (
 	"bytes"
 	"context"
-	"os"
 	"testing"
 
 	"github.com/livebud/bud/internal/cli/testcli"
@@ -2405,8 +2404,7 @@ func TestEscapeProps(t *testing.T) {
 func TestProtocol(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	is.NoErr(os.RemoveAll("_tmp"))
-	dir := "_tmp"
+	dir := t.TempDir()
 	td := testdir.New(dir)
 	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["livebud"] = "*"

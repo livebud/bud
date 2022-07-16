@@ -5,4 +5,6 @@
   <input type="submit" value="Create {{ $.Title }}" />
 </form>
 
-<a href="..">Back</a>
+<br />
+
+<a href="{{ $.Controller.Route }}">Back</a>

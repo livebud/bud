@@ -181,26 +181,26 @@ func (c *Command) loadControllerAction(controller *Controller, a string) *Action
 		action.Result = gotext.Camel(controller.Plural)
 	case "new":
 		action.New = true
-		action.Route = path.Join(controller.Route, "/new")
+		action.Route = path.Join(controller.Route, "new")
 	case "create":
 		action.Create = true
 		action.Route = controller.Route
 		action.Result = gotext.Camel(controller.Singular)
 	case "show":
 		action.Show = true
-		action.Route = path.Join(controller.Route, "/:id")
+		action.Route = path.Join(controller.Route, ":id")
 		action.Result = gotext.Camel(controller.Singular)
 	case "edit":
 		action.Edit = true
-		action.Route = path.Join(controller.Route, "/:id/edit")
+		action.Route = path.Join(controller.Route, ":id/edit")
 		action.Result = gotext.Camel(controller.Singular)
 	case "update":
 		action.Update = true
-		action.Route = path.Join(controller.Route, "/:id")
+		action.Route = path.Join(controller.Route, ":id")
 		action.Result = gotext.Camel(controller.Singular)
 	case "delete":
 		action.Delete = true
-		action.Route = path.Join(controller.Route, "/:id")
+		action.Route = path.Join(controller.Route, ":id")
 		action.Result = gotext.Camel(controller.Singular)
 	default:
 		c.bail.Bail(fmt.Errorf("invalid path:resource %q", a))
@@ -284,7 +284,7 @@ func controllerRoute(controllerKey string) string {
 		}
 		path.WriteString(text.Slug(segments[i]))
 	}
-	return strings.TrimSuffix("/"+path.String(), "/")
+	return "/" + strings.TrimSuffix(path.String(), "/")
 }
 
 func viewPath(controllerKey, path string) string {

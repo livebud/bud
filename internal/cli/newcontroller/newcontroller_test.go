@@ -99,7 +99,7 @@ func TestNewControllerIndexShow(t *testing.T) {
 		HTTP/1.1 200 OK
 		Content-Type: application/json
 
-		{}
+		{"id":10}
 	`))
 	is.NoErr(app.Close())
 }

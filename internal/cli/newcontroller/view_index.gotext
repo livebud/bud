@@ -25,6 +25,10 @@
   {/each}
 </table>
 
+<br />
+
+<a href="./new">New {{ $.Title }}</a>
+
 <style>
   table {
     border-collapse: collapse;

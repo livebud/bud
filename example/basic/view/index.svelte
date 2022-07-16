@@ -1,21 +1,36 @@
 <script>
-  export let _string = ""
+  export let posts = []
 </script>
 
-<h1>{_string}</h1>
+<h1>Post Index</h1>
 
-<form action="/10" method="post">
-  <input type="hidden" name="_method" value="patch" />
-  <input type="text" name="title" placeholder="title" />
-  <input type="submit" value="Update Post" />
-</form>
+<table border="1" cellpadding="10">
+  {#if posts.length > 0}
+    <thead>
+      {#each Object.keys(posts[0]) as key}
+        <th>{key}</th>
+      {/each}
+    </thead>
+  {/if}
+  {#each posts as post}
+    <tr>
+      {#each Object.keys(post) as key}
+        {#if key.toLowerCase() === "id"}
+          <td><a href={`//${post[key]}`}>{post[key]}</a></td>
+        {:else}
+          <td>{post[key]}</td>
+        {/if}
+      {/each}
+    </tr>
+  {/each}
+</table>
+
+<br />
+
+<a href="./new">New Post</a>
 
 <style>
-  h1 {
-    margin: 0;
-    background: whitesmoke;
-    border-bottom: 2px dashed red;
-    padding: 20px;
-    color: red;
+  table {
+    border-collapse: collapse;
   }
 </style>
