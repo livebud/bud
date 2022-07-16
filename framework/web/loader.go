@@ -168,5 +168,9 @@ func (l *loader) loadActionRoute(basePath, actionName string) string {
 }
 
 func (l *loader) loadActionCallName(basePath, actionName string) string {
-	return text.Dot(text.Title(basePath + " " + actionName))
+	if basePath != "/" {
+		return text.Dot(text.Title(basePath + "controller " + actionName))
+	} else {
+		return text.Dot(text.Title(basePath + " " + actionName))
+	}
 }
