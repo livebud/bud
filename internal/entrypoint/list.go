@@ -190,8 +190,8 @@ func route(dir, name string) string {
 		dir = ""
 	}
 	dir = routeDir(dir)
-	base := extless(name)
-	switch base {
+	action := extless(name)
+	switch action {
 	case "show":
 		return "/" + path.Join(dir, ":id")
 	case "new":
@@ -201,7 +201,7 @@ func route(dir, name string) string {
 	case "index":
 		return "/" + dir
 	default:
-		return "/" + path.Join(dir, text.Path(base))
+		return "/" + path.Join(dir, text.Lower(text.Snake(action)))
 	}
 }
 

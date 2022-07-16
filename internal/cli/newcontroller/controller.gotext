@@ -9,13 +9,13 @@ import (
 )
 {{- end }}
 
+// Controller for {{ $.Plural }}
 type Controller struct {
-	// Dependencies...
 }
 
 // {{ $.Struct }} struct
 type {{ $.Struct }} struct {
-	// Fields...
+	ID int `json:"id"`
 }
 
 {{- range $action := $.Actions }}
@@ -23,9 +23,28 @@ type {{ $.Struct }} struct {
 {{- if $action.Index }}
 
 // Index of {{ $.Plural }}
-// GET {{ $.Route }}
+// GET {{ $action.Route }}
 func (c *Controller) Index(ctx context.Context) ({{ $action.Result }} []*{{ $.Struct }}, err error) {
 	return []*{{ $.Struct }}{}, nil
+}
+
+{{/* New action */}}
+{{- else if $action.New }}
+
+// New returns a view for creating a new {{ $.Singular }}
+// GET {{ $action.Route }}
+func (c *Controller) New(ctx context.Context) {
+}
+
+{{/* Create action */}}
+{{- else if $action.Create }}
+
+// Create {{ $.Singular }}
+// POST {{ $action.Route }}
+func (c *Controller) Create(ctx context.Context) ({{ $action.Result }} *{{ $.Struct }}, err error) {
+	return &{{ $.Struct }}{
+		ID: 0,
+	}, nil
 }
 
 {{/* Show action */}}
@@ -34,8 +53,41 @@ func (c *Controller) Index(ctx context.Context) ({{ $action.Result }} []*{{ $.St
 // Show {{ $.Singular }}
 // GET {{ $action.Route }}
 func (c *Controller) Show(ctx context.Context, id int) ({{ $action.Result }} *{{ $.Struct }}, err error) {
-	return &{{ $.Struct }}{}, nil
+	return &{{ $.Struct }}{
+		ID: id,
+	}, nil
 }
-{{- end }}
 
+{{/* Edit action */}}
+{{- else if $action.Edit }}
+
+// Edit returns a view for editing a {{ $.Singular }}
+// GET {{ $action.Route }}
+func (c *Controller) Edit(ctx context.Context, id int) ({{ $action.Result }} *{{ $.Struct }}, err error) {
+	return &{{ $.Struct }}{
+		ID: id,
+	}, nil
+}
+
+{{/* Update action */}}
+{{- else if $action.Update }}
+
+// Update {{ $.Singular }}
+// PATCH {{ $action.Route }}
+func (c *Controller) Update(ctx context.Context, id int) ({{ $action.Result }} *{{ $.Struct }}, err error) {
+	return &{{ $.Struct }}{
+		ID: id,
+	}, nil
+}
+
+{{/* Delete action */}}
+{{- else if $action.Delete }}
+
+// Delete {{ $.Singular }}
+// DELETE {{ $action.Route }}
+func (c *Controller) Delete(ctx context.Context, id int) error {
+	return nil
+}
+
+{{- end }}
 {{- end }}

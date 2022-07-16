@@ -185,7 +185,7 @@ func (l *loader) loadAction(controller *Controller, method *parser.Function) *Ac
 }
 
 func (l *loader) loadActionKey(controllerPath, actionName string) string {
-	return path.Join(controllerPath, text.Lower(text.Path(actionName)))
+	return path.Join(controllerPath, text.Lower(text.Snake(actionName)))
 }
 
 func (l *loader) isHandlerFunc(params []*parser.Param, results []*parser.Result) bool {
@@ -228,7 +228,7 @@ func (l *loader) loadActionRoute(controllerRoute, actionName string) string {
 	case "Index", "Create":
 		return controllerRoute
 	default:
-		return path.Join(controllerRoute, text.Path(text.Lower(actionName)))
+		return path.Join(controllerRoute, text.Lower(text.Snake(actionName)))
 	}
 }
 
@@ -382,9 +382,9 @@ func (l *loader) loadActionResult(order int, result *parser.Result) *ActionResul
 	output.Pascal = gotext.Pascal(output.Name)
 	output.Named = result.Named()
 	output.Snake = gotext.Snake(output.Name)
-	output.Type = result.Type().String()
+	output.Type = parser.Unqualify(result.Type()).String()
 	output.Kind = def.Kind()
-	output.Variable = gotext.Camel(output.Name)
+	output.Variable = l.loadActionResultVariable(order, result)
 	output.Fields = l.loadActionResultFields(result, def)
 	// TODO: check for other types that implement error
 	output.IsError = output.Type == "error"
@@ -396,8 +396,18 @@ func (l *loader) loadActionResultName(order int, result *parser.Result) string {
 	if name != "" {
 		return name
 	}
-	// Handle inputs with no variable
-	return "in" + strconv.Itoa(order)
+	// Handle outputs with no variable
+	return "out" + strconv.Itoa(order)
+}
+
+// Load the variable name
+func (l *loader) loadActionResultVariable(order int, result *parser.Result) string {
+	name := result.Name()
+	if name != "" {
+		return name + "Out"
+	}
+	// Handle outputs with no variable
+	return "out" + strconv.Itoa(order)
 }
 
 // Load the inner fields of the result type, if it's a struct

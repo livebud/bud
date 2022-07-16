@@ -89,10 +89,11 @@ func TestListUnderscore(t *testing.T) {
 	// more realistic
 	fsys := vfs.Map{
 		"admin_users/comments/show.svelte": []byte(""),
+		"vip_users.svelte":                 []byte(""),
 	}
 	views, err := entrypoint.List(fsys)
 	is.NoErr(err)
-	is.Equal(len(views), 1)
+	is.Equal(len(views), 2)
 	is.Equal(views[0].Page, entrypoint.Path("admin_users/comments/show.svelte"))
 	is.Equal(len(views[0].Frames), 0)
 	is.Equal(views[0].Layout, entrypoint.Path(""))
@@ -101,4 +102,13 @@ func TestListUnderscore(t *testing.T) {
 	is.Equal(views[0].Route, "/admin_users/:admin_user_id/comments/:id")
 	is.Equal(views[0].Client, "bud/admin_users/comments/_show.svelte.js")
 	is.Equal(views[0].Hot, ":35729")
+
+	is.Equal(views[1].Page, entrypoint.Path("vip_users.svelte"))
+	is.Equal(len(views[1].Frames), 0)
+	is.Equal(views[1].Layout, entrypoint.Path(""))
+	is.Equal(views[1].Error, entrypoint.Path(""))
+	is.Equal(views[1].Type, "svelte")
+	is.Equal(views[1].Route, "/vip_users")
+	is.Equal(views[1].Client, "bud/_vip_users.svelte.js")
+	is.Equal(views[1].Hot, ":35729")
 }

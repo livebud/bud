@@ -3,6 +3,7 @@ package ssr_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
@@ -177,6 +178,12 @@ func TestSvelteProps(t *testing.T) {
 		</script>
 		<h6>{@html JSON.stringify(comment)}</h6>
 	`
+	td.Files["view/vip_users.svelte"] = `
+		<script>
+			export let users = []
+		</script>
+		<aside>{@html JSON.stringify(users)}</aside>
+	`
 	td.NodeModules["svelte"] = versions.Svelte
 	is.NoErr(td.Write(ctx))
 	vm, err := v8.Load()
@@ -251,6 +258,17 @@ func TestSvelteProps(t *testing.T) {
 	is.Equal(len(res.Headers), 1)
 	is.Equal(res.Headers["Content-Type"], "text/html")
 	is.True(strings.Contains(res.Body, `<h6><!-- HTML_TAG_START -->{"name":"Alice","title":"first"}<!-- HTML_TAG_END --></h6>`))
+	// /vip_users
+	res, err = render(vm, string(code), "/vip_users", wrap("users", []*User{
+		{"Alice", "alice@livebud.com"},
+		{"Tom", "tom@livebud.com"},
+	}))
+	is.NoErr(err)
+	is.Equal(res.Status, 200)
+	is.Equal(len(res.Headers), 1)
+	is.Equal(res.Headers["Content-Type"], "text/html")
+	fmt.Println(res.Body)
+	is.In(res.Body, `<aside><!-- HTML_TAG_START -->[{"name":"Alice","email":"alice@livebud.com"},{"name":"Tom","email":"tom@livebud.com"}]<!-- HTML_TAG_END --></aside>`)
 }
 
 func TestSvelteLocalImports(t *testing.T) {
