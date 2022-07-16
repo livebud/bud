@@ -25,6 +25,7 @@ var Stop = errors.New("stop watching")
 // this snappy.
 var debounceDelay = 20 * time.Millisecond
 
+// Op is the type of file event that occurred
 type Op byte
 
 const (
@@ -33,7 +34,7 @@ const (
 	OpDelete Op = 'D'
 )
 
-// Event set
+// Event is used to track file events
 type Event struct {
 	Op   Op
 	Path string
