@@ -16,7 +16,7 @@
     <tr>
       {#each Object.keys({{ $.Singular }}) as key}
         {#if key.toLowerCase() === "id"}
-          <td><a href={`{{ $.Controller.Route }}/${ {{- $.Singular }}[key]}`}>{ {{- $.Singular }}[key]}</a></td>
+          <td><a href={`{{ $.Controller.ShowPath }}`}>{ {{- $.Singular }}[key]}</a></td>
         {:else}
           <td>{ {{- $.Singular }}[key]}</td>
         {/if}
@@ -27,7 +27,7 @@
 
 <br />
 
-<a href="{{ $.Controller.Route }}/new">New {{ $.Title }}</a>
+<a href={`{{ $.Controller.NewPath }}`}>New {{ $.Title }}</a>
 
 <style>
   table {
