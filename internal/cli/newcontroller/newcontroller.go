@@ -203,7 +203,7 @@ func (c *Command) loadControllerAction(controller *Controller, a string) *Action
 		action.Route = path.Join(controller.Route, ":id")
 		action.Result = gotext.Camel(controller.Singular)
 	default:
-		c.bail.Bail(fmt.Errorf("invalid path:resource %q", a))
+		c.bail.Bail(fmt.Errorf(`invalid action %q, expected "index", "new", "create", "show", "edit", "update" or "delete"`, a))
 	}
 	return action
 }

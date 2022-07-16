@@ -201,3 +201,19 @@ func TestNewControllerAll(t *testing.T) {
 
 	is.NoErr(app.Close())
 }
+
+func TestNewControllerCustom(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.NodeModules["svelte"] = versions.Svelte
+	err := td.Write(ctx)
+	is.NoErr(err)
+	cli := testcli.New(dir)
+	result, err := cli.Run(ctx, "new", "controller", "posts:/", "custom")
+	is.True(err != nil)
+	is.Equal(err.Error(), `new controller: invalid action "custom", expected "index", "new", "create", "show", "edit", "update" or "delete"`)
+	is.Equal(result.Stdout(), "")
+	is.Equal(result.Stderr(), "")
+}
