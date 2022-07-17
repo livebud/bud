@@ -3,6 +3,8 @@ package view_test
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"testing"
 
@@ -244,4 +246,112 @@ func TestConsoleError(t *testing.T) {
 	// TODO: console.error needs to be added to:
 	// https://github.com/kuoruan/v8go-polyfills
 	t.SkipNow()
+}
+
+func TestRenameView(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["controller/controller.go"] = `
+		package controller
+		type Controller struct {}
+		func (c *Controller) Show() (id int) { return 10 }
+	`
+	td.Files["view/show.svelte"] = `
+		<script>
+			export let id = 0
+		</script>
+		<h1>{id}</h1>
+	`
+	td.NodeModules["svelte"] = versions.Svelte
+	td.NodeModules["livebud"] = "*"
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	hot, err := app.Hot("/bud/hot/view/show.svelte")
+	is.NoErr(err)
+	defer hot.Close()
+	res, err := app.Get("/10")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Transfer-Encoding: chunked
+		Content-Type: text/html
+	`))
+	is.In(res.Body().String(), "<h1>10</h1>")
+	// Rename the file
+	is.NoErr(os.Rename(
+		filepath.Join(dir, "view/show.svelte"),
+		filepath.Join(dir, "view/_show.svele"),
+	))
+	// Wait for the app to be ready again
+	app.Ready(ctx)
+	// Check that we received a hot reload event
+	event, err := hot.Next(ctx)
+	is.NoErr(err)
+	is.In(string(event.Data), `{"reload":true}`)
+	// Should change
+	res, err = app.Get("/10")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+	`))
+	is.Equal(res.Body().String(), "10")
+	is.NoErr(app.Close())
+}
+
+func TestAddView(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["controller/controller.go"] = `
+		package controller
+		type Controller struct {}
+		func (c *Controller) Show() (id int) { return 10 }
+	`
+	td.NodeModules["svelte"] = versions.Svelte
+	td.NodeModules["livebud"] = "*"
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	hot, err := app.Hot("/bud/hot/view/show.svelte")
+	is.NoErr(err)
+	defer hot.Close()
+	res, err := app.Get("/10")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+	`))
+	is.Equal(res.Body().String(), "10")
+	// Add the view
+	td.Files["view/show.svelte"] = `
+		<script>
+			export let id = 0
+		</script>
+		<h1>{id}</h1>
+	`
+	is.NoErr(td.Write(ctx))
+	// Wait for the app to be ready again
+	app.Ready(ctx)
+	// Check that we received a hot reload event
+	event, err := hot.Next(ctx)
+	is.NoErr(err)
+	is.In(string(event.Data), `{"reload":true}`)
+	// Should change
+	res, err = app.Get("/10")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Transfer-Encoding: chunked
+		Content-Type: text/html
+	`))
+	is.In(res.Body().String(), "<h1>10</h1>")
 }
