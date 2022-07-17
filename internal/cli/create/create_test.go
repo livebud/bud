@@ -7,6 +7,7 @@ import (
 	"github.com/livebud/bud/internal/cli/testcli"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
+	"golang.org/x/mod/modfile"
 )
 
 func TestCreateOutsideGoPathError(t *testing.T) {
@@ -40,4 +41,12 @@ func TestCreateOutsideGoPathModulePath(t *testing.T) {
 	is.NoErr(td.Exists("go.sum"))
 	is.NoErr(td.Exists("package.json"))
 	is.NoErr(td.Exists("package-lock.json"))
+}
+
+func TestAutoQuote(t *testing.T) {
+	is := is.New(t)
+	actual := modfile.AutoQuote(`github.com/livebud/bud`)
+	is.Equal(actual, `github.com/livebud/bud`)
+	actual = modfile.AutoQuote(`github.com/livebud/bud with spaces`)
+	is.Equal(actual, `"github.com/livebud/bud with spaces"`)
 }

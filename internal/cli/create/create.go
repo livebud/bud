@@ -13,6 +13,7 @@ import (
 	"github.com/livebud/bud/internal/scaffold"
 	"github.com/livebud/bud/internal/versions"
 	mod "github.com/livebud/bud/package/gomod"
+	"golang.org/x/mod/modfile"
 )
 
 func New(bud *bud.Command, in *bud.Input) *Command {
@@ -132,7 +133,7 @@ func (c *Command) loadModule() *Module {
 		module.Replaces = []*Replace{
 			{
 				From: "github.com/livebud/bud",
-				To:   c.budModule.Directory(),
+				To:   modfile.AutoQuote(c.budModule.Directory()),
 			},
 		}
 	}
