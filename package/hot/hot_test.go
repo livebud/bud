@@ -22,7 +22,7 @@ var now = time.Date(2021, 8, 4, 14, 56, 0, 0, time.UTC)
 func TestNoPathUpdate(t *testing.T) {
 	is := is.New(t)
 	log := testlog.New()
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	ps := pubsub.New()
 	hotServer := hot.New(log, ps)
@@ -44,7 +44,7 @@ func TestNoPathUpdate(t *testing.T) {
 func TestPage(t *testing.T) {
 	is := is.New(t)
 	log := testlog.New()
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	ps := pubsub.New()
 	hotServer := hot.New(log, ps)
@@ -80,7 +80,7 @@ func TestPage(t *testing.T) {
 func TestReload(t *testing.T) {
 	is := is.New(t)
 	log := testlog.New()
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	ps := pubsub.New()
 	hotServer := hot.New(log, ps)
@@ -122,7 +122,7 @@ func listen(path string) (socket.Listener, *http.Client, error) {
 func TestUnixListener(t *testing.T) {
 	is := is.New(t)
 	log := testlog.New()
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	listener, client, err := listen(filepath.Join(t.TempDir(), "test.sock"))
 	is.NoErr(err)
@@ -152,7 +152,7 @@ func TestUnixListener(t *testing.T) {
 func TestNoWait(t *testing.T) {
 	is := is.New(t)
 	log := testlog.New()
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	listener, client, err := listen(filepath.Join(t.TempDir(), "test.sock"))
 	is.NoErr(err)
@@ -174,7 +174,7 @@ func TestNoWait(t *testing.T) {
 func TestDrainBeforeClose(t *testing.T) {
 	is := is.New(t)
 	log := testlog.New()
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	listener, client, err := listen(filepath.Join(t.TempDir(), "test.sock"))
 	is.NoErr(err)
