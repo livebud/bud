@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/lithammer/dedent"
 	"github.com/livebud/bud/internal/cli/testcli"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
@@ -332,13 +333,14 @@ func TestAddView(t *testing.T) {
 	`))
 	is.Equal(res.Body().String(), "10")
 	// Add the view
-	td.Files["view/show.svelte"] = `
+	showView := filepath.Join(dir, "view/show.svelte")
+	is.NoErr(os.MkdirAll(filepath.Dir(showView), 0755))
+	is.NoErr(os.WriteFile(showView, []byte(dedent.Dedent(`
 		<script>
 			export let id = 0
 		</script>
 		<h1>{id}</h1>
-	`
-	is.NoErr(td.Write(ctx))
+	`)), 0644))
 	// Wait for the app to be ready again
 	app.Ready(ctx)
 	// Check that we received a hot reload event
