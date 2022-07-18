@@ -2707,3 +2707,54 @@ func TestProtocol(t *testing.T) {
 	// close the app
 	is.NoErr(app.Close())
 }
+
+// Asserts that a root index action is compatible with an index
+// controller.
+func TestIndexControllerWithRootIndexAction(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	// enable svelte
+	td.NodeModules["svelte"] = versions.Svelte
+	// root controller with index action
+	td.Files["controller/controller.go"] = `
+		package controller
+		type Controller struct{}
+		func (c *Controller) Index() bool {
+			return true
+		}
+	`
+	// root index view
+	td.Files["view/index.svelte"] = `
+		<h1>Home Page</h1>
+	`
+	// index controller with index action
+	td.Files["controller/index/controller.go"] = `
+		package index
+		type Widget struct{}
+		type Controller struct{}
+		func (c *Controller) Index() ([]*Widget, error) {
+			return []*Widget{}, nil
+		}
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	res, err := app.Get("/")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Transfer-Encoding: chunked
+		Content-Type: text/html
+	`))
+	res, err = app.GetJSON("/index")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+	`))
+	is.NoErr(app.Close())
+}
