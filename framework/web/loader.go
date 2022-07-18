@@ -173,13 +173,13 @@ func (l *loader) loadActionCallName(basePath, actionName string) string {
 	for i, controller := range splitPath {
 		// append controller to every controller base name
 		if len(controller) > 0 {
-			splitPath[i] = controller + "controller"
+			splitPath[i] = controller + "Controller"
 		}
 	}
 	baseCaller := strings.Join(splitPath, ".")
 
 	if baseCaller == "" {
-		return actionName + "action"
+		return actionName
 	}
-	return baseCaller + "." + actionName + "action"
+	return baseCaller + "." + actionName
 }
