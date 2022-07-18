@@ -121,6 +121,8 @@ func (c *Command) loadModule() *Module {
 		`, c.Dir))
 		}
 	}
+	// Autoquote the module name since
+	module.Name = modfile.AutoQuote(module.Name)
 	// Add the required runtime
 	module.Requires = []*Require{
 		{
