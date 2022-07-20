@@ -45,13 +45,13 @@ func TestInterrupt(t *testing.T) {
 	}
 	child := func(t testing.TB) {
 		ctx := sig.Trap(context.Background(), os.Interrupt)
-		fmt.Fprintln(os.Stderr, "ready")
 		// Should not have received signal
 		select {
 		case <-ctx.Done():
 			is.Fail() // context shouldn't be cancelled yet
 		default:
 		}
+		fmt.Fprintln(os.Stderr, "ready")
 		waitFor(os.Stdin, "interrupt")
 		// Should have received a signal
 		select {
@@ -81,13 +81,13 @@ func TestEither(t *testing.T) {
 	}
 	child := func(t testing.TB) {
 		ctx := sig.Trap(context.Background(), os.Interrupt, syscall.SIGQUIT)
-		fmt.Fprintln(os.Stderr, "ready")
 		// Should not have received signal
 		select {
 		case <-ctx.Done():
 			is.Fail() // context shouldn't be cancelled yet
 		default:
 		}
+		fmt.Fprintln(os.Stderr, "ready")
 		waitFor(os.Stdin, "interrupt")
 		// Should have received a SIGQUIT
 		select {
@@ -117,7 +117,6 @@ func TestMultiple(t *testing.T) {
 	child := func(t testing.TB) {
 		ctx1 := sig.Trap(context.Background(), os.Interrupt)
 		ctx2 := sig.Trap(context.Background(), os.Interrupt)
-		fmt.Fprintln(os.Stderr, "ready")
 		// Should not have received signal
 		select {
 		case <-ctx1.Done():
@@ -126,6 +125,7 @@ func TestMultiple(t *testing.T) {
 			t.Fatalf("context should not be cancelled yet")
 		default:
 		}
+		fmt.Fprintln(os.Stderr, "ready")
 		waitFor(os.Stdin, "interrupt")
 		// Should have received a interrupt
 		select {

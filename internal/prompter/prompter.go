@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/livebud/bud/package/log/console"
+	"github.com/livebud/bud/package/watcher"
 )
 
 // States
@@ -53,8 +54,8 @@ type Prompter struct {
 	oldStdErr bytes.Buffer
 
 	// Path to changed files
-	paths    []string
-	oldPaths []string
+	events    []watcher.Event
+	oldEvents []watcher.Event
 
 	// For storing states (fail, success, reload,...)
 	state    string
@@ -137,19 +138,15 @@ func (p *Prompter) FailReload(err string) {
 	console.Error(err)
 }
 
-func different(paths, oldPaths []string) bool {
-	if len(paths) != len(oldPaths) {
+func different(events, oldEvents []watcher.Event) bool {
+	if len(events) != len(oldEvents) {
 		return true
 	}
-
-	sort.Strings(paths)
-	sort.Strings(oldPaths)
-	for i := range paths {
-		if paths[i] != oldPaths[i] {
+	for i := range events {
+		if events[i] != oldEvents[i] {
 			return true
 		}
 	}
-
 	return false
 }
 
@@ -170,7 +167,7 @@ func (p *Prompter) SuccessReload() {
 	}
 
 	// Reset counter if user changed working file
-	if different(p.paths, p.oldPaths) {
+	if different(p.events, p.oldEvents) {
 		p.Counter = 1
 	}
 
@@ -185,14 +182,19 @@ func (p *Prompter) SuccessReload() {
 
 // Prompt "Reloading..." message.
 // Start timer.
-func (p *Prompter) Reloading(paths []string) {
+func (p *Prompter) Reloading(events []watcher.Event) {
 	if err := p.handleState(reload); err != nil {
 		return
 	}
 
-	// Update paths
-	p.oldPaths = p.paths
-	p.paths = paths
+	// Sort incoming events for faster comparison later between old and new events
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].String() < events[j].String()
+	})
+
+	// Update events
+	p.oldEvents = p.events
+	p.events = events
 
 	// Prevent override
 	if p.blankStdErr() && p.blankStdOut() && p.oldState != fail {

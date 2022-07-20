@@ -210,10 +210,10 @@ func (a *appServer) Run(ctx context.Context) error {
 	a.bus.Publish("app:ready", nil)
 	a.log.Debug("run: published event", "event", "app:ready")
 	// Watch for changes
-	return watcher.Watch(ctx, a.dir, catchError(a.prompter, func(paths []string) error {
-		a.log.Debug("run: files changes", "paths", paths)
-		a.prompter.Reloading(paths)
-		if canIncrementallyReload(paths) {
+	return watcher.Watch(ctx, a.dir, catchError(a.prompter, func(events []watcher.Event) error {
+		a.log.Debug("run: files changes", "paths", events)
+		a.prompter.Reloading(events)
+		if canIncrementallyReload(events) {
 			a.log.Debug("run: incrementally reloading")
 			// Publish the frontend:update event
 			a.bus.Publish("frontend:update", nil)
@@ -258,9 +258,9 @@ func (a *appServer) Run(ctx context.Context) error {
 
 // logWrap wraps the watch function in a handler that logs the error instead of
 // returning the error (and canceling the watcher)
-func catchError(prompter *prompter.Prompter, fn func(paths []string) error) func(paths []string) error {
-	return func(paths []string) error {
-		if err := fn(paths); err != nil {
+func catchError(prompter *prompter.Prompter, fn func(events []watcher.Event) error) func(events []watcher.Event) error {
+	return func(events []watcher.Event) error {
+		if err := fn(events); err != nil {
 			prompter.FailReload(err.Error())
 		}
 		return nil
@@ -268,9 +268,9 @@ func catchError(prompter *prompter.Prompter, fn func(paths []string) error) func
 }
 
 // canIncrementallyReload returns true if we can incrementally reload a page
-func canIncrementallyReload(paths []string) bool {
-	for _, path := range paths {
-		if filepath.Ext(path) == ".go" {
+func canIncrementallyReload(events []watcher.Event) bool {
+	for _, event := range events {
+		if event.Op != watcher.OpUpdate || filepath.Ext(event.Path) == ".go" {
 			return false
 		}
 	}
