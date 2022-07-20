@@ -25,40 +25,61 @@ var Stop = errors.New("stop watching")
 // this snappy.
 var debounceDelay = 20 * time.Millisecond
 
-func newPathSet() *pathSet {
-	return &pathSet{
-		paths: map[string]struct{}{},
+// Op is the type of file event that occurred
+type Op byte
+
+const (
+	OpCreate Op = 'C'
+	OpUpdate Op = 'U'
+	OpDelete Op = 'D'
+)
+
+// Event is used to track file events
+type Event struct {
+	Op   Op
+	Path string
+}
+
+func (e Event) String() string {
+	return string(e.Op) + ":" + e.Path
+}
+
+func newEventSet() *eventSet {
+	return &eventSet{
+		events: map[string]Event{},
 	}
 }
 
-// pathset is used to collect paths that have changed and flush them all at once
+// eventset is used to collect events that have changed and flush them all at once
 // when the watch function is triggered.
-type pathSet struct {
-	mu    sync.RWMutex
-	paths map[string]struct{}
+type eventSet struct {
+	mu     sync.RWMutex
+	events map[string]Event
 }
 
-// Add a path to the set
-func (p *pathSet) Add(path string) {
+// Add a event to the set
+func (p *eventSet) Add(event Event) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	p.paths[path] = struct{}{}
+	p.events[event.String()] = event
 }
 
-// Flush the stored paths and clear the path set.
-func (p *pathSet) Flush() (paths []string) {
+// Flush the stored events and clear the event set.
+func (p *eventSet) Flush() (events []Event) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	for path := range p.paths {
-		paths = append(paths, path)
+	for _, event := range p.events {
+		events = append(events, event)
 	}
-	sort.Strings(paths)
-	p.paths = map[string]struct{}{}
-	return paths
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].String() < events[j].String()
+	})
+	p.events = map[string]Event{}
+	return events
 }
 
 // Watch function
-func Watch(ctx context.Context, dir string, fn func(paths []string) error) error {
+func Watch(ctx context.Context, dir string, fn func(events []Event) error) error {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return err
@@ -68,12 +89,12 @@ func Watch(ctx context.Context, dir string, fn func(paths []string) error) error
 	gitIgnore := gitignore.From(dir)
 	// Trigger is debounced to group events together
 	errorCh := make(chan error)
-	pathset := newPathSet()
+	eventSet := newEventSet()
 	debounce := debounce.New(debounceDelay)
-	trigger := func(path string) {
-		pathset.Add(path)
+	trigger := func(event Event) {
+		eventSet.Add(event)
 		debounce(func() {
-			if err := fn(pathset.Flush()); err != nil {
+			if err := fn(eventSet.Flush()); err != nil {
 				errorCh <- err
 			}
 		})
@@ -108,7 +129,7 @@ func Watch(ctx context.Context, dir string, fn func(paths []string) error) error
 		// Remove the path and emit an update
 		watcher.Remove(path)
 		// Trigger an update
-		trigger(path)
+		trigger(Event{OpDelete, path})
 		return nil
 	}
 	// Remove the file or directory from the watcher.
@@ -116,7 +137,7 @@ func Watch(ctx context.Context, dir string, fn func(paths []string) error) error
 	remove := func(path string) error {
 		watcher.Remove(path)
 		// Trigger an update
-		trigger(path)
+		trigger(Event{OpDelete, path})
 		return nil
 	}
 	// Watching a file or directory as long as it's not inside .gitignore.
@@ -147,6 +168,7 @@ func Watch(ctx context.Context, dir string, fn func(paths []string) error) error
 		// If it's a directory, walk the dir and trigger creates
 		// because those create events won't happen on their own
 		if stat.IsDir() {
+			trigger(Event{OpCreate, path})
 			des, err := os.ReadDir(path)
 			if err != nil {
 				return err
@@ -156,11 +178,10 @@ func Watch(ctx context.Context, dir string, fn func(paths []string) error) error
 					return err
 				}
 			}
-			trigger(path)
 			return nil
 		}
 		// Otherwise, trigger the create
-		trigger(path)
+		trigger(Event{OpCreate, path})
 		return nil
 	}
 	// A file or directory has been updated. Notify our matchers.
@@ -181,7 +202,7 @@ func Watch(ctx context.Context, dir string, fn func(paths []string) error) error
 			return nil
 		}
 		// Trigger an update
-		trigger(path)
+		trigger(Event{OpUpdate, path})
 		return nil
 	}
 

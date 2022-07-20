@@ -5,9 +5,9 @@
 <h1>Edit Post</h1>
 
 <form method="post" action={`/${post.id || 0}`}>
-	<input type="hidden" name="_method" value="patch">
-	<!-- Add input fields here -->
-	<input type="submit" value="Update Post" />
+  <input type="hidden" name="_method" value="patch" />
+  <!-- Add input fields here -->
+  <input type="submit" value="Update Post" />
 </form>
 
 <br />

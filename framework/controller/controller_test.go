@@ -3,8 +3,11 @@ package controller_test
 import (
 	"bytes"
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/lithammer/dedent"
 	"github.com/livebud/bud/internal/cli/testcli"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
@@ -1773,16 +1776,16 @@ func TestOkChangeOk(t *testing.T) {
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), `Hello Users!`)
-	// Update file
-	td = testdir.New(dir)
-	td.Files["controller/controller.go"] = `
+	// Update controller
+	controllerFile := filepath.Join(dir, "controller", "controller.go")
+	is.NoErr(os.MkdirAll(filepath.Dir(controllerFile), 0755))
+	is.NoErr(os.WriteFile(controllerFile, []byte(dedent.Dedent(`
 		package controller
 		type Controller struct {}
 		func (c *Controller) Index() string {
 			return "Hello Humans!"
 		}
-	`
-	is.NoErr(td.Write(ctx))
+	`)), 0644))
 	is.NoErr(app.Ready(ctx))
 	// Try again with the new file
 	res, err = app.Get("/")
@@ -2062,13 +2065,15 @@ func TestControllerChange(t *testing.T) {
 
 		"/"
 	`)
-	// Update file
-	td.Files["controller/controller.go"] = `
+	// Update controller
+	controllerFile := filepath.Join(dir, "controller", "controller.go")
+	is.NoErr(os.MkdirAll(filepath.Dir(controllerFile), 0755))
+	is.NoErr(os.WriteFile(controllerFile, []byte(dedent.Dedent(`
 		package controller
 		type Controller struct {}
 		func (c *Controller) Index() string { return "/" }
-	`
-	is.NoErr(td.Write(ctx))
+	`)), 0644))
+	// Wait for the app to be ready again
 	is.NoErr(app.Ready(ctx))
 	// Try again with the new file
 	res, err = app.GetJSON("/")
