@@ -17,7 +17,7 @@ type {{ $.Pascal }}Controller struct {
 	{{$action.Pascal}} *{{ $.Pascal }}{{$action.Pascal}}Action
 	{{- end }}
 	{{- range $controller := $.Controllers }}
-	{{$controller.Last.Pascal}} *{{$controller.Pascal}}Controller
+	{{$controller.Last.Pascal}}Controller *{{$controller.Pascal}}Controller
 	{{- end }}
 }
 

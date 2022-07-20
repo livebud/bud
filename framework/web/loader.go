@@ -168,7 +168,16 @@ func (l *loader) loadActionRoute(basePath, actionName string) string {
 }
 
 func (l *loader) loadActionCallName(basePath, actionName string) string {
-	baseCaller := text.Dot(text.Title(basePath))
+
+	splitPath := strings.Split(text.Title(basePath), " ")
+	for i, controller := range splitPath {
+		// append controller to every controller base name
+		if len(controller) > 0 {
+			splitPath[i] = controller + "Controller"
+		}
+	}
+	baseCaller := strings.Join(splitPath, ".")
+
 	if baseCaller == "" {
 		return actionName
 	}

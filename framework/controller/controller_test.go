@@ -2712,3 +2712,83 @@ func TestProtocol(t *testing.T) {
 	// close the app
 	is.NoErr(app.Close())
 }
+
+// Asserts that a root index action is compatible with an index
+// controller. Also asserts that a posts index action is compatible
+// with a posts/index controller.
+func TestIndexControllerWithRootIndexAction(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	// root controller with index action
+	td.Files["controller/controller.go"] = `
+		package controller
+		type Controller struct{}
+		func (c *Controller) Index() []string {
+			return []string{}
+		}
+	`
+	// index controller with index action
+	td.Files["controller/index/controller.go"] = `
+		package index
+		type Controller struct{}
+		func (c *Controller) Index() []string {
+			return []string{}
+		}
+	`
+	// posts controller with index action
+	td.Files["controller/posts/controller.go"] = `
+		package posts
+		type Controller struct{}
+		func (c *Controller) Index() []string {
+			return []string{}
+		}
+	`
+	// posts/index controller with index action
+	td.Files["controller/posts/index/controller.go"] = `
+		package index
+		type Controller struct{}
+		func (c *Controller) Index() []string {
+			return []string{}
+		}
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	res, err := app.GetJSON("/")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		[]
+	`))
+	res, err = app.GetJSON("/index")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		[]
+	`))
+	res, err = app.GetJSON("/posts")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		[]
+	`))
+	res, err = app.GetJSON("/posts/1/index")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		[]
+	`))
+	is.NoErr(app.Close())
+}
