@@ -18,8 +18,8 @@ func run(ctx context.Context) error {
 		return err
 	}
 	ctx = sig.Trap(ctx, os.Interrupt)
-	return watcher.Watch(ctx, dirname, func(paths []string) error {
-		fmt.Println("-> triggered", paths)
+	return watcher.Watch(ctx, dirname, func(events []watcher.Event) error {
+		fmt.Println("-> triggered", events)
 		return nil
 	})
 }

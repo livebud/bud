@@ -67,11 +67,7 @@ func (l *loader) loadProvider() *di.Provider {
 			di.ToType(l.module.Import("bud/internal/app/web"), "*Server"),
 			&di.Error{},
 		},
-		Aliases: di.Aliases{
-			di.ToType("io/fs", "FS"): di.ToType("github.com/livebud/bud/package/overlay", "*FileSystem"),
-			jsVM:                     di.ToType("github.com/livebud/bud/package/js/v8client", "*Client"),
-			di.ToType("github.com/livebud/bud/runtime/view", "Renderer"): di.ToType("github.com/livebud/bud/runtime/view", "*Server"),
-		},
+		Aliases: di.Aliases{},
 	}
 	if l.flag.Embed {
 		fn.Aliases[jsVM] = di.ToType("github.com/livebud/bud/package/js/v8", "*VM")
