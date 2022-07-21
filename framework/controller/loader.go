@@ -533,9 +533,7 @@ func (l *loader) loadProvider(controller *Controller, method *parser.Function) *
 			{Import: "net/http", Type: "*Request"},
 			{Import: "net/http", Type: "ResponseWriter"},
 		},
-		Aliases: di.Aliases{
-			di.ToType("github.com/livebud/bud/runtime/view", "Renderer"): di.ToType("github.com/livebud/bud/runtime/view", "*Server"),
-		},
+		Aliases: di.Aliases{},
 	})
 	if err != nil {
 		l.Bail(err)
