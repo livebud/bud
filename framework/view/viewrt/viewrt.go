@@ -12,11 +12,6 @@ import (
 	"github.com/livebud/bud/package/js"
 )
 
-// Renderer interface
-type Renderer interface {
-	Render(path string, props interface{}) (*ssr.Response, error)
-}
-
 type Server interface {
 	Middleware(http.Handler) http.Handler
 	Handler(route string, props interface{}) http.Handler
