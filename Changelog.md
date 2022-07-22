@@ -6,6 +6,44 @@ Get the latest release of Bud by running the following in your terminal:
 curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
 ```
 
+## v0.2.2
+
+- **BREAKING:** fix numerous protocol bugs between controllers and views (#203)
+
+  This was mostly around nested views. A lot of this was undocumented and so we finally started testing behaviors. You may need to adjust what your views export if you were heavily relying on nested controllers / views
+
+- Add scaffolding support for remaining controller actions: create, update, delete, edit & new (#203)
+
+  You can now call `bud new controller posts create update delete edit new show index` and scaffold all 7 controller actions.
+
+- Trigger full reloads on non-update events (#212)
+
+  Now if you rename, delete or add Svelte views, the watcher will pickup on these changes and trigger a reload.
+
+- Add support for method overriding in `<form>` tags (#203)
+
+  This allows you to submit PATCH, PUT and DELETE requests from forms using the `_method` parameter.
+
+  ```html
+  <form method="post" action={`/${post.id || 0}`}>
+    <input type="hidden" name="_method" value="patch">
+    <!-- Add input fields here -->
+    <input type="submit" value="Update Post" />
+  </form>
+  ```
+
+- Test that you can import Svelte files from node_modules (#221) thanks to @jfmario!
+
+  This release tested that you can indeed install and use Svelte components from the community like `svelte-time` and Bud will pick them up.
+
+- Support controllers that are named Index and Show (#214) thanks to @jfmario!
+
+  Prior to this release, you couldn't create a controller in `controller/index/controller.go` because it would conflict with the `Index` action. Now you can.
+
+- Escape props before hydrating (#200)
+
+  This allows you to pass raw HTML that could include a `<script>` tag as props into a Svelte view and have the rendering escaped.
+
 ## v0.2.1
 
 - Fix typo in scaffolding .gitignore (#189)
