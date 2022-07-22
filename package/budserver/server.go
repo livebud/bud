@@ -14,6 +14,7 @@ import (
 	"github.com/livebud/bud/package/log"
 
 	"github.com/livebud/bud/internal/pubsub"
+	"github.com/livebud/bud/internal/virtual"
 
 	"github.com/livebud/bud/package/js"
 	"github.com/livebud/bud/package/router"
@@ -37,6 +38,8 @@ func New(fsys fs.FS, bus pubsub.Client, log log.Interface, vm js.VM) *Server {
 	router.Get("/bud/hot/:page*", hot.New(log, bus))
 	// Private routes between the app and bud
 	router.Post("/bud/events", http.HandlerFunc(server.createEvent))
+	// Open a file
+	router.Get("/open/:path*", http.HandlerFunc(server.openFile))
 	return server
 }
 
@@ -102,6 +105,44 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	}
 	http.ServeContent(w, r, r.URL.Path, stat.ModTime(), file)
 	s.log.Debug("devserver: served", "file", r.URL.Path)
+}
+
+func (s *Server) openFile(w http.ResponseWriter, r *http.Request) {
+	filePath := r.URL.Query().Get("path")
+	s.log.Debug("devserver: opening", "file", filePath)
+	file, err := s.hfs.Open(filePath)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			http.Error(w, err.Error(), 404)
+			return
+		}
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	stat, err := file.Stat()
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	data, err := io.ReadAll(file)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	res, err := json.Marshal(virtual.File{
+		Name:    filePath,
+		Data:    data,
+		Mode:    stat.Mode(),
+		ModTime: stat.ModTime(),
+		Sys:     stat.Sys(),
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	w.Header().Set("Content-Type", "application/javascript")
+	w.Write(res)
+	s.log.Debug("devserver: opened", "file", filePath)
 }
 
 func (s *Server) createEvent(w http.ResponseWriter, r *http.Request) {

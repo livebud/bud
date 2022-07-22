@@ -22,6 +22,7 @@ func New(
 	{{- end }}
 	{{- if $.HasView }}
 	view view.Server,
+	viewer view.Viewer,
 	{{- end }}
 	{{- if $.ShowWelcome }}
 	welcome welcome.Middleware,

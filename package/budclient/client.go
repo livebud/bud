@@ -5,15 +5,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"strings"
 
 	"github.com/livebud/bud/framework/view/ssr"
 	"github.com/livebud/bud/internal/urlx"
+	"github.com/livebud/bud/internal/virtual"
+	"github.com/livebud/bud/package/js"
 	"github.com/livebud/bud/package/socket"
 )
 
 type Client interface {
+	js.VM
+	fs.FS
 	Render(route string, props interface{}) (*ssr.Response, error)
 	Proxy(w http.ResponseWriter, r *http.Request)
 	Publish(topic string, data []byte) error
@@ -55,6 +60,36 @@ type client struct {
 }
 
 var _ Client = (*client)(nil)
+var _ js.VM = (*client)(nil)
+var _ fs.FS = (*client)(nil)
+
+func (c *client) Open(name string) (fs.File, error) {
+	res, err := c.httpClient.Get(c.baseURL + "/open/" + name)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("budclient: render returned unexpected %d. %s", res.StatusCode, resBody)
+	}
+	var vfile virtual.File
+	if err := json.Unmarshal(resBody, &vfile); err != nil {
+		return nil, err
+	}
+	return &vfile, nil
+}
+
+func (c *client) Script(path, script string) error {
+	return fmt.Errorf("budclient: script not implemented yet")
+}
+
+func (c *client) Eval(path, expression string) (string, error) {
+	return "", fmt.Errorf("budclient: eval not implemented yet")
+}
 
 // Render a path with props on the dev server
 func (c *client) Render(route string, props interface{}) (*ssr.Response, error) {

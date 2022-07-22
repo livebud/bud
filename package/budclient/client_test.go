@@ -3,6 +3,7 @@ package budclient_test
 import (
 	"context"
 	"io"
+	"io/fs"
 	"net/http/httptest"
 	"testing"
 
@@ -204,4 +205,43 @@ func TestEvents(t *testing.T) {
 	default:
 		t.Fatalf("missing event")
 	}
+}
+
+func TestFS(t *testing.T) {
+	ctx := context.Background()
+	is := is.New(t)
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["view/index.svelte"] = `
+		<script>
+			export let _string = "cupcake"
+		</script>
+		<h1>Hello, {_string}!</h1>
+	`
+	td.NodeModules["svelte"] = versions.Svelte
+	is.NoErr(td.Write(ctx))
+	bus := pubsub.New()
+	server, err := loadServer(bus, dir)
+	is.NoErr(err)
+	defer server.Close()
+	client, err := budclient.Load(server.URL)
+	is.NoErr(err)
+
+	// Check the entrypoint
+	data, err := fs.ReadFile(client, "bud/view/_index.svelte.js")
+	is.NoErr(err)
+	is.In(string(data), `Hello, `)
+	is.In(string(data), `cupcake`)
+
+	// Check the component
+	data, err = fs.ReadFile(client, "bud/view/index.svelte")
+	is.NoErr(err)
+	is.In(string(data), `Hello, `)
+	is.In(string(data), `cupcake`)
+
+	// Check the node_modules
+	data, err = fs.ReadFile(client, "bud/node_modules/svelte/internal")
+	is.NoErr(err)
+	is.In(string(data), `function element(`)
+	is.In(string(data), `function text(`)
 }

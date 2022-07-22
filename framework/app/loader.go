@@ -53,6 +53,7 @@ func (l *loader) Load() (state *State, err error) {
 
 func (l *loader) loadProvider() *di.Provider {
 	jsVM := di.ToType("github.com/livebud/bud/package/js", "VM")
+	fsFS := di.ToType("io/fs", "FS")
 	fn := &di.Function{
 		Name:    "loadWeb",
 		Imports: l.imports,
@@ -67,7 +68,10 @@ func (l *loader) loadProvider() *di.Provider {
 			di.ToType(l.module.Import("bud/internal/app/web"), "*Server"),
 			&di.Error{},
 		},
-		Aliases: di.Aliases{},
+		Aliases: di.Aliases{
+			fsFS: di.ToType("github.com/livebud/bud/package/budclient", "Client"),
+			jsVM: di.ToType("github.com/livebud/bud/package/budclient", "Client"),
+		},
 	}
 	if l.flag.Embed {
 		fn.Aliases[jsVM] = di.ToType("github.com/livebud/bud/package/js/v8", "*VM")

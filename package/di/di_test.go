@@ -2334,6 +2334,74 @@ func TestHoistable(t *testing.T) {
 	})
 }
 
+func TestInterfaceAliasing(t *testing.T) {
+	runTest(t, Test{
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []*di.Param{
+				{Import: "app.com/client", Type: "Client"},
+			},
+			Aliases: di.Aliases{
+				di.ToType("app.com/js", "VM"): di.ToType("app.com/client", "Client"),
+			},
+			Results: []di.Dependency{
+				di.ToType("app.com/web", "Log"),
+			},
+		},
+		Expect: `
+			&web.Log{vm: &client.client{}}
+		`,
+		Files: map[string]string{
+			"go.mod": goMod,
+			"main.go": `
+				package main
+
+				import (
+					"os"
+					"fmt"
+					"github.com/hexops/valast"
+					"app.com/gen/web"
+					"app.com/client"
+				)
+
+				func main() {
+					client := client.New()
+					actual := web.Load(client)
+					fmt.Fprintf(os.Stdout, "%s\n", valast.String(actual))
+				}
+			`,
+			"client/client.go": `
+				package client
+				type Client interface {
+					Eval(x string) (string, error)
+				}
+				func New() Client { return &client{} }
+				type client struct {}
+				func (c *client) Eval(x string) (string, error) {
+					return "", nil
+				}
+			`,
+			"js/js.go": `
+				package js
+				type VM interface {
+					Eval(x string) (string, error)
+				}
+			`,
+			"web/web.go": `
+				package web
+				import "app.com/js"
+				type Log struct {
+					vm js.VM
+				}
+				func Default(vm js.VM) *Log {
+					return &Log{vm}
+				}
+			`,
+		},
+	})
+}
+
 // TODO: figure out how to test imports as inputs
 
 // IDEA: consider renaming Target to Import
