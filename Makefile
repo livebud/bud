@@ -179,8 +179,8 @@ test.all: go.tools go.generate go.fmt go.vet budjs.check budjs.test go.test
 ci.npm:
 	@ npm ci
 
-ci.macos: test.all
-ci.ubuntu: test.all
+ci.macos: test.all e2e
+ci.ubuntu: test.all e2e
 
 ##
 # Build
@@ -239,3 +239,23 @@ publish:
 	@ echo "Publishing the release on Github"
 	@ git push origin main "v$(BUD_VERSION)"
 	@ gh release create --notes-file=release/changelog.md "v$(BUD_VERSION)" release/bud_* release/checksums.txt
+
+##
+# E2E
+##
+
+# TODO: make this less specific to Github actions
+GITHUB_REF_NAME ?= main
+
+e2e: e2e.bud.build
+
+e2e.bud.build:
+	go install github.com/livebud/bud@$(GITHUB_REF_NAME)
+	git clone https://github.com/livebud/welcome /welcome
+	( cd /welcome && \
+		npm install && \
+		go mod tidy && \
+		go get -u github.com/livebud/bud@$(GITHUB_REF_NAME) \
+	)
+	`go env GOPATH`/bin/bud -C /welcome build
+	/welcome/bud/app -h
