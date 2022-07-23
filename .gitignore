@@ -21,7 +21,3 @@ example/scratch
 
 # Release is where we build binaries for release
 /release
-
-# Exclude pre-bundled JS
-package/svelte/compiler.js
-framework/view/ssr/svelte.js
