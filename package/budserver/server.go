@@ -40,6 +40,8 @@ func New(fsys fs.FS, bus pubsub.Client, log log.Interface, vm js.VM) *Server {
 	router.Post("/bud/events", http.HandlerFunc(server.createEvent))
 	// Open a file
 	router.Get("/open/:path*", http.HandlerFunc(server.openFile))
+	// Eval some JS
+	router.Post("/eval", http.HandlerFunc(server.evalJS))
 	return server
 }
 
@@ -143,6 +145,27 @@ func (s *Server) openFile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/javascript")
 	w.Write(res)
 	s.log.Debug("devserver: opened", "file", filePath)
+}
+
+func (s *Server) evalJS(w http.ResponseWriter, r *http.Request) {
+	s.log.Debug("devserver: evaling")
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	var input budclient.JS
+	if err := json.Unmarshal(body, &input); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	result, err := s.vm.Eval(input.Path, input.Expr)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.Write([]byte(result))
+	s.log.Debug("devserver: evaled")
 }
 
 func (s *Server) createEvent(w http.ResponseWriter, r *http.Request) {

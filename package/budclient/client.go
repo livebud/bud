@@ -87,8 +87,30 @@ func (c *client) Script(path, script string) error {
 	return fmt.Errorf("budclient: script not implemented yet")
 }
 
-func (c *client) Eval(path, expression string) (string, error) {
-	return "", fmt.Errorf("budclient: eval not implemented yet")
+type JS struct {
+	Path string
+	Expr string
+}
+
+func (c *client) Eval(name, expr string) (string, error) {
+	body, err := json.Marshal(JS{name, expr})
+	if err != nil {
+		return "", err
+	}
+	url := c.baseURL + "/eval"
+	res, err := c.httpClient.Post(url, "application/json", bytes.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+	if res.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("budclient: eval returned unexpected %d. %s", res.StatusCode, resBody)
+	}
+	return string(resBody), nil
 }
 
 // Render a path with props on the dev server
