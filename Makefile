@@ -244,19 +244,18 @@ publish:
 # E2E
 ##
 
-# TODO: make less Github-specific
-GITHUB_HEAD_REF ?= main
+BRANCH_NAME ?= $(or $(GITHUB_HEAD_REF),main)
 GOPATH := $(shell go env GOPATH)
 
 e2e: e2e.bud.build
 
 e2e.bud.build:
-	go install github.com/livebud/bud@$(GITHUB_HEAD_REF)
+	go install github.com/livebud/bud@$(BRANCH_NAME)
 	git clone https://github.com/livebud/welcome
 	( cd welcome && \
 		npm install && \
 		go mod tidy && \
-		go get -u github.com/livebud/bud@$(GITHUB_HEAD_REF) \
+		go get -u github.com/livebud/bud@$(BRANCH_NAME) \
 	)
 	$(GOPATH)/bin/bud -C welcome build
 	./welcome/bud/app -h
