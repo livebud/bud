@@ -78,7 +78,6 @@ func (l *loader) Load(ctx context.Context) (state *State, err error) {
 			})
 		}
 	}
-	// fmt.Println(l.Flag.Embed, l.Transform.SSR, views)
 	if l.flag.Embed {
 		l.imports.AddNamed("overlay", "github.com/livebud/bud/package/overlay")
 		l.imports.AddNamed("mod", "github.com/livebud/bud/package/gomod")
@@ -87,6 +86,7 @@ func (l *loader) Load(ctx context.Context) (state *State, err error) {
 		l.imports.AddNamed("budclient", "github.com/livebud/bud/package/budclient")
 	}
 	l.imports.AddNamed("viewrt", "github.com/livebud/bud/framework/view/viewrt")
+	l.imports.AddNamed("svelte", l.module.Import("viewer/svelte"))
 	state.Imports = l.imports.List()
 	return state, nil
 }

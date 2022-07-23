@@ -103,6 +103,7 @@ func (k Kind) String() string {
 	case 4:
 		return "alias"
 	default:
+		// TODO: this should be removed
 		return "unknown"
 	}
 }

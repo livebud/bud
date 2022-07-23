@@ -249,7 +249,9 @@ func maybePrefixParam(param *Type, input *Variable) string {
 	// input is not an interface.
 	// TODO: This is hacky because input.Kind can't tell if it's a pointer to a
 	// struct vs. a struct, so we need extra logic to tell.
-	if !sameImport && isInterface(param.kind) && !isInterface(input.Kind) && !strings.HasPrefix(input.Type, "*") {
+	// TODO: input.Kind.String() != "unknown" is flaky. The unknown kind should
+	// be removed altogether.
+	if !sameImport && isInterface(param.kind) && !isInterface(input.Kind) && input.Kind.String() != "unknown" && !strings.HasPrefix(input.Type, "*") {
 		return "&" + input.Name
 	}
 	// Passing through, not sure what to do.

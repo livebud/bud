@@ -32,3 +32,9 @@ func New(module *mod.Module, fsys *overlay.FileSystem, vm js.VM) Server {
 {{- end }}
 
 type Server = viewrt.Server
+
+func Register(svelte *svelte.Viewer) Viewer {
+	return svelte
+}
+
+type Viewer = viewrt.Viewer

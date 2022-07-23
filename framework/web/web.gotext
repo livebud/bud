@@ -22,6 +22,7 @@ func New(
 	{{- end }}
 	{{- if $.HasView }}
 	view view.Server,
+	viewer view.Viewer,
 	{{- end }}
 	{{- if $.ShowWelcome }}
 	welcome welcome.Middleware,
@@ -33,6 +34,9 @@ func New(
 	router.{{ $action.Method }}(`{{ $action.Route }}`, controller.{{ $action.CallName }})
 	{{- end }}
 	{{- end }}
+	{{- if $.HasView }}
+	viewer.Serve(router)
+	{{- end }}
 	// Compose the middleware together
 	middleware := middleware.Compose(
 		middleware.MethodOverride(),
@@ -40,9 +44,9 @@ func New(
 		{{- if $.ShowWelcome }}
 		welcome,
 		{{- end }}
-		{{- if $.HasView }}
+		{{/* {{- if $.HasView }}
 		view,
-		{{- end }}
+		{{- end }} */}}
 		{{- if $.HasPublic }}
 		public,
 		{{- end }}
