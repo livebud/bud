@@ -250,12 +250,12 @@ GOPATH := $(shell go env GOPATH)
 e2e: e2e.bud.build
 
 e2e.bud.build:
-	go install github.com/livebud/bud@$(BRANCH_NAME)
+	GOPRIVATE=github.com/livebud/bud go install github.com/livebud/bud@$(BRANCH_NAME)
 	git clone https://github.com/livebud/welcome
 	( cd welcome && \
 		npm install && \
 		go mod tidy && \
-		go get -u github.com/livebud/bud@$(BRANCH_NAME) \
+		GOPRIVATE=github.com/livebud/bud go get github.com/livebud/bud@$(BRANCH_NAME) \
 	)
 	$(GOPATH)/bin/bud -C welcome build
 	./welcome/bud/app -h
