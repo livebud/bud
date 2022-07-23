@@ -245,17 +245,17 @@ publish:
 ##
 
 # TODO: make less Github-specific
-GITHUB_REF_NAME ?= main
+GITHUB_HEAD_REF ?= main
 
 e2e: e2e.bud.build
 
 e2e.bud.build:
-	go install github.com/livebud/bud@$(GITHUB_REF_NAME)
+	go install github.com/livebud/bud@$(GITHUB_HEAD_REF)
 	git clone https://github.com/livebud/welcome /welcome
 	( cd /welcome && \
 		npm install && \
 		go mod tidy && \
-		go get -u github.com/livebud/bud@$(GITHUB_REF_NAME) \
+		go get -u github.com/livebud/bud@$(GITHUB_HEAD_REF) \
 	)
 	`go env GOPATH`/bin/bud -C /welcome build
 	/welcome/bud/app -h
