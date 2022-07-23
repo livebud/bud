@@ -6,6 +6,12 @@ Get the latest release of Bud by running the following in your terminal:
 curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
 ```
 
+## v0.2.3
+
+- Fix regression in v0.2.2 where embedded files aren't available in the runtime package (#226)
+
+- Add simple E2E test in the Makefile to avoid issues regressions like this in the future.
+
 ## v0.2.2
 
 - **BREAKING:** fix numerous protocol bugs between controllers and views (#203)
