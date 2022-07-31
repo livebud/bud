@@ -24,9 +24,21 @@ func TestEval(t *testing.T) {
 	is.Equal("10", result)
 }
 
-func TestConsole(t *testing.T) {
+func TestConsoleLog(t *testing.T) {
 	is := is.New(t)
 	_, err := v8.Eval("TestConsole.js", `console.log("a", 3, { hi: "world" })`)
+	is.NoErr(err)
+}
+
+func TestConsoleWarn(t *testing.T) {
+	is := is.New(t)
+	_, err := v8.Eval("TestConsole.js", `console.warn("a", 3, { hi: "world" })`)
+	is.NoErr(err)
+}
+
+func TestConsoleError(t *testing.T) {
+	is := is.New(t)
+	_, err := v8.Eval("TestConsole.js", `console.error("a", 3, { hi: "world" })`)
 	is.NoErr(err)
 }
 
@@ -42,4 +54,25 @@ func TestURL(t *testing.T) {
 	res, err := v8.Eval("TestURL.js", `(new URL("http://google.com/hi")).host`)
 	is.NoErr(err)
 	is.Equal(res, "google.com")
+}
+
+func TestURLSearchParams(t *testing.T) {
+	is := is.New(t)
+	res, err := v8.Eval("TestURLSearchParams.js", `(new URLSearchParams('?a=1')).get('a')`)
+	is.NoErr(err)
+	is.Equal(res, "1")
+}
+
+func TestSetClearInterval(t *testing.T) {
+	is := is.New(t)
+	res, err := v8.Eval("TestSetClearInterval.js", `let id = setInterval(() => clearInterval(id), 500)`)
+	is.NoErr(err)
+	is.Equal(res, "undefined")
+}
+
+func TestSetClearTimeout(t *testing.T) {
+	is := is.New(t)
+	res, err := v8.Eval("TestSetClearTimeout.js", `let id = setTimeout(() => clearTimeout(id), 500)`)
+	is.NoErr(err)
+	is.Equal(res, "undefined")
 }
