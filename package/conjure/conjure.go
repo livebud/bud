@@ -72,7 +72,6 @@ func (f *FileSystem) FileServer(path string, server FileServer) {
 func (f *FileSystem) Open(target string) (fs.File, error) {
 	dir := &Dir{
 		gpath:  ".",
-		tpath:  target,
 		Mode:   fs.ModeDir,
 		filler: f.filler,
 		radix:  f.radix,

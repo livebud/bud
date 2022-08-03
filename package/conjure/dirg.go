@@ -2,7 +2,7 @@ package conjure
 
 import (
 	"io/fs"
-	"path/filepath"
+	"sync"
 	"testing/fstest"
 )
 
@@ -12,26 +12,42 @@ type DirGenerator interface {
 
 type dirg struct {
 	path   string // defined generator path
-	fn     func(dir *Dir) error
 	filler fstest.MapFS
+
+	fn   func(dir *Dir) error
+	once once
+}
+
+type once struct {
+	o   sync.Once
+	dir *Dir
+	err error
+}
+
+func (o *once) Do(fn func() (*Dir, error)) (dir *Dir, err error) {
+	o.o.Do(func() { o.dir, o.err = fn() })
+	return o.dir, o.err
+}
+
+func (g *dirg) generateDir(target string) (*Dir, error) {
+	return g.once.Do(func() (*Dir, error) {
+		dir := &Dir{
+			gpath:  g.path,
+			Mode:   fs.ModeDir,
+			filler: g.filler,
+			radix:  newRadix(),
+		}
+		if err := g.fn(dir); err != nil {
+			return nil, err
+		}
+		return dir, nil
+	})
 }
 
 func (g *dirg) Generate(target string) (fs.File, error) {
-	dir := &Dir{
-		gpath:  g.path,
-		tpath:  target,
-		Mode:   fs.ModeDir,
-		filler: g.filler,
-		radix:  newRadix(),
-	}
-	if err := g.fn(dir); err != nil {
-		return nil, err
-	}
-	// TODO: we shouldn't rely on filepath since paths should be agnostic
-	// Unfortunately, there doesn't seem to be a path.Rel()
-	rel, err := filepath.Rel(g.path, target)
+	dir, err := g.generateDir(target)
 	if err != nil {
 		return nil, err
 	}
-	return dir.open(rel)
+	return dir.open(target)
 }

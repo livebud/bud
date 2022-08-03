@@ -8,7 +8,6 @@ import (
 
 type Dir struct {
 	gpath string // generator path
-	tpath string // target path
 	Mode  fs.FileMode
 
 	radix  *radix
@@ -16,7 +15,7 @@ type Dir struct {
 }
 
 func (d *Dir) Path() string {
-	return d.tpath
+	return d.gpath
 }
 
 func (d *Dir) GenerateFile(path string, fn func(f *File) error) {
@@ -43,10 +42,16 @@ func (d *Dir) DirGenerator(path string, generator DirGenerator) {
 	d.GenerateDir(path, generator.GenerateDir)
 }
 
-func (d *Dir) open(rel string) (fs.File, error) {
+func (d *Dir) open(target string) (fs.File, error) {
+	// TODO: we shouldn't rely on filepath since paths should be agnostic
+	// Unfortunately, there doesn't seem to be a path.Rel()
+	rel, err := filepath.Rel(d.gpath, target)
+	if err != nil {
+		return nil, err
+	}
 	// Exact submatch, open generator
 	if generator, ok := d.radix.Get(rel); ok {
-		file, err := generator.Generate(d.tpath)
+		file, err := generator.Generate(target)
 		if err != nil {
 			return nil, err
 		}
@@ -54,8 +59,8 @@ func (d *Dir) open(rel string) (fs.File, error) {
 	}
 	// Get the generator with the longest matching prefix and open that.
 	if _, generator, ok := d.radix.GetByPrefix(rel); ok {
-		return generator.Generate(d.tpath)
+		return generator.Generate(target)
 	}
 	// Try the filler filesystem
-	return d.filler.Open(d.tpath)
+	return d.filler.Open(target)
 }
