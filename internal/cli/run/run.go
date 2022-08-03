@@ -189,7 +189,7 @@ type appServer struct {
 // Run the app server
 func (a *appServer) Run(ctx context.Context) error {
 	// Generate the app
-	if err := a.genfs.Sync("bud/internal/app"); err != nil {
+	if err := a.genfs.Sync("bud/internal"); err != nil {
 		a.bus.Publish("app:error", []byte(err.Error()))
 		a.log.Debug("run: published event", "event", "app:error")
 		return err
@@ -233,7 +233,7 @@ func (a *appServer) Run(ctx context.Context) error {
 		a.bus.Publish("backend:update", nil)
 		a.log.Debug("run: published event", "event", "backend:update")
 		// Generate the app
-		if err := a.genfs.Sync("bud/internal/app"); err != nil {
+		if err := a.genfs.Sync("bud/internal"); err != nil {
 			return err
 		}
 		// Build the app

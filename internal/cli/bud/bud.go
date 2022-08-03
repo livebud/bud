@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/rpc"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/livebud/bud/package/goplugin"
 
 	"github.com/livebud/bud/internal/current"
 	"github.com/livebud/bud/internal/pubsub"
@@ -15,6 +18,7 @@ import (
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/app"
 	"github.com/livebud/bud/framework/controller"
+	"github.com/livebud/bud/framework/generate"
 	"github.com/livebud/bud/framework/public"
 	"github.com/livebud/bud/framework/transform/transformrt"
 	"github.com/livebud/bud/framework/view"
@@ -143,6 +147,37 @@ func FileSystem(log log.Interface, module *gomod.Module, flag *framework.Flag) (
 	genfs.FileGenerator("bud/internal/app/controller/controller.go", controller.New(injector, module, parser))
 	genfs.FileGenerator("bud/internal/app/view/view.go", view.New(module, transforms, flag))
 	genfs.FileGenerator("bud/internal/app/public/public.go", public.New(flag))
+	genfs.FileGenerator("bud/internal/generate/main.go", generate.New())
+	genfs.GenerateDir("bud/internal/generator", func(ctx context.Context, fsys overlay.F, dir *overlay.Dir) error {
+		fmt.Println("generating dir", dir.Path())
+		// We need to write this directory early so that we can call `go run`
+		if err := genfs.Sync("bud/internal/generate"); err != nil {
+			return err
+		}
+		conn, err := goplugin.Start("go", "run", module.Directory("bud/internal/generate/main.go"))
+		if err != nil {
+			return err
+		}
+		// defer conn.Close()
+		client := rpc.NewClient(conn)
+		var result map[string]string
+		var args struct{}
+		if err = client.Call("Generator.List", &args, &result); err != nil {
+			return err
+		}
+		for path, method := range result {
+			dir.GenerateFile(path, func(ctx context.Context, fsys overlay.F, file *overlay.File) error {
+				var args struct{}
+				var result *[]byte
+				if err = client.Call(method, &args, &result); err != nil {
+					return err
+				}
+				file.Data = *result
+				return nil
+			})
+		}
+		return nil
+	})
 	return genfs, nil
 }
 

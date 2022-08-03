@@ -1,0 +1,49 @@
+package main
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+func main() {
+	if err := run(); err != nil {
+		console.Error(err.Error())
+		os.Exit(1)
+	}
+	os.Exit(0)
+}
+
+func run() error {
+	conn, err := goplugin.Serve("Generate")
+	if err != nil {
+		return err
+	}
+	server := rpc.NewServer()
+	server.Register(&Generator{})
+	server.Register(&Tailwind{})
+	server.ServeConn(conn)
+	return nil
+}
+
+type Generator struct {
+}
+
+func (g *Generator) List(args struct{}, reply *map[string]string) error {
+  *reply = map[string]string{
+		"tailwind/tailwind.css": "Tailwind.Generate",
+	}
+	return nil
+}
+
+type Tailwind struct {
+}
+
+func (t *Tailwind) Generate(args struct{}, reply *[]byte) error {
+	println("generating tailwind!")
+	*reply = []byte(`/** tailwind **/`)
+	return nil
+}
