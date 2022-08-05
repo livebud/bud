@@ -87,7 +87,7 @@ go run main.go -C hello build
 
 ## Disabling Code Generation
 
-Sometimes you want to hack on the generated code in `bud/`, but if you run `bud run` any changes you make will be overriden. To avoid this, you can call your app's `main.go` file directly:
+Sometimes you want to hack on the generated code in `bud/`, but if you run `bud run` any changes you make will be overridden. To avoid this, you can call your app's `main.go` file directly:
 
 ```sh
 go run bud/internal/app/main.go

@@ -190,11 +190,11 @@ func TestFindNested(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(m3.Import(), "github.com/livebud/bud-test-nested-plugin")
 
-	// Ensure module1 is not overriden
+	// Ensure module1 is not overridden
 	is.Equal(module1.Import(), "app.com")
 	is.Equal(module1.Directory(), dir)
 
-	// Ensure module2 is not overriden
+	// Ensure module2 is not overridden
 	is.Equal(module2.Import(), "github.com/livebud/bud-test-plugin")
 	is.Equal(module2.Directory(), modCache.Directory("github.com/livebud", "bud-test-plugin@v0.0.8"))
 }
