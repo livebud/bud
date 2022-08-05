@@ -7,13 +7,13 @@ import (
 )
 
 // Dir scans a directory
-func Dir(fs fs.FS, validFn func(de fs.DirEntry) bool) Scanner {
+func Dir(fs fs.FS, dir string, validFn func(de fs.DirEntry) bool) Scanner {
 	s := &dirScanner{
 		fs:      fs,
 		validFn: validFn,
 		textCh:  make(chan string),
 	}
-	go s.walk(".")
+	go s.walk(dir)
 	return s
 }
 

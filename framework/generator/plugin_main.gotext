@@ -1,0 +1,29 @@
+package main
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+func main() {
+	if err := run(); err != nil {
+		console.Error(err.Error())
+		os.Exit(1)
+	}
+	os.Exit(0)
+}
+
+func run() error {
+	conn, err := goplugin.Serve("Generate")
+	if err != nil {
+		return err
+	}
+	server := rpc.NewServer()
+	server.Register(&Tailwind{})
+	server.ServeConn(conn)
+	return nil
+}

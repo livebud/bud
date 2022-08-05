@@ -1,7 +1,8 @@
-package generate_test
+package generator_test
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/livebud/bud/internal/cli/testcli"
@@ -32,8 +33,8 @@ func TestTailwindGenerator(t *testing.T) {
 	_, err := cli.Run(ctx, "build", "--embed=false")
 	is.NoErr(err)
 	is.NoErr(td.Exists("bud/internal/generate/main.go"))
-	// is.NoErr(td.Exists("bud/internal/generator/tailwind/tailwind.css"))
-	// data, err := os.ReadFile(td.Path("bud/internal/generator/tailwind/tailwind.css"))
-	// is.NoErr(err)
-	// is.Equal(string(data), "/** tailwind **/")
+	is.NoErr(td.Exists("bud/internal/generator/tailwind/tailwind.css"))
+	data, err := os.ReadFile(td.Path("bud/internal/generator/tailwind/tailwind.css"))
+	is.NoErr(err)
+	is.Equal(string(data), "/** tailwind **/")
 }
