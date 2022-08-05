@@ -61,7 +61,7 @@ func TestLoadNumberOnly(t *testing.T) {
 	server.Shutdown(context.Background())
 }
 
-// This test is used to determine waht the maximum socket length is.
+// This test is used to determine what the maximum socket length is.
 // It should always fail.
 func TestSocketLength(t *testing.T) {
 	t.SkipNow()

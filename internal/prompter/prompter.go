@@ -79,7 +79,7 @@ func (p *Prompter) startTimer() {
 	p.startTime = time.Now()
 }
 
-// Init -> Reloading -> `Sucess reload` or `Fail reload` or `Made no reload` ->
+// Init -> Reloading -> `Success reload` or `Fail reload` or `Made no reload` ->
 // 		Reloading -> ...
 var nextState = map[string]string{
 	"init":   "reload",

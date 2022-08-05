@@ -56,7 +56,7 @@ type CLI struct {
 }
 
 // Flags that can be set from the test suite
-// These can be overriden by more specific flags
+// These can be overridden by more specific flags
 func prependFlags(args []string) []string {
 	return append([]string{
 		"--log=" + testlog.Pattern(),
@@ -207,7 +207,7 @@ func bufferHeaders(res *http.Response, body []byte) ([]byte, error) {
 		return nil, err
 	}
 	// httputil.DumpResponse() always attaches a Content-Length, regardless of
-	// whether or not you remove it. This scanner removes the Content-Lenght
+	// whether or not you remove it. This scanner removes the Content-Length
 	// manually.
 	s := bufio.NewScanner(bytes.NewBuffer(dump))
 	b := new(bytes.Buffer)

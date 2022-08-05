@@ -18,7 +18,7 @@ type ReadWritable interface {
 	Writable
 }
 
-// Now may be overriden for testing purposes
+// Now may be overridden for testing purposes
 var Now = func() time.Time {
 	return time.Now()
 }
