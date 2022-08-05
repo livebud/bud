@@ -4,6 +4,7 @@ import (
 	"io"
 	"io/fs"
 	"testing"
+	"testing/fstest"
 
 	"github.com/livebud/bud/package/vfs"
 
@@ -30,7 +31,7 @@ func (c *conn) Close() error {
 	return nil
 }
 
-func TestClientServer(t *testing.T) {
+func TestReadFile(t *testing.T) {
 	is := is.New(t)
 	r1, w1 := io.Pipe()
 	r2, w2 := io.Pipe()
@@ -42,8 +43,44 @@ func TestClientServer(t *testing.T) {
 	fsys := vfs.Map{
 		"a.txt": []byte("a"),
 	}
-	go remotefs.NewServer(fsys, c2)
+	go remotefs.Serve(fsys, c2)
 	data, err := fs.ReadFile(client, "a.txt")
 	is.NoErr(err)
 	is.Equal(data, []byte("a"))
+}
+
+func TestReadDir(t *testing.T) {
+	is := is.New(t)
+	r1, w1 := io.Pipe()
+	r2, w2 := io.Pipe()
+	c1 := &conn{r1, w2}
+	defer c1.Close()
+	c2 := &conn{r2, w1}
+	defer c2.Close()
+	client := remotefs.NewClient(c1)
+	fsys := vfs.Map{
+		"tailwind/tailwind.css": []byte("/** tailwind **/"),
+	}
+	go remotefs.Serve(fsys, c2)
+	des, err := fs.ReadDir(client, "tailwind")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
+}
+
+func TestFS(t *testing.T) {
+	is := is.New(t)
+	r1, w1 := io.Pipe()
+	r2, w2 := io.Pipe()
+	c1 := &conn{r1, w2}
+	defer c1.Close()
+	c2 := &conn{r2, w1}
+	defer c2.Close()
+	client := remotefs.NewClient(c1)
+	fsys := vfs.Map{
+		"tailwind/tailwind.css": []byte("/** tailwind **/"),
+		"markdoc/markdoc.js":    []byte("/** markdoc **/"),
+		"main.go":               []byte("/** main **/"),
+	}
+	go remotefs.Serve(fsys, c2)
+	is.NoErr(fstest.TestFS(client, "tailwind/tailwind.css", "markdoc/markdoc.js"))
 }

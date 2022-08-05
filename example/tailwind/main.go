@@ -1,18 +1,14 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"io/fs"
-	"net/rpc"
 	"os"
-	"strings"
+	"time"
 
-	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/internal/remotefs"
 	"github.com/livebud/bud/package/goplugin"
-	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/log/console"
-	"github.com/livebud/bud/package/overlay"
 )
 
 func main() {
@@ -24,14 +20,14 @@ func main() {
 }
 
 func run() error {
-	module, err := gomod.Find(".")
-	if err != nil {
-		return err
-	}
-	genfs, err := overlay.Load(log.Discard, module)
-	if err != nil {
-		return err
-	}
+	// module, err := gomod.Find(".")
+	// if err != nil {
+	// 	return err
+	// }
+	// genfs, err := overlay.Load(log.Discard, module)
+	// if err != nil {
+	// 	return err
+	// }
 
 	// CustomGenerators()
 
@@ -39,25 +35,44 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	client := rpc.NewClient(conn)
+	client := remotefs.NewClient(conn)
 	defer client.Close()
 
-	// FileSystem()
-	// TODO: switch to GenerateDir with a remote filesystem
-	// genfs.Mount
-	genfs.ServeFile("bud/internal/generator", func(ctx context.Context, fsys overlay.F, file *overlay.File) error {
-		rel := strings.TrimPrefix(file.Path(), "bud/internal/generator/")
-		var data []byte
-		if err := client.Call("generator.Open", rel, &data); err != nil {
-			return err
-		}
-		file.Data = data
-		return nil
-	})
-	code, err := fs.ReadFile(genfs, "bud/internal/generator/tailwind/tailwind.css")
+	// // FileSystem()
+	// // TODO: switch to GenerateDir with a remote filesystem
+	// // genfs.Mount
+	// genfs.ServeFile("bud/internal/generator", func(ctx context.Context, fsys overlay.F, file *overlay.File) error {
+	// 	rel := strings.TrimPrefix(file.Path(), "bud/internal/generator/")
+	// 	var data []byte
+	// 	if err := client.Call("generator.Open", rel, &data); err != nil {
+	// 		return err
+	// 	}
+	// 	file.Data = data
+	// 	return nil
+	// })
+	// err = fs.WalkDir(client, ".", func(path string, d fs.DirEntry, err error) error {
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	fmt.Println(path)
+	// 	return nil
+	// })
+	// if err != nil {
+	// 	return err
+	// }
+	now := time.Now()
+	// code, err := fs.ReadFile(client, "tailwind/tailwind.css")
+	// if err != nil {
+	// 	return err
+	// }
+	// fmt.Println(string(code), time.Since(now))
+	// now = time.Now()
+	des, err := fs.ReadDir(client, "tailwind")
 	if err != nil {
 		return err
 	}
-	fmt.Println("got result", string(code))
+	for _, de := range des {
+		fmt.Println(de.Name(), time.Since(now))
+	}
 	return nil
 }

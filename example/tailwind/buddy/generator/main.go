@@ -1,11 +1,10 @@
 package main
 
 import (
-	"io/fs"
-	"net/rpc"
 	"os"
 
 	"github.com/livebud/bud/example/tailwind/generator/tailwind"
+	"github.com/livebud/bud/internal/remotefs"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/goplugin"
 	"github.com/livebud/bud/package/log"
@@ -31,17 +30,16 @@ func run() error {
 		return err
 	}
 	log := log.Discard
-	generator, err := Load(log, module)
-	server := rpc.NewServer()
-	if err := server.RegisterName("generator", generator); err != nil {
+	genfs, err := DILoad(log, module)
+	if err != nil {
 		return err
 	}
-	server.ServeConn(conn)
+	remotefs.Serve(genfs, conn)
 	return nil
 }
 
 // Load comes from DI
-func Load(log log.Interface, module *gomod.Module) (*Generator, error) {
+func DILoad(log log.Interface, module *gomod.Module) (*FileSystem, error) {
 	genfs, err := overlay.Load(log, module)
 	if err != nil {
 		return nil, err
@@ -56,24 +54,26 @@ type Generators struct {
 	Tailwind *tailwind.Generator
 }
 
-func Register(genfs *overlay.FileSystem, generators *Generators) *Generator {
+func Register(genfs *overlay.FileSystem, generators *Generators) *FileSystem {
 	genfs.DirGenerator("tailwind", generators.Tailwind)
-	return &Generator{genfs}
+	return genfs
 }
 
-type Generator struct {
-	fsys fs.FS
-}
+type FileSystem = overlay.FileSystem
 
-// type File struct {
-// 	Data []byte
+// type Generator struct {
+// 	fsys fs.FS
 // }
 
-func (g *Generator) Open(name string, result *[]byte) error {
-	code, err := fs.ReadFile(g.fsys, name)
-	if err != nil {
-		return err
-	}
-	*result = code
-	return nil
-}
+// // type File struct {
+// // 	Data []byte
+// // }
+
+// func (g *Generator) Open(name string, result *[]byte) error {
+// 	code, err := fs.ReadFile(g.fsys, name)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	*result = code
+// 	return nil
+// }

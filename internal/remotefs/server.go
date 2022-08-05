@@ -8,11 +8,10 @@ import (
 	"github.com/livebud/bud/internal/virtual"
 )
 
-func NewServer(fsys fs.FS, conn io.ReadWriteCloser) *Server {
+func Serve(fsys fs.FS, conn io.ReadWriteCloser) {
 	server := rpc.NewServer()
-	server.RegisterName(name, &Server{fsys})
+	server.RegisterName("remotefs", &Server{fsys})
 	server.ServeConn(conn)
-	return &Server{fsys}
 }
 
 type Server struct {
@@ -39,6 +38,27 @@ func (s *Server) Open(name string, vfile **virtual.File) error {
 		ModTime: stat.ModTime(),
 		Mode:    stat.Mode(),
 		Sys:     stat.Sys(),
+	}
+	return nil
+}
+
+func (s *Server) ReadDir(name string, vdes *[]*virtual.DirEntry) error {
+	des, err := fs.ReadDir(s.fsys, name)
+	if err != nil {
+		return err
+	}
+	for _, de := range des {
+		stat, err := de.Info()
+		if err != nil {
+			return err
+		}
+		*vdes = append(*vdes, &virtual.DirEntry{
+			Base:    de.Name(),
+			Mode:    stat.Mode(),
+			ModTime: stat.ModTime(),
+			Sys:     stat.Sys(),
+			Size:    stat.Size(),
+		})
 	}
 	return nil
 }
