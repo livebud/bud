@@ -769,3 +769,44 @@ func TestGoModGoModEmbed(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(stat.Name(), "go.mod")
 }
+
+func TestMount(t *testing.T) {
+	is := is.New(t)
+	now := time.Now()
+	cfs := conjure.New()
+	cfs.GenerateDir("bud/view", View())
+	gfs := conjure.New()
+	cfs.Mount("bud/generator", gfs)
+	gfs.FileGenerator("tailwind/tailwind.css", &conjure.Embed{
+		Data:    []byte(`/** tailwind **/`),
+		Mode:    fs.FileMode(0644),
+		ModTime: now,
+	})
+	des, err := fs.ReadDir(cfs, "bud")
+	is.NoErr(err)
+	is.Equal(len(des), 2)
+	is.Equal(des[0].Name(), "generator")
+	is.Equal(des[0].IsDir(), true)
+	is.Equal(des[1].Name(), "view")
+	is.Equal(des[1].IsDir(), true)
+	des, err = fs.ReadDir(cfs, "bud/generator")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
+	is.Equal(des[0].Name(), "tailwind")
+	is.Equal(des[0].IsDir(), true)
+	des, err = fs.ReadDir(cfs, "bud/generator/tailwind")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
+	is.Equal(des[0].Name(), "tailwind.css")
+	is.Equal(des[0].IsDir(), false)
+	is.Equal(des[0].Type(), fs.FileMode(0))
+	fi, err := des[0].Info()
+	is.NoErr(err)
+	is.True(fi.ModTime().IsZero())
+	is.Equal(fi.Mode(), fs.FileMode(0))
+	is.Equal(fi.IsDir(), false)
+	is.Equal(fi.Size(), int64(0))
+	code, err := fs.ReadFile(cfs, "bud/generator/tailwind/tailwind.css")
+	is.NoErr(err)
+	is.Equal(string(code), `/** tailwind **/`)
+}

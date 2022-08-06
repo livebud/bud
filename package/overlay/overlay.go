@@ -160,3 +160,8 @@ func (f *FileSystem) Sync(dir string) error {
 	f.clear()
 	return dsync.Dir(f.fsys, dir, f.module.DirFS(dir), ".")
 }
+
+// Mount a filesystem to a dir
+func (f *FileSystem) Mount(dir string, fsys fs.FS) {
+	f.cfs.Mount(dir, fsys)
+}
