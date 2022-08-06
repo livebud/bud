@@ -47,42 +47,5 @@ func run() error {
 
 	fmt.Println("tailwind/tailwind.css:", string(data))
 
-	// // FileSystem()
-	// // TODO: switch to GenerateDir with a remote filesystem
-	// // genfs.Mount
-	// genfs.ServeFile("bud/internal/generator", func(ctx context.Context, fsys overlay.F, file *overlay.File) error {
-	// 	rel := strings.TrimPrefix(file.Path(), "bud/internal/generator/")
-	// 	var data []byte
-	// 	if err := client.Call("generator.Open", rel, &data); err != nil {
-	// 		return err
-	// 	}
-	// 	file.Data = data
-	// 	return nil
-	// })
-	// err = fs.WalkDir(client, ".", func(path string, d fs.DirEntry, err error) error {
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	fmt.Println(path)
-	// 	return nil
-	// })
-	// if err != nil {
-	// 	return err
-	// }
-	// now := time.Now()
-	// overlay.Load(log.Discard, client)
-	// // code, err := fs.ReadFile(client, "tailwind/tailwind.css")
-	// // if err != nil {
-	// // 	return err
-	// // }
-	// // fmt.Println(string(code), time.Since(now))
-	// // now = time.Now()
-	// des, err := fs.ReadDir(client, "tailwind")
-	// if err != nil {
-	// 	return err
-	// }
-	// for _, de := range des {
-	// 	fmt.Println(de.Name(), time.Since(now))
-	// }
 	return nil
 }
