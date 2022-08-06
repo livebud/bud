@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"time"
 
 	"github.com/livebud/bud/internal/remotefs"
+	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/goplugin"
+	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/log/console"
+	"github.com/livebud/bud/package/overlay"
 )
 
 func main() {
@@ -20,23 +22,30 @@ func main() {
 }
 
 func run() error {
-	// module, err := gomod.Find(".")
-	// if err != nil {
-	// 	return err
-	// }
-	// genfs, err := overlay.Load(log.Discard, module)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// CustomGenerators()
-
 	conn, err := goplugin.Start("go", "run", "buddy/generator/main.go")
 	if err != nil {
 		return err
 	}
-	client := remotefs.NewClient(conn)
-	defer client.Close()
+	remotefs := remotefs.NewClient(conn)
+	defer remotefs.Close()
+
+	// Load the overlay
+	module, err := gomod.Find(".")
+	if err != nil {
+		return err
+	}
+	genfs, err := overlay.Load(log.Discard, module)
+	if err != nil {
+		return err
+	}
+	genfs.Mount("bud/generator", remotefs)
+
+	data, err := fs.ReadFile(genfs, "bud/generator/tailwind/tailwind.css")
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("tailwind/tailwind.css:", string(data))
 
 	// // FileSystem()
 	// // TODO: switch to GenerateDir with a remote filesystem
@@ -60,19 +69,20 @@ func run() error {
 	// if err != nil {
 	// 	return err
 	// }
-	now := time.Now()
-	// code, err := fs.ReadFile(client, "tailwind/tailwind.css")
+	// now := time.Now()
+	// overlay.Load(log.Discard, client)
+	// // code, err := fs.ReadFile(client, "tailwind/tailwind.css")
+	// // if err != nil {
+	// // 	return err
+	// // }
+	// // fmt.Println(string(code), time.Since(now))
+	// // now = time.Now()
+	// des, err := fs.ReadDir(client, "tailwind")
 	// if err != nil {
 	// 	return err
 	// }
-	// fmt.Println(string(code), time.Since(now))
-	// now = time.Now()
-	des, err := fs.ReadDir(client, "tailwind")
-	if err != nil {
-		return err
-	}
-	for _, de := range des {
-		fmt.Println(de.Name(), time.Since(now))
-	}
+	// for _, de := range des {
+	// 	fmt.Println(de.Name(), time.Since(now))
+	// }
 	return nil
 }
