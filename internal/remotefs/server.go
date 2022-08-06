@@ -4,6 +4,7 @@ import (
 	"io"
 	"io/fs"
 	"net/rpc"
+	"path"
 
 	"github.com/livebud/bud/internal/virtual"
 )
@@ -18,7 +19,7 @@ type Server struct {
 	fsys fs.FS
 }
 
-func (s *Server) Open(name string, vfile **virtual.File) error {
+func (s *Server) Open(name string, vfile *fs.File) error {
 	file, err := s.fsys.Open(name)
 	if err != nil {
 		return err
@@ -28,12 +29,41 @@ func (s *Server) Open(name string, vfile **virtual.File) error {
 	if err != nil {
 		return err
 	}
+	if stat.IsDir() {
+		des, err := fs.ReadDir(s.fsys, name)
+		if err != nil {
+			return err
+		}
+		entries := make([]fs.DirEntry, len(des))
+		for i, de := range des {
+			fi, err := de.Info()
+			if err != nil {
+				return err
+			}
+			entries[i] = &virtual.DirEntry{
+				Path:    de.Name(),
+				Mode:    de.Type(),
+				ModTime: fi.ModTime(),
+				Size:    fi.Size(),
+				Sys:     fi.Sys(),
+			}
+		}
+		// Return a directory
+		*vfile = &virtual.Dir{
+			Name:    path.Base(name),
+			ModTime: stat.ModTime(),
+			Mode:    stat.Mode(),
+			Sys:     stat.Sys(),
+			Entries: entries,
+		}
+		return nil
+	}
 	data, err := io.ReadAll(file)
 	if err != nil {
 		return err
 	}
 	*vfile = &virtual.File{
-		Name:    name,
+		Name:    path.Base(name),
 		Data:    data,
 		ModTime: stat.ModTime(),
 		Mode:    stat.Mode(),
@@ -42,7 +72,7 @@ func (s *Server) Open(name string, vfile **virtual.File) error {
 	return nil
 }
 
-func (s *Server) ReadDir(name string, vdes *[]*virtual.DirEntry) error {
+func (s *Server) ReadDir(name string, vdes *[]fs.DirEntry) error {
 	des, err := fs.ReadDir(s.fsys, name)
 	if err != nil {
 		return err
@@ -53,7 +83,7 @@ func (s *Server) ReadDir(name string, vdes *[]*virtual.DirEntry) error {
 			return err
 		}
 		*vdes = append(*vdes, &virtual.DirEntry{
-			Base:    de.Name(),
+			Path:    de.Name(),
 			Mode:    stat.Mode(),
 			ModTime: stat.ModTime(),
 			Sys:     stat.Sys(),

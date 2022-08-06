@@ -76,10 +76,10 @@ func TestFS(t *testing.T) {
 	c2 := &conn{r2, w1}
 	defer c2.Close()
 	client := remotefs.NewClient(c1)
-	fsys := vfs.Map{
-		"tailwind/tailwind.css": []byte("/** tailwind **/"),
-		"markdoc/markdoc.js":    []byte("/** markdoc **/"),
-		"main.go":               []byte("/** main **/"),
+	fsys := fstest.MapFS{
+		"tailwind/tailwind.css": &fstest.MapFile{Data: []byte("/** tailwind **/")},
+		"markdoc/markdoc.js":    &fstest.MapFile{Data: []byte("/** markdoc **/")},
+		"main.go":               &fstest.MapFile{Data: []byte("/** main **/")},
 	}
 	go remotefs.Serve(fsys, c2)
 	is.NoErr(fstest.TestFS(client, "tailwind/tailwind.css", "markdoc/markdoc.js"))

@@ -6,7 +6,7 @@ import (
 )
 
 type DirEntry struct {
-	Base    string // Base name
+	Path    string // Base path
 	Mode    fs.FileMode
 	ModTime time.Time
 	Sys     interface{}
@@ -16,7 +16,7 @@ type DirEntry struct {
 var _ fs.DirEntry = (*DirEntry)(nil)
 
 func (e *DirEntry) Name() string {
-	return e.Base
+	return e.Path
 }
 
 func (e *DirEntry) IsDir() bool {
@@ -29,7 +29,7 @@ func (e *DirEntry) Type() fs.FileMode {
 
 func (e *DirEntry) Info() (fs.FileInfo, error) {
 	return &fileInfo{
-		name:    e.Base,
+		name:    e.Path,
 		mode:    e.Mode,
 		modTime: e.ModTime,
 		sys:     e.Sys,
