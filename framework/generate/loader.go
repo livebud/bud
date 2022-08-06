@@ -1,62 +1,71 @@
 package generate
 
 import (
+	"fmt"
 	"io/fs"
 
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/vfs"
 )
 
-func Load(fsys fs.FS, module *gomod.Module) (*State, error) {
+func Load(fsys fs.FS, injector *di.Injector, module *gomod.Module) (*State, error) {
 	loader := &loader{
-		imports: imports.New(),
-		module:  module,
+		imports:  imports.New(),
+		injector: injector,
+		module:   module,
 	}
 	return loader.Load(fsys)
 }
 
 type loader struct {
 	bail.Struct
-	imports *imports.Set
-	module  *gomod.Module
+	imports  *imports.Set
+	injector *di.Injector
+	module   *gomod.Module
 }
 
 // Load the command state
 func (l *loader) Load(fsys fs.FS) (state *State, err error) {
 	defer l.Recover2(&err, "generate")
+	if err := vfs.Exist(fsys, "bud/internal/generate/generator/generator.go"); err != nil {
+		return nil, err
+	}
 	state = new(State)
-	// state.Generators = l.loadGenerators(fsys)
-	// if len(state.Generators) == 0 {
-	// 	return nil, fmt.Errorf("generate: error loading. %w", fs.ErrNotExist)
-	// }
-	state.Imports = l.imports.List()
+	state.Provider = l.loadProvider()
+	state.Imports = l.loadImports()
 	return state, nil
 }
 
-// func (l *loader) loadGenerators(fsys fs.FS) (generators []*stateGenerator) {
-// 	paths, err := scan.List(fsys, "generator", func(de fs.DirEntry) bool {
-// 		if de.IsDir() {
-// 			return valid.Dir(de.Name())
-// 		} else {
-// 			return valid.GoFile(de.Name())
-// 		}
-// 	})
-// 	if err != nil {
-// 		l.Bail(err)
-// 	}
-// 	for _, path := range paths {
-// 		path = strings.TrimPrefix(path, "generator/")
-// 		name := l.imports.Add(l.module.Import(path))
-// 		generators = append(generators, &stateGenerator{
-// 			ImportName: name,
-// 			Path:       path,
-// 			Pascal:     gotext.Pascal(path),
-// 		})
-// 	}
-// 	return generators
-// }
+func (l *loader) loadProvider() *di.Provider {
+	provider, err := l.injector.Wire(&di.Function{
+		Name:    "loadGenerator",
+		Imports: l.imports,
+		Params: []*di.Param{
+			{Import: "github.com/livebud/bud/package/log", Type: "Interface"},
+			{Import: "github.com/livebud/bud/package/gomod", Type: "*Module"},
+			{Import: "context", Type: "Context"},
+		},
+		Results: []di.Dependency{
+			di.ToType(l.module.Import("bud/internal/generate/generator"), "*FileSystem"),
+			&di.Error{},
+		},
+	})
+	if err != nil {
+		l.Bail(fmt.Errorf("unable to load provider: %s", err))
+	}
+	return provider
+}
 
-// func (l *loader) loadProvider() *di.Provider {
-// 	return nil
-// }
+func (l *loader) loadImports() []*imports.Import {
+	l.imports.AddStd("os", "context", "errors")
+	l.imports.AddNamed("commander", "github.com/livebud/bud/package/commander")
+	l.imports.AddNamed("console", "github.com/livebud/bud/package/log/console")
+	l.imports.AddNamed("log", "github.com/livebud/bud/package/log")
+	l.imports.AddNamed("filter", "github.com/livebud/bud/package/log/filter")
+	l.imports.AddNamed("goplugin", "github.com/livebud/bud/package/goplugin")
+	l.imports.AddNamed("remotefs", "github.com/livebud/bud/package/remotefs")
+	return l.imports.List()
+}

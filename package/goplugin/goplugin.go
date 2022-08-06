@@ -36,7 +36,7 @@ func (h *host) Close() error {
 }
 
 // Start starts up a command and returns the connection
-func Start(cmd string, args ...string) (Conn, error) {
+func Start(dir, cmd string, args ...string) (Conn, error) {
 	r1, w1, err := os.Pipe()
 	if err != nil {
 		return nil, err
@@ -47,6 +47,7 @@ func Start(cmd string, args ...string) (Conn, error) {
 	}
 
 	command := exec.Command(cmd, args...)
+	command.Dir = dir
 	command.Stdin = os.Stdin
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr

@@ -1,2 +1,25 @@
 package generator
 
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+// Generators is a list of generators
+type Generators struct {
+	Tailwind *tailwind.Generator
+}
+
+// Register the generators
+func Register(genfs *overlay.FileSystem, generators *Generators) *FileSystem {
+	genfs.DirGenerator("bud/internal/generator/tailwind", generators.Tailwind)
+	return genfs
+}
+
+// Filesystem is simply an overlay.FileSystem. We alias overlay.FileSystem to
+// ensure Register is called as part of loading the required dependencies.
+type FileSystem = overlay.FileSystem

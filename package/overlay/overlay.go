@@ -3,8 +3,6 @@ package overlay
 import (
 	"context"
 
-	"github.com/livebud/bud/internal/errs"
-
 	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/fscache"
 	"github.com/livebud/bud/internal/pubsub"
@@ -36,7 +34,7 @@ func Load(log log.Interface, module *gomod.Module) (*FileSystem, error) {
 		cfsCache.Clear()
 		pluginCache.Clear()
 	}
-	return &FileSystem{cfs, dag, merged, module, ps, clear, nil}, nil
+	return &FileSystem{cfs, dag, merged, module, ps, clear}, nil
 }
 
 // Serve is just load without the cache
@@ -51,7 +49,7 @@ func Serve(log log.Interface, module *gomod.Module) (*Server, error) {
 	dag := dag.New()
 	ps := pubsub.New()
 	clear := func() {}
-	return &FileSystem{cfs, dag, merged, module, ps, clear, nil}, nil
+	return &FileSystem{cfs, dag, merged, module, ps, clear}, nil
 }
 
 type Server = FileSystem
@@ -60,25 +58,25 @@ type F interface {
 	fs.FS
 	Link(from, to string)
 	// Cleanup collects functions that are called when the FileSystem is closed
-	Cleanup(fn func() error)
+	// Cleanup(fn func() error)
 }
 
 type FileSystem struct {
-	cfs     *conjure.FileSystem
-	dag     *dag.Graph
-	fsys    fs.FS
-	module  *gomod.Module
-	ps      pubsub.Client
-	clear   func() // Clear the cache
-	closers []func() error
+	cfs    *conjure.FileSystem
+	dag    *dag.Graph
+	fsys   fs.FS
+	module *gomod.Module
+	ps     pubsub.Client
+	clear  func() // Clear the cache
+	// closers []func() error
 }
 
 func (f *FileSystem) Link(from, to string) {
 }
 
-func (f *FileSystem) Cleanup(fn func() error) {
-	f.closers = append(f.closers, fn)
-}
+// func (f *FileSystem) Cleanup(fn func() error) {
+// 	f.closers = append(f.closers, fn)
+// }
 
 func (f *FileSystem) Open(name string) (fs.File, error) {
 	file, err := f.fsys.Open(name)
@@ -88,14 +86,14 @@ func (f *FileSystem) Open(name string) (fs.File, error) {
 	return file, nil
 }
 
-func (f *FileSystem) Close() (err error) {
-	for _, fn := range f.closers {
-		if e := fn(); e != nil {
-			err = errs.Join(err, e)
-		}
-	}
-	return err
-}
+// func (f *FileSystem) Close() (err error) {
+// 	for _, fn := range f.closers {
+// 		if e := fn(); e != nil {
+// 			err = errs.Join(err, e)
+// 		}
+// 	}
+// 	return err
+// }
 
 var _ fs.FS = (*FileSystem)(nil)
 

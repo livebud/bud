@@ -13,6 +13,7 @@ func init() {
 	gob.Register(&virtual.File{})
 	gob.Register(&virtual.Dir{})
 	gob.Register(&virtual.DirEntry{})
+	// gob.Register(&virtual.FileInfo{})
 }
 
 func NewClient(conn io.ReadWriteCloser) *Client {

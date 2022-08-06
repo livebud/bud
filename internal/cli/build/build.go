@@ -5,8 +5,12 @@ import (
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/cli/bud"
+	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/gobuild"
 	"github.com/livebud/bud/internal/versions"
+	"github.com/livebud/bud/package/goplugin"
+	"github.com/livebud/bud/package/remotefs"
+	"github.com/livebud/bud/package/vfs"
 )
 
 // New command for bud build
@@ -45,7 +49,22 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := genfs.Sync("bud/internal"); err != nil {
+	// Sync generate now to support custom generators, if any
+	if err := genfs.Sync("bud/internal/generate"); err != nil {
+		return err
+	}
+	if err := vfs.Exist(module, "bud/internal/generate/main.go"); nil == err {
+		conn, err := goplugin.Start(module.Directory(), "go", "run", "-mod=mod", "bud/internal/generate/main.go")
+		if err != nil {
+			return err
+		}
+		remotefs := remotefs.NewClient(conn)
+		defer remotefs.Close()
+		if err := dsync.Dir(remotefs, "bud/internal/generator", module.DirFS("bud/internal/generator"), "."); err != nil {
+			return err
+		}
+	}
+	if err := genfs.Sync("bud/internal/app"); err != nil {
 		return err
 	}
 	builder := gobuild.New(module)

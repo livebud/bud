@@ -8,8 +8,9 @@ import (
 
 	"github.com/livebud/bud/package/vfs"
 
+	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/is"
-	"github.com/livebud/bud/internal/remotefs"
+	"github.com/livebud/bud/package/remotefs"
 )
 
 type conn struct {
@@ -83,4 +84,24 @@ func TestFS(t *testing.T) {
 	}
 	go remotefs.Serve(fsys, c2)
 	is.NoErr(fstest.TestFS(client, "tailwind/tailwind.css", "markdoc/markdoc.js"))
+}
+
+func TestSync(t *testing.T) {
+	is := is.New(t)
+	r1, w1 := io.Pipe()
+	r2, w2 := io.Pipe()
+	c1 := &conn{r1, w2}
+	defer c1.Close()
+	c2 := &conn{r2, w1}
+	defer c2.Close()
+	client := remotefs.NewClient(c1)
+	fsys := fstest.MapFS{
+		"tailwind/tailwind.css": &fstest.MapFile{Data: []byte("/** tailwind **/")},
+		"markdoc/markdoc.js":    &fstest.MapFile{Data: []byte("/** markdoc **/")},
+		"main.go":               &fstest.MapFile{Data: []byte("/** main **/")},
+	}
+	go remotefs.Serve(fsys, c2)
+	dir := t.TempDir()
+	err := dsync.Dir(client, ".", vfs.OS(dir), ".")
+	is.NoErr(err)
 }

@@ -18,16 +18,16 @@ func Generate(state *State) ([]byte, error) {
 	return generator.Generate(state)
 }
 
-func New(_ *gomod.Module) *Generator {
-	return &Generator{}
+func New(module *gomod.Module) *Generator {
+	return &Generator{module}
 }
 
 type Generator struct {
 	module *gomod.Module
 }
 
-func (g *Generator) GenerateDir(ctx context.Context, fsys overlay.F, file *overlay.File) error {
-	state, err := Load(g.module)
+func (g *Generator) GenerateFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
+	state, err := Load(fsys, g.module)
 	if err != nil {
 		return err
 	}

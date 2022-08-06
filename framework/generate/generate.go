@@ -3,9 +3,9 @@ package generate
 import (
 	"context"
 	_ "embed"
-	"fmt"
 
 	"github.com/livebud/bud/internal/gotemplate"
+	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/overlay"
 )
@@ -19,16 +19,17 @@ func Generate(state *State) ([]byte, error) {
 	return generator.Generate(state)
 }
 
-func New(module *gomod.Module) *Generator {
-	return &Generator{module}
+func New(injector *di.Injector, module *gomod.Module) *Generator {
+	return &Generator{injector, module}
 }
 
 type Generator struct {
-	module *gomod.Module
+	injector *di.Injector
+	module   *gomod.Module
 }
 
 func (g *Generator) GenerateFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
-	state, err := Load(fsys, g.module)
+	state, err := Load(fsys, g.injector, g.module)
 	if err != nil {
 		return err
 	}
@@ -36,7 +37,6 @@ func (g *Generator) GenerateFile(ctx context.Context, fsys overlay.F, file *over
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(code))
 	file.Data = code
 	return nil
 }
