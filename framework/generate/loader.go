@@ -65,7 +65,6 @@ func (l *loader) loadImports() []*imports.Import {
 	l.imports.AddNamed("console", "github.com/livebud/bud/package/log/console")
 	l.imports.AddNamed("log", "github.com/livebud/bud/package/log")
 	l.imports.AddNamed("filter", "github.com/livebud/bud/package/log/filter")
-	l.imports.AddNamed("goplugin", "github.com/livebud/bud/package/goplugin")
 	l.imports.AddNamed("remotefs", "github.com/livebud/bud/package/remotefs")
 	return l.imports.List()
 }

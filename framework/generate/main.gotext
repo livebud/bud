@@ -69,11 +69,9 @@ func (c *Command) Run(ctx context.Context) error {
 	}
 	// Run the generators
 	log.Debug("generate: serving the custom generator filesystem")
-	conn, err := goplugin.Serve("generate")
-	if err != nil {
+	if err := remotefs.ServeFrom(ctx, genfs, "GENERATE"); err != nil {
 		return err
 	}
-	remotefs.Serve(genfs, conn)
 	return nil
 }
 

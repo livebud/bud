@@ -8,8 +8,13 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/livebud/bud/internal/gobuild"
+
+	"github.com/livebud/bud/internal/extrafile"
+
 	"github.com/livebud/bud/internal/current"
 	"github.com/livebud/bud/internal/errs"
+	"github.com/livebud/bud/internal/exe"
 	"github.com/livebud/bud/internal/pubsub"
 	"golang.org/x/mod/semver"
 
@@ -27,7 +32,6 @@ import (
 	"github.com/livebud/bud/package/commander"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
-	"github.com/livebud/bud/package/goplugin"
 	"github.com/livebud/bud/package/js"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log"
@@ -125,7 +129,7 @@ func Log(stderr io.Writer, logFilter string) (log.Interface, error) {
 	return log.New(handler), nil
 }
 
-func FileSystem(log log.Interface, module *gomod.Module, flag *framework.Flag) (*overlay.FileSystem, func() error, error) {
+func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, flag *framework.Flag, in *Input) (*overlay.FileSystem, func() error, error) {
 	closers := []func() error{}
 	closer := func() (err error) {
 		for i := len(closers) - 1; i >= 0; i-- {
@@ -164,12 +168,40 @@ func FileSystem(log log.Interface, module *gomod.Module, flag *framework.Flag) (
 	}
 	// Support custom generators
 	if err := vfs.Exist(module, "bud/internal/generate/main.go"); nil == err {
-		conn, err := goplugin.Start(module.Directory(), "go", "run", "-mod=mod", "bud/internal/generate/main.go")
+		// Build the app
+		builder := gobuild.New(module)
+		if err := builder.Build(ctx, "bud/internal/generate/main.go", "bud/internal/generate/main"); err != nil {
+			return nil, closer, err
+		}
+		// TODO: should we use a unix domain socket instead?
+		ln, err := socket.Listen(":0")
 		if err != nil {
 			return nil, closer, err
 		}
-		closers = append(closers, conn.Close)
-		remotefs := remotefs.NewClient(conn)
+		closers = append(closers, ln.Close)
+		netFile, err := ln.File()
+		if err != nil {
+			return nil, closer, err
+		}
+		closers = append(closers, netFile.Close)
+		cmd := &exe.Command{
+			Stdin:  in.Stdin,
+			Stdout: in.Stdout,
+			Stderr: in.Stderr,
+			Dir:    module.Directory(),
+			Env:    in.Env,
+		}
+		extrafile.Inject(&cmd.ExtraFiles, &cmd.Env, "GENERATE", netFile)
+		// Start the app
+		process, err := cmd.Start(ctx, "./bud/internal/generate/main")
+		if err != nil {
+			return nil, closer, err
+		}
+		closers = append(closers, process.Close)
+		remotefs, err := remotefs.Dial(ctx, ln.Addr().String())
+		if err != nil {
+			return nil, closer, err
+		}
 		closers = append(closers, remotefs.Close)
 		genfs.Mount("bud/internal/generator", remotefs)
 	}

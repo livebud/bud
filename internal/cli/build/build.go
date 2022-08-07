@@ -41,7 +41,7 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	genfs, close, err := bud.FileSystem(log, module, c.Flag)
+	genfs, close, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
 	if err != nil {
 		return err
 	}

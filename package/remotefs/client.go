@@ -1,13 +1,14 @@
 package remotefs
 
 import (
+	"context"
 	"encoding/gob"
-	"io"
 	"io/fs"
 	"net/rpc"
 	"strings"
 
 	"github.com/livebud/bud/internal/virtual"
+	"github.com/livebud/bud/package/socket"
 )
 
 func init() {
@@ -16,8 +17,12 @@ func init() {
 	gob.Register(&virtual.DirEntry{})
 }
 
-func NewClient(conn io.ReadWriteCloser) *Client {
-	return &Client{rpc.NewClient(conn)}
+func Dial(ctx context.Context, addr string) (*Client, error) {
+	conn, err := socket.Dial(ctx, addr)
+	if err != nil {
+		return nil, err
+	}
+	return &Client{rpc.NewClient(conn)}, nil
 }
 
 type Client struct {

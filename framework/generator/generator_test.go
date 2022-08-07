@@ -146,3 +146,28 @@ func TestMissingGenerateDirMethod(t *testing.T) {
 	is.True(err != nil)
 	is.In(err.Error(), `generator: no (*Generator).GenerateDir(...) method in "app.com/generator/web/transform"`)
 }
+
+func TestSyntaxError(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["generator/tailwind/tailwind.go"] = `
+		package transform
+		import (
+			"context"
+			"github.com/livebud/bud/package/overlay"
+		)
+		type Generator struct {}
+		func (g *Generator) GenerateDir(ctx context.Context, fsys overlay.F, dir *overlay.Dir) error {
+			return "oh noz"
+		}
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	res, err := cli.Run(ctx, "build", "--embed=false")
+	is.True(err != nil)
+	is.In(err.Error(), `exit status 2`)
+	is.Equal(res.Stderr(), ``)
+	is.Equal(res.Stdout(), ``)
+}

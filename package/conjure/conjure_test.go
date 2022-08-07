@@ -777,7 +777,7 @@ func TestMount(t *testing.T) {
 	cfs.GenerateDir("bud/view", View())
 	gfs := conjure.New()
 	cfs.Mount("bud/generator", gfs)
-	gfs.FileGenerator("tailwind/tailwind.css", &conjure.Embed{
+	gfs.FileGenerator("bud/generator/tailwind/tailwind.css", &conjure.Embed{
 		Data:    []byte(`/** tailwind **/`),
 		Mode:    fs.FileMode(0644),
 		ModTime: now,
