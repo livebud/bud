@@ -1,14 +1,15 @@
 package remotefs_test
 
 import (
+	"errors"
 	"io"
 	"io/fs"
+	"os"
 	"testing"
 	"testing/fstest"
 
 	"github.com/livebud/bud/package/vfs"
 
-	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/remotefs"
 )
@@ -86,7 +87,7 @@ func TestFS(t *testing.T) {
 	is.NoErr(fstest.TestFS(client, "tailwind/tailwind.css", "markdoc/markdoc.js"))
 }
 
-func TestSync(t *testing.T) {
+func TestOS(t *testing.T) {
 	is := is.New(t)
 	r1, w1 := io.Pipe()
 	r2, w2 := io.Pipe()
@@ -95,13 +96,38 @@ func TestSync(t *testing.T) {
 	c2 := &conn{r2, w1}
 	defer c2.Close()
 	client := remotefs.NewClient(c1)
-	fsys := fstest.MapFS{
-		"tailwind/tailwind.css": &fstest.MapFile{Data: []byte("/** tailwind **/")},
-		"markdoc/markdoc.js":    &fstest.MapFile{Data: []byte("/** markdoc **/")},
-		"main.go":               &fstest.MapFile{Data: []byte("/** main **/")},
-	}
-	go remotefs.Serve(fsys, c2)
-	dir := t.TempDir()
-	err := dsync.Dir(client, ".", vfs.OS(dir), ".")
+	go remotefs.Serve(os.DirFS("."), c2)
+	stat, err := fs.Stat(client, ".")
 	is.NoErr(err)
+	is.True(stat.IsDir())
+	dir, err := client.Open(".")
+	is.NoErr(err)
+	stat, err = dir.Stat()
+	is.NoErr(err)
+	is.Equal(stat.IsDir(), true)
+	stat, err = fs.Stat(client, "client.go")
+	is.NoErr(err)
+	is.Equal(stat.IsDir(), false)
+	file, err := client.Open("client.go")
+	is.NoErr(err)
+	stat, err = file.Stat()
+	is.NoErr(err)
+	is.Equal(stat.IsDir(), false)
+}
+
+func TestNotExist(t *testing.T) {
+	is := is.New(t)
+	r1, w1 := io.Pipe()
+	r2, w2 := io.Pipe()
+	c1 := &conn{r1, w2}
+	defer c1.Close()
+	c2 := &conn{r2, w1}
+	defer c2.Close()
+	client := remotefs.NewClient(c1)
+	fsys := fstest.MapFS{}
+	go remotefs.Serve(fsys, c2)
+	data, err := fs.ReadFile(client, "client.go")
+	is.True(err != nil)
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.Equal(data, nil)
 }

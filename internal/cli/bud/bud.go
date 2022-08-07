@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/internal/current"
+	"github.com/livebud/bud/internal/errs"
 	"github.com/livebud/bud/internal/pubsub"
 	"golang.org/x/mod/semver"
 
@@ -26,6 +27,7 @@ import (
 	"github.com/livebud/bud/package/commander"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/goplugin"
 	"github.com/livebud/bud/package/js"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log"
@@ -33,8 +35,10 @@ import (
 	"github.com/livebud/bud/package/log/filter"
 	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/parser"
+	"github.com/livebud/bud/package/remotefs"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/package/svelte"
+	"github.com/livebud/bud/package/vfs"
 )
 
 // Input contains the configuration that gets passed into the commands
@@ -121,24 +125,31 @@ func Log(stderr io.Writer, logFilter string) (log.Interface, error) {
 	return log.New(handler), nil
 }
 
-func FileSystem(log log.Interface, module *gomod.Module, flag *framework.Flag) (*overlay.FileSystem, error) {
+func FileSystem(log log.Interface, module *gomod.Module, flag *framework.Flag) (*overlay.FileSystem, func() error, error) {
+	closers := []func() error{}
+	closer := func() (err error) {
+		for i := len(closers) - 1; i >= 0; i-- {
+			err = errs.Join(err, closers[i]())
+		}
+		return err
+	}
 	genfs, err := overlay.Load(log, module)
 	if err != nil {
-		return nil, err
+		return nil, closer, err
 	}
 	parser := parser.New(genfs, module)
 	injector := di.New(genfs, log, module, parser)
 	vm, err := v8.Load()
 	if err != nil {
-		return nil, err
+		return nil, closer, err
 	}
 	svelteCompiler, err := svelte.Load(vm)
 	if err != nil {
-		return nil, err
+		return nil, closer, err
 	}
 	transforms, err := transformrt.Load(svelte.NewTransformable(svelteCompiler))
 	if err != nil {
-		return nil, err
+		return nil, closer, err
 	}
 	genfs.FileGenerator("bud/internal/app/main.go", app.New(injector, module, flag))
 	genfs.FileGenerator("bud/internal/app/web/web.go", web.New(module, parser))
@@ -146,8 +157,23 @@ func FileSystem(log log.Interface, module *gomod.Module, flag *framework.Flag) (
 	genfs.FileGenerator("bud/internal/app/view/view.go", view.New(module, transforms, flag))
 	genfs.FileGenerator("bud/internal/app/public/public.go", public.New(flag))
 	genfs.FileGenerator("bud/internal/generate/main.go", generate.New(injector, module))
-	genfs.FileGenerator("bud/internal/generate/generator/generator.go", generator.New(module))
-	return genfs, nil
+	genfs.FileGenerator("bud/internal/generate/generator/generator.go", generator.New(module, parser))
+	// Sync generate now to support custom generators, if any
+	if err := genfs.Sync("bud/internal/generate"); err != nil {
+		return nil, closer, err
+	}
+	// Support custom generators
+	if err := vfs.Exist(module, "bud/internal/generate/main.go"); nil == err {
+		conn, err := goplugin.Start(module.Directory(), "go", "run", "-mod=mod", "bud/internal/generate/main.go")
+		if err != nil {
+			return nil, closer, err
+		}
+		closers = append(closers, conn.Close)
+		remotefs := remotefs.NewClient(conn)
+		closers = append(closers, remotefs.Close)
+		genfs.Mount("bud/internal/generator", remotefs)
+	}
+	return genfs, closer, nil
 }
 
 func FileServer(log log.Interface, module *gomod.Module, vm js.VM, flag *framework.Flag) (*overlay.Server, error) {

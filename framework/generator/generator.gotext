@@ -11,12 +11,16 @@ import (
 
 // Generators is a list of generators
 type Generators struct {
-	Tailwind *tailwind.Generator
+	{{- range $generator := $.Generators }}
+	{{ $generator.Pascal }} *{{ $generator.Import.Name }}.Generator
+	{{- end }}
 }
 
 // Register the generators
 func Register(genfs *overlay.FileSystem, generators *Generators) *FileSystem {
-	genfs.DirGenerator("bud/internal/generator/tailwind", generators.Tailwind)
+	{{- range $generator := $.Generators }}
+	genfs.DirGenerator("bud/internal/{{ $generator.Path }}", generators.{{ $generator.Pascal }})
+	{{- end }}
 	return genfs
 }
 

@@ -45,7 +45,6 @@ func (s *Server) Open(name string, vfile *fs.File) error {
 				Mode:    de.Type(),
 				ModTime: fi.ModTime(),
 				Size:    fi.Size(),
-				Sys:     fi.Sys(),
 			}
 		}
 		// Return a directory
@@ -53,7 +52,6 @@ func (s *Server) Open(name string, vfile *fs.File) error {
 			Name:    path.Base(name),
 			ModTime: stat.ModTime(),
 			Mode:    stat.Mode(),
-			Sys:     stat.Sys(),
 			Entries: entries,
 		}
 		return nil
@@ -67,7 +65,6 @@ func (s *Server) Open(name string, vfile *fs.File) error {
 		Data:    data,
 		ModTime: stat.ModTime(),
 		Mode:    stat.Mode(),
-		Sys:     stat.Sys(),
 	}
 	return nil
 }

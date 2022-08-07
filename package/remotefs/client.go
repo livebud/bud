@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/fs"
 	"net/rpc"
+	"strings"
 
 	"github.com/livebud/bud/internal/virtual"
 )
@@ -13,7 +14,6 @@ func init() {
 	gob.Register(&virtual.File{})
 	gob.Register(&virtual.Dir{})
 	gob.Register(&virtual.DirEntry{})
-	// gob.Register(&virtual.FileInfo{})
 }
 
 func NewClient(conn io.ReadWriteCloser) *Client {
@@ -29,14 +29,22 @@ var _ fs.ReadDirFS = (*Client)(nil)
 
 func (c *Client) Open(name string) (fs.File, error) {
 	vfile := new(fs.File)
-	err := c.rpc.Call("remotefs.Open", name, vfile)
-	return *vfile, err
+	if err := c.rpc.Call("remotefs.Open", name, vfile); err != nil {
+		if isNotExist(err) {
+			return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
+		}
+		return nil, err
+	}
+	return *vfile, nil
 }
 
 func (c *Client) ReadDir(name string) (des []fs.DirEntry, err error) {
 	vdes := new([]fs.DirEntry)
 	err = c.rpc.Call("remotefs.ReadDir", name, &vdes)
 	if err != nil {
+		if isNotExist(err) {
+			return nil, &fs.PathError{Op: "readdir", Path: name, Err: fs.ErrNotExist}
+		}
 		return nil, err
 	}
 	return *vdes, nil
@@ -44,4 +52,10 @@ func (c *Client) ReadDir(name string) (des []fs.DirEntry, err error) {
 
 func (c *Client) Close() error {
 	return c.rpc.Close()
+}
+
+// isNotExist is needed because the error has been serialized and passed between
+// processes so errors.Is(err, fs.ErrNotExist) no longer is true.
+func isNotExist(err error) bool {
+	return strings.HasSuffix(err.Error(), fs.ErrNotExist.Error())
 }

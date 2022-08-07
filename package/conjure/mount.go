@@ -2,20 +2,16 @@ package conjure
 
 import (
 	"io/fs"
-	"path/filepath"
 )
 
 type mountfs struct {
-	path string
+	path string // unused currently
 	fsys fs.FS
 }
 
+// TODO: it's a bit weird that the mounted filesystem isn't relative to the
+// mountpoint, but it's because *overlay.Filesystem depends on module's FS which
+// always points to the root.
 func (m *mountfs) Generate(target string) (fs.File, error) {
-	// TODO: we shouldn't rely on filepath since paths should be agnostic
-	// Unfortunately, there doesn't seem to be a path.Rel()
-	rel, err := filepath.Rel(m.path, target)
-	if err != nil {
-		return nil, err
-	}
-	return m.fsys.Open(rel)
+	return m.fsys.Open(target)
 }
