@@ -170,7 +170,7 @@ func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, fl
 	if err := vfs.Exist(module, "bud/internal/generate/main.go"); nil == err {
 		// Build the app
 		builder := gobuild.New(module)
-		if err := builder.Build(ctx, "bud/internal/generate/main.go", "bud/internal/generate/main"); err != nil {
+		if err := builder.Build(ctx, "bud/internal/generate/main.go", "bud/generate"); err != nil {
 			return nil, closer, err
 		}
 		// TODO: should we use a unix domain socket instead?
@@ -193,7 +193,7 @@ func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, fl
 		}
 		extrafile.Inject(&cmd.ExtraFiles, &cmd.Env, "GENERATE", netFile)
 		// Start the app
-		process, err := cmd.Start(ctx, "./bud/internal/generate/main")
+		process, err := cmd.Start(ctx, "./bud/generate")
 		if err != nil {
 			return nil, closer, err
 		}
