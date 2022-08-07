@@ -57,8 +57,6 @@ type Server = FileSystem
 type F interface {
 	fs.FS
 	Link(from, to string)
-	// Cleanup collects functions that are called when the FileSystem is closed
-	// Cleanup(fn func() error)
 }
 
 type FileSystem struct {
@@ -74,10 +72,6 @@ type FileSystem struct {
 func (f *FileSystem) Link(from, to string) {
 }
 
-// func (f *FileSystem) Cleanup(fn func() error) {
-// 	f.closers = append(f.closers, fn)
-// }
-
 func (f *FileSystem) Open(name string) (fs.File, error) {
 	file, err := f.fsys.Open(name)
 	if err != nil {
@@ -85,15 +79,6 @@ func (f *FileSystem) Open(name string) (fs.File, error) {
 	}
 	return file, nil
 }
-
-// func (f *FileSystem) Close() (err error) {
-// 	for _, fn := range f.closers {
-// 		if e := fn(); e != nil {
-// 			err = errs.Join(err, e)
-// 		}
-// 	}
-// 	return err
-// }
 
 var _ fs.FS = (*FileSystem)(nil)
 

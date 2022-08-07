@@ -17,25 +17,6 @@ import (
 	"github.com/livebud/bud/package/remotefs"
 )
 
-// type conn struct {
-// 	rc io.ReadCloser
-// 	wc io.WriteCloser
-// }
-
-// func (c *conn) Read(p []byte) (int, error) {
-// 	return c.rc.Read(p)
-// }
-
-// func (c *conn) Write(p []byte) (int, error) {
-// 	return c.wc.Write(p)
-// }
-
-// func (c *conn) Close() error {
-// 	c.rc.Close()
-// 	c.wc.Close()
-// 	return nil
-// }
-
 func listener(t *testing.T) (net.Listener, error) {
 	socketPath := filepath.Join(t.TempDir(), t.Name()+".sock")
 	return socket.Listen(socketPath)

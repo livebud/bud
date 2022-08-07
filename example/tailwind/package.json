@@ -1,8 +1,0 @@
-{
-  "name": "tailwind",
-  "private": true,
-  "dependencies": {
-    "livebud": "0.2.3",
-    "svelte": "3.47.0"
-  }
-}
