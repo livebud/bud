@@ -90,10 +90,11 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		log.Debug("run: bud server is listening", "url", "http://"+budln.Addr().String())
 	}
 	// Load the generator filesystem
-	genfs, err := bud.FileSystem(log, module, c.Flag)
+	genfs, close, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
 	if err != nil {
 		return err
 	}
+	defer close()
 	// Load V8
 	vm, err := v8.Load()
 	if err != nil {
@@ -189,7 +190,7 @@ type appServer struct {
 // Run the app server
 func (a *appServer) Run(ctx context.Context) error {
 	// Generate the app
-	if err := a.genfs.Sync("bud/internal/app"); err != nil {
+	if err := a.genfs.Sync("bud/internal"); err != nil {
 		a.bus.Publish("app:error", []byte(err.Error()))
 		a.log.Debug("run: published event", "event", "app:error")
 		return err
@@ -233,7 +234,7 @@ func (a *appServer) Run(ctx context.Context) error {
 		a.bus.Publish("backend:update", nil)
 		a.log.Debug("run: published event", "event", "backend:update")
 		// Generate the app
-		if err := a.genfs.Sync("bud/internal/app"); err != nil {
+		if err := a.genfs.Sync("bud/internal"); err != nil {
 			return err
 		}
 		// Build the app

@@ -154,6 +154,9 @@ func TestFS(t *testing.T) {
 	is.Equal(fi.IsDir(), false)
 	is.True(fi.ModTime().IsZero())
 	is.Equal(fi.Mode(), fs.FileMode(0))
+	// TODO: the size is technically wrong, but getting the right file size would
+	// require running the generator. We may end up doing this at some point,
+	// but right now it doesnt' seem necessary
 	is.Equal(fi.Size(), int64(0))
 	is.Equal(fi.Sys(), nil)
 
@@ -206,6 +209,9 @@ func TestFS(t *testing.T) {
 	is.Equal(fi.IsDir(), false)
 	is.True(fi.ModTime().IsZero())
 	is.Equal(fi.Mode(), fs.FileMode(0))
+	// TODO: the size is technically wrong, but getting the right file size would
+	// require running the generator. We may end up doing this at some point,
+	// but right now it doesnt' seem necessary
 	is.Equal(fi.Size(), int64(0))
 	is.Equal(fi.Sys(), nil)
 
@@ -260,6 +266,11 @@ func TestFS(t *testing.T) {
 	code, err = fs.ReadFile(cfs, "duo/view/about/about.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), `<h2>about</h2>`)
+	// Run TestFS
+	// TODO This currently fails on the file sizes from reading the directory.
+	// I'm not sure if we want to fix this, but that's why this is commented out.
+	// err = fstest.TestFS(cfs, ".", "duo", "duo/view", "duo/view/about", "duo/view/index.svelte", "duo/view/about/about.svelte")
+	// is.NoErr(err)
 }
 
 func TestDir(t *testing.T) {
@@ -757,4 +768,45 @@ func TestGoModGoModEmbed(t *testing.T) {
 	stat, err = fs.Stat(cfs, "go.mod")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "go.mod")
+}
+
+func TestMount(t *testing.T) {
+	is := is.New(t)
+	now := time.Now()
+	cfs := conjure.New()
+	cfs.GenerateDir("bud/view", View())
+	gfs := conjure.New()
+	cfs.Mount("bud/generator", gfs)
+	gfs.FileGenerator("bud/generator/tailwind/tailwind.css", &conjure.Embed{
+		Data:    []byte(`/** tailwind **/`),
+		Mode:    fs.FileMode(0644),
+		ModTime: now,
+	})
+	des, err := fs.ReadDir(cfs, "bud")
+	is.NoErr(err)
+	is.Equal(len(des), 2)
+	is.Equal(des[0].Name(), "generator")
+	is.Equal(des[0].IsDir(), true)
+	is.Equal(des[1].Name(), "view")
+	is.Equal(des[1].IsDir(), true)
+	des, err = fs.ReadDir(cfs, "bud/generator")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
+	is.Equal(des[0].Name(), "tailwind")
+	is.Equal(des[0].IsDir(), true)
+	des, err = fs.ReadDir(cfs, "bud/generator/tailwind")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
+	is.Equal(des[0].Name(), "tailwind.css")
+	is.Equal(des[0].IsDir(), false)
+	is.Equal(des[0].Type(), fs.FileMode(0))
+	fi, err := des[0].Info()
+	is.NoErr(err)
+	is.True(fi.ModTime().IsZero())
+	is.Equal(fi.Mode(), fs.FileMode(0))
+	is.Equal(fi.IsDir(), false)
+	is.Equal(fi.Size(), int64(0))
+	code, err := fs.ReadFile(cfs, "bud/generator/tailwind/tailwind.css")
+	is.NoErr(err)
+	is.Equal(string(code), `/** tailwind **/`)
 }

@@ -7,7 +7,7 @@ import (
 )
 
 func Controllers(fsys fs.FS) Scanner {
-	return Dir(fsys, func(de fs.DirEntry) bool {
+	return Dir(fsys, ".", func(de fs.DirEntry) bool {
 		if de.IsDir() {
 			return valid.Dir(de.Name())
 		} else {

@@ -2,6 +2,7 @@ package socket_test
 
 import (
 	"context"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
@@ -76,4 +77,37 @@ func TestSocketLength(t *testing.T) {
 			t.Fatalf("unable to close listener: %s", err)
 		}
 	}
+}
+
+func TestDial(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	listener, err := socket.Listen(":0")
+	is.NoErr(err)
+	defer listener.Close()
+	msg := "hello world"
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			incoming := make([]byte, len(msg))
+			if _, err := io.ReadFull(conn, incoming); err != nil {
+				conn.Close()
+				return
+			}
+			conn.Write([]byte(string(incoming)))
+			conn.Write([]byte(string(incoming)))
+			conn.Close()
+		}
+	}()
+	conn, err := socket.Dial(ctx, listener.Addr().String())
+	is.NoErr(err)
+	defer conn.Close()
+	conn.Write([]byte(msg))
+	outgoing := make([]byte, len(msg)*2)
+	_, err = io.ReadFull(conn, outgoing)
+	is.NoErr(err)
+	is.Equal(string(outgoing), msg+msg)
 }

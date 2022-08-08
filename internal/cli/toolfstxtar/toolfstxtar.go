@@ -37,10 +37,11 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	fsys, err := bud.FileSystem(log, module, c.Flag)
+	fsys, close, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
 	if err != nil {
 		return err
 	}
+	defer close()
 	ar := new(txtar.Archive)
 	dir := path.Clean(c.Dir)
 	err = fs.WalkDir(fsys, dir, func(path string, de fs.DirEntry, err error) error {

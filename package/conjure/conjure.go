@@ -79,3 +79,12 @@ func (f *FileSystem) Open(target string) (fs.File, error) {
 	}
 	return dir.open(target)
 }
+
+// Mount a filesystem at a path.
+func (f *FileSystem) Mount(path string, fsys FS) {
+	f.filler[path] = &fstest.MapFile{Mode: fs.ModeDir}
+	f.radix.Set(path, &mountfs{
+		path: path,
+		fsys: fsys,
+	})
+}

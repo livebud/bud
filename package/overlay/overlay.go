@@ -66,6 +66,7 @@ type FileSystem struct {
 	module *gomod.Module
 	ps     pubsub.Client
 	clear  func() // Clear the cache
+	// closers []func() error
 }
 
 func (f *FileSystem) Link(from, to string) {
@@ -141,4 +142,9 @@ func (f *FileSystem) Sync(dir string) error {
 	// Clear the filesystem cache before syncing again
 	f.clear()
 	return dsync.Dir(f.fsys, dir, f.module.DirFS(dir), ".")
+}
+
+// Mount a filesystem to a dir
+func (f *FileSystem) Mount(dir string, fsys fs.FS) {
+	f.cfs.Mount(dir, fsys)
 }

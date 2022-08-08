@@ -250,6 +250,25 @@ func TestFlagBoolDefault(t *testing.T) {
 	isEqual(t, actual.String(), ``)
 }
 
+func TestFlagBoolDefaultFalse(t *testing.T) {
+	is := is.New(t)
+	actual := new(bytes.Buffer)
+	called := 0
+	cli := commander.New("cli").Writer(actual)
+	cli.Run(func(ctx context.Context) error {
+		called++
+		return nil
+	})
+	var flag bool
+	cli.Flag("flag", "cli flag").Bool(&flag).Default(true)
+	ctx := context.Background()
+	err := cli.Parse(ctx, []string{"--flag=false"})
+	is.NoErr(err)
+	is.Equal(1, called)
+	is.Equal(flag, false)
+	isEqual(t, actual.String(), ``)
+}
+
 func TestFlagBoolRequired(t *testing.T) {
 	is := is.New(t)
 	actual := new(bytes.Buffer)

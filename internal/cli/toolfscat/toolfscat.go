@@ -35,10 +35,11 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	fsys, err := bud.FileSystem(log, module, c.Flag)
+	fsys, close, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
 	if err != nil {
 		return err
 	}
+	defer close()
 	code, err := fs.ReadFile(fsys, path.Clean(c.Path))
 	if err != nil {
 		return err

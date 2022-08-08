@@ -70,6 +70,24 @@ func Listen(path string) (Listener, error) {
 	return &listener{tcp}, nil
 }
 
+// Dial creates a connection to an address
+func Dial(ctx context.Context, address string) (net.Conn, error) {
+	url, err := urlx.Parse(address)
+	if err != nil {
+		return nil, err
+	}
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+	// Empty host means the path is a unix domain socket
+	if url.Host == "" {
+		return dialer.DialContext(ctx, "unix", address)
+	}
+	return dialer.DialContext(ctx, "tcp", url.Host)
+}
+
+// Transport creates a RoundTripper for an HTTP Client
 func Transport(path string) (http.RoundTripper, error) {
 	url, err := urlx.Parse(path)
 	if err != nil {
@@ -104,4 +122,16 @@ func httpTransport(host string) http.RoundTripper {
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
+}
+
+// From turns a file into a Listener or fails trying
+func From(file *os.File) (Listener, error) {
+	ln, err := net.FileListener(file)
+	if err != nil {
+		return nil, err
+	}
+	if err := file.Close(); err != nil {
+		return nil, err
+	}
+	return &listener{ln}, nil
 }

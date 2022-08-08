@@ -41,11 +41,12 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	genfs, err := bud.FileSystem(log, module, c.Flag)
+	genfs, close, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
 	if err != nil {
 		return err
 	}
-	if err := genfs.Sync("bud/internal/app"); err != nil {
+	defer close()
+	if err := genfs.Sync("bud/internal"); err != nil {
 		return err
 	}
 	builder := gobuild.New(module)
