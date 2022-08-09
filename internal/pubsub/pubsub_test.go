@@ -30,3 +30,18 @@ func TestCloseTwice(t *testing.T) {
 	sub.Close()
 	sub.Close()
 }
+
+func TestSubTwice(t *testing.T) {
+	ps := pubsub.New()
+	sub := ps.Subscribe("toast")
+	ps.Publish("toast", nil)
+	<-sub.Wait()
+	sub.Close()
+	sub = ps.Subscribe("toast")
+	select {
+	case <-sub.Wait():
+		t.Fatal("lingering event")
+	default:
+	}
+	sub.Close()
+}

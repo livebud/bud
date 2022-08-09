@@ -208,21 +208,15 @@ func (a *appServer) Run(ctx context.Context) error {
 		a.log.Debug("run: published event", "event", "app:error")
 		return err
 	}
-	a.bus.Publish("app:ready", nil)
-	a.log.Debug("run: published event", "event", "app:ready")
 	// Watch for changes
 	return watcher.Watch(ctx, a.dir, catchError(a.prompter, func(events []watcher.Event) error {
-		a.log.Debug("run: files changes", "paths", events)
+		a.log.Debug("run: file changes", "paths", events)
 		a.prompter.Reloading(events)
 		if canIncrementallyReload(events) {
 			a.log.Debug("run: incrementally reloading")
 			// Publish the frontend:update event
 			a.bus.Publish("frontend:update", nil)
 			a.log.Debug("run: published event", "event", "frontend:update")
-			// In this case, the app is still in the "ready" state, but this is useful
-			// for tests that write files and wait for the app to be ready.
-			a.bus.Publish("app:ready", nil)
-			a.log.Debug("run: published event", "event", "app:ready")
 			a.prompter.SuccessReload()
 			return nil
 		}
@@ -249,8 +243,6 @@ func (a *appServer) Run(ctx context.Context) error {
 			return err
 		}
 		a.prompter.SuccessReload()
-		a.bus.Publish("app:ready", nil)
-		a.log.Debug("run: published event", "event", "app:ready")
 		a.log.Debug("restarted the process", "in", time.Since(now))
 		process = p
 		return nil
