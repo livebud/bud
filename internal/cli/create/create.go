@@ -110,9 +110,9 @@ func (c *Command) loadModule() *Module {
 	if module.Name == "" {
 		// Try inferring the module name from the directory
 		module.Name = mod.Infer(c.absDir)
-		// if can't infer then default it to `changeme`
+		// if can't infer then default it to `change.me`
 		if module.Name == "" {
-			module.Name = "changeme"
+			module.Name = "change.me"
 		}
 	}
 	// Autoquote the module name since

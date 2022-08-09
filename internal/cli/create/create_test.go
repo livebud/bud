@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/livebud/bud/internal/cli/testcli"
@@ -32,7 +33,7 @@ func TestCreateOutsideGoPath(t *testing.T) {
 	result, err := cli.Run(ctx, "create", dir)
 	is.Equal(result.Stdout(), "")
 	is.Equal(result.Stderr(), "")
-	is.Equal(fileFirstLine(dir+"/go.mod"), "module changeme\n")
+	is.Equal(fileFirstLine(filepath.Join(dir, "go.mod")), "module change.me\n")
 	is.NoErr(td.Exists(".gitignore"))
 	is.NoErr(td.Exists("go.sum"))
 	is.NoErr(td.Exists("package.json"))
@@ -50,7 +51,7 @@ func TestCreateOutsideGoPathModulePath(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(result.Stdout(), "")
 	is.Equal(result.Stderr(), "")
-	is.Equal(fileFirstLine(dir+"/go.mod"), "module github.com/my/app\n")
+	is.Equal(fileFirstLine(filepath.Join(dir, "go.mod")), "module github.com/my/app\n")
 	is.NoErr(td.Exists(".gitignore"))
 	is.NoErr(td.Exists("go.sum"))
 	is.NoErr(td.Exists("package.json"))
