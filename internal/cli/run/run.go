@@ -217,6 +217,9 @@ func (a *appServer) Run(ctx context.Context) error {
 			// Publish the frontend:update event
 			a.bus.Publish("frontend:update", nil)
 			a.log.Debug("run: published event", "event", "frontend:update")
+			// Publish the app:ready event
+			a.bus.Publish("app:ready", nil)
+			a.log.Debug("run: published event", "event", "app:ready")
 			a.prompter.SuccessReload()
 			return nil
 		}
