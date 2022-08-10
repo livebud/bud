@@ -41,11 +41,7 @@ func (f *filler) Open(name string) (fs.File, error) {
 	}, nil
 }
 
-func (f *filler) AddFile(target string, generator Generator) {
-	f.add(target, false, generator)
-}
-
-func (f *filler) add(target string, isDir bool, generator Generator) {
+func (f *filler) Add(target string, mode fs.FileMode, generator Generator) {
 	if target == "." {
 		return
 	}
@@ -58,10 +54,10 @@ func (f *filler) add(target string, isDir bool, generator Generator) {
 		target:    target,
 		basename:  basename,
 		generator: generator,
-		isDir:     isDir,
+		mode:      mode,
 	}
 	// Recurse until we reach the root
-	f.add(dirpath, true, &fillerDir{
+	f.Add(dirpath, mode|fs.ModeDir, &fillerDir{
 		Mode: fs.ModeDir,
 		// TODO: add entries somehow
 	})
@@ -85,7 +81,7 @@ func (d *fillerDir) Generate(target string) (fs.File, error) {
 type fillerEntry struct {
 	target    string
 	basename  string
-	isDir     bool
+	mode      fs.FileMode
 	generator Generator
 }
 
@@ -96,14 +92,11 @@ func (d *fillerEntry) Name() string {
 }
 
 func (d *fillerEntry) IsDir() bool {
-	return d.isDir
+	return d.mode&fs.ModeDir != 0
 }
 
 func (d *fillerEntry) Type() fs.FileMode {
-	if d.isDir {
-		return fs.ModeDir
-	}
-	return 0
+	return d.mode
 }
 
 func (d *fillerEntry) Info() (fs.FileInfo, error) {

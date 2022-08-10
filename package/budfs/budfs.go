@@ -66,7 +66,7 @@ type FileGenerator interface {
 func (f *FileSystem) FileGenerator(filepath string, generator FileGenerator) {
 	fileGenerator := &fileGenerator{f, filepath, generator}
 	f.radix.Set(filepath, fileGenerator)
-	f.filler.AddFile(filepath, fileGenerator)
+	f.filler.Add(filepath, fs.FileMode(0), fileGenerator)
 }
 
 type DirGenerator interface {
@@ -148,12 +148,3 @@ type dirGenerator struct {
 func (g *dirGenerator) Generate(target string) (fs.File, error) {
 	return nil, fmt.Errorf("not implemented yet")
 }
-
-// type dirEntry struct {
-// 	path string
-// }
-
-// type dirFiller struct {
-// 	path    string
-// 	entries map[string]Generator
-// }
