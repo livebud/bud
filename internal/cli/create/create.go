@@ -9,7 +9,6 @@ import (
 
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/cli/bud"
-	"github.com/livebud/bud/internal/format"
 	"github.com/livebud/bud/internal/scaffold"
 	"github.com/livebud/bud/internal/versions"
 	mod "github.com/livebud/bud/package/gomod"
@@ -111,14 +110,9 @@ func (c *Command) loadModule() *Module {
 	if module.Name == "" {
 		// Try inferring the module name from the directory
 		module.Name = mod.Infer(c.absDir)
+		// if can't infer then default it to `change.me`
 		if module.Name == "" {
-			// Fail that you need to pass in a module path
-			c.bail.Bail(format.Errorf(`
-			Unable to infer a module name. Try again using the module <path> name.
-
-			For example,
-				bud create --module=github.com/my/app %s
-		`, c.Dir))
+			module.Name = "change.me"
 		}
 	}
 	// Autoquote the module name since
