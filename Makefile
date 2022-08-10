@@ -247,6 +247,7 @@ publish:
 e2e: e2e.bud.build
 
 e2e.bud.build:
+	@ echo "e2e: running `bud build`"
 	go build -o bud main.go
 	git clone https://github.com/livebud/welcome
 	( cd welcome && \
