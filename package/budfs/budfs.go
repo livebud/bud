@@ -53,7 +53,6 @@ func (f *FileSystem) Open(name string) (fs.File, error) {
 type File struct {
 	path string
 	Data []byte
-	Mode fs.FileMode
 }
 
 func (f *File) Path() string {
@@ -67,7 +66,7 @@ type FileGenerator interface {
 func (f *FileSystem) FileGenerator(filepath string, generator FileGenerator) {
 	fileGenerator := &fileGenerator{f, filepath, generator}
 	f.radix.Set(filepath, fileGenerator)
-	f.filler.Add(filepath, fileGenerator)
+	f.filler.AddFile(filepath, fileGenerator)
 }
 
 type DirGenerator interface {
@@ -119,7 +118,6 @@ func (g *fileGenerator) Generate(target string) (fs.File, error) {
 	return &virtual.File{
 		Name: file.path,
 		Data: file.Data,
-		Mode: file.Mode,
 	}, nil
 }
 

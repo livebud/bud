@@ -21,7 +21,10 @@ type filler struct {
 var _ fs.FS = (*filler)(nil)
 
 func (f *filler) Open(name string) (fs.File, error) {
-	dirMap := f.fsys[name]
+	dirMap, ok := f.fsys[name]
+	if !ok {
+		return nil, fs.ErrNotExist
+	}
 	entries := make([]fs.DirEntry, len(dirMap))
 	i := 0
 	for _, de := range f.fsys[name] {
@@ -33,12 +36,16 @@ func (f *filler) Open(name string) (fs.File, error) {
 	})
 	return &virtual.Dir{
 		Name:    name,
-		Mode:    dirMode,
+		Mode:    fs.ModeDir,
 		Entries: entries,
 	}, nil
 }
 
-func (f *filler) Add(target string, generator Generator) {
+func (f *filler) AddFile(target string, generator Generator) {
+	f.add(target, false, generator)
+}
+
+func (f *filler) add(target string, isDir bool, generator Generator) {
 	if target == "." {
 		return
 	}
@@ -51,10 +58,11 @@ func (f *filler) Add(target string, generator Generator) {
 		target:    target,
 		basename:  basename,
 		generator: generator,
+		isDir:     isDir,
 	}
 	// Recurse until we reach the root
-	f.Add(dirpath, &fillerDir{
-		Mode: dirMode,
+	f.add(dirpath, true, &fillerDir{
+		Mode: fs.ModeDir,
 		// TODO: add entries somehow
 	})
 }
@@ -77,6 +85,7 @@ func (d *fillerDir) Generate(target string) (fs.File, error) {
 type fillerEntry struct {
 	target    string
 	basename  string
+	isDir     bool
 	generator Generator
 }
 
@@ -87,13 +96,14 @@ func (d *fillerEntry) Name() string {
 }
 
 func (d *fillerEntry) IsDir() bool {
-	return true
+	return d.isDir
 }
 
-var dirMode = 0755 | fs.ModeDir
-
 func (d *fillerEntry) Type() fs.FileMode {
-	return dirMode
+	if d.isDir {
+		return fs.ModeDir
+	}
+	return 0
 }
 
 func (d *fillerEntry) Info() (fs.FileInfo, error) {
