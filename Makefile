@@ -244,18 +244,16 @@ publish:
 # E2E
 ##
 
-BRANCH_NAME ?= $(or $(GITHUB_HEAD_REF),main)
-GOPATH := $(shell go env GOPATH)
-
 e2e: e2e.bud.build
 
 e2e.bud.build:
-	GOPRIVATE=github.com/livebud/bud go install github.com/livebud/bud@$(BRANCH_NAME)
+	@ echo "e2e: running `bud build`"
+	go build -o bud main.go
 	git clone https://github.com/livebud/welcome
 	( cd welcome && \
 		npm install && \
-		go mod tidy && \
-		GOPRIVATE=github.com/livebud/bud go get github.com/livebud/bud@$(BRANCH_NAME) \
+		go mod edit -replace="github.com/livebud/bud=../" && \
+		go mod tidy \
 	)
-	$(GOPATH)/bin/bud -C welcome build
+	./bud -C welcome build
 	./welcome/bud/app -h
