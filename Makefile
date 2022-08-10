@@ -252,7 +252,7 @@ e2e.bud.build:
 	( cd welcome && \
 		npm install && \
 		go mod edit -replace="github.com/livebud/bud=../" && \
-		go mod tidy
+		go mod tidy \
 	)
 	./bud -C welcome build
 	./welcome/bud/app -h
