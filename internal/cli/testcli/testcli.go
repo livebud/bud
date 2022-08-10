@@ -306,7 +306,9 @@ func getURL(path string) string {
 // Wait for the application to be ready
 func (c *Client) Ready(ctx context.Context) error {
 	readySub := c.bus.Subscribe("app:ready")
+	defer readySub.Close()
 	errorSub := c.bus.Subscribe("app:error")
+	defer errorSub.Close()
 	for {
 		select {
 		case <-readySub.Wait():
