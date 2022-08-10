@@ -2,6 +2,7 @@ package virtual
 
 import (
 	"io/fs"
+	"path"
 	"time"
 )
 
@@ -14,7 +15,7 @@ type fileInfo struct {
 	sys     interface{}
 }
 
-func (i *fileInfo) Name() string               { return i.name }
+func (i *fileInfo) Name() string               { return path.Base(i.name) }
 func (i *fileInfo) Mode() fs.FileMode          { return i.mode }
 func (i *fileInfo) Type() fs.FileMode          { return i.mode.Type() }
 func (i *fileInfo) ModTime() time.Time         { return i.modTime }
