@@ -8,7 +8,6 @@ import (
 	"io/fs"
 	"net"
 	"net/rpc"
-	"path"
 
 	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/virtual"
@@ -57,8 +56,8 @@ type Server struct {
 	fsys fs.FS
 }
 
-func (s *Server) Open(name string, vfile *fs.File) error {
-	file, err := s.fsys.Open(name)
+func (s *Server) Open(path string, vfile *fs.File) error {
+	file, err := s.fsys.Open(path)
 	if err != nil {
 		return err
 	}
@@ -68,7 +67,7 @@ func (s *Server) Open(name string, vfile *fs.File) error {
 		return err
 	}
 	if stat.IsDir() {
-		des, err := fs.ReadDir(s.fsys, name)
+		des, err := fs.ReadDir(s.fsys, path)
 		if err != nil {
 			return err
 		}
@@ -87,7 +86,7 @@ func (s *Server) Open(name string, vfile *fs.File) error {
 		}
 		// Return a directory
 		*vfile = &virtual.Dir{
-			Name:    path.Base(name),
+			Path:    path,
 			ModTime: stat.ModTime(),
 			Mode:    stat.Mode(),
 			Entries: entries,
@@ -99,7 +98,7 @@ func (s *Server) Open(name string, vfile *fs.File) error {
 		return err
 	}
 	*vfile = &virtual.File{
-		Name:    path.Base(name),
+		Path:    path,
 		Data:    data,
 		ModTime: stat.ModTime(),
 		Mode:    stat.Mode(),
