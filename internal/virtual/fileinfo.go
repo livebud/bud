@@ -8,14 +8,14 @@ import (
 
 // A fileInfo implements fs.FileInfo and fs.DirEntry for a given map file.
 type fileInfo struct {
-	name    string
+	path    string
 	size    int64
 	mode    fs.FileMode
 	modTime time.Time
 	sys     interface{}
 }
 
-func (i *fileInfo) Name() string               { return path.Base(i.name) }
+func (i *fileInfo) Name() string               { return path.Base(i.path) }
 func (i *fileInfo) Mode() fs.FileMode          { return i.mode }
 func (i *fileInfo) Type() fs.FileMode          { return i.mode.Type() }
 func (i *fileInfo) ModTime() time.Time         { return i.modTime }
