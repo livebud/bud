@@ -230,5 +230,5 @@ func (e *dirEntry) Info() (fs.FileInfo, error) {
 }
 
 func formatError(err error, format string, args ...interface{}) error {
-	return fmt.Errorf("budfs: %s. %w", fmt.Sprintf(format, args...), err)
+	return fmt.Errorf("genfs: %s. %w", fmt.Sprintf(format, args...), err)
 }
