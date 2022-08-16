@@ -3,6 +3,7 @@ package genfs
 import (
 	"fmt"
 	"io/fs"
+	"path"
 	"strings"
 
 	"github.com/livebud/bud/internal/genfs/fstree"
@@ -27,38 +28,67 @@ func (fn Generate) Generate(target string) (fs.File, error) {
 	return fn(target)
 }
 
-func New() *Dir {
+func New() *FS {
 	tree := fstree.New(".")
 	tree.Generator = &fillerDir{tree}
 	// TODO: use a filesystem instead
-	return &Dir{tree, ""}
+	return &FS{&dir{tree}}
 }
 
-type Dir struct {
-	node   *fstree.Node
-	target string
+type FS struct {
+	*dir
 }
 
-func (d *Dir) Target() string {
-	return d.target
-}
-
-func (d *Dir) Path() string {
-	return d.node.Path()
-}
-
-func (d *Dir) Rel() string {
-	rel := strings.TrimPrefix(d.target, d.Path())
-	if rel == "" {
-		return "."
-	} else if rel[0] == '/' {
-		rel = rel[1:]
+func (f *FS) Open(target string) (fs.File, error) {
+	if !fs.ValidPath(target) {
+		return nil, formatError(fs.ErrInvalid, "invalid target path %q", target)
 	}
-	return rel
+	return f.dir.open(target)
 }
 
-func (d *Dir) Mode() fs.FileMode {
-	return d.node.Mode
+type dir struct {
+	node *fstree.Node
+}
+
+func (d *dir) Print() string {
+	return d.node.Print()
+}
+
+func (d *dir) FileGenerator(path string, generator FileGenerator) {
+	d.GenerateFile(path, generator.GenerateFile)
+}
+
+func (d *dir) DirGenerator(path string, generator DirGenerator) {
+	d.GenerateDir(path, generator.GenerateDir)
+}
+
+func (d *dir) Mount(path string, fsys fs.FS) {
+	segments := strings.Split(path, "/")
+	last := len(segments) - 1
+	node := mkdirAll(d.node, segments[:last])
+	// Finally add the base path with it's file generator to the tree.
+	child := node.Upsert(segments[last], fs.ModeDir, nil)
+	child.Generator = Generate(func(target string) (fs.File, error) {
+		return fsys.Open(target)
+	})
+}
+
+func (d *dir) GenerateFile(path string, fn func(file *File) error) {
+	segments := strings.Split(path, "/")
+	last := len(segments) - 1
+	node := mkdirAll(d.node, segments[:last])
+	// Finally add the base path with it's file generator to the tree.
+	child := node.Insert(segments[last], fs.FileMode(0), nil)
+	child.Generator = &fileGenerator{child, fn}
+}
+
+func (d *dir) GenerateDir(path string, fn func(dir *Dir) error) {
+	segments := strings.Split(path, "/")
+	last := len(segments) - 1
+	node := mkdirAll(d.node, segments[:last])
+	// Finally add the base path with it's file generator to the tree.
+	child := node.Upsert(segments[last], fs.ModeDir, nil)
+	child.Generator = &dirGenerator{child, fn}
 }
 
 type File struct {
@@ -74,44 +104,19 @@ func (f *File) Mode() fs.FileMode {
 	return f.node.Mode
 }
 
-func (d *Dir) Open(target string) (fs.File, error) {
+func (d *dir) open(target string) (fs.File, error) {
 	// Find the closest match in the tree
 	node, prefix, ok := d.node.FindByPrefix(target)
 	if !ok {
-		return nil, fs.ErrNotExist
+		return nil, formatError(fs.ErrNotExist, "%q target not found in %q node", target, d.node.Path())
 	}
 	// File matches that aren't exact are not allowed.
 	if prefix != target && node.Mode.IsRegular() {
-		return nil, fs.ErrNotExist
+		return nil, formatError(fs.ErrNotExist, "%q file generator doesn't match %q target", d.node.Path(), target)
 	}
 	// Run the generators
-	return node.Generator.Generate(target)
-}
-
-func (d *Dir) FileGenerator(filepath string, generator FileGenerator) {
-	d.GenerateFile(filepath, generator.GenerateFile)
-}
-
-func (d *Dir) DirGenerator(dirpath string, generator DirGenerator) {
-	d.GenerateDir(dirpath, generator.GenerateDir)
-}
-
-func (d *Dir) GenerateFile(path string, fn func(file *File) error) {
-	segments := strings.Split(path, "/")
-	last := len(segments) - 1
-	node := mkdirAll(d.node, segments[:last])
-	// Finally add the base path with it's file generator to the tree.
-	child := node.Insert(segments[last], fs.FileMode(0), nil)
-	child.Generator = &fileGenerator{child, fn}
-}
-
-func (d *Dir) GenerateDir(path string, fn func(dir *Dir) error) {
-	segments := strings.Split(path, "/")
-	last := len(segments) - 1
-	node := mkdirAll(d.node, segments[:last])
-	// Finally add the base path with it's file generator to the tree.
-	child := node.Insert(segments[last], fs.ModeDir, nil)
-	child.Generator = &dirGenerator{child, fn}
+	relPath := relativePath(prefix, target)
+	return node.Generator.Generate(relPath)
 }
 
 // mkdirAll creates all the parent directories leading up to the path
@@ -136,7 +141,7 @@ type fileGenerator struct {
 func (g *fileGenerator) Generate(target string) (fs.File, error) {
 	file := &File{node: g.child}
 	if err := g.generate(file); err != nil {
-		return nil, formatError(err, "error generating %q", target)
+		return nil, formatError(err, "error generating %q", file.Path())
 	}
 	return &virtual.File{
 		Path: file.Path(),
@@ -150,23 +155,51 @@ type dirGenerator struct {
 	generate func(dir *Dir) error
 }
 
+type Dir struct {
+	*dir
+	target string
+}
+
+func (d *Dir) Path() string {
+	return d.node.Path()
+}
+
+func (d *Dir) Mode() fs.FileMode {
+	return d.node.Mode
+}
+
+func (d *Dir) Target() string {
+	return path.Join(d.Path(), d.target)
+}
+
+func (d *Dir) Relative() string {
+	rel := strings.TrimPrefix(d.target, d.Path())
+	if rel == "" {
+		return "."
+	} else if rel[0] == '/' {
+		rel = rel[1:]
+	}
+	return rel
+}
+
 func (g *dirGenerator) Generate(target string) (fs.File, error) {
 	// Call the generator function from the child
-	dir := &Dir{g.child, target}
+	dir := &Dir{&dir{g.child}, target}
 	if err := g.generate(dir); err != nil {
 		return nil, err
 	}
 	// When targeting directory generators directly, they are simply a filler
 	// directory for the sub-generators.
-	if g.child.Path() == target {
+	rel := relativePath(g.child.Path(), target)
+	if rel == "." {
 		generator := &fillerDir{g.child}
 		return generator.Generate(target)
 	}
 	// Progress towards the target with the new branches in the child
-	return dir.Open(target)
+	return dir.open(rel)
 }
 
-func relativeTarget(base, target string) string {
+func relativePath(base, target string) string {
 	rel := strings.TrimPrefix(target, base)
 	if rel == "" {
 		return "."
@@ -184,8 +217,8 @@ func (f *fillerDir) Generate(target string) (fs.File, error) {
 	path := f.node.Path()
 	// Filler directories must be exact matches with the target, otherwise we'll
 	// create files that aren't supposed to exist.
-	if path != target {
-		return nil, fs.ErrNotExist
+	if target != "." {
+		return nil, formatError(fs.ErrNotExist, "path doesn't match target in filler directory %s != %s", path, target)
 	}
 	children := f.node.Children()
 	entries := make([]fs.DirEntry, len(children))
@@ -222,11 +255,22 @@ func (e *dirEntry) Info() (fs.FileInfo, error) {
 	if value == nil {
 		value = &fillerDir{e.node}
 	}
-	file, err := value.Generate(e.node.Path())
+	file, err := value.Generate(".")
 	if err != nil {
 		return nil, err
 	}
 	return file.Stat()
+}
+
+type EmbedFile struct {
+	Data []byte
+}
+
+var _ FileGenerator = (*EmbedFile)(nil)
+
+func (e *EmbedFile) GenerateFile(file *File) error {
+	file.Data = e.Data
+	return nil
 }
 
 func formatError(err error, format string, args ...interface{}) error {
