@@ -31,7 +31,6 @@ func (fn Generate) Generate(target string) (fs.File, error) {
 func New() *FS {
 	tree := fstree.New(".")
 	tree.Generator = &fillerDir{tree}
-	// TODO: use a filesystem instead
 	return &FS{&dir{tree}}
 }
 
