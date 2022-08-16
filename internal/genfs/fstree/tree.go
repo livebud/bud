@@ -66,6 +66,16 @@ func (n *Node) Insert(name string, mode fs.FileMode, generator Generator) (child
 	return child
 }
 
+func (n *Node) Upsert(name string, mode fs.FileMode, generator Generator) (child *Node) {
+	child, found := n.children[name]
+	if !found {
+		return n.Insert(name, mode, generator)
+	}
+	child.Mode = mode
+	child.Generator = generator
+	return child
+}
+
 func (n *Node) Parent() *Node {
 	return n.parent
 }
