@@ -1,15 +1,38 @@
 package cachefs_test
 
 import (
+	"io"
 	"io/fs"
 	"testing"
 	"testing/fstest"
 
 	"github.com/livebud/bud/internal/cachefs"
 	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/internal/virtual"
 	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/merged"
 )
+
+func TestCache(t *testing.T) {
+	is := is.New(t)
+	log := testlog.New()
+	cache := cachefs.New(log)
+	vfile := &virtual.File{
+		Data: []byte("a"),
+	}
+	cache.Set("a.txt", vfile)
+	entry, ok := cache.Get("a.txt")
+	is.True(ok)
+	code, err := io.ReadAll(entry.Open())
+	is.NoErr(err)
+	is.Equal(string(code), "a")
+	// Delete from the cache
+	cache.Delete("a.txt")
+	// Get from the cache
+	entry, ok = cache.Get("a.txt")
+	is.Equal(ok, false)
+	is.Equal(entry, nil)
+}
 
 func TestReadDirFile(t *testing.T) {
 	is := is.New(t)

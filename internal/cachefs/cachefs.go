@@ -39,6 +39,10 @@ func (c *Cache) Get(path string) (entry virtual.Entry, ok bool) {
 	return entry, ok
 }
 
+func (c *Cache) Delete(path string) {
+	c.sm.Delete(path)
+}
+
 func (c *Cache) Keys() (keys []string) {
 	c.sm.Range(func(key, value interface{}) bool {
 		keys = append(keys, key.(string))
