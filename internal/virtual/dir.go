@@ -17,6 +17,7 @@ type Dir struct {
 
 var _ fs.ReadDirFile = (*Dir)(nil)
 var _ fs.File = (*Dir)(nil)
+var _ Entry = (*Dir)(nil)
 
 func (d *Dir) Close() error {
 	return nil

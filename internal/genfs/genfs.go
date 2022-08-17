@@ -28,17 +28,17 @@ func (fn Generate) Generate(target string) (fs.File, error) {
 	return fn(target)
 }
 
-func New() *FS {
+func New() *FileSystem {
 	tree := fstree.New(".")
 	tree.Generator = &fillerDir{tree}
-	return &FS{&dir{tree}}
+	return &FileSystem{&dir{tree}}
 }
 
-type FS struct {
+type FileSystem struct {
 	*dir
 }
 
-func (f *FS) Open(target string) (fs.File, error) {
+func (f *FileSystem) Open(target string) (fs.File, error) {
 	if !fs.ValidPath(target) {
 		return nil, formatError(fs.ErrInvalid, "invalid target path %q", target)
 	}
