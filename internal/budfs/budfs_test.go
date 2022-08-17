@@ -1,17 +1,14 @@
 package budfs_test
 
 import (
+	"io/fs"
 	"strconv"
 	"testing"
 	"testing/fstest"
 
 	"github.com/livebud/bud/internal/budfs"
-
-	"io/fs"
-
-	"github.com/livebud/bud/package/log/testlog"
-
 	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/package/log/testlog"
 )
 
 func TestReadFsys(t *testing.T) {
