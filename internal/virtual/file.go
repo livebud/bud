@@ -18,6 +18,7 @@ type File struct {
 
 var _ io.ReadSeeker = (*File)(nil)
 var _ fs.File = (*File)(nil)
+var _ Entry = (*File)(nil)
 
 func (f *File) Close() error {
 	return nil
