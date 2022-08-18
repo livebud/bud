@@ -362,3 +362,56 @@ func TestRemoteFS(t *testing.T) {
 	}
 	testsub.Run(t, parent, child)
 }
+
+func TestMountRemoteFS(t *testing.T) {
+	is := is.New(t)
+	log := testlog.New()
+	fsys := fstest.MapFS{}
+	ctx := context.Background()
+	parent := func(t testing.TB, cmd *exec.Cmd) {
+		bfs := budfs.New(fsys, log)
+		command := remotefs.Command{
+			Env:    cmd.Env,
+			Stderr: os.Stderr,
+			Stdout: os.Stdout,
+		}
+		remotefs, err := command.Start(ctx, cmd.Path, cmd.Args...)
+		is.NoErr(err)
+		defer remotefs.Close()
+		bfs.Mount("bud/generator", remotefs)
+		code, err := fs.ReadFile(bfs, "bud/generator/a.txt")
+		is.NoErr(err)
+		is.Equal(string(code), "a")
+		// Cached
+		code, err = fs.ReadFile(bfs, "bud/generator/a.txt")
+		is.NoErr(err)
+		is.Equal(string(code), "a")
+		// Read new path (uncached)
+		code, err = fs.ReadFile(bfs, "bud/generator/b.txt")
+		is.NoErr(err)
+		is.Equal(string(code), "b")
+		// Update the file
+		bfs.Update("bud/generator/a.txt")
+		// Read again
+		code, err = fs.ReadFile(bfs, "bud/generator/a.txt")
+		is.NoErr(err)
+		is.Equal(string(code), "a")
+	}
+	child := func(t testing.TB) {
+		count := 1
+		bfs := budfs.New(fsys, log)
+		bfs.FileGenerator("a.txt", budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
+			file.Data = []byte(strings.Repeat(string("a"), count))
+			count++
+			return nil
+		}))
+		bfs.FileGenerator("b.txt", budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
+			file.Data = []byte(strings.Repeat(string("b"), count))
+			count++
+			return nil
+		}))
+		err := remotefs.ServeFrom(ctx, bfs, "")
+		is.NoErr(err)
+	}
+	testsub.Run(t, parent, child)
+}
