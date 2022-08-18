@@ -6,8 +6,8 @@ import (
 	"path"
 	"strings"
 
-	"github.com/livebud/bud/internal/genfs/fstree"
 	"github.com/livebud/bud/internal/virtual"
+	"github.com/livebud/bud/package/budfs/treefs"
 )
 
 type Generator interface {
@@ -29,7 +29,7 @@ func (fn Generate) Generate(target string) (fs.File, error) {
 }
 
 func New() *FileSystem {
-	tree := fstree.New(".")
+	tree := treefs.New(".")
 	tree.Generator = &fillerDir{tree}
 	return &FileSystem{&dir{tree}}
 }
@@ -46,7 +46,7 @@ func (f *FileSystem) Open(target string) (fs.File, error) {
 }
 
 type dir struct {
-	node *fstree.Node
+	node *treefs.Node
 }
 
 func (d *dir) Print() string {
@@ -91,7 +91,7 @@ func (d *dir) GenerateDir(path string, fn func(dir *Dir) error) {
 }
 
 type File struct {
-	node *fstree.Node
+	node *treefs.Node
 	Data []byte
 }
 
@@ -119,7 +119,7 @@ func (d *dir) open(target string) (fs.File, error) {
 }
 
 // mkdirAll creates all the parent directories leading up to the path
-func mkdirAll(node *fstree.Node, segments []string) *fstree.Node {
+func mkdirAll(node *treefs.Node, segments []string) *treefs.Node {
 	// Create the branches in the directory tree, if they don't exist already.
 	for _, segment := range segments {
 		child, ok := node.Child(segment)
@@ -133,7 +133,7 @@ func mkdirAll(node *fstree.Node, segments []string) *fstree.Node {
 }
 
 type fileGenerator struct {
-	child    *fstree.Node
+	child    *treefs.Node
 	generate func(file *File) error
 }
 
@@ -150,7 +150,7 @@ func (g *fileGenerator) Generate(target string) (fs.File, error) {
 }
 
 type dirGenerator struct {
-	child    *fstree.Node
+	child    *treefs.Node
 	generate func(dir *Dir) error
 }
 
@@ -209,7 +209,7 @@ func relativePath(base, target string) string {
 }
 
 type fillerDir struct {
-	node *fstree.Node
+	node *treefs.Node
 }
 
 func (f *fillerDir) Generate(target string) (fs.File, error) {
@@ -232,7 +232,7 @@ func (f *fillerDir) Generate(target string) (fs.File, error) {
 }
 
 type dirEntry struct {
-	node *fstree.Node
+	node *treefs.Node
 }
 
 var _ fs.DirEntry = (*dirEntry)(nil)

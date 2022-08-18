@@ -6,9 +6,9 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/livebud/bud/internal/cachefs"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/virtual"
+	"github.com/livebud/bud/package/budfs/cachefs"
 	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/merged"
 )

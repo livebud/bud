@@ -14,8 +14,8 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/livebud/bud/internal/genfs"
 	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/package/budfs/genfs"
 	"github.com/livebud/bud/package/merged"
 )
 

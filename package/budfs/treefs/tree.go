@@ -1,4 +1,4 @@
-package fstree
+package treefs
 
 import (
 	"fmt"

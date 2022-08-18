@@ -18,7 +18,7 @@ import (
 
 	"github.com/livebud/bud/internal/current"
 
-	"github.com/livebud/bud/internal/fstree"
+	"github.com/livebud/bud/internal/printfs"
 
 	"golang.org/x/sync/errgroup"
 
@@ -325,7 +325,7 @@ func (d *Dir) Write(ctx context.Context) error {
 }
 
 func Tree(dir string) (string, error) {
-	tree, err := fstree.Walk(os.DirFS(dir))
+	tree, err := printfs.Walk(os.DirFS(dir))
 	if err != nil {
 		return "", err
 	}

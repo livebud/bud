@@ -1,4 +1,4 @@
-package fstree
+package printfs
 
 import (
 	"io/fs"

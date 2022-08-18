@@ -5,7 +5,6 @@ import (
 
 	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/fscache"
-	"github.com/livebud/bud/internal/pubsub"
 
 	"io/fs"
 
@@ -29,12 +28,12 @@ func Load(log log.Interface, module *gomod.Module) (*FileSystem, error) {
 	pluginCache := fscache.Wrap(pluginFS, log, "pluginfs")
 	merged := merged.Merge(cfsCache, pluginCache)
 	dag := dag.New()
-	ps := pubsub.New()
+	// ps := pubsub.New()
 	clear := func() {
 		cfsCache.Clear()
 		pluginCache.Clear()
 	}
-	return &FileSystem{cfs, dag, merged, module, ps, clear}, nil
+	return &FileSystem{cfs, dag, merged, module, clear}, nil
 }
 
 // Serve is just load without the cache
@@ -47,9 +46,9 @@ func Serve(log log.Interface, module *gomod.Module) (*Server, error) {
 	cfs := conjure.New()
 	merged := merged.Merge(cfs, pluginFS)
 	dag := dag.New()
-	ps := pubsub.New()
+	// ps := pubsub.New()
 	clear := func() {}
-	return &FileSystem{cfs, dag, merged, module, ps, clear}, nil
+	return &FileSystem{cfs, dag, merged, module, clear}, nil
 }
 
 type Server = FileSystem
@@ -64,8 +63,8 @@ type FileSystem struct {
 	dag    *dag.Graph
 	fsys   fs.FS
 	module *gomod.Module
-	ps     pubsub.Client
-	clear  func() // Clear the cache
+	// ps     pubsub.Client
+	clear func() // Clear the cache
 	// closers []func() error
 }
 

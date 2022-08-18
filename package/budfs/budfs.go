@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"path"
 
-	"github.com/livebud/bud/internal/cachefs"
 	"github.com/livebud/bud/internal/dag"
-	"github.com/livebud/bud/internal/genfs"
-	"github.com/livebud/bud/internal/mergefs"
+	"github.com/livebud/bud/package/budfs/cachefs"
+	"github.com/livebud/bud/package/budfs/genfs"
+	"github.com/livebud/bud/package/budfs/mergefs"
 	"github.com/livebud/bud/package/log"
 )
 
@@ -17,24 +17,24 @@ func New(fsys fs.FS, log log.Interface) *FileSystem {
 	cache := cachefs.New(log)
 	merged := mergefs.New(gen, fsys)
 	syncfs := cache.Wrap(merged)
-	servefs := merged
+	server := http.FileServer(http.FS(merged))
 	return &FileSystem{
-		cache:   cache,
-		dag:     dag.New(),
-		gen:     gen,
-		log:     log,
-		syncfs:  syncfs,
-		servefs: servefs,
+		cache:  cache,
+		dag:    dag.New(),
+		gen:    gen,
+		log:    log,
+		syncfs: syncfs,
+		server: server,
 	}
 }
 
 type FileSystem struct {
-	cache   *cachefs.Cache
-	dag     *dag.Graph
-	gen     *genfs.FileSystem
-	log     log.Interface
-	syncfs  fs.FS
-	servefs fs.FS
+	cache  *cachefs.Cache
+	dag    *dag.Graph
+	gen    *genfs.FileSystem
+	log    log.Interface
+	syncfs fs.FS
+	server http.Handler
 }
 
 type FS interface {
@@ -43,7 +43,38 @@ type FS interface {
 }
 
 type File = genfs.File
-type Dir = genfs.Dir
+
+type Dir struct {
+	dag  *dag.Graph
+	fsys fs.FS
+	dir  *genfs.Dir
+}
+
+func (d *Dir) Target() string {
+	return d.dir.Target()
+}
+
+func (d *Dir) Relative() string {
+	return d.dir.Relative()
+}
+
+func (d *Dir) Path() string {
+	return d.dir.Path()
+}
+
+func (d *Dir) GenerateFile(path string, fn func(fsys FS, file *File) error) {
+	fsys := &linkedFS{d.dag, d.fsys, path}
+	d.dir.GenerateFile(path, func(file *genfs.File) error {
+		return fn(fsys, file)
+	})
+}
+
+func (d *Dir) GenerateDir(path string, fn func(fsys FS, dir *Dir) error) {
+	fsys := &linkedFS{d.dag, d.fsys, path}
+	d.dir.GenerateDir(path, func(dir *genfs.Dir) error {
+		return fn(fsys, &Dir{d.dag, d.fsys, dir})
+	})
+}
 
 type FileGenerator interface {
 	GenerateFile(fsys FS, file *File) error
@@ -99,12 +130,17 @@ func (fn GenerateDir) GenerateDir(fsys FS, dir *Dir) error {
 func (f *FileSystem) DirGenerator(path string, generator DirGenerator) {
 	fsys := &linkedFS{f.dag, f.syncfs, path}
 	f.gen.GenerateDir(path, func(dir *genfs.Dir) error {
-		return generator.GenerateDir(fsys, dir)
+		return generator.GenerateDir(fsys, &Dir{f.dag, f.syncfs, dir})
 	})
 }
 
+// ServeHTTP serves the filesystem. Served files are not cached.
 func (f *FileSystem) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	f.server.ServeHTTP(w, r)
+}
 
+func (f *FileSystem) Mount(path string, fsys fs.FS) {
+	f.gen.Mount(path, fsys)
 }
 
 func (f *FileSystem) Print() string {

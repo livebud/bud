@@ -2,9 +2,11 @@ package socket_test
 
 import (
 	"context"
+	"errors"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -110,4 +112,15 @@ func TestDial(t *testing.T) {
 	_, err = io.ReadFull(conn, outgoing)
 	is.NoErr(err)
 	is.Equal(string(outgoing), msg+msg)
+}
+
+func TestUDSCleanup(t *testing.T) {
+	is := is.New(t)
+	listener, err := socket.Listen("./test.sock")
+	is.NoErr(err)
+	defer listener.Close()
+	is.NoErr(listener.Close())
+	stat, err := os.Stat("test.sock")
+	is.True(errors.Is(err, os.ErrNotExist))
+	is.Equal(stat, nil)
 }
