@@ -61,8 +61,8 @@ func (d *dir) DirGenerator(path string, generator DirGenerator) {
 	d.GenerateDir(path, generator.GenerateDir)
 }
 
-func (d *dir) Mount(path string, fsys fs.FS) {
-	segments := strings.Split(path, "/")
+func (d *dir) Mount(dirpath string, fsys fs.FS) {
+	segments := strings.Split(dirpath, "/")
 	last := len(segments) - 1
 	node := mkdirAll(d.node, segments[:last])
 	// Finally add the base path with it's file generator to the tree.
