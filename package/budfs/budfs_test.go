@@ -1,14 +1,14 @@
 package budfs_test
 
 import (
-	"bytes"
-	"fmt"
+	"context"
 	"io"
 	"io/fs"
 	"net/http/httptest"
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"testing"
 	"testing/fstest"
 
@@ -17,6 +17,7 @@ import (
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/log/testlog"
+	"github.com/livebud/bud/package/remotefs"
 )
 
 func TestReadFsys(t *testing.T) {
@@ -302,52 +303,62 @@ func TestServer(t *testing.T) {
 	is.Equal(string(code), "<h1>index!</h1>")
 }
 
-func TestSubprocess(t *testing.T) {
+func TestRemoteFS(t *testing.T) {
 	is := is.New(t)
 	parent := func(t testing.TB, cmd *exec.Cmd) {
 		log := testlog.New()
 		fsys := fstest.MapFS{}
+		ctx := context.Background()
 		bfs := budfs.New(fsys, log)
-		// Prep the count
-		cmd.Env = append(cmd.Env, "BUD_COUNT=1")
-		// Create the generator
-		bfs.FileGenerator("index.svelte", budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
-			var stderr bytes.Buffer
-			cmd.Stderr = &stderr
-			if err := cmd.Run(); err != nil {
-				return err
-			}
-			// Reset for next time
-			next := exec.Command(cmd.Path, cmd.Args[1:]...)
-			// Update the counter for the next run
-			next.Env = append(cmd.Env, "BUD_COUNT=2")
-			next.Stdout = cmd.Stdout
-			next.Stderr = cmd.Stderr
-			next.Stdin = cmd.Stdin
-			next.ExtraFiles = cmd.ExtraFiles
-			next.Dir = cmd.Dir
-			cmd = next
-			// Respond with bytes
-			file.Data = stderr.Bytes()
+		count := 1
+		bfs.DirGenerator("bud/generator", budfs.GenerateDir(func(fsys budfs.FS, dir *budfs.Dir) error {
+			dir.GenerateFile(dir.Relative(), func(fsys budfs.FS, file *budfs.File) error {
+				command := remotefs.Command{
+					Env:    cmd.Env,
+					Stderr: os.Stderr,
+					Stdout: os.Stdout,
+				}
+				remotefs, err := command.Start(ctx, cmd.Path, cmd.Args...)
+				if err != nil {
+					return err
+				}
+				defer remotefs.Close()
+				data, err := fs.ReadFile(remotefs, dir.Relative())
+				if err != nil {
+					return err
+				}
+				file.Data = []byte(strings.Repeat(string(data), count))
+				count++
+				return nil
+			})
 			return nil
 		}))
-		// Read the file, triggering the subprocess to run
-		code, err := fs.ReadFile(bfs, "index.svelte")
+		code, err := fs.ReadFile(bfs, "bud/generator/a.txt")
 		is.NoErr(err)
-		is.Equal(string(code), "<h1>1</h1>")
-		// Read the file, but it should be cached
-		code, err = fs.ReadFile(bfs, "index.svelte")
+		is.Equal(string(code), "a")
+		// Cached
+		code, err = fs.ReadFile(bfs, "bud/generator/a.txt")
 		is.NoErr(err)
-		is.Equal(string(code), "<h1>1</h1>")
-		// Mark the file as updated
-		bfs.Update("index.svelte")
-		// Try again
-		code, err = fs.ReadFile(bfs, "index.svelte")
+		is.Equal(string(code), "a")
+		// Read new path (uncached)
+		code, err = fs.ReadFile(bfs, "bud/generator/b.txt")
 		is.NoErr(err)
-		is.Equal(string(code), "<h1>2</h1>")
+		is.Equal(string(code), "bb")
+		// Update the file
+		bfs.Update("bud/generator/a.txt")
+		// Read again
+		code, err = fs.ReadFile(bfs, "bud/generator/a.txt")
+		is.NoErr(err)
+		is.Equal(string(code), "aaa")
 	}
 	child := func(t testing.TB) {
-		fmt.Fprintf(os.Stderr, "<h1>"+os.Getenv("BUD_COUNT")+"</h1>")
+		ctx := context.Background()
+		fsys := fstest.MapFS{
+			"a.txt": &fstest.MapFile{Data: []byte("a")},
+			"b.txt": &fstest.MapFile{Data: []byte("b")},
+		}
+		err := remotefs.ServeFrom(ctx, fsys, "")
+		is.NoErr(err)
 	}
 	testsub.Run(t, parent, child)
 }
