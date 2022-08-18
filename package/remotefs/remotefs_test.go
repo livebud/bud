@@ -121,9 +121,6 @@ func TestCommand(t *testing.T) {
 	is := is.New(t)
 	parent := func(t testing.TB, cmd *exec.Cmd) {
 		ctx := context.Background()
-		server, err := listen(t)
-		is.NoErr(err)
-		defer server.Close()
 		command := remotefs.Command{
 			Env:    cmd.Env,
 			Stderr: os.Stderr,

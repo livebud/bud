@@ -19,6 +19,7 @@ type Command exe.Command
 func (c *Command) Start(ctx context.Context, name string, args ...string) (*Process, error) {
 	var closer once.Closer
 	// Listen on any available TCP port
+	// TODO: support other ways to start the server
 	ln, err := socket.Listen(":0")
 	if err != nil {
 		return nil, err
