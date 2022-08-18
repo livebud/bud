@@ -16,6 +16,9 @@ import (
 
 // ServeFrom serves the filesystem from a listener passed in by a parent process
 func ServeFrom(ctx context.Context, fsys fs.FS, prefix string) error {
+	if prefix == "" {
+		prefix = defaultPrefix
+	}
 	files := extrafile.Load(prefix)
 	if len(files) == 0 {
 		return fmt.Errorf("remotefs: no extra files passed into the process")
