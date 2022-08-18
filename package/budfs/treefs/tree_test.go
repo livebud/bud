@@ -1,11 +1,11 @@
-package fstree_test
+package treefs_test
 
 import (
 	"io/fs"
 	"testing"
 
-	"github.com/livebud/bud/internal/genfs/fstree"
 	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/package/budfs/treefs"
 )
 
 type generator struct{ label string }
@@ -26,7 +26,7 @@ var fg = &generator{"f"}
 
 func TestInsert(t *testing.T) {
 	is := is.New(t)
-	n := fstree.New(".")
+	n := treefs.New(".")
 	n.Insert("a", 0, ag)
 	bn := n.Insert("b", fs.ModeDir, bg)
 	cn := bn.Insert("c", fs.ModeDir, cg)
@@ -44,7 +44,7 @@ func TestInsert(t *testing.T) {
 
 func TestFind(t *testing.T) {
 	is := is.New(t)
-	n := fstree.New(".")
+	n := treefs.New(".")
 	n.Insert("a", 0, ag)
 	bn := n.Insert("b", fs.ModeDir, bg)
 	cn := bn.Insert("c", fs.ModeDir, cg)
@@ -82,7 +82,7 @@ func TestFind(t *testing.T) {
 
 func TestFindPrefix(t *testing.T) {
 	s := is.New(t)
-	n := fstree.New(".")
+	n := treefs.New(".")
 	n.Insert("a", 0, ag)
 	bn := n.Insert("b", fs.ModeDir, bg)
 	cn := bn.Insert("c", fs.ModeDir, cg)
@@ -121,7 +121,7 @@ func TestFindPrefix(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	is := is.New(t)
-	n := fstree.New(".")
+	n := treefs.New(".")
 	n.Insert("a", 0, ag)
 	bn := n.Insert("b", fs.ModeDir, bg)
 	cn := bn.Insert("c", fs.ModeDir, cg)

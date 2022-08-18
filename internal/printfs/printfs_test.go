@@ -1,15 +1,15 @@
-package fstree_test
+package printfs_test
 
 import (
 	"testing"
 
-	"github.com/livebud/bud/internal/fstree"
 	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/internal/printfs"
 )
 
 func TestTree(t *testing.T) {
 	is := is.New(t)
-	tree := fstree.New()
+	tree := printfs.New()
 	tree.Add("duo")
 	tree.Add("duo/view/_index.jsx")
 	tree.Add("duo/view/_new.svelte")
@@ -44,7 +44,7 @@ func TestTree(t *testing.T) {
 
 func TestOneDeep(t *testing.T) {
 	is := is.New(t)
-	tree := fstree.New()
+	tree := printfs.New()
 	tree.Add("duo/view/_new.svelte")
 	expect := `.
 └── duo
@@ -55,7 +55,7 @@ func TestOneDeep(t *testing.T) {
 }
 func TestUncommon(t *testing.T) {
 	is := is.New(t)
-	tree := fstree.New()
+	tree := printfs.New()
 	tree.Add("duo/view/_new.svelte")
 	tree.Add("duo/view/interesting/_new.svelte")
 	tree.Add("nothing/in/common/woah")

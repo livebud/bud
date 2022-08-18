@@ -41,7 +41,13 @@ Port <- < [0-9]+ > {
   p.url.port = text
 }
 
-Path <- < '/' .* > {
+Path <- RelPath / AbsPath
+
+RelPath <- < '.' '/' .* > {
+  p.url.path = text
+}
+
+AbsPath <- < '/' .* > {
   p.url.path = text
 }
 
