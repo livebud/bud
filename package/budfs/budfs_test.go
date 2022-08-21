@@ -1,6 +1,7 @@
 package budfs_test
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"io/fs"
@@ -303,6 +304,34 @@ func TestServer(t *testing.T) {
 	is.Equal(string(code), "<h1>index!</h1>")
 }
 
+func TestDefer(t *testing.T) {
+	is := is.New(t)
+	log := testlog.New()
+	fsys := fstest.MapFS{}
+	bfs := budfs.New(fsys, log)
+	called := 0
+	bfs.FileGenerator("a.txt", budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
+		fsys.Defer(func() error {
+			called++
+			return nil
+		})
+		file.Data = []byte("b")
+		return nil
+	}))
+	code, err := fs.ReadFile(bfs, "a.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "b")
+	bfs.Update("a.txt")
+	code, err = fs.ReadFile(bfs, "a.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "b")
+	is.Equal(called, 0)
+	is.NoErr(bfs.Close())
+	is.Equal(called, 2)
+	is.NoErr(bfs.Close())
+	is.Equal(called, 2)
+}
+
 func TestRemoteFS(t *testing.T) {
 	is := is.New(t)
 	parent := func(t testing.TB, cmd *exec.Cmd) {
@@ -318,7 +347,7 @@ func TestRemoteFS(t *testing.T) {
 					Stderr: os.Stderr,
 					Stdout: os.Stdout,
 				}
-				remotefs, err := command.Start(ctx, cmd.Path, cmd.Args...)
+				remotefs, err := command.Start(ctx, cmd.Path, cmd.Args[1:]...)
 				if err != nil {
 					return err
 				}
@@ -375,7 +404,7 @@ func TestMountRemoteFS(t *testing.T) {
 			Stderr: os.Stderr,
 			Stdout: os.Stdout,
 		}
-		remotefs, err := command.Start(ctx, cmd.Path, cmd.Args...)
+		remotefs, err := command.Start(ctx, cmd.Path, cmd.Args[1:]...)
 		is.NoErr(err)
 		defer remotefs.Close()
 		bfs.Mount("bud/generator", remotefs)
@@ -389,7 +418,7 @@ func TestMountRemoteFS(t *testing.T) {
 		// Read new path (uncached)
 		code, err = fs.ReadFile(bfs, "bud/generator/b.txt")
 		is.NoErr(err)
-		is.Equal(string(code), "b")
+		is.Equal(string(code), "bb")
 		// Update the file
 		bfs.Update("bud/generator/a.txt")
 		// Read again
@@ -400,6 +429,116 @@ func TestMountRemoteFS(t *testing.T) {
 	child := func(t testing.TB) {
 		count := 1
 		bfs := budfs.New(fsys, log)
+		bfs.FileGenerator("a.txt", budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
+			file.Data = []byte(strings.Repeat(string("a"), count))
+			count++
+			return nil
+		}))
+		bfs.FileGenerator("b.txt", budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
+			file.Data = []byte(strings.Repeat(string("b"), count))
+			count++
+			return nil
+		}))
+		err := remotefs.ServeFrom(ctx, bfs, "")
+		is.NoErr(err)
+	}
+	testsub.Run(t, parent, child)
+}
+
+type remoteService struct {
+	cmd     *exec.Cmd
+	process *remotefs.Process
+}
+
+func (s *remoteService) GenerateFile(fsys budfs.FS, file *budfs.File) (err error) {
+	// This remote service depends on the generators
+	_, err = fs.Glob(fsys, "generator/*/*.go")
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+	if s.process != nil {
+		if err := s.process.Close(); err != nil {
+			return err
+		}
+	}
+	command := remotefs.Command{
+		Env:    s.cmd.Env,
+		Stderr: os.Stderr,
+		Stdout: os.Stdout,
+	}
+	s.process, err = command.Start(ctx, s.cmd.Path, s.cmd.Args[1:]...)
+	if err != nil {
+		return err
+	}
+	fsys.Defer(func() error {
+		return s.process.Close()
+	})
+	file.Data = []byte(s.process.URL())
+	return nil
+}
+
+func TestRemoteService(t *testing.T) {
+	is := is.New(t)
+	log := testlog.New()
+	fsys := fstest.MapFS{
+		"generator/tailwind/tailwind.go": &fstest.MapFile{Data: []byte("package tailwind")},
+	}
+	ctx := context.Background()
+	parent := func(t testing.TB, cmd *exec.Cmd) {
+		bfs := budfs.New(fsys, log)
+		defer bfs.Close()
+		bfs.FileGenerator("bud/service/generator.url", &remoteService{cmd: cmd})
+		// Return a URL to connect to
+		url, err := fs.ReadFile(bfs, "bud/service/generator.url")
+		is.NoErr(err)
+		// Dial that URL
+		client, err := remotefs.Dial(ctx, string(url))
+		is.NoErr(err)
+		defer client.Close()
+		// Read the remote file
+		code, err := fs.ReadFile(client, "a.txt")
+		is.NoErr(err)
+		is.Equal(string(code), "a")
+		// Cached
+		code, err = fs.ReadFile(client, "a.txt")
+		is.NoErr(err)
+		is.Equal(string(code), "a")
+		// Uncached because it's a new file
+		code, err = fs.ReadFile(client, "b.txt")
+		is.NoErr(err)
+		is.Equal(string(code), "bb")
+		// Still cached
+		url, err = fs.ReadFile(bfs, "bud/service/generator.url")
+		is.NoErr(err)
+		code, err = fs.ReadFile(client, "a.txt")
+		is.NoErr(err)
+		is.Equal(string(code), "a")
+		code, err = fs.ReadFile(client, "b.txt")
+		is.NoErr(err)
+		is.Equal(string(code), "bb")
+		// Update a dependency
+		bfs.Update("generator/tailwind/tailwind.go")
+		// Should lead to the generator service being uncached again
+		url2, err := fs.ReadFile(bfs, "bud/service/generator.url")
+		is.NoErr(err)
+		is.True(!bytes.Equal(url, url2))
+		// Dial the new URL
+		client2, err := remotefs.Dial(ctx, string(url2))
+		is.NoErr(err)
+		defer client2.Close()
+		// Still cached, even though the remote has been restarted
+		code, err = fs.ReadFile(client2, "a.txt")
+		is.NoErr(err)
+		is.Equal(string(code), "a")
+		code, err = fs.ReadFile(client2, "b.txt")
+		is.NoErr(err)
+		is.Equal(string(code), "bb")
+	}
+	child := func(t testing.TB) {
+		count := 1
+		bfs := budfs.New(fsys, log)
+		defer bfs.Close()
 		bfs.FileGenerator("a.txt", budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
 			file.Data = []byte(strings.Repeat(string("a"), count))
 			count++
