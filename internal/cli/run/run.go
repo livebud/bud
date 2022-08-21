@@ -3,7 +3,6 @@ package run
 import (
 	"context"
 	"io"
-	"io/fs"
 	"net"
 	"path/filepath"
 	"time"
@@ -13,16 +12,18 @@ import (
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/web/webrt"
 	"github.com/livebud/bud/internal/cli/bud"
+	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/exe"
 	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/gobuild"
 	"github.com/livebud/bud/internal/prompter"
 	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/internal/versions"
+	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/budserver"
+	"github.com/livebud/bud/package/gomod"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log"
-	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/package/watcher"
 )
@@ -90,21 +91,21 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		log.Debug("run: bud server is listening", "url", "http://"+budln.Addr().String())
 	}
 	// Load the generator filesystem
-	genfs, close, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
+	bfs, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
 	if err != nil {
 		return err
 	}
-	defer close()
+	defer bfs.Close()
 	// Load V8
-	vm, err := v8.Load()
-	if err != nil {
-		return err
-	}
-	// Load the file server
-	servefs, err := bud.FileServer(log, module, vm, c.Flag)
-	if err != nil {
-		return err
-	}
+	// vm, err := v8.Load()
+	// if err != nil {
+	// 	return err
+	// }
+	// // Load the file server
+	// servefs, err := bud.FileServer(log, module, vm, c.Flag)
+	// if err != nil {
+	// 	return err
+	// }
 	// Create a bus if we don't have one yet
 	bus := c.in.Bus
 	if bus == nil {
@@ -114,7 +115,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	budServer := &budServer{
 		budln: budln,
 		bus:   bus,
-		fsys:  servefs,
+		bfs:   bfs,
 		log:   log,
 	}
 	// Setup the starter command
@@ -140,7 +141,8 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		builder:  gobuild.New(module),
 		prompter: &prompter,
 		bus:      bus,
-		genfs:    genfs,
+		bfs:      bfs,
+		module:   module,
 		log:      log,
 		starter:  starter,
 	}
@@ -160,7 +162,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 type budServer struct {
 	budln net.Listener
 	bus   pubsub.Client
-	fsys  fs.FS
+	bfs   *budfs.FileSystem
 	log   log.Interface
 }
 
@@ -170,7 +172,7 @@ func (s *budServer) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	devServer := budserver.New(s.fsys, s.bus, s.log, vm)
+	devServer := budserver.New(s.bfs, s.bus, s.log, vm)
 	err = webrt.Serve(ctx, s.budln, devServer)
 	s.log.Debug("run: bud server closed", "err", err)
 	return err
@@ -182,7 +184,8 @@ type appServer struct {
 	builder  *gobuild.Builder
 	prompter *prompter.Prompter
 	bus      pubsub.Client
-	genfs    *overlay.FileSystem
+	bfs      *budfs.FileSystem
+	module   *gomod.Module
 	log      log.Interface
 	starter  *exe.Command
 }
@@ -190,7 +193,7 @@ type appServer struct {
 // Run the app server
 func (a *appServer) Run(ctx context.Context) error {
 	// Generate the app
-	if err := a.genfs.Sync("bud/internal"); err != nil {
+	if err := dsync.Dir(a.bfs, "bud/internal", a.module.DirFS("bud/internal"), "."); err != nil {
 		a.bus.Publish("app:error", []byte(err.Error()))
 		a.log.Debug("run: published event", "event", "app:error")
 		return err
@@ -231,7 +234,7 @@ func (a *appServer) Run(ctx context.Context) error {
 		a.bus.Publish("backend:update", nil)
 		a.log.Debug("run: published event", "event", "backend:update")
 		// Generate the app
-		if err := a.genfs.Sync("bud/internal"); err != nil {
+		if err := dsync.Dir(a.bfs, "bud/internal", a.module.DirFS("bud/internal"), "."); err != nil {
 			return err
 		}
 		// Build the app

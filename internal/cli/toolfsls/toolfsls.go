@@ -32,17 +32,17 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	module, err := bud.Module(c.Dir)
-	if err != nil {
-		return err
-	}
-	fsys, close, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
-	if err != nil {
-		return err
-	}
-	defer close()
 	dir := path.Clean(c.Dir)
-	des, err := fs.ReadDir(fsys, dir)
+	module, err := bud.Module(path.Join(c.bud.Dir, dir))
+	if err != nil {
+		return err
+	}
+	bfs, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
+	if err != nil {
+		return err
+	}
+	defer bfs.Close()
+	des, err := fs.ReadDir(bfs, dir)
 	if err != nil {
 		return err
 	}

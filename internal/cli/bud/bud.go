@@ -8,41 +8,32 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/livebud/bud/internal/gobuild"
-
-	"github.com/livebud/bud/internal/extrafile"
+	"github.com/livebud/bud/package/budfs"
 
 	"github.com/livebud/bud/internal/current"
-	"github.com/livebud/bud/internal/errs"
-	"github.com/livebud/bud/internal/exe"
 	"github.com/livebud/bud/internal/pubsub"
 	"golang.org/x/mod/semver"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/app"
 	"github.com/livebud/bud/framework/controller"
-	"github.com/livebud/bud/framework/generate"
-	"github.com/livebud/bud/framework/generator"
 	"github.com/livebud/bud/framework/public"
 	"github.com/livebud/bud/framework/transform/transformrt"
 	"github.com/livebud/bud/framework/view"
 	"github.com/livebud/bud/framework/view/dom"
+	"github.com/livebud/bud/framework/view/nodemods"
 	"github.com/livebud/bud/framework/view/ssr"
 	"github.com/livebud/bud/framework/web"
 	"github.com/livebud/bud/package/commander"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
-	"github.com/livebud/bud/package/js"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/log/console"
 	"github.com/livebud/bud/package/log/filter"
-	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/parser"
-	"github.com/livebud/bud/package/remotefs"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/package/svelte"
-	"github.com/livebud/bud/package/vfs"
 )
 
 // Input contains the configuration that gets passed into the commands
@@ -129,103 +120,105 @@ func Log(stderr io.Writer, logFilter string) (log.Interface, error) {
 	return log.New(handler), nil
 }
 
-func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, flag *framework.Flag, in *Input) (*overlay.FileSystem, func() error, error) {
-	closers := []func() error{}
-	closer := func() (err error) {
-		for i := len(closers) - 1; i >= 0; i-- {
-			err = errs.Join(err, closers[i]())
-		}
-		return err
-	}
-	genfs, err := overlay.Load(log, module)
-	if err != nil {
-		return nil, closer, err
-	}
-	parser := parser.New(genfs, module)
-	injector := di.New(genfs, log, module, parser)
+func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, flag *framework.Flag, in *Input) (*budfs.FileSystem, error) {
+	// closers := []func() error{}
+	// closer := func() (err error) {
+	// 	for i := len(closers) - 1; i >= 0; i-- {
+	// 		err = errs.Join(err, closers[i]())
+	// 	}
+	// 	return err
+	// }
+	bfs := budfs.New(module, log)
+	parser := parser.New(bfs, module)
+	injector := di.New(bfs, log, module, parser)
 	vm, err := v8.Load()
 	if err != nil {
-		return nil, closer, err
+		return nil, err
 	}
 	svelteCompiler, err := svelte.Load(vm)
 	if err != nil {
-		return nil, closer, err
+		return nil, err
 	}
 	transforms, err := transformrt.Load(svelte.NewTransformable(svelteCompiler))
 	if err != nil {
-		return nil, closer, err
+		return nil, err
 	}
-	genfs.FileGenerator("bud/internal/app/main.go", app.New(injector, module, flag))
-	genfs.FileGenerator("bud/internal/app/web/web.go", web.New(module, parser))
-	genfs.FileGenerator("bud/internal/app/controller/controller.go", controller.New(injector, module, parser))
-	genfs.FileGenerator("bud/internal/app/view/view.go", view.New(module, transforms, flag))
-	genfs.FileGenerator("bud/internal/app/public/public.go", public.New(flag))
-	genfs.FileGenerator("bud/internal/generate/main.go", generate.New(injector, module))
-	genfs.FileGenerator("bud/internal/generate/generator/generator.go", generator.New(module, parser))
-	// Sync generate now to support custom generators, if any
-	if err := genfs.Sync("bud/internal/generate"); err != nil {
-		return nil, closer, err
-	}
-	// Support custom generators
-	if err := vfs.Exist(module, "bud/internal/generate/main.go"); nil == err {
-		// Build the app
-		builder := gobuild.New(module)
-		if err := builder.Build(ctx, "bud/internal/generate/main.go", "bud/generate"); err != nil {
-			return nil, closer, err
-		}
-		// TODO: should we use a unix domain socket instead?
-		ln, err := socket.Listen(":0")
-		if err != nil {
-			return nil, closer, err
-		}
-		closers = append(closers, ln.Close)
-		netFile, err := ln.File()
-		if err != nil {
-			return nil, closer, err
-		}
-		closers = append(closers, netFile.Close)
-		cmd := &exe.Command{
-			Stdin:  in.Stdin,
-			Stdout: in.Stdout,
-			Stderr: in.Stderr,
-			Dir:    module.Directory(),
-			Env:    in.Env,
-		}
-		extrafile.Inject(&cmd.ExtraFiles, &cmd.Env, "GENERATE", netFile)
-		// Start the app
-		process, err := cmd.Start(ctx, "./bud/generate")
-		if err != nil {
-			return nil, closer, err
-		}
-		closers = append(closers, process.Close)
-		remotefs, err := remotefs.Dial(ctx, ln.Addr().String())
-		if err != nil {
-			return nil, closer, err
-		}
-		closers = append(closers, remotefs.Close)
-		genfs.Mount("bud/internal/generator", remotefs)
-	}
-	return genfs, closer, nil
+	bfs.FileGenerator("bud/internal/app/main.go", app.New(injector, module, flag))
+	bfs.FileGenerator("bud/internal/app/web/web.go", web.New(module, parser))
+	bfs.FileGenerator("bud/internal/app/controller/controller.go", controller.New(injector, module, parser))
+	bfs.FileGenerator("bud/internal/app/view/view.go", view.New(module, transforms, flag))
+	bfs.FileGenerator("bud/internal/app/public/public.go", public.New(flag))
+	// bfs.FileGenerator("bud/internal/generate/main.go", generate.New(injector, module))
+	// bfs.FileGenerator("bud/internal/generate/generator/generator.go", generator.New(module, parser))
+
+	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
+	bfs.DirGenerator("bud/view", dom.New(module, transforms.DOM))
+	bfs.DirGenerator("bud/node_modules", nodemods.New(module))
+
+	// // Sync generate now to support custom generators, if any
+	// if err := bfs.Sync("bud/internal/generate"); err != nil {
+	// 	return nil, err
+	// }
+	// // Support custom generators
+	// if err := vfs.Exist(module, "bud/internal/generate/main.go"); nil == err {
+	// 	// Build the app
+	// 	builder := gobuild.New(module)
+	// 	if err := builder.Build(ctx, "bud/internal/generate/main.go", "bud/generate"); err != nil {
+	// 		return nil, err
+	// 	}
+	// 	// TODO: should we use a unix domain socket instead?
+	// 	ln, err := socket.Listen(":0")
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	closers = append(closers, ln.Close)
+	// 	netFile, err := ln.File()
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	closers = append(closers, netFile.Close)
+	// 	cmd := &exe.Command{
+	// 		Stdin:  in.Stdin,
+	// 		Stdout: in.Stdout,
+	// 		Stderr: in.Stderr,
+	// 		Dir:    module.Directory(),
+	// 		Env:    in.Env,
+	// 	}
+	// 	extrafile.Inject(&cmd.ExtraFiles, &cmd.Env, "GENERATE", netFile)
+	// 	// Start the app
+	// 	process, err := cmd.Start(ctx, "./bud/generate")
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	closers = append(closers, process.Close)
+	// 	remotefs, err := remotefs.Dial(ctx, ln.Addr().String())
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	closers = append(closers, remotefs.Close)
+	// 	genfs.Mount("bud/internal/generator", remotefs)
+	// }
+	return bfs, nil
 }
 
-func FileServer(log log.Interface, module *gomod.Module, vm js.VM, flag *framework.Flag) (*overlay.Server, error) {
-	servefs, err := overlay.Serve(log, module)
-	if err != nil {
-		return nil, err
-	}
-	svelteCompiler, err := svelte.Load(vm)
-	if err != nil {
-		return nil, err
-	}
-	transforms, err := transformrt.Load(svelte.NewTransformable(svelteCompiler))
-	if err != nil {
-		return nil, err
-	}
-	servefs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
-	servefs.FileServer("bud/view", dom.New(module, transforms.DOM))
-	servefs.FileServer("bud/node_modules", dom.NodeModules(module))
-	return servefs, nil
-}
+// func FileServer(log log.Interface, module *gomod.Module, vm js.VM, flag *framework.Flag) (*overlay.Server, error) {
+// 	servefs, err := overlay.Serve(log, module)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	svelteCompiler, err := svelte.Load(vm)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	transforms, err := transformrt.Load(svelte.NewTransformable(svelteCompiler))
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	servefs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
+// 	servefs.FileServer("bud/view", dom.New(module, transforms.DOM))
+// 	servefs.FileServer("bud/node_modules", dom.NodeModules(module))
+// 	return servefs, nil
+// }
 
 // EnsureVersionAlignment ensures that the CLI and runtime versions are aligned.
 // If they're not aligned, the CLI will correct the go.mod file to align them.

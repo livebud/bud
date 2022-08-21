@@ -1,7 +1,6 @@
 package view
 
 import (
-	"context"
 	"io/fs"
 	"path"
 
@@ -18,7 +17,6 @@ import (
 )
 
 func Load(
-	ctx context.Context,
 	fsys fs.FS,
 	module *gomod.Module,
 	transform *transformrt.Map,
@@ -30,7 +28,7 @@ func Load(
 		transform: transform,
 		flag:      flag,
 		imports:   imports.New(),
-	}).Load(ctx)
+	}).Load()
 }
 
 type loader struct {
@@ -43,7 +41,7 @@ type loader struct {
 	imports *imports.Set
 }
 
-func (l *loader) Load(ctx context.Context) (state *State, err error) {
+func (l *loader) Load() (state *State, err error) {
 	defer l.Recover2(&err, "view: unable to load")
 	state = &State{
 		Flag: l.flag,
@@ -57,7 +55,7 @@ func (l *loader) Load(ctx context.Context) (state *State, err error) {
 	if l.flag.Embed {
 		// Add SSR
 		ssrCompiler := ssr.New(l.module, l.transform.SSR)
-		ssrCode, err := ssrCompiler.Compile(ctx, l.fsys)
+		ssrCode, err := ssrCompiler.Compile(l.fsys)
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +65,7 @@ func (l *loader) Load(ctx context.Context) (state *State, err error) {
 		})
 		// Add DOM
 		domCompiler := dom.New(l.module, l.transform.DOM)
-		files, err := domCompiler.Compile(ctx, l.fsys)
+		files, err := domCompiler.Compile(l.fsys)
 		if err != nil {
 			return nil, err
 		}

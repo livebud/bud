@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/overlay"
 
@@ -39,11 +40,11 @@ func TestServeFile(t *testing.T) {
 	is.NoErr(td.Write(ctx))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	overlay, err := overlay.Load(log, module)
+	bfs, err := budfs.New(module, log)
 	is.NoErr(err)
-	overlay.FileServer("bud/view", dom.New(module, transformer.DOM))
+	bfs.FileServer("bud/view", dom.New(module, transformer.DOM))
 	// Read the wrapped version of index.svelte with node_modules rewritten
-	code, err := fs.ReadFile(overlay, "bud/view/_index.svelte.js")
+	code, err := fs.ReadFile(bfs, "bud/view/_index.svelte.js")
 	is.NoErr(err)
 	is.True(strings.Contains(string(code), `from "/bud/node_modules/svelte/internal"`))
 	is.True(strings.Contains(string(code), `element("h1");`))
@@ -53,7 +54,7 @@ func TestServeFile(t *testing.T) {
 	is.True(strings.Contains(string(code), `hot: new Hot("http://127.0.0.1:35729/bud/hot/view/index.svelte", components)`))
 
 	// Unwrapped version with node_modules rewritten
-	code, err = fs.ReadFile(overlay, "bud/view/index.svelte")
+	code, err = fs.ReadFile(bfs, "bud/view/index.svelte")
 	is.NoErr(err)
 	is.True(strings.Contains(string(code), `from "/bud/node_modules/svelte/internal"`))
 	is.True(strings.Contains(string(code), `element("h1");`))
@@ -64,7 +65,7 @@ func TestServeFile(t *testing.T) {
 	is.True(!strings.Contains(string(code), `hot: new Hot("http://127.0.0.1:35729/bud/hot/view/index.svelte", components)`))
 
 	// Read the wrapped version of about/index.svelte with node_modules rewritten
-	code, err = fs.ReadFile(overlay, "bud/view/about/_index.svelte.js")
+	code, err = fs.ReadFile(bfs, "bud/view/about/_index.svelte.js")
 	is.NoErr(err)
 	is.True(strings.Contains(string(code), `from "/bud/node_modules/svelte/internal"`))
 	is.True(strings.Contains(string(code), `element("h2");`))
@@ -74,7 +75,7 @@ func TestServeFile(t *testing.T) {
 	is.True(strings.Contains(string(code), `hot: new Hot("http://127.0.0.1:35729/bud/hot/view/about/index.svelte", components)`))
 
 	// Unwrapped version with node_modules rewritten
-	code, err = fs.ReadFile(overlay, "bud/view/about/index.svelte")
+	code, err = fs.ReadFile(bfs, "bud/view/about/index.svelte")
 	is.NoErr(err)
 	is.True(strings.Contains(string(code), `from "/bud/node_modules/svelte/internal"`))
 	is.True(strings.Contains(string(code), `element("h2");`))
@@ -83,27 +84,6 @@ func TestServeFile(t *testing.T) {
 	is.True(!strings.Contains(string(code), `"/bud/view/about/index.svelte": about_default`))
 	is.True(!strings.Contains(string(code), `page: "/bud/view/about/index.svelte",`))
 	is.True(!strings.Contains(string(code), `hot: new Hot("http://127.0.0.1:35729/bud/hot/view/about/index.svelte", components)`))
-}
-
-func TestNodeModules(t *testing.T) {
-	is := is.New(t)
-	log := testlog.New()
-	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.Files["view/index.svelte"] = `<h1>hi world</h1>`
-	td.NodeModules["svelte"] = versions.Svelte
-	is.NoErr(td.Write(ctx))
-	module, err := gomod.Find(dir)
-	is.NoErr(err)
-	overlay, err := overlay.Load(log, module)
-	is.NoErr(err)
-	overlay.FileServer("bud/node_modules", dom.NodeModules(module))
-	// Read the re-written node_modules
-	code, err := fs.ReadFile(overlay, "bud/node_modules/svelte/internal")
-	is.NoErr(err)
-	is.True(strings.Contains(string(code), `function element(`))
-	is.True(strings.Contains(string(code), `function text(`))
 }
 
 func TestGenerateDir(t *testing.T) {

@@ -13,21 +13,30 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/livebud/bud/internal/testdir"
+
 	"github.com/livebud/bud/internal/testsub"
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/budfs"
+	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/remotefs"
 )
 
 func TestReadFsys(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	log := testlog.New()
-	fsys := fstest.MapFS{
-		"a.txt": &fstest.MapFile{Data: []byte("a")},
-	}
-	bfs := budfs.New(fsys, log)
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["a.txt"] = "a"
+	is.NoErr(td.Write(ctx))
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	bfs := budfs.New(module, log)
+
+	// Test read
 	des, err := fs.ReadDir(bfs, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
@@ -35,15 +44,20 @@ func TestReadFsys(t *testing.T) {
 
 func TestGeneratorPriority(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	log := testlog.New()
-	fsys := fstest.MapFS{
-		"a.txt": &fstest.MapFile{Data: []byte("a")},
-	}
-	bfs := budfs.New(fsys, log)
-	bfs.FileGenerator("a.txt", budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["a.txt"] = "a"
+	is.NoErr(td.Write(ctx))
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	bfs := budfs.New(module, log)
+
+	bfs.GenerateFile("a.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 		file.Data = []byte("b")
 		return nil
-	}))
+	})
 	code, err := fs.ReadFile(bfs, "a.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "b")
@@ -51,15 +65,21 @@ func TestGeneratorPriority(t *testing.T) {
 
 func TestCaching(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	log := testlog.New()
-	fsys := fstest.MapFS{}
-	bfs := budfs.New(fsys, log)
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	is.NoErr(td.Write(ctx))
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	bfs := budfs.New(module, log)
+
 	count := 1
-	bfs.FileGenerator("a.txt", budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
+	bfs.GenerateFile("a.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 		file.Data = []byte(strconv.Itoa(count))
 		count++
 		return nil
-	}))
+	})
 	code, err := fs.ReadFile(bfs, "a.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "1")
@@ -70,20 +90,25 @@ func TestCaching(t *testing.T) {
 
 func TestFileFSUpdate(t *testing.T) {
 	is := is.New(t)
+	ctx := context.Background()
 	log := testlog.New()
+	dir := t.TempDir()
+	td := testdir.New(dir)
 	count := 1
-	fsys := fstest.MapFS{
-		"a.txt": &fstest.MapFile{Data: []byte(strconv.Itoa(count))},
-	}
-	bfs := budfs.New(fsys, log)
-	bfs.FileGenerator("b.txt", budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
+	td.Files["a.txt"] = strconv.Itoa(count)
+	is.NoErr(td.Write(ctx))
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	bfs := budfs.New(module, log)
+
+	bfs.GenerateFile("b.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 		code, err := fs.ReadFile(fsys, "a.txt")
 		if err != nil {
 			return err
 		}
 		file.Data = []byte(code)
 		return nil
-	}))
+	})
 	code, err := fs.ReadFile(bfs, "b.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "1")
@@ -108,19 +133,19 @@ func TestFileGenUpdate(t *testing.T) {
 	fsys := fstest.MapFS{}
 	bfs := budfs.New(fsys, log)
 	count := 1
-	bfs.FileGenerator("a.txt", budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
+	bfs.GenerateFile("a.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 		file.Data = []byte(strconv.Itoa(count))
 		count++
 		return nil
-	}))
-	bfs.FileGenerator("b.txt", budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
+	})
+	bfs.GenerateFile("b.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 		code, err := fs.ReadFile(fsys, "a.txt")
 		if err != nil {
 			return err
 		}
 		file.Data = []byte(code)
 		return nil
-	}))
+	})
 	code, err := fs.ReadFile(bfs, "b.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "1")
@@ -166,14 +191,14 @@ func TestDirGenCreate(t *testing.T) {
 		"docs/a.txt": &fstest.MapFile{Data: []byte("a")},
 	}
 	bfs := budfs.New(fsys, log)
-	bfs.FileGenerator("bud/docs.txt", budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
+	bfs.GenerateFile("bud/docs.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 		des, err := fs.ReadDir(fsys, "docs")
 		if err != nil {
 			return err
 		}
 		file.Data = []byte(strconv.Itoa(len(des)))
 		return nil
-	}))
+	})
 	code, err := fs.ReadFile(bfs, "bud/docs.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "1")
@@ -223,14 +248,14 @@ func TestDirGenDelete(t *testing.T) {
 		"docs/b.txt": &fstest.MapFile{Data: []byte("b")},
 	}
 	bfs := budfs.New(fsys, log)
-	bfs.FileGenerator("bud/docs.txt", budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
+	bfs.GenerateFile("bud/docs.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 		des, err := fs.ReadDir(fsys, "docs")
 		if err != nil {
 			return err
 		}
 		file.Data = []byte(strconv.Itoa(len(des)))
 		return nil
-	}))
+	})
 	code, err := fs.ReadFile(bfs, "bud/docs.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "2")
@@ -310,14 +335,14 @@ func TestDefer(t *testing.T) {
 	fsys := fstest.MapFS{}
 	bfs := budfs.New(fsys, log)
 	called := 0
-	bfs.FileGenerator("a.txt", budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
+	bfs.GenerateFile("a.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 		fsys.Defer(func() error {
 			called++
 			return nil
 		})
 		file.Data = []byte("b")
 		return nil
-	}))
+	})
 	code, err := fs.ReadFile(bfs, "a.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "b")
@@ -337,11 +362,11 @@ func TestRemoteFS(t *testing.T) {
 	parent := func(t testing.TB, cmd *exec.Cmd) {
 		log := testlog.New()
 		fsys := fstest.MapFS{}
-		ctx := context.Background()
+		// ctx := context.Background()
 		bfs := budfs.New(fsys, log)
 		count := 1
-		bfs.DirGenerator("bud/generator", budfs.GenerateDir(func(fsys budfs.FS, dir *budfs.Dir) error {
-			dir.GenerateFile(dir.Relative(), func(fsys budfs.FS, file *budfs.File) error {
+		bfs.GenerateDir("bud/generator", func(ctx context.Context, fsys budfs.FS, dir *budfs.Dir) error {
+			dir.GenerateFile(dir.Relative(), func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 				command := remotefs.Command{
 					Env:    cmd.Env,
 					Stderr: os.Stderr,
@@ -361,7 +386,7 @@ func TestRemoteFS(t *testing.T) {
 				return nil
 			})
 			return nil
-		}))
+		})
 		code, err := fs.ReadFile(bfs, "bud/generator/a.txt")
 		is.NoErr(err)
 		is.Equal(string(code), "a")
@@ -429,16 +454,16 @@ func TestMountRemoteFS(t *testing.T) {
 	child := func(t testing.TB) {
 		count := 1
 		bfs := budfs.New(fsys, log)
-		bfs.FileGenerator("a.txt", budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
+		bfs.GenerateFile("a.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 			file.Data = []byte(strings.Repeat(string("a"), count))
 			count++
 			return nil
-		}))
-		bfs.FileGenerator("b.txt", budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
+		})
+		bfs.GenerateFile("b.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 			file.Data = []byte(strings.Repeat(string("b"), count))
 			count++
 			return nil
-		}))
+		})
 		err := remotefs.ServeFrom(ctx, bfs, "")
 		is.NoErr(err)
 	}
@@ -450,13 +475,12 @@ type remoteService struct {
 	process *remotefs.Process
 }
 
-func (s *remoteService) GenerateFile(fsys budfs.FS, file *budfs.File) (err error) {
+func (s *remoteService) GenerateFile(ctx context.Context, fsys budfs.FS, file *budfs.File) (err error) {
 	// This remote service depends on the generators
 	_, err = fs.Glob(fsys, "generator/*/*.go")
 	if err != nil {
 		return err
 	}
-	ctx := context.Background()
 	if s.process != nil {
 		if err := s.process.Close(); err != nil {
 			return err
@@ -539,16 +563,16 @@ func TestRemoteService(t *testing.T) {
 		count := 1
 		bfs := budfs.New(fsys, log)
 		defer bfs.Close()
-		bfs.FileGenerator("a.txt", budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
+		bfs.GenerateFile("a.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 			file.Data = []byte(strings.Repeat(string("a"), count))
 			count++
 			return nil
-		}))
-		bfs.FileGenerator("b.txt", budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
+		})
+		bfs.GenerateFile("b.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 			file.Data = []byte(strings.Repeat(string("b"), count))
 			count++
 			return nil
-		}))
+		})
 		err := remotefs.ServeFrom(ctx, bfs, "")
 		is.NoErr(err)
 	}

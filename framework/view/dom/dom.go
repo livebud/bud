@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/livebud/bud/package/overlay"
+	"github.com/livebud/bud/package/budfs"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/livebud/bud/framework/transform/transformrt"
@@ -25,50 +25,6 @@ var template string
 // generator
 var generator = gotemplate.MustParse("dom.gotext", template)
 
-// Serve node_modules
-// TODO: migrate to it's own package
-func NodeModules(module *gomod.Module) overlay.FileServer {
-	plugins := []esbuild.Plugin{
-		domExternalizePlugin(),
-	}
-	return overlay.ServeFile(func(ctx context.Context, f overlay.F, file *overlay.File) error {
-		// If the name starts with node_modules, trim it to allow esbuild to do
-		// the resolving. e.g. node_modules/timeago.js => timeago.js
-		entryPoint := trimEntrypoint(file.Path())
-		result := esbuild.Build(esbuild.BuildOptions{
-			EntryPoints:   []string{entryPoint},
-			AbsWorkingDir: module.Directory(),
-			Format:        esbuild.FormatESModule,
-			Platform:      esbuild.PlatformBrowser,
-			// Add "import" condition to support svelte/internal
-			// https://esbuild.github.io/api/#how-conditions-work
-			Conditions: []string{"browser", "default", "import"},
-			Metafile:   true,
-			Bundle:     true,
-			Plugins:    plugins,
-		})
-		if len(result.Errors) > 0 {
-			msgs := esbuild.FormatMessages(result.Errors, esbuild.FormatMessagesOptions{
-				Color:         true,
-				Kind:          esbuild.ErrorMessage,
-				TerminalWidth: 80,
-			})
-			return fmt.Errorf(strings.Join(msgs, "\n"))
-		}
-		// if err := esmeta.Link2(dfs, result.Metafile); err != nil {
-		// 	return nil, err
-		// }
-		content := result.OutputFiles[0].Contents
-		// Replace require statements and updates the path on imports
-		code := replaceDependencyPaths(content)
-		file.Data = code
-		source := strings.TrimPrefix(file.Path(), "bud/")
-		// fmt.Println("linked", file.Path(), "->", source)
-		file.Link(source)
-		return nil
-	})
-}
-
 func New(module *gomod.Module, transformer transformrt.Transformer) *Compiler {
 	return &Compiler{module, transformer}
 }
@@ -79,7 +35,7 @@ type Compiler struct {
 }
 
 // Compile into a list of  views for embedding
-func (c *Compiler) Compile(ctx context.Context, fsys fs.FS) ([]esbuild.OutputFile, error) {
+func (c *Compiler) Compile(fsys fs.FS) ([]esbuild.OutputFile, error) {
 	views, err := entrypoint.List(fsys, "view")
 	if err != nil {
 		return nil, err
@@ -137,56 +93,59 @@ func (c *Compiler) Compile(ctx context.Context, fsys fs.FS) ([]esbuild.OutputFil
 }
 
 // GenerateDir generates a directory of compiled files
-func (c *Compiler) GenerateDir(ctx context.Context, fsys overlay.F, dir *overlay.Dir) error {
-	files, err := c.Compile(ctx, fsys)
-	if err != nil {
-		return err
-	}
-	for _, file := range files {
-		dir.FileGenerator(file.Path, &overlay.Embed{
-			Data: file.Contents,
-		})
-	}
-	return nil
-}
+// func (c *Compiler) GenerateDir(fsys budfs.FS, dir *budfs.Dir) error {
+// 	files, err := c.Compile(ctx, fsys)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	for _, file := range files {
+// 		dir.FileGenerator(file.Path, &budfs.EmbedFile{
+// 			Data: file.Contents,
+// 		})
+// 	}
+// 	return nil
+// }
 
 // Serve a single file, used in development
-func (c *Compiler) ServeFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
-	// If the name starts with node_modules, trim it to allow esbuild to do
-	// the resolving. e.g. node_modules/livebud => livebud
-	entryPoint := trimEntrypoint(file.Path())
-	result := esbuild.Build(esbuild.BuildOptions{
-		EntryPoints:   []string{entryPoint},
-		AbsWorkingDir: c.module.Directory(),
-		Format:        esbuild.FormatESModule,
-		Platform:      esbuild.PlatformBrowser,
-		// Add "import" condition to support svelte/internal
-		// https://esbuild.github.io/api/#how-conditions-work
-		Conditions: []string{"browser", "default", "import"},
-		Metafile:   true,
-		Bundle:     true,
-		Plugins: append([]esbuild.Plugin{
-			domPlugin(fsys, c.module),
-			domExternalizePlugin(),
-		}, c.transformer.Plugins()...),
-	})
-	if len(result.Errors) > 0 {
-		msgs := esbuild.FormatMessages(result.Errors, esbuild.FormatMessagesOptions{
-			Color:         true,
-			Kind:          esbuild.ErrorMessage,
-			TerminalWidth: 80,
+func (c *Compiler) GenerateDir(ctx context.Context, fsys budfs.FS, dir *budfs.Dir) error {
+	dir.GenerateFile(dir.Relative(), func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
+		// If the name starts with node_modules, trim it to allow esbuild to do
+		// the resolving. e.g. node_modules/livebud => livebud
+		entryPoint := trimEntrypoint(file.Path())
+		result := esbuild.Build(esbuild.BuildOptions{
+			EntryPoints:   []string{entryPoint},
+			AbsWorkingDir: c.module.Directory(),
+			Format:        esbuild.FormatESModule,
+			Platform:      esbuild.PlatformBrowser,
+			// Add "import" condition to support svelte/internal
+			// https://esbuild.github.io/api/#how-conditions-work
+			Conditions: []string{"browser", "default", "import"},
+			Metafile:   true,
+			Bundle:     true,
+			Plugins: append([]esbuild.Plugin{
+				domPlugin(fsys, c.module),
+				domExternalizePlugin(),
+			}, c.transformer.Plugins()...),
 		})
-		return fmt.Errorf(strings.Join(msgs, "\n"))
-	}
-	// if err := esmeta.Link2(dfs, result.Metafile); err != nil {
-	// 	return nil, err
-	// }
-	code := result.OutputFiles[0].Contents
-	// Replace require statements and updates the path on imports
-	code = replaceDependencyPaths(code)
-	file.Data = code
-	source := strings.TrimPrefix(file.Path(), "bud/")
-	file.Link(source)
+		if len(result.Errors) > 0 {
+			msgs := esbuild.FormatMessages(result.Errors, esbuild.FormatMessagesOptions{
+				Color:         true,
+				Kind:          esbuild.ErrorMessage,
+				TerminalWidth: 80,
+			})
+			return fmt.Errorf(strings.Join(msgs, "\n"))
+		}
+		// if err := esmeta.Link2(dfs, result.Metafile); err != nil {
+		// 	return nil, err
+		// }
+		code := result.OutputFiles[0].Contents
+		// Replace require statements and updates the path on imports
+		code = replaceDependencyPaths(code)
+		file.Data = code
+		sourcePath := strings.TrimPrefix(file.Path(), "bud/")
+		fsys.Link(file.Path(), sourcePath)
+		return nil
+	})
 	return nil
 }
 

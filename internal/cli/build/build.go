@@ -5,6 +5,7 @@ import (
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/cli/bud"
+	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/gobuild"
 	"github.com/livebud/bud/internal/versions"
 )
@@ -41,12 +42,12 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	genfs, close, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
+	bfs, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
 	if err != nil {
 		return err
 	}
-	defer close()
-	if err := genfs.Sync("bud/internal"); err != nil {
+	defer bfs.Close()
+	if err := dsync.Dir(bfs, "bud/internal", module.DirFS("bud/internal"), "."); err != nil {
 		return err
 	}
 	builder := gobuild.New(module)

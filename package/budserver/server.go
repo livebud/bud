@@ -2,14 +2,13 @@ package budserver
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
-	"strings"
 
 	"github.com/livebud/bud/package/budclient"
+	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/hot"
 	"github.com/livebud/bud/package/log"
 
@@ -19,20 +18,19 @@ import (
 	"github.com/livebud/bud/package/router"
 )
 
-func New(fsys fs.FS, bus pubsub.Client, log log.Interface, vm js.VM) *Server {
+func New(bfs *budfs.FileSystem, bus pubsub.Client, log log.Interface, vm js.VM) *Server {
 	router := router.New()
 	server := &Server{
 		Handler: router,
-		fsys:    fsys,
-		hfs:     http.FS(fsys),
+		bfs:     bfs,
 		log:     log,
 		bus:     bus,
 		vm:      vm,
 	}
 	// Routes that are proxied to from the browser through the app to bud
 	router.Post("/bud/view/:route*", http.HandlerFunc(server.render))
-	router.Get("/bud/view/:path*", http.HandlerFunc(server.serve))
-	router.Get("/bud/node_modules/:path*", http.HandlerFunc(server.serve))
+	router.Get("/bud/view/:path*", bfs)
+	router.Get("/bud/node_modules/:path*", bfs)
 	// Routes that are directly requested by the browser to
 	router.Get("/bud/hot/:page*", hot.New(log, bus))
 	// Private routes between the app and bud
@@ -42,11 +40,10 @@ func New(fsys fs.FS, bus pubsub.Client, log log.Interface, vm js.VM) *Server {
 
 type Server struct {
 	http.Handler
-	fsys fs.FS
-	hfs  http.FileSystem
-	bus  pubsub.Publisher
-	log  log.Interface
-	vm   js.VM
+	bfs *budfs.FileSystem
+	bus pubsub.Publisher
+	log log.Interface
+	vm  js.VM
 }
 
 var _ http.Handler = (*Server)(nil)
@@ -64,7 +61,7 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	script, err := fs.ReadFile(s.fsys, "bud/view/_ssr.js")
+	script, err := fs.ReadFile(s.bfs, "bud/view/_ssr.js")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -79,30 +76,31 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(result))
 }
 
-func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
-	s.log.Debug("devserver: serving", "file", r.URL.Path)
-	file, err := s.hfs.Open(r.URL.Path)
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			http.Error(w, err.Error(), 404)
-			return
-		}
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	stat, err := file.Stat()
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	// Maintain support to resolve and run "/bud/node_modules/livebud/runtime".
-	if strings.HasPrefix(r.URL.Path, "/bud/node_modules/") ||
-		strings.HasSuffix(r.URL.Path, ".svelte") {
-		w.Header().Set("Content-Type", "application/javascript")
-	}
-	http.ServeContent(w, r, r.URL.Path, stat.ModTime(), file)
-	s.log.Debug("devserver: served", "file", r.URL.Path)
-}
+// func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
+// 	s.log.Debug("devserver: serving", "file", r.URL.Path)
+// 	file, err := s.bfs.Open(r.URL.Path)
+// 	if err != nil {
+// 		if errors.Is(err, fs.ErrNotExist) {
+// 			http.Error(w, err.Error(), 404)
+// 			return
+// 		}
+// 		http.Error(w, err.Error(), 500)
+// 		return
+// 	}
+// 	stat, err := file.Stat()
+// 	if err != nil {
+// 		http.Error(w, err.Error(), 500)
+// 		return
+// 	}
+// 	// Maintain support to resolve and run "/bud/node_modules/livebud/runtime".
+// 	if strings.HasPrefix(r.URL.Path, "/bud/node_modules/") ||
+// 		strings.HasSuffix(r.URL.Path, ".svelte") {
+// 		w.Header().Set("Content-Type", "application/javascript")
+// 	}
+// 	// Serve the file
+// 	http.ServeContent(w, r, r.URL.Path, stat.ModTime(), file)
+// 	s.log.Debug("devserver: served", "file", r.URL.Path)
+// }
 
 func (s *Server) createEvent(w http.ResponseWriter, r *http.Request) {
 	// Read the body

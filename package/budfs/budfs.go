@@ -1,22 +1,25 @@
 package budfs
 
 import (
+	"context"
 	"io/fs"
 	"net/http"
 	"path"
 
 	"github.com/livebud/bud/internal/dag"
+	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/once"
 	"github.com/livebud/bud/package/budfs/cachefs"
 	"github.com/livebud/bud/package/budfs/genfs"
 	"github.com/livebud/bud/package/budfs/mergefs"
+	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log"
 )
 
-func New(fsys fs.FS, log log.Interface) *FileSystem {
+func New(module *gomod.Module, log log.Interface) *FileSystem {
 	gen := genfs.New()
 	cache := cachefs.New(log)
-	merged := mergefs.New(gen, fsys)
+	merged := mergefs.New(gen, module)
 	syncfs := cache.Wrap(merged)
 	server := http.FileServer(http.FS(merged))
 	return &FileSystem{
@@ -24,6 +27,7 @@ func New(fsys fs.FS, log log.Interface) *FileSystem {
 		closer: new(once.Closer),
 		dag:    dag.New(),
 		gen:    gen,
+		module: module,
 		log:    log,
 		syncfs: syncfs,
 		server: server,
@@ -35,6 +39,7 @@ type FileSystem struct {
 	closer *once.Closer
 	dag    *dag.Graph
 	gen    *genfs.FileSystem
+	module *gomod.Module
 	log    log.Interface
 	syncfs fs.FS
 	server http.Handler
@@ -47,6 +52,15 @@ type FS interface {
 }
 
 type File = genfs.File
+
+type EmbedFile genfs.EmbedFile
+
+var _ FileGenerator = (*EmbedFile)(nil)
+
+func (e *EmbedFile) GenerateFile(ctx context.Context, fsys FS, file *File) error {
+	file.Data = e.Data
+	return nil
+}
 
 type Dir struct {
 	closer *once.Closer
@@ -67,26 +81,34 @@ func (d *Dir) Path() string {
 	return d.dir.Path()
 }
 
-func (d *Dir) GenerateFile(path string, fn func(fsys FS, file *File) error) {
+func (d *Dir) GenerateFile(path string, fn func(ctx context.Context, fsys FS, file *File) error) {
 	fsys := &linkedFS{d.closer, d.dag, d.fsys, path}
 	d.dir.GenerateFile(path, func(file *genfs.File) error {
-		return fn(fsys, file)
+		return fn(context.TODO(), fsys, file)
 	})
 }
 
-func (d *Dir) GenerateDir(path string, fn func(fsys FS, dir *Dir) error) {
+func (d *Dir) FileGenerator(path string, generator FileGenerator) {
+	d.GenerateFile(path, generator.GenerateFile)
+}
+
+func (d *Dir) GenerateDir(path string, fn func(ctx context.Context, fsys FS, dir *Dir) error) {
 	fsys := &linkedFS{d.closer, d.dag, d.fsys, path}
 	d.dir.GenerateDir(path, func(dir *genfs.Dir) error {
-		return fn(fsys, &Dir{d.closer, d.dag, d.fsys, dir})
+		return fn(context.TODO(), fsys, &Dir{d.closer, d.dag, d.fsys, dir})
 	})
+}
+
+func (d *Dir) DirGenerator(path string, generator DirGenerator) {
+	d.GenerateDir(path, generator.GenerateDir)
 }
 
 type FileGenerator interface {
-	GenerateFile(fsys FS, file *File) error
+	GenerateFile(ctx context.Context, fsys FS, file *File) error
 }
 
 type DirGenerator interface {
-	GenerateDir(fsys FS, dir *Dir) error
+	GenerateDir(ctx context.Context, fsys FS, dir *Dir) error
 }
 
 func (f *FileSystem) Open(name string) (fs.File, error) {
@@ -140,35 +162,69 @@ func (f *linkedFS) Defer(fn func() error) {
 	f.closer.Closes = append(f.closer.Closes, fn)
 }
 
-type GenerateFile func(fsys FS, file *File) error
-
-func (fn GenerateFile) GenerateFile(fsys FS, file *File) error {
-	return fn(fsys, file)
+func (f *FileSystem) GenerateFile(path string, fn func(ctx context.Context, fsys FS, file *File) error) {
+	fsys := &linkedFS{f.closer, f.dag, f.syncfs, path}
+	f.gen.GenerateFile(path, func(file *genfs.File) error {
+		return fn(context.TODO(), fsys, file)
+	})
 }
 
 func (f *FileSystem) FileGenerator(path string, generator FileGenerator) {
-	fsys := &linkedFS{f.closer, f.dag, f.syncfs, path}
-	f.gen.GenerateFile(path, func(file *genfs.File) error {
-		return generator.GenerateFile(fsys, file)
-	})
+	f.GenerateFile(path, generator.GenerateFile)
 }
 
-type GenerateDir func(fsys FS, dir *Dir) error
-
-func (fn GenerateDir) GenerateDir(fsys FS, dir *Dir) error {
-	return fn(fsys, dir)
+func (f *FileSystem) GenerateDir(path string, fn func(ctx context.Context, fsys FS, dir *Dir) error) {
+	fsys := &linkedFS{f.closer, f.dag, f.syncfs, path}
+	f.gen.GenerateDir(path, func(dir *genfs.Dir) error {
+		return fn(context.TODO(), fsys, &Dir{f.closer, f.dag, f.syncfs, dir})
+	})
 }
 
 func (f *FileSystem) DirGenerator(path string, generator DirGenerator) {
-	fsys := &linkedFS{f.closer, f.dag, f.syncfs, path}
-	f.gen.GenerateDir(path, func(dir *genfs.Dir) error {
-		return generator.GenerateDir(fsys, &Dir{f.closer, f.dag, f.syncfs, dir})
-	})
+	f.GenerateDir(path, generator.GenerateDir)
 }
 
 // ServeHTTP serves the filesystem. Served files are not cached.
 func (f *FileSystem) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	f.server.ServeHTTP(w, r)
+}
+
+// var _ middleware.Middleware = (*FileSystem)(nil)
+
+// // Middleware serves the filesystem. Served files are not cached.
+// func (f *FileSystem) Middleware(next http.Handler) http.Handler {
+// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		if r.Method != http.MethodGet {
+// 			next.ServeHTTP(w, r)
+// 			return
+// 		}
+// 		file, err := f.servefs.Open(r.URL.Path)
+// 		if err != nil {
+// 			if errors.Is(err, fs.ErrNotExist) {
+// 				next.ServeHTTP(w, r)
+// 				return
+// 			}
+// 			http.Error(w, err.Error(), 500)
+// 			return
+// 		}
+// 		stat, err := file.Stat()
+// 		if err != nil {
+// 			http.Error(w, err.Error(), 500)
+// 			return
+// 		}
+// 		if stat.IsDir() {
+// 			next.ServeHTTP(w, r)
+// 			return
+// 		}
+// 		f.ServeHTTP(w, r)
+// 	})
+// }
+
+// Sync the overlay to the filesystem
+func (f *FileSystem) Sync(dir string) error {
+	// Clear the filesystem cache before syncing again
+	f.cache.Clear()
+	return dsync.Dir(f.syncfs, dir, f.module.DirFS(dir), ".")
 }
 
 func (f *FileSystem) Mount(path string, fsys fs.FS) {

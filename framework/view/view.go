@@ -7,8 +7,8 @@ import (
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/transform/transformrt"
 	"github.com/livebud/bud/internal/gotemplate"
+	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/gomod"
-	"github.com/livebud/bud/package/overlay"
 )
 
 //go:embed view.gotext
@@ -35,8 +35,8 @@ type Generator struct {
 	transform *transformrt.Map
 }
 
-func (c *Generator) GenerateFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
-	state, err := Load(ctx, fsys, c.module, c.transform, c.flag)
+func (c *Generator) GenerateFile(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
+	state, err := Load(fsys, c.module, c.transform, c.flag)
 	if err != nil {
 		return err
 	}

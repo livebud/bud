@@ -5,7 +5,7 @@ import (
 	_ "embed"
 
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/package/overlay"
+	"github.com/livebud/bud/package/budfs"
 
 	"github.com/livebud/bud/internal/gotemplate"
 )
@@ -32,7 +32,7 @@ type Generator struct {
 }
 
 // Generate the public file
-func (g *Generator) GenerateFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
+func (g *Generator) GenerateFile(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 	state, err := Load(fsys, g.flag)
 	if err != nil {
 		return err

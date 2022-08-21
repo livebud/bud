@@ -44,7 +44,7 @@ func (l *loader) Load() (state *State, err error) {
 	// Default imports
 	l.imports.AddStd("errors", "io", "io/fs", "net/http", "path", "time")
 	l.imports.AddNamed("middleware", "github.com/livebud/bud/package/middleware")
-	l.imports.AddNamed("overlay", "github.com/livebud/bud/package/overlay")
+	l.imports.AddNamed("budfs", "github.com/livebud/bud/package/budfs")
 	// Load embeds
 	if exist["public"] && l.flag.Embed {
 		state.Embeds = l.loadEmbedsFrom("public", ".")

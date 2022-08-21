@@ -6,10 +6,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/log/testlog"
 
 	"github.com/livebud/bud/framework/transform/transformrt"
 	"github.com/livebud/bud/framework/view/dom"
+	"github.com/livebud/bud/framework/view/nodemods"
 	"github.com/livebud/bud/framework/view/ssr"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/pubsub"
@@ -19,7 +21,6 @@ import (
 	"github.com/livebud/bud/package/budserver"
 	"github.com/livebud/bud/package/gomod"
 	v8 "github.com/livebud/bud/package/js/v8"
-	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/svelte"
 )
 
@@ -41,14 +42,11 @@ func loadServer(bus pubsub.Client, dir string) (*httptest.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	genfs, err := overlay.Load(log, module)
-	if err != nil {
-		return nil, err
-	}
-	genfs.FileServer("bud/view", dom.New(module, transforms.DOM))
-	genfs.FileServer("bud/node_modules", dom.NodeModules(module))
-	genfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
-	handler := budserver.New(genfs, bus, log, vm)
+	bfs := budfs.New(module, log)
+	bfs.DirGenerator("bud/view", dom.New(module, transforms.DOM))
+	bfs.DirGenerator("bud/node_modules", nodemods.New(module))
+	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
+	handler := budserver.New(bfs, bus, log, vm)
 	return httptest.NewServer(handler), nil
 }
 
