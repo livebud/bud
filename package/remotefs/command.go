@@ -24,13 +24,13 @@ func (c *Command) Start(ctx context.Context, name string, args ...string) (*Proc
 	if err != nil {
 		return nil, err
 	}
-	closer.Add(ln.Close)
+	closer.Closes = append(closer.Closes, ln.Close)
 	// Turn the listener into a file to be passed to the subprocess
 	file, err := ln.File()
 	if err != nil {
 		return nil, closer.Close(err)
 	}
-	closer.Add(file.Close)
+	closer.Closes = append(closer.Closes, file.Close)
 	// Inject the file listener into the subprocess
 	extrafile.Inject(&c.ExtraFiles, &c.Env, defaultPrefix, file)
 	// Start the subprocess
@@ -38,25 +38,31 @@ func (c *Command) Start(ctx context.Context, name string, args ...string) (*Proc
 	if err != nil {
 		return nil, closer.Close(err)
 	}
-	closer.Add(process.Close)
+	closer.Closes = append(closer.Closes, process.Close)
 	// Dial the subprocess and return a client
-	client, err := Dial(ctx, ln.Addr().String())
+	addr := ln.Addr().String()
+	client, err := Dial(ctx, addr)
 	if err != nil {
 		return nil, closer.Close(err)
 	}
-	closer.Add(client.Close)
+	closer.Closes = append(closer.Closes, client.Close)
 	// Return the process
-	return &Process{client, &closer, process}, nil
+	return &Process{client, &closer, process, addr}, nil
 }
 
 type Process struct {
 	client  *Client
 	closer  *once.Closer
 	process *exe.Process
+	addr    string
 }
 
 var _ fs.FS = (*Process)(nil)
 var _ fs.ReadDirFS = (*Process)(nil)
+
+func (p *Process) URL() string {
+	return p.addr
+}
 
 func (p *Process) Open(name string) (fs.File, error) {
 	return p.client.Open(name)

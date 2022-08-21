@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/livebud/bud/internal/dag"
+	"github.com/livebud/bud/internal/once"
 	"github.com/livebud/bud/package/budfs/cachefs"
 	"github.com/livebud/bud/package/budfs/genfs"
 	"github.com/livebud/bud/package/budfs/mergefs"
@@ -20,6 +21,7 @@ func New(fsys fs.FS, log log.Interface) *FileSystem {
 	server := http.FileServer(http.FS(merged))
 	return &FileSystem{
 		cache:  cache,
+		closer: new(once.Closer),
 		dag:    dag.New(),
 		gen:    gen,
 		log:    log,
@@ -30,6 +32,7 @@ func New(fsys fs.FS, log log.Interface) *FileSystem {
 
 type FileSystem struct {
 	cache  *cachefs.Cache
+	closer *once.Closer
 	dag    *dag.Graph
 	gen    *genfs.FileSystem
 	log    log.Interface
@@ -40,14 +43,16 @@ type FileSystem struct {
 type FS interface {
 	fs.FS
 	Link(from, to string)
+	Defer(fn func() error)
 }
 
 type File = genfs.File
 
 type Dir struct {
-	dag  *dag.Graph
-	fsys fs.FS
-	dir  *genfs.Dir
+	closer *once.Closer
+	dag    *dag.Graph
+	fsys   fs.FS
+	dir    *genfs.Dir
 }
 
 func (d *Dir) Target() string {
@@ -63,16 +68,16 @@ func (d *Dir) Path() string {
 }
 
 func (d *Dir) GenerateFile(path string, fn func(fsys FS, file *File) error) {
-	fsys := &linkedFS{d.dag, d.fsys, path}
+	fsys := &linkedFS{d.closer, d.dag, d.fsys, path}
 	d.dir.GenerateFile(path, func(file *genfs.File) error {
 		return fn(fsys, file)
 	})
 }
 
 func (d *Dir) GenerateDir(path string, fn func(fsys FS, dir *Dir) error) {
-	fsys := &linkedFS{d.dag, d.fsys, path}
+	fsys := &linkedFS{d.closer, d.dag, d.fsys, path}
 	d.dir.GenerateDir(path, func(dir *genfs.Dir) error {
-		return fn(fsys, &Dir{d.dag, d.fsys, dir})
+		return fn(fsys, &Dir{d.closer, d.dag, d.fsys, dir})
 	})
 }
 
@@ -92,20 +97,47 @@ func (f *FileSystem) Open(name string) (fs.File, error) {
 	return file, nil
 }
 
-type linkedFS struct {
-	dag  *dag.Graph
-	fsys fs.FS
-	path string
+func (f *FileSystem) Close() error {
+	return f.closer.Close()
 }
 
+type linkedFS struct {
+	closer *once.Closer
+	dag    *dag.Graph
+	fsys   fs.FS
+	path   string
+}
+
+var _ fs.FS = (*linkedFS)(nil)
+var _ fs.GlobFS = (*linkedFS)(nil)
+
 func (f *linkedFS) Open(name string) (fs.File, error) {
+	file, err := f.fsys.Open(name)
+	if err != nil {
+		return nil, err
+	}
 	f.dag.Link(f.path, name)
-	return f.fsys.Open(name)
+	return file, nil
+}
+
+func (f *linkedFS) Glob(name string) ([]string, error) {
+	matches, err := fs.Glob(f.fsys, name)
+	if err != nil {
+		return nil, err
+	}
+	for _, match := range matches {
+		f.dag.Link(f.path, match)
+	}
+	return matches, nil
 }
 
 // Link allows for arbitrary links
 func (f *linkedFS) Link(from, to string) {
 	f.dag.Link(from, to)
+}
+
+func (f *linkedFS) Defer(fn func() error) {
+	f.closer.Closes = append(f.closer.Closes, fn)
 }
 
 type GenerateFile func(fsys FS, file *File) error
@@ -115,7 +147,7 @@ func (fn GenerateFile) GenerateFile(fsys FS, file *File) error {
 }
 
 func (f *FileSystem) FileGenerator(path string, generator FileGenerator) {
-	fsys := &linkedFS{f.dag, f.syncfs, path}
+	fsys := &linkedFS{f.closer, f.dag, f.syncfs, path}
 	f.gen.GenerateFile(path, func(file *genfs.File) error {
 		return generator.GenerateFile(fsys, file)
 	})
@@ -128,9 +160,9 @@ func (fn GenerateDir) GenerateDir(fsys FS, dir *Dir) error {
 }
 
 func (f *FileSystem) DirGenerator(path string, generator DirGenerator) {
-	fsys := &linkedFS{f.dag, f.syncfs, path}
+	fsys := &linkedFS{f.closer, f.dag, f.syncfs, path}
 	f.gen.GenerateDir(path, func(dir *genfs.Dir) error {
-		return generator.GenerateDir(fsys, &Dir{f.dag, f.syncfs, dir})
+		return generator.GenerateDir(fsys, &Dir{f.closer, f.dag, f.syncfs, dir})
 	})
 }
 
