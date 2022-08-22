@@ -2,10 +2,12 @@ package budserver
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
+	"strings"
 
 	"github.com/livebud/bud/package/budclient"
 	"github.com/livebud/bud/package/budfs"
@@ -30,7 +32,7 @@ func New(bfs *budfs.FileSystem, bus pubsub.Client, log log.Interface, vm js.VM) 
 	// Routes that are proxied to from the browser through the app to bud
 	router.Post("/bud/view/:route*", http.HandlerFunc(server.render))
 	router.Get("/bud/view/:path*", bfs)
-	router.Get("/bud/node_modules/:path*", bfs)
+	router.Get("/bud/node_modules/:path*", http.HandlerFunc(server.serve))
 	// Routes that are directly requested by the browser to
 	router.Get("/bud/hot/:page*", hot.New(log, bus))
 	// Private routes between the app and bud
@@ -76,31 +78,34 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(result))
 }
 
-// func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
-// 	s.log.Debug("devserver: serving", "file", r.URL.Path)
-// 	file, err := s.bfs.Open(r.URL.Path)
-// 	if err != nil {
-// 		if errors.Is(err, fs.ErrNotExist) {
-// 			http.Error(w, err.Error(), 404)
-// 			return
-// 		}
-// 		http.Error(w, err.Error(), 500)
-// 		return
-// 	}
-// 	stat, err := file.Stat()
-// 	if err != nil {
-// 		http.Error(w, err.Error(), 500)
-// 		return
-// 	}
-// 	// Maintain support to resolve and run "/bud/node_modules/livebud/runtime".
-// 	if strings.HasPrefix(r.URL.Path, "/bud/node_modules/") ||
-// 		strings.HasSuffix(r.URL.Path, ".svelte") {
-// 		w.Header().Set("Content-Type", "application/javascript")
-// 	}
-// 	// Serve the file
-// 	http.ServeContent(w, r, r.URL.Path, stat.ModTime(), file)
-// 	s.log.Debug("devserver: served", "file", r.URL.Path)
-// }
+func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
+	s.log.Debug("devserver: serving", "file", r.URL.Path)
+	fmt.Println("serving", r.URL.Path)
+	hfs := http.FS(s.bfs)
+	file, err := hfs.Open(r.URL.Path)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			fmt.Println("not found", r.URL.Path)
+			http.Error(w, err.Error(), 404)
+			return
+		}
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	stat, err := file.Stat()
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	// Maintain support to resolve and run "/bud/node_modules/livebud/runtime".
+	if strings.HasPrefix(r.URL.Path, "/bud/node_modules/") ||
+		strings.HasSuffix(r.URL.Path, ".svelte") {
+		w.Header().Set("Content-Type", "application/javascript")
+	}
+	// Serve the file
+	http.ServeContent(w, r, r.URL.Path, stat.ModTime(), file)
+	s.log.Debug("devserver: served", "file", r.URL.Path)
+}
 
 func (s *Server) createEvent(w http.ResponseWriter, r *http.Request) {
 	// Read the body

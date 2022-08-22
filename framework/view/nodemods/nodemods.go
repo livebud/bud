@@ -28,6 +28,7 @@ type Generator struct {
 }
 
 func (g *Generator) GenerateDir(ctx context.Context, fsys budfs.FS, dir *budfs.Dir) error {
+	fmt.Println("generating", dir.Target())
 	dir.GenerateFile(dir.Relative(), g.generateFile)
 	return nil
 }

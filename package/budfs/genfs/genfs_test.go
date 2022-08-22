@@ -991,3 +991,24 @@ func TestMount(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(string(code), `/** tailwind **/`)
 }
+
+func TestDirServing(t *testing.T) {
+	is := is.New(t)
+	// Add the view
+	gen := genfs.New()
+	gen.GenerateDir("bud/node_modules", func(dir *genfs.Dir) error {
+		dir.GenerateFile(dir.Relative(), func(file *genfs.File) error {
+			file.Data = []byte(file.Path())
+			return nil
+		})
+		return nil
+	})
+	// Serve one file
+	code, err := fs.ReadFile(gen, "bud/node_modules/runtime/hot")
+	is.NoErr(err)
+	is.Equal(string(code), "bud/node_modules/runtime/hot")
+	// Serve a different file
+	code, err = fs.ReadFile(gen, "bud/node_modules/runtime/svelte")
+	is.NoErr(err)
+	is.Equal(string(code), "bud/node_modules/runtime/svelte")
+}
