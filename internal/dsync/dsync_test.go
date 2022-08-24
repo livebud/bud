@@ -30,7 +30,7 @@ func TestFileSync(t *testing.T) {
 	}
 
 	// sync
-	err := dsync.Dir(sourceFS, ".", targetFS, ".")
+	err := dsync.To(sourceFS, targetFS, ".")
 	is.NoErr(err)
 	is.Equal(len(targetFS), 2)
 
@@ -191,7 +191,7 @@ func TestSkipNotExist(t *testing.T) {
 	targetFS := vfs.Memory{}
 
 	// sync
-	err := dsync.Dir(sourceFS, ".", targetFS, ".")
+	err := dsync.To(sourceFS, targetFS, ".")
 	is.NoErr(err)
 	is.Equal(len(targetFS), 0)
 }
@@ -210,7 +210,7 @@ func TestErrorGenerator(t *testing.T) {
 	targetFS := vfs.Memory{}
 
 	// sync
-	err := dsync.Dir(sourceFS, ".", targetFS, ".")
+	err := dsync.To(sourceFS, targetFS, ".")
 	is.True(err != nil)
 	is.Equal(err.Error(), `conjure: generate "bud/generate/main.go". uh oh`)
 	is.Equal(len(targetFS), 0)
@@ -225,7 +225,7 @@ func TestWithSkip(t *testing.T) {
 	targetFS := vfs.Memory{
 		"node_modules/svelte/svelte.js": &vfs.File{Data: []byte("svelte")},
 	}
-	err := dsync.Dir(sourceFS, ".", targetFS, ".")
+	err := dsync.To(sourceFS, targetFS, ".")
 	is.NoErr(err)
 	is.Equal(len(targetFS), 1) // this should have deleted node_modules
 	// starting points
@@ -256,7 +256,7 @@ func TestAvoidDotCreate(t *testing.T) {
 		".": &vfs.File{Mode: fs.ModeDir},
 	}
 	targetFS := vfs.Memory{}
-	err := dsync.Dir(sourceFS, ".", targetFS, ".")
+	err := dsync.To(sourceFS, targetFS, ".")
 	is.NoErr(err)
 	is.Equal(len(targetFS), 0)
 }
@@ -270,7 +270,7 @@ func TestAvoidDotUpdate(t *testing.T) {
 	targetFS := vfs.Memory{
 		".": &vfs.File{Mode: fs.ModeDir | 0755},
 	}
-	err := dsync.Dir(sourceFS, ".", targetFS, ".")
+	err := dsync.To(sourceFS, targetFS, ".")
 	is.NoErr(err)
 	is.Equal(len(targetFS), 1)
 }
@@ -283,7 +283,7 @@ func TestAvoidDotDelete(t *testing.T) {
 	targetFS := vfs.Memory{
 		".": &vfs.File{Mode: fs.ModeDir},
 	}
-	err := dsync.Dir(sourceFS, ".", targetFS, ".")
+	err := dsync.To(sourceFS, targetFS, ".")
 	is.NoErr(err)
 	// . should be ignored
 	is.Equal(len(targetFS), 1)
