@@ -103,10 +103,12 @@ func TestFindPrefix(t *testing.T) {
 	s.True(ok)
 	s.Equal(prefix, "a")
 	s.Equal(f.Path(), "a")
+	// File generators must be an exact match
 	f, prefix, ok = n.FindByPrefix("a/d")
-	s.True(ok)
-	s.Equal(prefix, "a")
-	s.Equal(f.Path(), "a")
+	s.Equal(ok, false)
+	s.Equal(f, nil)
+	s.Equal(prefix, "")
+	s.Equal(f.Path(), "")
 	f, prefix, ok = n.FindByPrefix("b/c/h")
 	s.True(ok)
 	s.Equal(prefix, "b/c")
@@ -152,6 +154,31 @@ func TestFindNodeModules(t *testing.T) {
 	is.True(ok)
 	is.Equal(node.Path(), "bud/node_modules")
 	is.Equal(prefix, "bud/node_modules")
+	// Check that parent is a directory
+	parent, ok := n.Find("bud/node_modules/runtime")
+	is.True(ok)
+	is.True(parent.Mode().IsDir())
+	n.InsertFile("bud/node_modules/runtime", cg)
+	// Check that parent is a file
+	parent, ok = n.Find("bud/node_modules/runtime")
+	is.True(ok)
+	is.True(parent.Mode().IsRegular())
+}
+
+func TestFindNodeModules2(t *testing.T) {
+	is := is.New(t)
+	n := treefs.New(".")
+	n.InsertDir("bud/node_modules", ag)
+	n.InsertFile("bud/node_modules/runtime", bg)
+	n.InsertFile("bud/node_modules/runtime/hot", cg)
+	node, prefix, ok := n.FindByPrefix("bud/node_modules/runtime")
+	is.True(ok)
+	is.Equal(node.Path(), "bud/node_modules/runtime")
+	is.Equal(prefix, "bud/node_modules/runtime")
+	node, prefix, ok = n.FindByPrefix("bud/node_modules/runtime/hot")
+	is.True(ok)
+	is.Equal(node.Path(), "bud/node_modules/runtime/hot")
+	is.Equal(prefix, "bud/node_modules/runtime/hot")
 }
 
 func TestDifferentPrefix(t *testing.T) {

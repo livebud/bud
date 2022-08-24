@@ -5,7 +5,6 @@ import (
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/cli/bud"
-	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/gobuild"
 	"github.com/livebud/bud/internal/versions"
 )
@@ -47,7 +46,7 @@ func (c *Command) Run(ctx context.Context) error {
 		return err
 	}
 	defer bfs.Close()
-	if err := dsync.Dir(bfs, "bud/internal", module.DirFS("bud/internal"), "."); err != nil {
+	if err := bfs.Sync("bud/internal"); err != nil {
 		return err
 	}
 	builder := gobuild.New(module)

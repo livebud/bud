@@ -199,30 +199,42 @@ func (n *Node) FindByPrefix(path string) (node *Node, prefix string, found bool)
 	}
 	// Traverse the children keyed by segments
 	node = n
-	segments := strings.Split(path, "/")
-	for i, name := range segments {
+	names := strings.Split(path, "/")
+	for i, name := range names {
 		next, found := node.childMap[name]
 		if !found {
 			if i == 0 {
 				return nil, "", false
 			}
-			node, nth, found := findGeneratorAncestor(node)
+			// Find generator dirs that match the prefix
+			node, nth, found := n.findAncestor(node, func(n *Node) bool {
+				return n.kind == kindGenerator && n.mode.IsDir()
+			})
 			if !found {
 				return nil, "", false
 			}
-			return node, strings.Join(segments[:i-nth], "/"), true
+			return node, strings.Join(names[:i-nth], "/"), true
 		}
 		node = next
 	}
-	return node, path, true
+	// Try finding an ancestor generator
+	parent, nth, found := n.findAncestor(node, func(n *Node) bool {
+		return n.kind == kindGenerator
+	})
+	if !found {
+		// Otherwise just return a filler node
+		return node, path, true
+	}
+	return parent, strings.Join(names[:len(names)-nth], "/"), true
 }
 
 // Find the first ancestor that's a generator.
-func findGeneratorAncestor(n *Node) (*Node, int, bool) {
-	node := n
+func (n *Node) findAncestor(child *Node, match func(n *Node) bool) (*Node, int, bool) {
+	node := child
 	nth := 0
-	for node != nil {
-		if node.kind == kindGenerator {
+	// Scope the search to the node itself to avoid potential infinite loops.
+	for node != n && node != nil {
+		if match(node) {
 			return node, nth, true
 		}
 		node = node.parent

@@ -992,7 +992,7 @@ func TestMount(t *testing.T) {
 	is.Equal(string(code), `/** tailwind **/`)
 }
 
-func TestDirServing(t *testing.T) {
+func TestDirServingDirLast(t *testing.T) {
 	is := is.New(t)
 	// Add the view
 	gen := genfs.New()
@@ -1011,4 +1011,45 @@ func TestDirServing(t *testing.T) {
 	code, err = fs.ReadFile(gen, "bud/node_modules/runtime/svelte")
 	is.NoErr(err)
 	is.Equal(string(code), "bud/node_modules/runtime/svelte")
+	// Serve dir
+	code, err = fs.ReadFile(gen, "bud/node_modules/runtime")
+	is.NoErr(err)
+	is.Equal(string(code), "bud/node_modules/runtime")
+}
+
+func TestDirServingDirFirst(t *testing.T) {
+	is := is.New(t)
+	// Add the view
+	gen := genfs.New()
+	gen.GenerateDir("bud/node_modules", func(dir *genfs.Dir) error {
+		dir.GenerateFile(dir.Relative(), func(file *genfs.File) error {
+			file.Data = []byte(file.Path())
+			return nil
+		})
+		return nil
+	})
+	// Serve dir
+	code, err := fs.ReadFile(gen, "bud/node_modules/runtime")
+	is.NoErr(err)
+	is.Equal(string(code), "bud/node_modules/runtime")
+	// Serve one file
+	code, err = fs.ReadFile(gen, "bud/node_modules/runtime/hot")
+	is.NoErr(err)
+	is.Equal(string(code), "bud/node_modules/runtime/hot")
+	// Serve a different file
+	code, err = fs.ReadFile(gen, "bud/node_modules/runtime/svelte")
+	is.NoErr(err)
+	is.Equal(string(code), "bud/node_modules/runtime/svelte")
+}
+
+func TestReadDirNotExists(t *testing.T) {
+	is := is.New(t)
+	// Add the view
+	gen := genfs.New()
+	gen.GenerateFile("bud/controller/controller.go", func(file *genfs.File) error {
+		return fs.ErrNotExist
+	})
+	des, err := fs.ReadDir(gen, "bud/controller")
+	is.NoErr(err)
+	is.Equal(len(des), 0)
 }

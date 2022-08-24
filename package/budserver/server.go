@@ -25,24 +25,27 @@ func New(bfs *budfs.FileSystem, bus pubsub.Client, log log.Interface, vm js.VM) 
 	server := &Server{
 		Handler: router,
 		bfs:     bfs,
+		hfs:     http.FS(bfs),
 		log:     log,
 		bus:     bus,
 		vm:      vm,
 	}
 	// Routes that are proxied to from the browser through the app to bud
 	router.Post("/bud/view/:route*", http.HandlerFunc(server.render))
-	router.Get("/bud/view/:path*", bfs)
+	router.Get("/bud/view/:path*", http.HandlerFunc(server.serve))
 	router.Get("/bud/node_modules/:path*", http.HandlerFunc(server.serve))
 	// Routes that are directly requested by the browser to
 	router.Get("/bud/hot/:page*", hot.New(log, bus))
 	// Private routes between the app and bud
 	router.Post("/bud/events", http.HandlerFunc(server.createEvent))
+	router.Get("/bud/open/:path*", http.HandlerFunc(server.open))
 	return server
 }
 
 type Server struct {
 	http.Handler
 	bfs *budfs.FileSystem
+	hfs http.FileSystem
 	bus pubsub.Publisher
 	log log.Interface
 	vm  js.VM
@@ -78,14 +81,16 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(result))
 }
 
+func (s *Server) open(w http.ResponseWriter, r *http.Request) {
+	path := r.URL.Query().Get("path")
+	fmt.Println(path)
+}
+
 func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	s.log.Debug("devserver: serving", "file", r.URL.Path)
-	fmt.Println("serving", r.URL.Path)
-	hfs := http.FS(s.bfs)
-	file, err := hfs.Open(r.URL.Path)
+	file, err := s.hfs.Open(r.URL.Path)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
-			fmt.Println("not found", r.URL.Path)
 			http.Error(w, err.Error(), 404)
 			return
 		}

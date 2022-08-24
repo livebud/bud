@@ -2,7 +2,7 @@
   export let posts = []
 </script>
 
-<h1>Post Index</h1>
+<h1>Post Index...</h1>
 
 <table border="1" cellpadding="10">
   {#if posts.length > 0}

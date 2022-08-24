@@ -2,6 +2,7 @@ package budclient
 
 import (
 	"fmt"
+	"io/fs"
 	"net/http"
 
 	"github.com/livebud/bud/framework/view/ssr"
@@ -19,6 +20,10 @@ func (discard) Render(route string, props interface{}) (*ssr.Response, error) {
 
 func (discard) Proxy(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "budclient: discard client does not support proxy", http.StatusInternalServerError)
+}
+
+func (discard) Open(name string) (fs.File, error) {
+	return nil, fmt.Errorf("budclient: discard client does not support open")
 }
 
 // Publish nothing

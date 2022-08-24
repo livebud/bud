@@ -24,7 +24,8 @@ func New(bfs *budfs.FileSystem) Middleware {
 }
 {{- else }}
 // New middleware that serves files by reference
-func New(bfs *budfs.FileSystem) Middleware {
+func New(client budclient.Client) Middleware {
+
 	{{/* Support default embeds (favicon.ico, default.css) */}}
 	{{- range $embed := $.Embeds }}
 	bfs.FileGenerator(`{{ $embed.Path }}`, &budfs.EmbedFile{

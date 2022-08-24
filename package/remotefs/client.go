@@ -26,23 +26,28 @@ func Dial(ctx context.Context, addr string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Client{rpc.NewClient(conn), clientTimeout}, nil
+	return NewClient(rpc.NewClient(conn)), nil
+}
+
+func NewClient(rpc *rpc.Client) *Client {
+	return &Client{rpc, context.Background()}
 }
 
 type Client struct {
 	rpc *rpc.Client
-	// Timeout for RPC calls
-	Timeout time.Duration
+	ctx context.Context
 }
 
 var _ fs.FS = (*Client)(nil)
 var _ fs.ReadDirFS = (*Client)(nil)
 
+func (c *Client) WithContext(ctx context.Context) *Client {
+	return &Client{c.rpc, ctx}
+}
+
 func (c *Client) Open(name string) (fs.File, error) {
 	vfile := new(fs.File)
-	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
-	defer cancel()
-	if err := c.rpc.Call(ctx, "remotefs.Open", name, vfile); err != nil {
+	if err := c.rpc.Call(c.ctx, "remotefs.Open", name, vfile); err != nil {
 		if isNotExist(err) {
 			return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
 		}
@@ -53,9 +58,7 @@ func (c *Client) Open(name string) (fs.File, error) {
 
 func (c *Client) ReadDir(name string) (des []fs.DirEntry, err error) {
 	vdes := new([]fs.DirEntry)
-	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
-	defer cancel()
-	err = c.rpc.Call(ctx, "remotefs.ReadDir", name, &vdes)
+	err = c.rpc.Call(c.ctx, "remotefs.ReadDir", name, &vdes)
 	if err != nil {
 		if isNotExist(err) {
 			return nil, &fs.PathError{Op: "readdir", Path: name, Err: fs.ErrNotExist}

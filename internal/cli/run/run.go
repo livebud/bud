@@ -2,6 +2,7 @@ package run
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"path/filepath"
@@ -12,7 +13,6 @@ import (
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/web/webrt"
 	"github.com/livebud/bud/internal/cli/bud"
-	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/exe"
 	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/gobuild"
@@ -193,7 +193,7 @@ type appServer struct {
 // Run the app server
 func (a *appServer) Run(ctx context.Context) error {
 	// Generate the app
-	if err := dsync.Dir(a.bfs, "bud/internal", a.module.DirFS("bud/internal"), "."); err != nil {
+	if err := a.bfs.Sync("bud/internal"); err != nil {
 		a.bus.Publish("app:error", []byte(err.Error()))
 		a.log.Debug("run: published event", "event", "app:error")
 		return err
@@ -213,7 +213,18 @@ func (a *appServer) Run(ctx context.Context) error {
 	}
 	// Watch for changes
 	return watcher.Watch(ctx, a.dir, catchError(a.prompter, func(events []watcher.Event) error {
-		a.log.Debug("run: file changes", "paths", events)
+		for _, event := range events {
+			fmt.Println("Got events", event.String())
+			a.log.Debug("run: " + event.String())
+			switch event.Op {
+			case watcher.OpUpdate:
+				a.bfs.Update(event.Path)
+			case watcher.OpCreate:
+				a.bfs.Create(event.Path)
+			case watcher.OpDelete:
+				a.bfs.Delete(event.Path)
+			}
+		}
 		a.prompter.Reloading(events)
 		if canIncrementallyReload(events) {
 			a.log.Debug("run: incrementally reloading")
@@ -234,7 +245,7 @@ func (a *appServer) Run(ctx context.Context) error {
 		a.bus.Publish("backend:update", nil)
 		a.log.Debug("run: published event", "event", "backend:update")
 		// Generate the app
-		if err := dsync.Dir(a.bfs, "bud/internal", a.module.DirFS("bud/internal"), "."); err != nil {
+		if err := a.bfs.Sync("bud/internal"); err != nil {
 			return err
 		}
 		// Build the app

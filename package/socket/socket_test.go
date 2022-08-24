@@ -3,6 +3,7 @@ package socket_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -116,7 +117,8 @@ func TestDial(t *testing.T) {
 
 func TestUDSCleanup(t *testing.T) {
 	is := is.New(t)
-	listener, err := socket.Listen("./test.sock")
+	name := fmt.Sprintf("./%s.sock", t.Name())
+	listener, err := socket.Listen(name)
 	is.NoErr(err)
 	defer listener.Close()
 	is.NoErr(listener.Close())

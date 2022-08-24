@@ -92,6 +92,10 @@ func Watch(ctx context.Context, dir string, fn func(events []Event) error) error
 	eventSet := newEventSet()
 	debounce := debounce.New(debounceDelay)
 	trigger := func(event Event) {
+		if event.Path, err = filepath.Rel(dir, event.Path); err != nil {
+			errorCh <- err
+			return
+		}
 		eventSet.Add(event)
 		debounce(func() {
 			if err := fn(eventSet.Flush()); err != nil {

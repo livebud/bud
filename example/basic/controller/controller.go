@@ -16,7 +16,7 @@ type Post struct {
 // Index of posts
 // GET
 func (c *Controller) Index(ctx context.Context) (posts []*Post, err error) {
-	return []*Post{}, nil
+	return []*Post{{ID: 4}}, nil
 }
 
 // New returns a view for creating a new post
