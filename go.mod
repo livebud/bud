@@ -12,6 +12,7 @@ require (
 	github.com/fatih/structtag v1.2.0
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/gitchander/permutation v0.0.0-20201214100618-1f3e7285f953
+	github.com/keegancsmith/rpc v1.3.0
 	github.com/lithammer/dedent v1.1.0
 	github.com/matthewmueller/diff v0.0.0-20220104030700-cb2fe910d90c
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac
@@ -21,6 +22,7 @@ require (
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/timewasted/go-accept-headers v0.0.0-20130320203746-c78f304b1b09
 	github.com/xlab/treeprint v1.1.0
+	github.com/yalue/merged_fs v1.2.2
 	go.kuoruan.net/v8go-polyfills v0.5.1-0.20220727011656-c74c5b408ebd
 	golang.org/x/mod v0.5.1
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c

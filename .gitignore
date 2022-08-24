@@ -21,3 +21,6 @@ example/scratch
 
 # Release is where we build binaries for release
 /release
+
+# Ignore the VSCode directory
+.vscode/

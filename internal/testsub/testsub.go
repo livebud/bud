@@ -14,7 +14,9 @@ func Run(t testing.TB, parent func(t testing.TB, cmd *exec.Cmd), child func(t te
 	}
 	var args []string
 	for _, arg := range os.Args[1:] {
-		if strings.HasPrefix(arg, "-test.count=") {
+		if strings.HasPrefix(arg, "-test.count=") ||
+			strings.HasPrefix(arg, "-test.v") ||
+			strings.HasPrefix(arg, "-test.run") {
 			continue
 		}
 		args = append(args, arg)

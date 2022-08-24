@@ -8,7 +8,7 @@ import (
 
 // File struct
 type File struct {
-	Name    string
+	Path    string
 	Data    []byte
 	Mode    fs.FileMode
 	ModTime time.Time
@@ -16,13 +16,9 @@ type File struct {
 	offset  int64
 }
 
-var _ fs.File = (*File)(nil)
 var _ io.ReadSeeker = (*File)(nil)
-
-// Reset the read data offset to 0
-func (f *File) Reset() {
-	f.offset = 0
-}
+var _ fs.File = (*File)(nil)
+var _ Entry = (*File)(nil)
 
 func (f *File) Close() error {
 	return nil
@@ -33,7 +29,7 @@ func (f *File) Read(b []byte) (int, error) {
 		return 0, io.EOF
 	}
 	if f.offset < 0 {
-		return 0, &fs.PathError{Op: "read", Path: f.Name, Err: fs.ErrInvalid}
+		return 0, &fs.PathError{Op: "read", Path: f.Path, Err: fs.ErrInvalid}
 	}
 	n := copy(b, f.Data[f.offset:])
 	f.offset += int64(n)
@@ -42,7 +38,7 @@ func (f *File) Read(b []byte) (int, error) {
 
 func (f *File) Stat() (fs.FileInfo, error) {
 	return &fileInfo{
-		name:    f.Name,
+		path:    f.Path,
 		mode:    f.Mode &^ fs.ModeDir,
 		modTime: f.ModTime,
 		size:    int64(len(f.Data)),
@@ -60,8 +56,19 @@ func (f *File) Seek(offset int64, whence int) (int64, error) {
 		offset += int64(len(f.Data))
 	}
 	if offset < 0 || offset > int64(len(f.Data)) {
-		return 0, &fs.PathError{Op: "seek", Path: f.Name, Err: fs.ErrInvalid}
+		return 0, &fs.PathError{Op: "seek", Path: f.Path, Err: fs.ErrInvalid}
 	}
 	f.offset = offset
 	return offset, nil
+}
+
+func (f *File) Open() fs.File {
+	return &File{
+		Path:    f.Path,
+		Data:    f.Data,
+		Mode:    f.Mode,
+		ModTime: f.ModTime,
+		Sys:     f.Sys,
+		offset:  0, // reset offset
+	}
 }

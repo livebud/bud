@@ -235,3 +235,68 @@ func TestChange(t *testing.T) {
 	// Tailwind.css should have been removed
 	is.NoErr(td.NotExists("bud/internal/generator/tailwind/tailwind.css"))
 }
+
+// func TestGenerator(t *testing.T) {
+// 	is := is.New(t)
+// 	ctx := context.Background()
+// 	log := testlog.New()
+// 	wd := t.TempDir()
+// 	td := testdir.New(wd)
+// 	td.Files["view/index.svelte"] = "<h1>index</h1>"
+// 	td.Files["generator/svelte/svelte.go"] = dedent.Dedent(`
+// 		package svelte
+// 		import (
+// 			"path"
+// 			"github.com/livebud/bud/package/budfs"
+// 		)
+// 		type Generator struct {}
+// 		func (g *Generator) GenerateDir(fsys budfs.FS, dir *budfs.Dir) error {
+// 			dir.GenerateFile("view/index.svelte.js", func(fsys budfs.FS, file *budfs.File) error {
+// 				code, err := fs.ReadFile(fsys, "view/index.svelte")
+// 				if err != nil {
+// 					return err
+// 				}
+// 				file.Data = []byte("document.body.innerHTML = '" + string(code) + "'")
+// 				return nil
+// 			}))
+// 			return nil
+// 		}
+// 	`)
+
+// 	is.NoErr(td.Write(ctx))
+// 	module, err := gomod.Find(wd)
+// 	is.NoErr(err)
+// 	bfs := budfs.New(module, log)
+// 	bfs.DirGenerator("bud/internal/generator", budfs.GenerateDir(func(fsys budfs.FS, dir *budfs.Dir) error {
+// 		mainFile, err := fs.ReadFile(fsys, `bud/generate/svelte/main.go`)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		cmd := exe.Command{
+// 			Dir:    wd,
+// 			Stdout: os.Stdout,
+// 			Stderr: os.Stderr,
+// 		}
+// 		_ = cmd
+// 		// cmd.Run(ctx, "go", "run", string(mainFile))
+// 		fmt.Println("Here...", string(mainFile))
+// 		return nil
+// 	}))
+// 	bfs.DirGenerator("bud/generate", budfs.GenerateDir(func(fsys budfs.FS, dir *budfs.Dir) error {
+// 		dir.GenerateFile("svelte/main.go", budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
+// 			file.Data = []byte(dedent.Dedent(`
+// 				package main
+
+// 				func main() {
+
+// 					println("hello world!")
+// 				}
+// 			`))
+// 			return nil
+// 		}))
+// 		return nil
+// 	}))
+// 	code, err := fs.ReadFile(bfs, "bud/internal/generator/svelte/view/index.svelte.js")
+// 	is.NoErr(err)
+// 	fmt.Println(string(code))
+// }
