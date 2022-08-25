@@ -9,8 +9,8 @@ import (
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/virtual"
 	"github.com/livebud/bud/package/budfs/cachefs"
+	"github.com/livebud/bud/package/budfs/mergefs"
 	"github.com/livebud/bud/package/log/testlog"
-	"github.com/livebud/bud/package/merged"
 )
 
 func TestCache(t *testing.T) {
@@ -47,7 +47,7 @@ func TestReadDirFile(t *testing.T) {
 	c2 := cachefs.New(log)
 	acfs := c1.Wrap(afs)
 	bcfs := c2.Wrap(bfs)
-	merge := merged.Merge(acfs, bcfs)
+	merge := mergefs.Merge(acfs, bcfs)
 	file, err := merge.Open(".")
 	is.NoErr(err)
 	dir, ok := file.(fs.ReadDirFile)
@@ -84,12 +84,12 @@ func TestTransparent(t *testing.T) {
 	bfs := &fstest.MapFS{
 		"b.txt": &fstest.MapFile{Data: []byte("b")},
 	}
-	merge := merged.Merge(afs, bfs)
+	merge := mergefs.Merge(afs, bfs)
 	is.NoErr(fstest.TestFS(merge, "a.txt", "b.txt"))
 	c1 := cachefs.New(log)
 	c2 := cachefs.New(log)
 	acfs := c1.Wrap(afs)
 	bcfs := c2.Wrap(bfs)
-	cmerge := merged.Merge(acfs, bcfs)
+	cmerge := mergefs.Merge(acfs, bcfs)
 	is.NoErr(fstest.TestFS(cmerge, "a.txt", "b.txt"))
 }

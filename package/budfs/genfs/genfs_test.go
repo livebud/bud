@@ -16,7 +16,7 @@ import (
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/budfs/genfs"
-	"github.com/livebud/bud/package/merged"
+	"github.com/livebud/bud/package/budfs/mergefs"
 )
 
 type tailwind struct {
@@ -848,7 +848,7 @@ func TestDotReadDirFiles(t *testing.T) {
 		file.Data = []byte("module pkg")
 		return nil
 	})
-	fsys := merged.Merge(gen, mapfs)
+	fsys := mergefs.Merge(gen, mapfs)
 	des, err := fs.ReadDir(fsys, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 4)
@@ -864,7 +864,7 @@ func TestReadDirDuplicates(t *testing.T) {
 		file.Data = []byte("module app.cool")
 		return nil
 	})
-	fsys := merged.Merge(gen, mapfs)
+	fsys := mergefs.Merge(gen, mapfs)
 	des, err := fs.ReadDir(fsys, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
@@ -1052,4 +1052,46 @@ func TestReadDirNotExists(t *testing.T) {
 	des, err := fs.ReadDir(gen, "bud/controller")
 	is.NoErr(err)
 	is.Equal(len(des), 0)
+}
+
+func TestServeFileNative(t *testing.T) {
+	is := is.New(t)
+	gen := genfs.New()
+	gen.ServeFile("duo/view", func(file *genfs.File) error {
+		file.Data = []byte(file.Path() + `'s data`)
+		return nil
+	})
+	des, err := fs.ReadDir(gen, "duo/view")
+	is.True(errors.Is(err, fs.ErrInvalid))
+	is.Equal(len(des), 0)
+
+	// _index.svelte
+	file, err := gen.Open("duo/view/_index.svelte")
+	is.NoErr(err)
+	stat, err := file.Stat()
+	is.NoErr(err)
+	is.Equal(stat.Name(), "_index.svelte")
+	is.Equal(stat.Mode(), fs.FileMode(0))
+	is.Equal(stat.IsDir(), false)
+	is.True(stat.ModTime().IsZero())
+	is.Equal(stat.Size(), int64(29))
+	is.Equal(stat.Sys(), nil)
+	code, err := fs.ReadFile(gen, "duo/view/_index.svelte")
+	is.NoErr(err)
+	is.Equal(string(code), `duo/view/_index.svelte's data`)
+
+	// about/_about.svelte
+	file, err = gen.Open("duo/view/about/_about.svelte")
+	is.NoErr(err)
+	stat, err = file.Stat()
+	is.NoErr(err)
+	is.Equal(stat.Name(), "_about.svelte")
+	is.Equal(stat.Mode(), fs.FileMode(0))
+	is.Equal(stat.IsDir(), false)
+	is.True(stat.ModTime().IsZero())
+	is.Equal(stat.Size(), int64(35))
+	is.Equal(stat.Sys(), nil)
+	code, err = fs.ReadFile(gen, "duo/view/about/_about.svelte")
+	is.NoErr(err)
+	is.Equal(string(code), `duo/view/about/_about.svelte's data`)
 }

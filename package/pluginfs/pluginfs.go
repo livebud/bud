@@ -16,8 +16,8 @@ import (
 
 	"io/fs"
 
+	"github.com/livebud/bud/package/budfs/mergefs"
 	"github.com/livebud/bud/package/gomod"
-	"github.com/livebud/bud/package/merged"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -27,7 +27,7 @@ func Load(module *gomod.Module) (fs.FS, error) {
 	if err != nil {
 		return nil, err
 	}
-	merged := merged.Merge(append([]fs.FS{module}, plugins...)...)
+	merged := mergefs.Merge(append([]fs.FS{module}, plugins...)...)
 	return &FS{
 		merged: merged,
 	}, nil

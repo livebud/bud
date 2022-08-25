@@ -5,7 +5,6 @@ go 1.18
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/ajg/form v1.5.2-0.20200323032839-9aeb3cf462e1
-	github.com/armon/go-radix v1.0.0
 	github.com/bep/debounce v1.2.1
 	github.com/cespare/xxhash v1.1.0
 	github.com/evanw/esbuild v0.14.11
@@ -22,7 +21,6 @@ require (
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/timewasted/go-accept-headers v0.0.0-20130320203746-c78f304b1b09
 	github.com/xlab/treeprint v1.1.0
-	github.com/yalue/merged_fs v1.2.2
 	go.kuoruan.net/v8go-polyfills v0.5.1-0.20220727011656-c74c5b408ebd
 	golang.org/x/mod v0.5.1
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c

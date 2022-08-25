@@ -20,7 +20,7 @@ import (
 func New(fsys vfs.ReadWritable, log log.Interface) *FileSystem {
 	gen := genfs.New()
 	cache := cachefs.New(log)
-	merged := mergefs.New(gen, fsys)
+	merged := mergefs.Merge(gen, fsys)
 	syncfs := cache.Wrap(merged)
 	server := http.FileServer(http.FS(merged))
 	return &FileSystem{

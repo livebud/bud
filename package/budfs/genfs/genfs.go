@@ -60,6 +60,10 @@ func (d *dir) DirGenerator(path string, generator DirGenerator) {
 	d.GenerateDir(path, generator.GenerateDir)
 }
 
+func (d *dir) FileServer(path string, generator FileGenerator) {
+	d.ServeFile(path, generator.GenerateFile)
+}
+
 func (d *dir) Mount(path string, fsys fs.FS) {
 	d.node.InsertDir(path, Generate(func(target string) (fs.File, error) {
 		return fsys.Open(target)
@@ -76,17 +80,23 @@ func (d *dir) GenerateDir(path string, fn func(dir *Dir) error) {
 	dirg.node = d.node.InsertDir(path, dirg)
 }
 
+func (d *dir) ServeFile(path string, fn func(file *File) error) {
+	servef := &fileServer{nil, fn}
+	servef.node = d.node.InsertDir(path, servef)
+}
+
 type File struct {
-	node *treefs.Node
+	path string
+	mode fs.FileMode
 	Data []byte
 }
 
 func (f *File) Path() string {
-	return f.node.Path()
+	return f.path
 }
 
 func (f *File) Mode() fs.FileMode {
-	return f.node.Mode()
+	return f.mode
 }
 
 func (d *dir) open(target string) (fs.File, error) {
@@ -110,7 +120,10 @@ type fileGenerator struct {
 }
 
 func (g *fileGenerator) Generate(target string) (fs.File, error) {
-	file := &File{node: g.node}
+	file := &File{
+		path: g.node.Path(),
+		mode: g.node.Mode(),
+	}
 	if err := g.generate(file); err != nil {
 		return nil, formatError(err, "error generating %q", file.Path())
 	}
@@ -201,4 +214,31 @@ func (e *EmbedFile) GenerateFile(file *File) error {
 
 func formatError(err error, format string, args ...interface{}) error {
 	return fmt.Errorf("genfs: %s. %w", fmt.Sprintf(format, args...), err)
+}
+
+type fileServer struct {
+	node     *treefs.Node
+	generate func(file *File) error
+}
+
+func (g *fileServer) Generate(target string) (fs.File, error) {
+	if target == "." {
+		return nil, &fs.PathError{
+			Op:   "open",
+			Path: g.node.Path(),
+			Err:  fs.ErrInvalid,
+		}
+	}
+	file := &File{
+		path: path.Join(g.node.Path(), target),
+		mode: fs.FileMode(0),
+	}
+	if err := g.generate(file); err != nil {
+		return nil, formatError(err, "error serving file %q", file.Path())
+	}
+	return &virtual.File{
+		Path: file.Path(),
+		Mode: file.Mode(),
+		Data: file.Data,
+	}, nil
 }

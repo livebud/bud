@@ -14,6 +14,7 @@ import (
 )
 
 func TestGenerators(t *testing.T) {
+	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
@@ -119,6 +120,7 @@ func TestGenerators(t *testing.T) {
 }
 
 func TestMissingGenerator(t *testing.T) {
+	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
@@ -134,6 +136,7 @@ func TestMissingGenerator(t *testing.T) {
 }
 
 func TestMissingGenerateDirMethod(t *testing.T) {
+	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
@@ -151,6 +154,7 @@ func TestMissingGenerateDirMethod(t *testing.T) {
 }
 
 func TestSyntaxError(t *testing.T) {
+	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()

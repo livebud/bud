@@ -3,7 +3,7 @@ package overlay
 import (
 	"context"
 
-	"github.com/livebud/bud/package/conjure"
+	"github.com/livebud/bud/package/budfs/genfs"
 )
 
 type FileGenerator interface {
@@ -12,7 +12,7 @@ type FileGenerator interface {
 
 // TODO: don't wrap, just extend
 type File struct {
-	*conjure.File
+	*genfs.File
 }
 
 // Link a path
