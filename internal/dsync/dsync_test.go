@@ -76,7 +76,7 @@ func TestDirSync(t *testing.T) {
 	}
 
 	// sync
-	err := dsync.Dir(sourceFS, "duo", targetFS, "duo")
+	err := dsync.To(sourceFS, targetFS, "duo")
 	is.NoErr(err)
 	is.Equal(len(targetFS), 5)
 
@@ -151,7 +151,7 @@ func TestNoDuo(t *testing.T) {
 	targetFS := vfs.Memory{}
 
 	// sync
-	err := dsync.Dir(sourceFS, "duo", targetFS, "duo")
+	err := dsync.To(sourceFS, targetFS, "duo")
 	is.NoErr(err)
 	is.Equal(len(targetFS), 2)
 

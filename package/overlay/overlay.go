@@ -136,7 +136,7 @@ func (f *FileSystem) FileServer(path string, server FileServer) {
 func (f *FileSystem) Sync(dir string) error {
 	// Clear the filesystem cache before syncing again
 	f.clear()
-	return dsync.Dir(f.fsys, dir, f.module.DirFS(dir), ".")
+	return dsync.To(f.fsys, f.module.DirFS("."), dir)
 }
 
 // Mount a filesystem to a dir
