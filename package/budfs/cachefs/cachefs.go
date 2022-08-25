@@ -75,10 +75,10 @@ func (f *cachedFS) open(name string) (fs.File, error) {
 
 func (f *cachedFS) Open(name string) (fs.File, error) {
 	if f.cache.Has(name) {
-		f.log.Debug("fscache: cache hit", "file", name)
+		f.log.Debug("cachefs: cache hit", "file", name)
 		return f.open(name)
 	}
-	f.log.Debug("fscache: cache miss", "file", name)
+	f.log.Debug("cachefs: cache miss", "file", name)
 	file, err := f.fsys.Open(name)
 	if err != nil {
 		return nil, err

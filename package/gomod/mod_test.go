@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/livebud/bud/internal/fscache"
 	"github.com/livebud/bud/internal/testdir"
+	"github.com/livebud/bud/package/budfs/cachefs"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/modcache"
@@ -220,11 +220,12 @@ func TestFileCacheDir(t *testing.T) {
 		"main.go": []byte(`package main`),
 	})
 	is.NoErr(err)
-	fmap := fscache.New(log)
-	module, err := gomod.Find(appDir, gomod.WithFSCache(fmap))
+	filecache := cachefs.New(log)
+	module, err := gomod.Find(appDir)
 	is.NoErr(err)
+	fsys := filecache.Wrap(module)
 	// Check initial
-	des, err := fs.ReadDir(module, ".")
+	des, err := fs.ReadDir(fsys, ".")
 	is.NoErr(err)
 	is.Equal(2, len(des))
 	is.Equal("go.mod", des[0].Name())
@@ -232,31 +233,24 @@ func TestFileCacheDir(t *testing.T) {
 	// Delete a file and check again to ensure it's cached
 	err = os.RemoveAll(filepath.Join(appDir, "main.go"))
 	is.NoErr(err)
-	des, err = fs.ReadDir(module, ".")
+	des, err = fs.ReadDir(fsys, ".")
 	is.NoErr(err)
 	is.Equal(2, len(des))
 	is.Equal("go.mod", des[0].Name())
 	is.Equal("main.go", des[1].Name())
 	// Delete from the cache to see that it's been updated
-	fmap.Delete("main.go")
-	des, err = fs.ReadDir(module, ".")
+	filecache.Delete("main.go")
+	des, err = fs.ReadDir(fsys, ".")
 	is.NoErr(err)
 	is.Equal(1, len(des))
 	is.Equal("go.mod", des[0].Name())
 	// Create a file and see stale dir
 	err = os.WriteFile(filepath.Join(appDir, "main.go"), []byte(`package main`), 0644)
 	is.NoErr(err)
-	des, err = fs.ReadDir(module, ".")
+	des, err = fs.ReadDir(fsys, ".")
 	is.NoErr(err)
 	is.Equal(1, len(des))
 	is.Equal("go.mod", des[0].Name())
-	// Mark the cache as creating main.go and see that it's been updated
-	fmap.Create("main.go")
-	des, err = fs.ReadDir(module, ".")
-	is.NoErr(err)
-	is.Equal(2, len(des))
-	is.Equal("go.mod", des[0].Name())
-	is.Equal("main.go", des[1].Name())
 }
 
 func TestModuleFindLocal(t *testing.T) {

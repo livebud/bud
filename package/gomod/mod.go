@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/livebud/bud/internal/fscache"
 	"github.com/livebud/bud/package/modcache"
 	"golang.org/x/mod/modfile"
 )
@@ -24,7 +23,6 @@ type Option = func(o *option)
 
 type option struct {
 	modCache *modcache.Cache
-	fsCache  *fscache.Cache // can be nil
 }
 
 // WithModCache uses a custom mod cache instead of the default
@@ -34,17 +32,9 @@ func WithModCache(cache *modcache.Cache) func(o *option) {
 	}
 }
 
-// WithFileCache uses a file cache
-func WithFSCache(cache *fscache.Cache) func(o *option) {
-	return func(opt *option) {
-		opt.fsCache = cache
-	}
-}
-
 func Find(dir string, options ...Option) (*Module, error) {
 	opt := &option{
 		modCache: modcache.Default(),
-		fsCache:  nil,
 	}
 	for _, option := range options {
 		option(opt)

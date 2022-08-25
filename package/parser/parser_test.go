@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/livebud/bud/package/conjure"
-	"github.com/livebud/bud/package/merged"
+	"github.com/livebud/bud/package/budfs/genfs"
+	"github.com/livebud/bud/package/budfs/mergefs"
 
 	"github.com/livebud/bud/package/modcache"
 	"github.com/livebud/bud/package/parser"
@@ -194,9 +194,9 @@ func TestGenerate(t *testing.T) {
 	td := testdir.New(dir)
 	td.Modules["github.com/livebud/bud-test-plugin"] = `v0.0.8`
 	is.NoErr(td.Write(ctx))
-	cfs := conjure.New()
-	merged := merged.Merge(os.DirFS(dir), cfs)
-	cfs.GenerateFile("hello/hello.go", func(file *conjure.File) error {
+	cfs := genfs.New()
+	merged := mergefs.Merge(os.DirFS(dir), cfs)
+	cfs.GenerateFile("hello/hello.go", func(file *genfs.File) error {
 		file.Data = []byte(`
 			package hello
 			import plugin "github.com/livebud/bud-test-plugin"

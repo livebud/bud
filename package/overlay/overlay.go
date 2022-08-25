@@ -3,16 +3,18 @@ package overlay
 import (
 	"context"
 
+	"github.com/livebud/bud/package/budfs/genfs"
+
+	"github.com/livebud/bud/package/budfs/mergefs"
+
 	"github.com/livebud/bud/internal/dsync"
-	"github.com/livebud/bud/internal/fscache"
 
 	"io/fs"
 
 	"github.com/livebud/bud/internal/dag"
+	"github.com/livebud/bud/package/budfs/cachefs"
 	"github.com/livebud/bud/package/log"
-	"github.com/livebud/bud/package/merged"
 
-	"github.com/livebud/bud/package/conjure"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/pluginfs"
 )
@@ -23,17 +25,14 @@ func Load(log log.Interface, module *gomod.Module) (*FileSystem, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfs := conjure.New()
-	cfsCache := fscache.Wrap(cfs, log, "cfs")
-	pluginCache := fscache.Wrap(pluginFS, log, "pluginfs")
-	merged := merged.Merge(cfsCache, pluginCache)
+	gfs := genfs.New()
+	cacheFS := cachefs.New(log)
+	merged := mergefs.Merge(cacheFS.Wrap(gfs), pluginFS)
 	dag := dag.New()
-	// ps := pubsub.New()
 	clear := func() {
-		cfsCache.Clear()
-		pluginCache.Clear()
+		cacheFS.Clear()
 	}
-	return &FileSystem{cfs, dag, merged, module, clear}, nil
+	return &FileSystem{gfs, dag, merged, module, clear}, nil
 }
 
 // Serve is just load without the cache
@@ -43,12 +42,11 @@ func Serve(log log.Interface, module *gomod.Module) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfs := conjure.New()
-	merged := merged.Merge(cfs, pluginFS)
+	gfs := genfs.New()
+	merged := mergefs.Merge(gfs, pluginFS)
 	dag := dag.New()
-	// ps := pubsub.New()
 	clear := func() {}
-	return &FileSystem{cfs, dag, merged, module, clear}, nil
+	return &FileSystem{gfs, dag, merged, module, clear}, nil
 }
 
 type Server = FileSystem
@@ -59,13 +57,11 @@ type F interface {
 }
 
 type FileSystem struct {
-	cfs    *conjure.FileSystem
+	gfs    *genfs.FileSystem
 	dag    *dag.Graph
 	fsys   fs.FS
 	module *gomod.Module
-	// ps     pubsub.Client
-	clear func() // Clear the cache
-	// closers []func() error
+	clear  func() // Clear the cache
 }
 
 func (f *FileSystem) Link(from, to string) {
@@ -91,7 +87,7 @@ func (fn GenerateFile) GenerateFile(ctx context.Context, fsys F, file *File) err
 }
 
 func (f *FileSystem) GenerateFile(path string, fn func(ctx context.Context, fsys F, file *File) error) {
-	f.cfs.GenerateFile(path, func(file *conjure.File) error {
+	f.gfs.GenerateFile(path, func(file *genfs.File) error {
 		if err := fn(context.TODO(), f, &File{File: file}); err != nil {
 			return err
 		}
@@ -114,7 +110,7 @@ func (fn GenerateDir) GenerateDir(ctx context.Context, fsys F, dir *Dir) error {
 }
 
 func (f *FileSystem) GenerateDir(path string, fn func(ctx context.Context, fsys F, dir *Dir) error) {
-	f.cfs.GenerateDir(path, func(dir *conjure.Dir) error {
+	f.gfs.GenerateDir(path, func(dir *genfs.Dir) error {
 		if err := fn(context.TODO(), f, &Dir{f, dir}); err != nil {
 			return err
 		}
@@ -127,7 +123,7 @@ func (f *FileSystem) DirGenerator(path string, generator DirGenerator) {
 }
 
 func (f *FileSystem) ServeFile(path string, fn func(ctx context.Context, fsys F, file *File) error) {
-	f.cfs.ServeFile(path, func(file *conjure.File) error {
+	f.gfs.ServeFile(path, func(file *genfs.File) error {
 		return fn(context.TODO(), f, &File{file})
 	})
 }
@@ -140,10 +136,10 @@ func (f *FileSystem) FileServer(path string, server FileServer) {
 func (f *FileSystem) Sync(dir string) error {
 	// Clear the filesystem cache before syncing again
 	f.clear()
-	return dsync.Dir(f.fsys, dir, f.module.DirFS(dir), ".")
+	return dsync.To(f.fsys, f.module.DirFS("."), dir)
 }
 
 // Mount a filesystem to a dir
 func (f *FileSystem) Mount(dir string, fsys fs.FS) {
-	f.cfs.Mount(dir, fsys)
+	f.gfs.Mount(dir, fsys)
 }
