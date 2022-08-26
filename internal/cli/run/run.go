@@ -84,13 +84,18 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		
 		listenAddress := c.Listen
 		webln, err = socket.Listen(listenAddress)
-		for err != nil {
+		for err != nil && listenPort < 65536 {
 			// increment port
 			listenPort = listenPort + 1
 			// reset listen address
 			listenAddress = fmt.Sprintf("%s:%d", parsedUrl.Hostname(), listenPort)
 			webln, err = socket.Listen(listenAddress)
 		}
+
+		if err != nil {
+			return err
+		}
+		
 		defer webln.Close()
 		log.Info("Listening on http://" + webln.Addr().String())
 	}
