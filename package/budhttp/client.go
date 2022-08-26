@@ -1,25 +1,28 @@
-package budclient
+package budhttp
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"strings"
 
 	"github.com/livebud/bud/framework/view/ssr"
 	"github.com/livebud/bud/internal/urlx"
+	"github.com/livebud/bud/internal/virtual"
 	"github.com/livebud/bud/package/socket"
 )
 
 type Client interface {
 	Render(route string, props interface{}) (*ssr.Response, error)
-	Proxy(w http.ResponseWriter, r *http.Request)
 	Publish(topic string, data []byte) error
+	Open(name string) (fs.File, error)
 }
 
-// LoadFromEnv tries loading a dev client from an environment variable
+// Try tries loading a dev client from an environment variable or returns an
+// empty client if no environment variable is set
 func Try(addr string) (Client, error) {
 	if addr == "" {
 		return discard{}, nil
@@ -35,7 +38,7 @@ func Load(addr string) (Client, error) {
 	}
 	transport, err := socket.Transport(addr)
 	if err != nil {
-		return nil, fmt.Errorf("budclient: unable to create transport from listener. %w", err)
+		return nil, fmt.Errorf("budhttp: unable to create transport from listener. %w", err)
 	}
 	httpClient := &http.Client{
 		Transport: transport,
@@ -73,7 +76,7 @@ func (c *client) Render(route string, props interface{}) (*ssr.Response, error) 
 		return nil, err
 	}
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("budclient: render returned unexpected %d. %s", res.StatusCode, resBody)
+		return nil, fmt.Errorf("budhttp: render returned unexpected %d. %s", res.StatusCode, resBody)
 	}
 	out := new(ssr.Response)
 	if err := json.Unmarshal(resBody, out); err != nil {
@@ -82,23 +85,20 @@ func (c *client) Render(route string, props interface{}) (*ssr.Response, error) 
 	return out, nil
 }
 
-func (c *client) Proxy(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	res, err := c.httpClient.Get(c.baseURL + r.URL.Path)
+func (c *client) Open(name string) (fs.File, error) {
+	res, err := c.httpClient.Get(c.baseURL + "/" + name)
 	if err != nil {
-		http.Error(w, err.Error(), res.StatusCode)
-		return
+		return nil, err
 	}
 	defer res.Body.Close()
-	headers := w.Header()
-	for key := range res.Header {
-		headers.Set(key, res.Header.Get(key))
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
 	}
-	w.WriteHeader(res.StatusCode)
-	io.Copy(w, res.Body)
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("budhttp: open returned unexpected %d. %s", res.StatusCode, body)
+	}
+	return virtual.UnmarshalJSON(body)
 }
 
 type Event struct {
@@ -122,7 +122,7 @@ func (c *client) Publish(topic string, data []byte) error {
 		return err
 	}
 	if res.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("budclient: send returned unexpected %d. %s", res.StatusCode, resBody)
+		return fmt.Errorf("budhttp: send returned unexpected %d. %s", res.StatusCode, resBody)
 	}
 	return nil
 }

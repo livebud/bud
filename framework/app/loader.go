@@ -40,7 +40,7 @@ func (l *loader) Load() (state *State, err error) {
 	state = new(State)
 	l.imports.AddStd("os", "context", "errors")
 	l.imports.AddNamed("commander", "github.com/livebud/bud/package/commander")
-	l.imports.AddNamed("budclient", "github.com/livebud/bud/package/budclient")
+	l.imports.AddNamed("budhttp", "github.com/livebud/bud/package/budhttp")
 	l.imports.AddNamed("console", "github.com/livebud/bud/package/log/console")
 	l.imports.AddNamed("log", "github.com/livebud/bud/package/log")
 	l.imports.AddNamed("filter", "github.com/livebud/bud/package/log/filter")
@@ -60,7 +60,7 @@ func (l *loader) loadProvider() *di.Provider {
 		Params: []*di.Param{
 			{Import: "github.com/livebud/bud/package/log", Type: "Interface"},
 			{Import: "github.com/livebud/bud/package/gomod", Type: "*Module"},
-			{Import: "github.com/livebud/bud/package/budclient", Type: "Client"},
+			{Import: "github.com/livebud/bud/package/budhttp", Type: "Client"},
 			{Import: "context", Type: "Context"},
 		},
 		Results: []di.Dependency{

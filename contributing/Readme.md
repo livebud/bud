@@ -96,7 +96,7 @@ go run bud/internal/app/main.go
 You may encounter an error like this:
 
 ```sh
-budclient: discard client does not support render
+budhttp: discard client does not support render
 ```
 
 This occurs because apps built with `bud run` depends on a bud server to provide hot reloads and client-side file bundling. To start a bud server, run the following:

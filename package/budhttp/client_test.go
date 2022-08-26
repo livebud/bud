@@ -1,12 +1,14 @@
-package budrpc_test
+package budhttp_test
 
 import (
 	"context"
-	"encoding/json"
-	"io/fs"
-	"net"
-	"path/filepath"
+	"io"
+	"net/http/httptest"
+	"os"
 	"testing"
+	"time"
+
+	"github.com/livebud/bud/package/log/testlog"
 
 	"github.com/livebud/bud/framework/transform/transformrt"
 	"github.com/livebud/bud/framework/view/dom"
@@ -15,17 +17,15 @@ import (
 	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/internal/versions"
-	"github.com/livebud/bud/package/budrpc"
-	"github.com/livebud/bud/package/budrpc/budsvr"
+	"github.com/livebud/bud/package/budhttp"
+	"github.com/livebud/bud/package/budhttp/budsvr"
 	"github.com/livebud/bud/package/gomod"
 	v8 "github.com/livebud/bud/package/js/v8"
-	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/svelte"
-	"golang.org/x/sync/errgroup"
 )
 
-func loadServer(bus pubsub.Client, dir string) (*testServer, error) {
+func loadServer(bus pubsub.Client, dir string) (*httptest.Server, error) {
 	log := testlog.New()
 	vm, err := v8.Load()
 	if err != nil {
@@ -43,10 +43,6 @@ func loadServer(bus pubsub.Client, dir string) (*testServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	ln, err := net.Listen("unix", filepath.Join(dir, "unix.socket"))
-	if err != nil {
-		return nil, err
-	}
 	genfs, err := overlay.Load(log, module)
 	if err != nil {
 		return nil, err
@@ -54,26 +50,8 @@ func loadServer(bus pubsub.Client, dir string) (*testServer, error) {
 	genfs.FileServer("bud/view", dom.New(module, transforms.DOM))
 	genfs.FileServer("bud/node_modules", dom.NodeModules(module))
 	genfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
-	server := budsvr.New(bus, genfs, log, vm)
-	eg := new(errgroup.Group)
-	eg.Go(func() error { return server.Serve(ln) })
-	return &testServer{eg, ln}, nil
-}
-
-type testServer struct {
-	eg *errgroup.Group
-	ln net.Listener
-}
-
-func (t *testServer) URL() string {
-	return t.ln.Addr().String()
-}
-
-func (t *testServer) Close() error {
-	if err := t.ln.Close(); err != nil {
-		return err
-	}
-	return t.eg.Wait()
+	handler := budsvr.New(genfs, bus, log, vm)
+	return httptest.NewServer(handler), nil
 }
 
 func TestRender(t *testing.T) {
@@ -93,15 +71,16 @@ func TestRender(t *testing.T) {
 	server, err := loadServer(ps, dir)
 	is.NoErr(err)
 	defer server.Close()
-	client, err := budrpc.Dial(ctx, server.URL())
+	client, err := budhttp.Load(server.URL)
 	is.NoErr(err)
-	res, err := client.Render("/", json.RawMessage(`{"_string": "marshmallow"}`))
+	res, err := client.Render("/", map[string]interface{}{
+		"_string": "marshmallow",
+	})
 	is.NoErr(err)
 	is.Equal(res.Status, 200)
 	is.Equal(len(res.Headers), 1)
 	is.Equal(res.Headers["Content-Type"], "text/html")
 	is.In(res.Body, `<h1>Hello, marshmallow!</h1>`)
-	is.NoErr(server.Close())
 }
 
 func TestRenderNested(t *testing.T) {
@@ -121,7 +100,7 @@ func TestRenderNested(t *testing.T) {
 	server, err := loadServer(ps, dir)
 	is.NoErr(err)
 	defer server.Close()
-	client, err := budrpc.Dial(ctx, server.URL())
+	client, err := budhttp.Load(server.URL)
 	is.NoErr(err)
 	res, err := client.Render("/posts/:post_id/comments/:id/edit", map[string]interface{}{
 		"_string": "marshmallow",
@@ -133,7 +112,7 @@ func TestRenderNested(t *testing.T) {
 	is.In(res.Body, `<h1>Hello, marshmallow!</h1>`)
 }
 
-func TestOpenFile(t *testing.T) {
+func TestOpen(t *testing.T) {
 	ctx := context.Background()
 	is := is.New(t)
 	dir := t.TempDir()
@@ -150,23 +129,51 @@ func TestOpenFile(t *testing.T) {
 	server, err := loadServer(bus, dir)
 	is.NoErr(err)
 	defer server.Close()
-	client, err := budrpc.Dial(ctx, server.URL())
+	client, err := budhttp.Load(server.URL)
 	is.NoErr(err)
-	// Check the entry
-	code, err := fs.ReadFile(client, "bud/view/_index.svelte.js")
+
+	// Check the entrypoint
+	file, err := client.Open("bud/view/_index.svelte.js")
 	is.NoErr(err)
-	is.In(string(code), `Hello, `)
-	is.In(string(code), `cupcake`)
+	defer file.Close()
+	code, err := io.ReadAll(file)
+	is.NoErr(err)
+	is.In(string(code), `"view/index.svelte"`)
+	is.In(string(code), `"/bud/view/index.svelte"`)
+	stat, err := file.Stat()
+	is.NoErr(err)
+	is.Equal(stat.Name(), "_index.svelte.js")
+	is.Equal(stat.Size(), int64(3690))
+	is.Equal(stat.Mode(), os.FileMode(0))
+	is.Equal(stat.ModTime(), time.Time{})
+	is.Equal(stat.IsDir(), false)
+	is.Equal(stat.Sys(), nil)
+
 	// Check the component
-	code, err = fs.ReadFile(client, "bud/view/index.svelte")
+	file, err = client.Open("bud/view/index.svelte")
 	is.NoErr(err)
-	is.In(string(code), `Hello, `)
-	is.In(string(code), `cupcake`)
-	// Check the node_module
-	code, err = fs.ReadFile(client, "bud/node_modules/svelte/internal")
+	defer file.Close()
+	stat, err = file.Stat()
 	is.NoErr(err)
-	is.In(string(code), `function element(`)
-	is.In(string(code), `function text(`)
+	is.Equal(stat.Name(), "index.svelte")
+	is.Equal(stat.Size(), int64(3124))
+	is.Equal(stat.Mode(), os.FileMode(0))
+	is.Equal(stat.ModTime(), time.Time{})
+	is.Equal(stat.IsDir(), false)
+	is.Equal(stat.Sys(), nil)
+
+	// Check the node_modules
+	file, err = client.Open("bud/node_modules/svelte/internal")
+	is.NoErr(err)
+	defer file.Close()
+	stat, err = file.Stat()
+	is.NoErr(err)
+	is.Equal(stat.Name(), "internal")
+	is.Equal(stat.Size(), int64(56452))
+	is.Equal(stat.Mode(), os.FileMode(0))
+	is.Equal(stat.ModTime(), time.Time{})
+	is.Equal(stat.IsDir(), false)
+	is.Equal(stat.Sys(), nil)
 }
 
 func TestEvents(t *testing.T) {
@@ -179,7 +186,7 @@ func TestEvents(t *testing.T) {
 	server, err := loadServer(ps, dir)
 	is.NoErr(err)
 	defer server.Close()
-	client, err := budrpc.Dial(ctx, server.URL())
+	client, err := budhttp.Load(server.URL)
 	is.NoErr(err)
 	sub := ps.Subscribe("ready")
 	defer sub.Close()

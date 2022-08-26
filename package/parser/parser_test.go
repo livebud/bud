@@ -206,7 +206,6 @@ func TestGenerate(t *testing.T) {
 	})
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	is.Equal(module.Directory(), dir)
 	p := parser.New(merged, module)
 	// Parse a virtual package
 	pkg, err := p.Parse("hello")

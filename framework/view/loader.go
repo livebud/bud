@@ -84,8 +84,9 @@ func (l *loader) Load(ctx context.Context) (state *State, err error) {
 		l.imports.AddNamed("mod", "github.com/livebud/bud/package/gomod")
 		l.imports.AddNamed("js", "github.com/livebud/bud/package/js")
 	} else {
-		l.imports.AddNamed("budclient", "github.com/livebud/bud/package/budclient")
+		l.imports.AddNamed("budhttp", "github.com/livebud/bud/package/budhttp")
 	}
+	l.imports.AddNamed("log", "github.com/livebud/bud/package/log")
 	l.imports.AddNamed("viewrt", "github.com/livebud/bud/framework/view/viewrt")
 	state.Imports = l.imports.List()
 	return state, nil
