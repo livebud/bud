@@ -2792,3 +2792,38 @@ func TestIndexControllerWithRootIndexAction(t *testing.T) {
 	`))
 	is.NoErr(app.Close())
 }
+
+// Asserts that a root index action is compatible with an index
+// controller. Also asserts that a posts index action is compatible
+// with a posts/index controller.
+func TestInputValidateMethod(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	// root controller with input struct to validate
+	td.Files["controller/controller.go"] = `
+		package controller
+		import "errors"
+		type Controller struct{}
+		type Input struct{}
+		func (in *Input) Validate() error {
+			return errors.New("")
+		}
+		func (c *Controller) Index(in *Input) []string {
+			return []string{}
+		}
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	res, err := app.GetJSON("/")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 404 Not Found
+		Content-Type: text/plain; charset=utf-8
+		X-Content-Type-Options: nosniff
+	`))
+}
