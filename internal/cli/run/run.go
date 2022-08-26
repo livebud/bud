@@ -81,7 +81,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		if err != nil {
 			return err
 		}
-		
+
 		listenAddress := c.Listen
 		webln, err = socket.Listen(listenAddress)
 		for err != nil && listenPort < 65536 {
@@ -95,7 +95,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		if err != nil {
 			return err
 		}
-		
+
 		defer webln.Close()
 		log.Info("Listening on http://" + webln.Addr().String())
 	}
