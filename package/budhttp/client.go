@@ -1,4 +1,4 @@
-package budclient
+package budhttp
 
 import (
 	"bytes"
@@ -38,7 +38,7 @@ func Load(addr string) (Client, error) {
 	}
 	transport, err := socket.Transport(addr)
 	if err != nil {
-		return nil, fmt.Errorf("budclient: unable to create transport from listener. %w", err)
+		return nil, fmt.Errorf("budhttp: unable to create transport from listener. %w", err)
 	}
 	httpClient := &http.Client{
 		Transport: transport,
@@ -76,7 +76,7 @@ func (c *client) Render(route string, props interface{}) (*ssr.Response, error) 
 		return nil, err
 	}
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("budclient: render returned unexpected %d. %s", res.StatusCode, resBody)
+		return nil, fmt.Errorf("budhttp: render returned unexpected %d. %s", res.StatusCode, resBody)
 	}
 	out := new(ssr.Response)
 	if err := json.Unmarshal(resBody, out); err != nil {
@@ -96,7 +96,7 @@ func (c *client) Open(name string) (fs.File, error) {
 		return nil, err
 	}
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("budclient: open returned unexpected %d. %s", res.StatusCode, body)
+		return nil, fmt.Errorf("budhttp: open returned unexpected %d. %s", res.StatusCode, body)
 	}
 	return virtual.UnmarshalJSON(body)
 }
@@ -122,7 +122,7 @@ func (c *client) Publish(topic string, data []byte) error {
 		return err
 	}
 	if res.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("budclient: send returned unexpected %d. %s", res.StatusCode, resBody)
+		return fmt.Errorf("budhttp: send returned unexpected %d. %s", res.StatusCode, resBody)
 	}
 	return nil
 }

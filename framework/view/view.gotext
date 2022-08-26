@@ -14,7 +14,7 @@ import (
 
 {{- if not $.Flag.Embed }}
 // Load the view server. Files are linked rather than embedded.
-func Load(client budclient.Client, log log.Interface) Server {
+func Load(client budhttp.Client, log log.Interface) Server {
 	return viewrt.Proxy(client, log)
 }
 {{ else }}

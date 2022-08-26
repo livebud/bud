@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/framework/view/ssr"
-	"github.com/livebud/bud/package/budclient"
+	"github.com/livebud/bud/package/budhttp"
 	"github.com/livebud/bud/package/js"
 	"github.com/livebud/bud/package/log"
 )
@@ -19,12 +19,12 @@ type Server interface {
 	Handler(route string, props interface{}) http.Handler
 }
 
-func Proxy(client budclient.Client, log log.Interface) *liveServer {
+func Proxy(client budhttp.Client, log log.Interface) *liveServer {
 	return &liveServer{client, http.FS(client), log}
 }
 
 type liveServer struct {
-	client budclient.Client
+	client budhttp.Client
 	hfs    http.FileSystem
 	log    log.Interface
 }

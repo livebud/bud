@@ -1,4 +1,4 @@
-package budserver
+package budsvr
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ import (
 
 	"github.com/livebud/bud/internal/virtual"
 
-	"github.com/livebud/bud/package/budclient"
+	"github.com/livebud/bud/package/budhttp"
 	"github.com/livebud/bud/package/hot"
 	"github.com/livebud/bud/package/log"
 
@@ -31,16 +31,9 @@ func New(fsys fs.FS, bus pubsub.Client, log log.Interface, vm js.VM) *Server {
 		bus:     bus,
 		vm:      vm,
 	}
-	// router.Post("bud.render", http.HandlerFunc(server.render))
-	// router.Get("bud.open", http.HandlerFunc(server.open))
-	// router.Post("bud.publish", http.HandlerFunc(server.publish))
-	// router.Get("bud.hot", hot.New(log, bus))
 	// Routes that are proxied to from the browser through the app to bud
 	router.Post("/bud/view/:route*", http.HandlerFunc(server.render))
 	router.Get("/bud/:path*", http.HandlerFunc(server.open))
-	// router.Get("/bud/view/:path*", http.HandlerFunc(server.serve))
-	// router.Get("/bud/node_modules/:path*", http.HandlerFunc(server.serve))
-	// router.Get("/bud/public/:path*", http.HandlerFunc(server.serve))
 	// Routes that are directly requested by the browser to
 	router.Get("/bud/hot/:page*", hot.New(log, bus))
 	// Private routes between the app and bud
@@ -117,7 +110,7 @@ func (s *Server) publish(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Unmarshal the request body into an event
-	var event budclient.Event
+	var event budhttp.Event
 	if err := json.Unmarshal(body, &event); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

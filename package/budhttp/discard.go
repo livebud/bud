@@ -1,4 +1,4 @@
-package budclient
+package budhttp
 
 import (
 	"fmt"
@@ -14,11 +14,11 @@ type discard struct {
 var _ Client = discard{}
 
 func (discard) Render(route string, props interface{}) (*ssr.Response, error) {
-	return nil, fmt.Errorf("budclient: discard client does not support render")
+	return nil, fmt.Errorf("budhttp: discard client does not support render")
 }
 
 func (discard) Open(name string) (fs.File, error) {
-	return nil, fmt.Errorf("budclient: discard client does not support open")
+	return nil, fmt.Errorf("budhttp: discard client does not support open")
 }
 
 // Publish nothing
