@@ -2793,9 +2793,8 @@ func TestIndexControllerWithRootIndexAction(t *testing.T) {
 	is.NoErr(app.Close())
 }
 
-// Asserts that a root index action is compatible with an index
-// controller. Also asserts that a posts index action is compatible
-// with a posts/index controller.
+// Asserts the Validate() method is called on single input
+// structs.
 func TestInputValidateMethod(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
@@ -2822,8 +2821,7 @@ func TestInputValidateMethod(t *testing.T) {
 	res, err := app.GetJSON("/")
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
-		HTTP/1.1 404 Not Found
-		Content-Type: text/plain; charset=utf-8
-		X-Content-Type-Options: nosniff
+		HTTP/1.1 400 Bad Request
+		Content-Type: application/json
 	`))
 }

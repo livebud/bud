@@ -303,7 +303,7 @@ func (l *loader) loadActionParam(param *parser.Param, nth, numParams int) *Actio
 		// this should always work because kind is KindStruct
 		stct := dec.Package().Struct(dec.Name())
 		validateMethod := stct.Method("Validate")
-		if len(validateMethod.Results()) == 1 && validateMethod.Results()[0].IsError() {
+		if validateMethod != nil && len(validateMethod.Results()) == 1 && validateMethod.Results()[0].IsError() {
 			// mark that the action param has Validate() error
 			ap.HasValidate = true
 		}
