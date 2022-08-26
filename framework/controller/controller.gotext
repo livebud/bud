@@ -70,7 +70,7 @@ func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpRes
 		}
 	}
 	// validate input
-	{{- if (index $action.Params 0).HasValidate }}
+	{{- if $action.HasCustomValidation }}
 	// single input struct has validate method
 	if err := in.Validate(); err != nil {
 		return &response.Format{

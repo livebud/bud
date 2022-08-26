@@ -60,6 +60,18 @@ type Action struct {
 	PropsKey    string
 }
 
+func (a *Action) HasSingleInput() bool {
+	return len(a.Params) == 1
+}
+
+func (a *Action) HasCustomValidation() bool {
+	if a.HasSingleInput() && a.Params[0].HasValidate {
+		return true
+	} else {
+		return false
+	}
+}
+
 // View struct
 type View struct {
 	Route string
