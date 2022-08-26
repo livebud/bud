@@ -153,10 +153,11 @@ func TestModuleFindStdlib(t *testing.T) {
 func TestFindNested(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	is.NoErr(err)
 	td := testdir.New(dir)
 	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.8"
-	err := td.Write(ctx)
+	err = td.Write(ctx)
 	is.NoErr(err)
 	modCache := modcache.Default()
 	module1, err := gomod.Find(dir)

@@ -87,31 +87,6 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(result))
 }
 
-func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
-	s.log.Debug("devserver: serving", "file", r.URL.Path)
-	file, err := s.hfs.Open(r.URL.Path)
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			http.Error(w, err.Error(), 404)
-			return
-		}
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	stat, err := file.Stat()
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	// Maintain support to resolve and run "/bud/node_modules/livebud/runtime".
-	if strings.HasPrefix(r.URL.Path, "/bud/node_modules/") ||
-		strings.HasSuffix(r.URL.Path, ".svelte") {
-		w.Header().Set("Content-Type", "application/javascript")
-	}
-	http.ServeContent(w, r, r.URL.Path, stat.ModTime(), file)
-	s.log.Debug("devserver: served", "file", r.URL.Path)
-}
-
 func (s *Server) open(w http.ResponseWriter, r *http.Request) {
 	s.log.Debug("devserver: opening", "file", r.URL.Path)
 	path := strings.TrimPrefix(r.URL.Path, "/")

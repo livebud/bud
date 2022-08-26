@@ -2,6 +2,7 @@ package budclient_test
 
 import (
 	"context"
+	"io"
 	"net/http/httptest"
 	"os"
 	"testing"
@@ -135,10 +136,14 @@ func TestOpen(t *testing.T) {
 	file, err := client.Open("bud/view/_index.svelte.js")
 	is.NoErr(err)
 	defer file.Close()
+	code, err := io.ReadAll(file)
+	is.NoErr(err)
+	is.In(string(code), `"view/index.svelte"`)
+	is.In(string(code), `"/bud/view/index.svelte"`)
 	stat, err := file.Stat()
 	is.NoErr(err)
 	is.Equal(stat.Name(), "_index.svelte.js")
-	is.Equal(stat.Size(), int64(3770))
+	is.Equal(stat.Size(), int64(3690))
 	is.Equal(stat.Mode(), os.FileMode(0))
 	is.Equal(stat.ModTime(), time.Time{})
 	is.Equal(stat.IsDir(), false)
@@ -151,7 +156,7 @@ func TestOpen(t *testing.T) {
 	stat, err = file.Stat()
 	is.NoErr(err)
 	is.Equal(stat.Name(), "index.svelte")
-	is.Equal(stat.Size(), int64(3204))
+	is.Equal(stat.Size(), int64(3124))
 	is.Equal(stat.Mode(), os.FileMode(0))
 	is.Equal(stat.ModTime(), time.Time{})
 	is.Equal(stat.IsDir(), false)

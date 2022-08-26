@@ -183,6 +183,7 @@ func (t *transformer) Plugins() (plugins []esbuild.Plugin) {
 		plugins = append(plugins, esbuild.Plugin{
 			Name: "transform_" + strings.TrimPrefix(from, ".") + "_to_" + strings.TrimPrefix(to, "."),
 			Setup: func(epb esbuild.PluginBuild) {
+				dir := epb.InitialOptions.AbsWorkingDir
 				// Load svelte files. Add import if not present
 				epb.OnLoad(esbuild.OnLoadOptions{Filter: `\` + from + `$`}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
 					// Read the code in
@@ -190,7 +191,11 @@ func (t *transformer) Plugins() (plugins []esbuild.Plugin) {
 					if err != nil {
 						return result, err
 					}
-					fromPath := args.Path
+					relPath, err := filepath.Rel(dir, args.Path)
+					if err != nil {
+						return result, err
+					}
+					fromPath := relPath
 					toPath := strings.TrimSuffix(args.Path, from) + "." + to
 					// Transform the code
 					// TODO: We wouldn't need to get the shortest path in Transform
