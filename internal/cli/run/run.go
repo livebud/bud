@@ -2,10 +2,12 @@ package run
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"io/fs"
 	"net"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -18,6 +20,7 @@ import (
 	"github.com/livebud/bud/internal/gobuild"
 	"github.com/livebud/bud/internal/prompter"
 	"github.com/livebud/bud/internal/pubsub"
+	"github.com/livebud/bud/internal/urlx"
 	"github.com/livebud/bud/internal/versions"
 	"github.com/livebud/bud/package/budhttp/budsvr"
 	v8 "github.com/livebud/bud/package/js/v8"
@@ -70,9 +73,23 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	// Listening on the web listener as soon as possible
 	webln := c.in.WebLn
 	if webln == nil {
-		webln, err = socket.Listen(c.Listen)
+		parsedUrl, err := urlx.Parse(c.Listen)
 		if err != nil {
 			return err
+		}
+		listenPort, err := strconv.Atoi(parsedUrl.Port())
+		if err != nil {
+			return err
+		}
+		
+		listenAddress := c.Listen
+		webln, err = socket.Listen(listenAddress)
+		for err != nil {
+			// increment port
+			listenPort = listenPort + 1
+			// reset listen address
+			listenAddress = fmt.Sprintf("%s:%d", parsedUrl.Hostname(), listenPort)
+			webln, err = socket.Listen(listenAddress)
 		}
 		defer webln.Close()
 		log.Info("Listening on http://" + webln.Addr().String())
