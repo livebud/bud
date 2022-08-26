@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/livebud/bud/internal/virtual"
+
 	"github.com/livebud/bud/package/budclient"
 	"github.com/livebud/bud/package/hot"
 	"github.com/livebud/bud/package/log"
@@ -29,14 +31,20 @@ func New(fsys fs.FS, bus pubsub.Client, log log.Interface, vm js.VM) *Server {
 		bus:     bus,
 		vm:      vm,
 	}
+	// router.Post("bud.render", http.HandlerFunc(server.render))
+	// router.Get("bud.open", http.HandlerFunc(server.open))
+	// router.Post("bud.publish", http.HandlerFunc(server.publish))
+	// router.Get("bud.hot", hot.New(log, bus))
 	// Routes that are proxied to from the browser through the app to bud
 	router.Post("/bud/view/:route*", http.HandlerFunc(server.render))
-	router.Get("/bud/view/:path*", http.HandlerFunc(server.serve))
-	router.Get("/bud/node_modules/:path*", http.HandlerFunc(server.serve))
+	router.Get("/bud/:path*", http.HandlerFunc(server.open))
+	// router.Get("/bud/view/:path*", http.HandlerFunc(server.serve))
+	// router.Get("/bud/node_modules/:path*", http.HandlerFunc(server.serve))
+	// router.Get("/bud/public/:path*", http.HandlerFunc(server.serve))
 	// Routes that are directly requested by the browser to
 	router.Get("/bud/hot/:page*", hot.New(log, bus))
 	// Private routes between the app and bud
-	router.Post("/bud/events", http.HandlerFunc(server.createEvent))
+	router.Post("/bud/events", http.HandlerFunc(server.publish))
 	return server
 }
 
@@ -104,7 +112,29 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	s.log.Debug("devserver: served", "file", r.URL.Path)
 }
 
-func (s *Server) createEvent(w http.ResponseWriter, r *http.Request) {
+func (s *Server) open(w http.ResponseWriter, r *http.Request) {
+	s.log.Debug("devserver: opening", "file", r.URL.Path)
+	path := strings.TrimPrefix(r.URL.Path, "/")
+	file, err := s.fsys.Open(path)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			http.Error(w, err.Error(), 404)
+			return
+		}
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	body, err := virtual.MarshalJSON(file)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(body)
+	s.log.Debug("devserver: opened", "file", path)
+}
+
+func (s *Server) publish(w http.ResponseWriter, r *http.Request) {
 	// Read the body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {

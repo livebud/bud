@@ -2,9 +2,10 @@ package budclient_test
 
 import (
 	"context"
-	"io"
 	"net/http/httptest"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/livebud/bud/package/log/testlog"
 
@@ -110,7 +111,7 @@ func TestRenderNested(t *testing.T) {
 	is.In(res.Body, `<h1>Hello, marshmallow!</h1>`)
 }
 
-func TestProxyFile(t *testing.T) {
+func TestOpen(t *testing.T) {
 	ctx := context.Background()
 	is := is.New(t)
 	dir := t.TempDir()
@@ -131,55 +132,43 @@ func TestProxyFile(t *testing.T) {
 	is.NoErr(err)
 
 	// Check the entrypoint
-	req := httptest.NewRequest("GET", "/bud/view/_index.svelte.js", nil)
-	rec := httptest.NewRecorder()
-	client.Proxy(rec, req)
-	res := rec.Result()
-	defer res.Body.Close()
-	is.Equal(res.StatusCode, 200)
-	is.Equal(len(res.Header), 4)
-	is.In(res.Header.Get("Content-Type"), "/javascript")
-	is.Equal(res.Header.Get("Accept-Ranges"), "bytes")
-	is.True(res.Header["Content-Length"] != nil)
-	is.True(res.Header["Date"] != nil)
-	body, err := io.ReadAll(res.Body)
+	file, err := client.Open("bud/view/_index.svelte.js")
 	is.NoErr(err)
-	is.In(string(body), `Hello, `)
-	is.In(string(body), `cupcake`)
+	defer file.Close()
+	stat, err := file.Stat()
+	is.NoErr(err)
+	is.Equal(stat.Name(), "_index.svelte.js")
+	is.Equal(stat.Size(), int64(3770))
+	is.Equal(stat.Mode(), os.FileMode(0))
+	is.Equal(stat.ModTime(), time.Time{})
+	is.Equal(stat.IsDir(), false)
+	is.Equal(stat.Sys(), nil)
 
 	// Check the component
-	req = httptest.NewRequest("GET", "/bud/view/index.svelte", nil)
-	rec = httptest.NewRecorder()
-	client.Proxy(rec, req)
-	res = rec.Result()
-	defer res.Body.Close()
-	is.Equal(res.StatusCode, 200)
-	is.Equal(len(res.Header), 4)
-	is.Equal(res.Header.Get("Content-Type"), "application/javascript")
-	is.Equal(res.Header.Get("Accept-Ranges"), "bytes")
-	is.True(res.Header["Content-Length"] != nil)
-	is.True(res.Header["Date"] != nil)
-	body, err = io.ReadAll(res.Body)
+	file, err = client.Open("bud/view/index.svelte")
 	is.NoErr(err)
-	is.In(string(body), `Hello, `)
-	is.In(string(body), `cupcake`)
+	defer file.Close()
+	stat, err = file.Stat()
+	is.NoErr(err)
+	is.Equal(stat.Name(), "index.svelte")
+	is.Equal(stat.Size(), int64(3204))
+	is.Equal(stat.Mode(), os.FileMode(0))
+	is.Equal(stat.ModTime(), time.Time{})
+	is.Equal(stat.IsDir(), false)
+	is.Equal(stat.Sys(), nil)
 
 	// Check the node_modules
-	req = httptest.NewRequest("GET", "/bud/node_modules/svelte/internal", nil)
-	rec = httptest.NewRecorder()
-	client.Proxy(rec, req)
-	res = rec.Result()
-	defer res.Body.Close()
-	is.Equal(res.StatusCode, 200)
-	is.Equal(len(res.Header), 4)
-	is.Equal(res.Header.Get("Content-Type"), "application/javascript")
-	is.Equal(res.Header.Get("Accept-Ranges"), "bytes")
-	is.True(res.Header["Content-Length"] != nil)
-	is.True(res.Header["Date"] != nil)
-	body, err = io.ReadAll(res.Body)
+	file, err = client.Open("bud/node_modules/svelte/internal")
 	is.NoErr(err)
-	is.In(string(body), `function element(`)
-	is.In(string(body), `function text(`)
+	defer file.Close()
+	stat, err = file.Stat()
+	is.NoErr(err)
+	is.Equal(stat.Name(), "internal")
+	is.Equal(stat.Size(), int64(56452))
+	is.Equal(stat.Mode(), os.FileMode(0))
+	is.Equal(stat.ModTime(), time.Time{})
+	is.Equal(stat.IsDir(), false)
+	is.Equal(stat.Sys(), nil)
 }
 
 func TestEvents(t *testing.T) {
