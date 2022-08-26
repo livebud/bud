@@ -73,7 +73,6 @@ func (s *liveServer) Handler(route string, props interface{}) http.Handler {
 func (s *liveServer) respond(w http.ResponseWriter, path string, props interface{}) {
 	res, err := s.render(path, props)
 	if err != nil {
-		// TODO: swap with logger
 		s.log.Error("view: render error", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -176,7 +175,6 @@ func (s *staticServer) Handler(route string, props interface{}) http.Handler {
 func (s *staticServer) serveHTTP(w http.ResponseWriter, r *http.Request) {
 	file, err := s.hfs.Open(r.URL.Path)
 	if err != nil {
-		// TODO: swap with logger
 		s.log.Error("view: open error", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
