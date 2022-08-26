@@ -102,7 +102,7 @@ func (l *loader) loadController(controllerPath string) *Controller {
 	if stct == nil {
 		return controller
 	}
-	controller.Actions = l.loadActions(controller, stct)
+	controller.Actions = l.loadActions(controller, stct, pkg)
 	return controller
 }
 
@@ -135,10 +135,10 @@ func (l *loader) loadControllerRoute(controllerPath string) string {
 	return "/" + path.String()
 }
 
-func (l *loader) loadActions(controller *Controller, stct *parser.Struct) (actions []*Action) {
+func (l *loader) loadActions(controller *Controller, stct *parser.Struct, pkg *parser.Package) (actions []*Action) {
 	var usesResponse bool
 	for _, method := range stct.PublicMethods() {
-		action := l.loadAction(controller, method)
+		action := l.loadAction(controller, method, pkg)
 		if !action.HandlerFunc {
 			usesResponse = true
 		}
@@ -159,7 +159,7 @@ func (l *loader) loadActions(controller *Controller, stct *parser.Struct) (actio
 	return actions
 }
 
-func (l *loader) loadAction(controller *Controller, method *parser.Function) *Action {
+func (l *loader) loadAction(controller *Controller, method *parser.Function, pkg *parser.Package) *Action {
 	action := new(Action)
 	action.Name = method.Name()
 	action.Pascal = gotext.Pascal(action.Name)
@@ -300,6 +300,13 @@ func (l *loader) loadActionParam(param *parser.Param, nth, numParams int) *Actio
 	switch {
 	// Single struct input
 	case numParams == 1 && dec.Kind() == parser.KindStruct:
+		// this should always work because kind is KindStruct
+		stct := dec.Package().Struct(dec.Name())
+		validateMethod := stct.Method("Validate")
+		if len(validateMethod.Results()) == 1 && validateMethod.Results()[0].IsError() {
+			// mark that the action param has Validate() error
+			ap.HasValidate = true
+		}
 		ap.Variable = "in"
 	// Handle context.Context
 	case ap.IsContext():
@@ -342,6 +349,7 @@ func (l *loader) loadType(dt parser.Type, dec parser.Declaration) string {
 
 func (l *loader) loadActionInput(params []*ActionParam) string {
 	if len(params) == 1 && params[0].Kind == string(parser.KindStruct) {
+		// single struct input
 		return params[0].Type
 	}
 	return l.loadActionInputStruct(params)

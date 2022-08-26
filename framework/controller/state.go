@@ -74,6 +74,7 @@ type ActionParam struct {
 	Kind     string
 	Variable string
 	Tag      string
+	HasValidate bool
 }
 
 func (ap *ActionParam) IsContext() bool {
