@@ -102,7 +102,7 @@ func (l *loader) loadController(controllerPath string) *Controller {
 	if stct == nil {
 		return controller
 	}
-	controller.Actions = l.loadActions(controller, stct, pkg)
+	controller.Actions = l.loadActions(controller, stct)
 	return controller
 }
 
@@ -135,10 +135,10 @@ func (l *loader) loadControllerRoute(controllerPath string) string {
 	return "/" + path.String()
 }
 
-func (l *loader) loadActions(controller *Controller, stct *parser.Struct, pkg *parser.Package) (actions []*Action) {
+func (l *loader) loadActions(controller *Controller, stct *parser.Struct) (actions []*Action) {
 	var usesResponse bool
 	for _, method := range stct.PublicMethods() {
-		action := l.loadAction(controller, method, pkg)
+		action := l.loadAction(controller, method)
 		if !action.HandlerFunc {
 			usesResponse = true
 		}
@@ -159,7 +159,7 @@ func (l *loader) loadActions(controller *Controller, stct *parser.Struct, pkg *p
 	return actions
 }
 
-func (l *loader) loadAction(controller *Controller, method *parser.Function, pkg *parser.Package) *Action {
+func (l *loader) loadAction(controller *Controller, method *parser.Function) *Action {
 	action := new(Action)
 	action.Name = method.Name()
 	action.Pascal = gotext.Pascal(action.Name)
