@@ -67,13 +67,13 @@ type View struct {
 
 // ActionParam struct
 type ActionParam struct {
-	Name     string
-	Pascal   string
-	Snake    string
-	Type     string
-	Kind     string
-	Variable string
-	Tag      string
+	Name        string
+	Pascal      string
+	Snake       string
+	Type        string
+	Kind        string
+	Variable    string
+	Tag         string
 	HasValidate bool
 }
 
