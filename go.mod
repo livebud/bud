@@ -26,11 +26,13 @@ require (
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/tools v0.1.11-0.20220513221640-090b14e8501f
+	honnef.co/go/tools v0.3.3
 	rogchap.com/v8go v0.7.0
 	src.techknowlogick.com/xgo v1.4.1-0.20220413212431-091a0a22b814
 )
 
 require (
+	github.com/BurntSushi/toml v0.4.1 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/gedex/inflector v0.0.0-20170307190818-16278e9db813 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
@@ -40,6 +42,7 @@ require (
 	github.com/pointlander/jetset v1.0.1-0.20190518214125-eee7eff80bd4 // indirect
 	github.com/rogpeppe/go-internal v1.8.1 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
+	golang.org/x/exp/typeparams v0.0.0-20220218215828-6cf2b201936e // indirect
 	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f // indirect
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect

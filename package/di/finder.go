@@ -76,5 +76,5 @@ func (i *Injector) Find(currModule *gomod.Module, dep Dependency) (Declaration, 
 		return decl, nil
 	}
 	// TODO: add breadcrumbs to help with finding the root of this error
-	return nil, fmt.Errorf("di: unclear how to provide %s.", dep.ID())
+	return nil, fmt.Errorf("di: unclear how to provide %s", dep.ID())
 }

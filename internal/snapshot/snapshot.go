@@ -1,15 +1,12 @@
 package snapshot
 
 import (
-	"encoding/base64"
 	"io/fs"
 	"os"
 	"path/filepath"
 
 	"github.com/livebud/bud/internal/dirhash"
 	"github.com/livebud/bud/internal/targz"
-
-	"github.com/cespare/xxhash"
 )
 
 func cachePath(key string) (string, error) {
@@ -18,12 +15,6 @@ func cachePath(key string) (string, error) {
 		return "", err
 	}
 	return filepath.Join(dir, key+".tar.gz"), nil
-}
-
-func hash(input string) string {
-	hash := xxhash.New()
-	hash.Write([]byte(input))
-	return base64.RawURLEncoding.EncodeToString(hash.Sum(nil))
 }
 
 // Hash a filesystem

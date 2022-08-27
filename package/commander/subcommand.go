@@ -5,12 +5,12 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 )
 
 func newSubcommand(config *config, name, usage string) *Subcommand {
 	fset := flag.NewFlagSet(name, flag.ContinueOnError)
-	fset.SetOutput(ioutil.Discard)
+	fset.SetOutput(io.Discard)
 	return &Subcommand{
 		config:   config,
 		fset:     fset,

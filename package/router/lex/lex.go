@@ -81,11 +81,6 @@ func (l *lexer) backup() {
 	l.pos -= l.width
 }
 
-// ignore skips over the pending input before this point.
-func (l *lexer) ignore() {
-	l.start = l.pos
-}
-
 func (l *lexer) errorf(format string, args ...interface{}) stateFn {
 	value := fmt.Sprintf(format, args...)
 	l.tokenCh <- Token{
@@ -218,16 +213,6 @@ func lexSlotRest(l *lexer) stateFn {
 	default:
 		// All other slot values should be invalid
 		return l.errorf(`route %q: invalid slot character %q`, l.input, string(r))
-	}
-}
-
-// The character after the slot can't be a character that could be in the slot
-func lexAfterSlot(l *lexer) stateFn {
-	switch r := l.peek(); r {
-	case '.', '/', end:
-		return lexText
-	default:
-		return l.errorf(`route %q: invalid value after slot %q`, l.input, string(r))
 	}
 }
 

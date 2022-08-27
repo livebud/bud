@@ -2,7 +2,6 @@ package welcome
 
 import (
 	"embed"
-	_ "embed"
 	"io/fs"
 	"net/http"
 

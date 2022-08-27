@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"flag"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -40,7 +39,7 @@ func Test(t testing.TB, actual *txtar.Archive) {
 	t.Helper()
 	filename := filepath.Join("testdata", t.Name()+".golden")
 	formatted := txtar.Format(actual)
-	expected, err := ioutil.ReadFile(filename)
+	expected, err := os.ReadFile(filename)
 	if err != nil {
 		if len(formatted) == 0 {
 			return
@@ -63,7 +62,7 @@ func writeFile(name string, data []byte) error {
 	if err := os.MkdirAll(filepath.Dir(name), 0755); err != nil {
 		return err
 	}
-	return ioutil.WriteFile(name, data, 0644)
+	return os.WriteFile(name, data, 0644)
 }
 
 // TestString diffs two strings

@@ -2,7 +2,7 @@ package router_test
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -82,7 +82,7 @@ func ok(t testing.TB, test *test) {
 			fmt.Println("location", url.Path)
 			is.Equal(request.location, url.Path)
 		}
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		is.NoErr(err)
 		is.Equal(request.body, string(body))
 	}
@@ -205,7 +205,7 @@ func TestPut(t *testing.T) {
 	router.ServeHTTP(rec, req)
 	res := rec.Result()
 	is.Equal(200, res.StatusCode)
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	is.NoErr(err)
 	is.Equal("id=10", string(body))
 }
@@ -219,7 +219,7 @@ func TestAdd(t *testing.T) {
 	router.ServeHTTP(rec, req)
 	res := rec.Result()
 	is.Equal(200, res.StatusCode)
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	is.NoErr(err)
 	is.Equal("id=10", string(body))
 }

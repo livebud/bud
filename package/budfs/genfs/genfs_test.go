@@ -2,8 +2,8 @@ package genfs_test
 
 import (
 	"errors"
+	"io"
 	"io/fs"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -595,7 +595,7 @@ func TestHTTP(t *testing.T) {
 	handler(w, r)
 
 	response := w.Result()
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	is.NoErr(err)
 	is.Equal(string(body), `bud/view/_index.svelte's data`)
 	is.Equal(response.StatusCode, 200)

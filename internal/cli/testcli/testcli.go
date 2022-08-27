@@ -249,9 +249,9 @@ func checkDate(res *http.Response) error {
 		return err
 	}
 	// Date should be within 1 minute. In reality, it should be almost instant
-	elapsed := time.Now().Sub(dt)
+	elapsed := time.Since(dt)
 	if elapsed > time.Minute {
-		return fmt.Errorf("Date header is too old %s", elapsed)
+		return fmt.Errorf("date header is too old %s", elapsed)
 	}
 	return nil
 }

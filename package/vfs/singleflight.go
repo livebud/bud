@@ -3,7 +3,6 @@ package vfs
 import (
 	"io"
 	"io/fs"
-	"io/ioutil"
 
 	"golang.org/x/sync/singleflight"
 )
@@ -42,7 +41,7 @@ func (s *singleFlight) Open(name string) (fs.File, error) {
 			}
 			return file, nil
 		}
-		data, err := ioutil.ReadAll(file)
+		data, err := io.ReadAll(file)
 		if err != nil {
 			return nil, err
 		}
