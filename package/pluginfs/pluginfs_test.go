@@ -2,7 +2,6 @@ package pluginfs_test
 
 import (
 	"context"
-	"fmt"
 	"io/fs"
 	"testing"
 
@@ -30,9 +29,6 @@ func TestMergeModules(t *testing.T) {
 
 	des, err := fs.ReadDir(pfs, "public")
 	is.NoErr(err)
-	for _, d := range des {
-		fmt.Println(d.Name())
-	}
 	is.Equal(len(des), 3)
 
 	// normalize.css
