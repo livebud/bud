@@ -38,8 +38,6 @@ func (l *listener) Close() error {
 
 // Listen on a path or port
 func Listen(path string) (Listener, error) {
-	fmt.Println("socket.Listen")
-	fmt.Println(path)
 	url, err := urlx.Parse(path)
 	if err != nil {
 		return nil, err
