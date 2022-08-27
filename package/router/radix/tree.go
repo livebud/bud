@@ -110,7 +110,8 @@ func (t *tree) Insert(route string, handler http.Handler) error {
 
 // strip token trail removes path tokens up to either a slot or a slash
 // e.g. /:id. => /:id
-//      /a/b => /a
+//
+//	/a/b => /a
 func stripTokenTrail(tokens lex.Tokens) lex.Tokens {
 	i := len(tokens) - 1
 loop:

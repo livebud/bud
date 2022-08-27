@@ -107,7 +107,7 @@ func TestPlugin(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)
-	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.8"
+	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.9"
 	is.NoErr(td.Write(ctx))
 	cli := testcli.New(dir)
 	app, err := cli.Start(ctx, "run")

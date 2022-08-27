@@ -232,5 +232,5 @@ var stdlib = map[string]struct{}{
 	"vendor/golang.org/x/text/secure/bidirule":    {},
 	"vendor/golang.org/x/text/transform":          {},
 	"vendor/golang.org/x/text/unicode/bidi":       {},
-	"vendor/golang.org/x/text/unicode/norm	": {},
+	"vendor/golang.org/x/text/unicode/norm	":      {},
 }
