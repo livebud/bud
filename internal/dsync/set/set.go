@@ -12,7 +12,6 @@ import (
 
 var (
 	// helpful to not write everywhere struct{}{}
-	keyExists   = struct{}{}
 	nonExistent fs.DirEntry
 )
 

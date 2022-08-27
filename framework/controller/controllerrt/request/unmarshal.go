@@ -3,7 +3,6 @@ package request
 import (
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"mime"
 	"net/http"
 	"net/url"
@@ -60,7 +59,7 @@ func unmarshalForm(r *http.Request, v interface{}) error {
 }
 
 func unmarshalJSON(r io.Reader, v interface{}) error {
-	data, err := ioutil.ReadAll(r)
+	data, err := io.ReadAll(r)
 	if err != nil {
 		return err
 	}

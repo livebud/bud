@@ -93,6 +93,8 @@ func (s *Stream) loop() {
 }
 
 func (s *Stream) Next(ctx context.Context) (*Event, error) {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
@@ -101,7 +103,7 @@ func (s *Stream) Next(ctx context.Context) (*Event, error) {
 			return evt, nil
 		case err := <-s.errorCh:
 			return nil, err
-		case <-time.Tick(time.Second):
+		case <-ticker.C:
 			s.log.Debug("hot: client waiting for next event")
 		}
 	}
@@ -115,15 +117,28 @@ func (s *Stream) close() (err error) {
 	err = errs.Join(err, s.res.Body.Close())
 	close(s.closeCh)
 	// Drain event channel
-	if err := <-s.errorCh; err != nil {
+	if e := <-s.errorCh; e != nil {
 		// Closed errors are expected since we closed the body
-		if !errors.Is(err, net.ErrClosed) {
-			err = errs.Join(err, err)
+		if !isExpectedCloseError(e) {
+			err = errs.Join(err, e)
 		}
 	}
 	close(s.errorCh)
 	close(s.eventCh)
 	return err
+}
+
+// isExpectedCloseError returns true if the close error is expected
+func isExpectedCloseError(err error) bool {
+	if errors.Is(err, net.ErrClosed) {
+		return true
+	}
+	// Unfortunately this error is not exported
+	// https://github.com/golang/go/blob/f4274e64aac99aaa9af05988f2f8c36c47554889/src/net/http/transport.go#L2636
+	if err.Error() == "http: read on closed response body" {
+		return true
+	}
+	return false
 }
 
 func parseLine(line []byte) (key []byte, value []byte) {

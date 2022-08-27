@@ -2,7 +2,6 @@ package testdir_test
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -92,18 +91,18 @@ func TestOverwrite(t *testing.T) {
 	is.NoErr(td.Write(ctx))
 	is.NoErr(td.Exists("controller/controller.go"))
 	is.NoErr(td.Exists("view/index.svelte"))
-	controller1, err := ioutil.ReadFile(td.Path("controller/controller.go"))
+	controller1, err := os.ReadFile(td.Path("controller/controller.go"))
 	is.NoErr(err)
-	view1, err := ioutil.ReadFile(td.Path("view/index.svelte"))
+	view1, err := os.ReadFile(td.Path("view/index.svelte"))
 	is.NoErr(err)
 	is.Equal(string(view1), `<h1>hello</h1>`)
 	td.Files["view/index.svelte"] = `<h1>hi</h1>`
 	is.NoErr(td.Write(ctx))
 	is.NoErr(td.Exists("controller/controller.go"))
 	is.NoErr(td.Exists("view/index.svelte"))
-	controller2, err := ioutil.ReadFile(td.Path("controller/controller.go"))
+	controller2, err := os.ReadFile(td.Path("controller/controller.go"))
 	is.NoErr(err)
-	view2, err := ioutil.ReadFile(td.Path("view/index.svelte"))
+	view2, err := os.ReadFile(td.Path("view/index.svelte"))
 	is.NoErr(err)
 	is.Equal(string(controller1), string(controller2))
 	is.Equal(string(view2), `<h1>hi</h1>`)

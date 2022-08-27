@@ -42,9 +42,7 @@ func (f *File) AddReplace(oldPath, oldVers, newPath, newVers string) error {
 // Return a list of replaces
 func (f *File) Replaces() (reps []*Replace) {
 	reps = make([]*Replace, len(f.file.Replace))
-	for i, rep := range f.file.Replace {
-		reps[i] = rep
-	}
+	copy(reps, f.file.Replace)
 	// Consistent ordering regardless of modfile formatting
 	sort.Slice(reps, func(i, j int) bool {
 		return reps[i].Old.Path < reps[j].Old.Path
@@ -55,9 +53,7 @@ func (f *File) Replaces() (reps []*Replace) {
 // Return a list of requires
 func (f *File) Requires() (reqs []*Require) {
 	reqs = make([]*Require, len(f.file.Require))
-	for i, req := range f.file.Require {
-		reqs[i] = req
-	}
+	copy(reqs, f.file.Require)
 	// Consistent ordering regardless of modfile formatting
 	sort.Slice(reqs, func(i, j int) bool {
 		switch {

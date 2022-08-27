@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -34,7 +33,7 @@ func TestLoadTCP(t *testing.T) {
 	}
 	res, err := client.Get("http://" + listener.Addr().String() + "/hello")
 	is.NoErr(err)
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	is.NoErr(err)
 	is.Equal(string(body), "/hello")
 	server.Shutdown(context.Background())
@@ -58,7 +57,7 @@ func TestLoadNumberOnly(t *testing.T) {
 	}
 	res, err := client.Get("http://" + listener.Addr().String() + "/hello")
 	is.NoErr(err)
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	is.NoErr(err)
 	is.Equal(string(body), "/hello")
 	server.Shutdown(context.Background())

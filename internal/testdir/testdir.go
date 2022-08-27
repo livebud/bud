@@ -62,33 +62,6 @@ type Dir struct {
 	NodeModules map[string]string          // name[version]
 }
 
-func merge(mapfs fstest.MapFS, fsys fs.FS, base ...string) error {
-	basePath := path.Join(base...)
-	return fs.WalkDir(fsys, ".", func(filePath string, de fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		fi, err := de.Info()
-		if err != nil {
-			return err
-		}
-		fullPath := path.Join(basePath, filePath)
-		mapfs[fullPath] = &fstest.MapFile{
-			ModTime: fi.ModTime(),
-			Mode:    fi.Mode(),
-		}
-		if de.IsDir() {
-			return nil
-		}
-		data, err := fs.ReadFile(fsys, filePath)
-		if err != nil {
-			return err
-		}
-		mapfs[fullPath].Data = data
-		return nil
-	})
-}
-
 func (d *Dir) mapfs() (fstest.MapFS, error) {
 	mapfs := fstest.MapFS{}
 	// Loop over files

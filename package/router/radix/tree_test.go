@@ -1,7 +1,7 @@
 package radix_test
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sort"
@@ -67,7 +67,7 @@ func ok(t testing.TB, test *test) {
 		rec := httptest.NewRecorder()
 		match.Handler.ServeHTTP(rec, req)
 		res := rec.Result()
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		is.NoErr(err)
 		is.Equal(request.route, string(body))
 		// Test slots
