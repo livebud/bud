@@ -97,5 +97,16 @@ func (l *loader) loadDefaults() (files []*embed.File) {
 			Data: embedded.Favicon(),
 		})
 	}
+
+	// Add a empty default.css if it doesn't exist
+	if err := vfs.Exist(l.fsys, "public/default.css"); err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			l.Bail(err)
+		}
+		files = append(files, &embed.File{
+			Path: "public/default.css",
+			Data: []byte(embedded.DefaultCss("")),
+		})
+	}
 	return files
 }
