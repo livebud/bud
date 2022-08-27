@@ -25,8 +25,9 @@ type Lexer interface {
 //
 // Example of lexer state:
 // /:firstName
-//        ^ pos is at "N", width 1 ("N" is 1 byte wide)
-//  ^ start is at ":"
+//
+//	      ^ pos is at "N", width 1 ("N" is 1 byte wide)
+//	^ start is at ":"
 type lexer struct {
 	tokenCh chan Token
 	input   string // buffer containing the full route

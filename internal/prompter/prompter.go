@@ -2,10 +2,10 @@
 // output during `bud run`.
 //
 // The public methods must be called in the right order:
-//   1. Init
-//   2. Reloading
-//   3. SuccessReload or FailReload or NoReload
-//   4. Reloading
+//  1. Init
+//  2. Reloading
+//  3. SuccessReload or FailReload or NoReload
+//  4. Reloading
 //
 // So the cursor can moves and clear lines properly. The behavior of the cursor
 // across the different states looks like the following:
@@ -80,7 +80,8 @@ func (p *Prompter) startTimer() {
 }
 
 // Init -> Reloading -> `Success reload` or `Fail reload` or `Made no reload` ->
-// 		Reloading -> ...
+//
+//	Reloading -> ...
 var nextState = map[string]string{
 	"init":   "reload",
 	reload:   "fail/success/no re",

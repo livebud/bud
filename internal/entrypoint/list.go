@@ -207,7 +207,7 @@ func route(dir, name string) string {
 
 // The client path's entrypoint
 //
-//   e.g. view/index.jsx => bud/view/_index.jsx
+//	e.g. view/index.jsx => bud/view/_index.jsx
 //
 // We use the _ because this is a generated entrypoint
 // that
