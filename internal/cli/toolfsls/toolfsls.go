@@ -32,7 +32,8 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	module, err := bud.Module(c.Dir)
+	dir := path.Clean(c.Dir)
+	module, err := bud.Module(path.Join(c.bud.Dir, dir))
 	if err != nil {
 		return err
 	}
@@ -41,7 +42,6 @@ func (c *Command) Run(ctx context.Context) error {
 		return err
 	}
 	defer close()
-	dir := path.Clean(c.Dir)
 	des, err := fs.ReadDir(fsys, dir)
 	if err != nil {
 		return err

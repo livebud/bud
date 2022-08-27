@@ -81,11 +81,10 @@ func (fn *Function) Generate(g Generator, ins []*Variable) (outs []*Variable) {
 // Given the following dependency: *Web, tryFunction will match on the
 // following functions:
 //
-//   func ...(...) *Web
-//   func ...(...) Web
-//   func ...(...) (*Web, error)
-//   func ...(...) (Web, error)
-//
+//	func ...(...) *Web
+//	func ...(...) Web
+//	func ...(...) (*Web, error)
+//	func ...(...) (Web, error)
 func tryFunction(fn *parser.Function, importPath, dataType string) (*function, error) {
 	if fn.Private() || fn.Receiver() != nil {
 		return nil, ErrNoMatch

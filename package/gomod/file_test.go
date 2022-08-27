@@ -46,10 +46,10 @@ func TestLocalResolveDirectory(t *testing.T) {
 	module, err := gomod.Parse("go.mod", []byte(`module app.test`))
 	is.NoErr(err)
 	modFile := module.File()
-	modFile.AddRequire("github.com/livebud/bud-test-plugin", "v0.0.2")
+	modFile.AddRequire("github.com/livebud/bud-test-plugin", "v0.0.9")
 	dir, err := module.ResolveDirectory("github.com/livebud/bud-test-plugin")
 	is.NoErr(err)
-	is.Equal(dir, filepath.Join(modcache.Default().Directory(), "github.com/livebud", "bud-test-plugin@v0.0.2"))
+	is.Equal(dir, filepath.Join(modcache.Default().Directory(), "github.com/livebud", "bud-test-plugin@v0.0.9"))
 }
 
 func TestFindRequire(t *testing.T) {

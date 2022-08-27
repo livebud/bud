@@ -31,6 +31,8 @@ const (
 	ruleOnlyPort
 	rulePort
 	rulePath
+	ruleRelPath
+	ruleAbsPath
 	ruleBrackets
 	ruleEnd
 	rulePegText
@@ -41,6 +43,7 @@ const (
 	ruleAction4
 	ruleAction5
 	ruleAction6
+	ruleAction7
 )
 
 var rul3s = [...]string{
@@ -58,6 +61,8 @@ var rul3s = [...]string{
 	"OnlyPort",
 	"Port",
 	"Path",
+	"RelPath",
+	"AbsPath",
 	"Brackets",
 	"End",
 	"PegText",
@@ -68,6 +73,7 @@ var rul3s = [...]string{
 	"Action4",
 	"Action5",
 	"Action6",
+	"Action7",
 }
 
 type token32 struct {
@@ -184,7 +190,7 @@ type parser struct {
 
 	Buffer string
 	buffer []rune
-	rules  [24]func() bool
+	rules  [27]func() bool
 	parse  func(rule ...int) error
 	reset  func()
 	Pretty bool
@@ -311,6 +317,10 @@ func (p *parser) Execute() {
 			p.url.path = text
 
 		case ruleAction6:
+
+			p.url.path = text
+
+		case ruleAction7:
 
 			p.url.host = "[::]"
 
@@ -868,32 +878,72 @@ func (p *parser) Init(options ...func(*parser) error) error {
 			position, tokenIndex = position64, tokenIndex64
 			return false
 		},
-		/* 12 Path <- <(<('/' .*)> Action5)> */
+		/* 12 Path <- <(RelPath / AbsPath)> */
 		func() bool {
 			position70, tokenIndex70 := position, tokenIndex
 			{
 				position71 := position
 				{
-					position72 := position
-					if buffer[position] != rune('/') {
-						goto l70
-					}
-					position++
-				l73:
+					position72, tokenIndex72 := position, tokenIndex
 					{
-						position74, tokenIndex74 := position, tokenIndex
-						if !matchDot() {
-							goto l74
+						position74 := position
+						{
+							position75 := position
+							if buffer[position] != rune('.') {
+								goto l73
+							}
+							position++
+							if buffer[position] != rune('/') {
+								goto l73
+							}
+							position++
+						l76:
+							{
+								position77, tokenIndex77 := position, tokenIndex
+								if !matchDot() {
+									goto l77
+								}
+								goto l76
+							l77:
+								position, tokenIndex = position77, tokenIndex77
+							}
+							add(rulePegText, position75)
 						}
-						goto l73
-					l74:
-						position, tokenIndex = position74, tokenIndex74
+						{
+							add(ruleAction5, position)
+						}
+						add(ruleRelPath, position74)
 					}
-					add(rulePegText, position72)
+					goto l72
+				l73:
+					position, tokenIndex = position72, tokenIndex72
+					{
+						position79 := position
+						{
+							position80 := position
+							if buffer[position] != rune('/') {
+								goto l70
+							}
+							position++
+						l81:
+							{
+								position82, tokenIndex82 := position, tokenIndex
+								if !matchDot() {
+									goto l82
+								}
+								goto l81
+							l82:
+								position, tokenIndex = position82, tokenIndex82
+							}
+							add(rulePegText, position80)
+						}
+						{
+							add(ruleAction6, position)
+						}
+						add(ruleAbsPath, position79)
+					}
 				}
-				{
-					add(ruleAction5, position)
-				}
+			l72:
 				add(rulePath, position71)
 			}
 			return true
@@ -901,65 +951,73 @@ func (p *parser) Init(options ...func(*parser) error) error {
 			position, tokenIndex = position70, tokenIndex70
 			return false
 		},
-		/* 13 Brackets <- <('[' ':' ':' ']' Action6)> */
+		/* 13 RelPath <- <(<('.' '/' .*)> Action5)> */
+		nil,
+		/* 14 AbsPath <- <(<('/' .*)> Action6)> */
+		nil,
+		/* 15 Brackets <- <('[' ':' ':' ']' Action7)> */
 		func() bool {
-			position76, tokenIndex76 := position, tokenIndex
+			position86, tokenIndex86 := position, tokenIndex
 			{
-				position77 := position
+				position87 := position
 				if buffer[position] != rune('[') {
-					goto l76
+					goto l86
 				}
 				position++
 				if buffer[position] != rune(':') {
-					goto l76
+					goto l86
 				}
 				position++
 				if buffer[position] != rune(':') {
-					goto l76
+					goto l86
 				}
 				position++
 				if buffer[position] != rune(']') {
-					goto l76
+					goto l86
 				}
 				position++
 				{
-					add(ruleAction6, position)
+					add(ruleAction7, position)
 				}
-				add(ruleBrackets, position77)
+				add(ruleBrackets, position87)
 			}
 			return true
-		l76:
-			position, tokenIndex = position76, tokenIndex76
+		l86:
+			position, tokenIndex = position86, tokenIndex86
 			return false
 		},
-		/* 14 End <- <!.> */
+		/* 16 End <- <!.> */
 		nil,
 		nil,
-		/* 17 Action0 <- <{
+		/* 19 Action0 <- <{
 		  p.url.uri = text
 		}> */
 		nil,
-		/* 18 Action1 <- <{
+		/* 20 Action1 <- <{
 		  p.url.scheme = text[:len(text)-1]
 		}> */
 		nil,
-		/* 19 Action2 <- <{
+		/* 21 Action2 <- <{
 		  p.url.host = text
 		}> */
 		nil,
-		/* 20 Action3 <- <{
+		/* 22 Action3 <- <{
 		  p.url.host = text
 		}> */
 		nil,
-		/* 21 Action4 <- <{
+		/* 23 Action4 <- <{
 		  p.url.port = text
 		}> */
 		nil,
-		/* 22 Action5 <- <{
+		/* 24 Action5 <- <{
 		  p.url.path = text
 		}> */
 		nil,
-		/* 23 Action6 <- <{
+		/* 25 Action6 <- <{
+		  p.url.path = text
+		}> */
+		nil,
+		/* 26 Action7 <- <{
 		  p.url.host = "[::]"
 		}> */
 		nil,

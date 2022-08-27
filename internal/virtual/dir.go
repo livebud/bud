@@ -7,7 +7,7 @@ import (
 )
 
 type Dir struct {
-	Name    string
+	Path    string
 	Mode    fs.FileMode
 	ModTime time.Time
 	Sys     interface{}
@@ -17,6 +17,7 @@ type Dir struct {
 
 var _ fs.ReadDirFile = (*Dir)(nil)
 var _ fs.File = (*Dir)(nil)
+var _ Entry = (*Dir)(nil)
 
 func (d *Dir) Close() error {
 	return nil
@@ -24,7 +25,7 @@ func (d *Dir) Close() error {
 
 func (d *Dir) Stat() (fs.FileInfo, error) {
 	return &fileInfo{
-		name:    d.Name,
+		path:    d.Path,
 		mode:    d.Mode | fs.ModeDir,
 		modTime: d.ModTime,
 		sys:     d.Sys,
@@ -32,7 +33,7 @@ func (d *Dir) Stat() (fs.FileInfo, error) {
 }
 
 func (d *Dir) Read(p []byte) (int, error) {
-	return 0, &fs.PathError{Op: "read", Path: d.Name, Err: fs.ErrInvalid}
+	return 0, &fs.PathError{Op: "read", Path: d.Path, Err: fs.ErrInvalid}
 }
 
 func (d *Dir) ReadDir(count int) ([]fs.DirEntry, error) {
@@ -49,4 +50,15 @@ func (d *Dir) ReadDir(count int) ([]fs.DirEntry, error) {
 	}
 	d.offset += n
 	return list, nil
+}
+
+func (d *Dir) Open() fs.File {
+	return &Dir{
+		Path:    d.Path,
+		Mode:    d.Mode,
+		ModTime: d.ModTime,
+		Sys:     d.Sys,
+		Entries: d.Entries,
+		offset:  0, // reset offset
+	}
 }

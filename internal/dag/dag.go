@@ -123,9 +123,7 @@ func (g *Graph) parents(to string) (tos []string) {
 }
 
 // Ancestors recursively returns parents, parents of parents, etc.
-// Ancestors includes path.
 func (g *Graph) Ancestors(path string) (ancestors []string) {
-	ancestors = append(ancestors, path)
 	ancestors = append(ancestors, g.parents(path)...)
 	return ancestors
 }
@@ -136,6 +134,8 @@ func (g *Graph) String() string {
 	defer g.mu.RUnlock()
 	s := strings.Builder{}
 	s.WriteString("digraph g {\n")
+	// Rank from the bottom to the top
+	s.WriteString("  rankdir = BT\n")
 	for from := range g.nodes {
 		tos := g.outs[from]
 		if len(tos) == 0 {

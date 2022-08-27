@@ -12,6 +12,7 @@ import (
 )
 
 // compiler.js is used to compile .svelte files into JS & CSS
+//
 //go:embed compiler.js
 var compiler string
 

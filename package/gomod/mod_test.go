@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/livebud/bud/internal/fscache"
 	"github.com/livebud/bud/internal/testdir"
+	"github.com/livebud/bud/package/budfs/cachefs"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/modcache"
@@ -153,10 +153,11 @@ func TestModuleFindStdlib(t *testing.T) {
 func TestFindNested(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	is.NoErr(err)
 	td := testdir.New(dir)
-	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.8"
-	err := td.Write(ctx)
+	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.9"
+	err = td.Write(ctx)
 	is.NoErr(err)
 	modCache := modcache.Default()
 	module1, err := gomod.Find(dir)
@@ -170,7 +171,7 @@ func TestFindNested(t *testing.T) {
 	module2, err := module1.Find("github.com/livebud/bud-test-plugin")
 	is.NoErr(err)
 	is.Equal(module2.Import(), "github.com/livebud/bud-test-plugin")
-	is.Equal(module2.Directory(), modCache.Directory("github.com/livebud", "bud-test-plugin@v0.0.8"))
+	is.Equal(module2.Directory(), modCache.Directory("github.com/livebud", "bud-test-plugin@v0.0.9"))
 	data, err = fs.ReadFile(module2, "go.mod")
 	is.NoErr(err)
 	m2, err := gomod.Parse("go.mod", data)
@@ -196,7 +197,7 @@ func TestFindNested(t *testing.T) {
 
 	// Ensure module2 is not overridden
 	is.Equal(module2.Import(), "github.com/livebud/bud-test-plugin")
-	is.Equal(module2.Directory(), modCache.Directory("github.com/livebud", "bud-test-plugin@v0.0.8"))
+	is.Equal(module2.Directory(), modCache.Directory("github.com/livebud", "bud-test-plugin@v0.0.9"))
 }
 
 func TestOpen(t *testing.T) {
@@ -220,11 +221,12 @@ func TestFileCacheDir(t *testing.T) {
 		"main.go": []byte(`package main`),
 	})
 	is.NoErr(err)
-	fmap := fscache.New(log)
-	module, err := gomod.Find(appDir, gomod.WithFSCache(fmap))
+	filecache := cachefs.New(log)
+	module, err := gomod.Find(appDir)
 	is.NoErr(err)
+	fsys := filecache.Wrap(module)
 	// Check initial
-	des, err := fs.ReadDir(module, ".")
+	des, err := fs.ReadDir(fsys, ".")
 	is.NoErr(err)
 	is.Equal(2, len(des))
 	is.Equal("go.mod", des[0].Name())
@@ -232,31 +234,24 @@ func TestFileCacheDir(t *testing.T) {
 	// Delete a file and check again to ensure it's cached
 	err = os.RemoveAll(filepath.Join(appDir, "main.go"))
 	is.NoErr(err)
-	des, err = fs.ReadDir(module, ".")
+	des, err = fs.ReadDir(fsys, ".")
 	is.NoErr(err)
 	is.Equal(2, len(des))
 	is.Equal("go.mod", des[0].Name())
 	is.Equal("main.go", des[1].Name())
 	// Delete from the cache to see that it's been updated
-	fmap.Delete("main.go")
-	des, err = fs.ReadDir(module, ".")
+	filecache.Delete("main.go")
+	des, err = fs.ReadDir(fsys, ".")
 	is.NoErr(err)
 	is.Equal(1, len(des))
 	is.Equal("go.mod", des[0].Name())
 	// Create a file and see stale dir
 	err = os.WriteFile(filepath.Join(appDir, "main.go"), []byte(`package main`), 0644)
 	is.NoErr(err)
-	des, err = fs.ReadDir(module, ".")
+	des, err = fs.ReadDir(fsys, ".")
 	is.NoErr(err)
 	is.Equal(1, len(des))
 	is.Equal("go.mod", des[0].Name())
-	// Mark the cache as creating main.go and see that it's been updated
-	fmap.Create("main.go")
-	des, err = fs.ReadDir(module, ".")
-	is.NoErr(err)
-	is.Equal(2, len(des))
-	is.Equal("go.mod", des[0].Name())
-	is.Equal("main.go", des[1].Name())
 }
 
 func TestModuleFindLocal(t *testing.T) {

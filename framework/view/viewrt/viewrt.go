@@ -2,14 +2,16 @@ package viewrt
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"net/http"
 	"strings"
 
 	"github.com/livebud/bud/framework/view/ssr"
-	"github.com/livebud/bud/package/budclient"
+	"github.com/livebud/bud/package/budhttp"
 	"github.com/livebud/bud/package/js"
+	"github.com/livebud/bud/package/log"
 )
 
 type Server interface {
@@ -17,12 +19,14 @@ type Server interface {
 	Handler(route string, props interface{}) http.Handler
 }
 
-func Proxy(client budclient.Client) *liveServer {
-	return &liveServer{client}
+func Proxy(client budhttp.Client, log log.Interface) *liveServer {
+	return &liveServer{client, http.FS(client), log}
 }
 
 type liveServer struct {
-	client budclient.Client
+	client budhttp.Client
+	hfs    http.FileSystem
+	log    log.Interface
 }
 
 var _ Server = (*liveServer)(nil)
@@ -33,7 +37,29 @@ func (s *liveServer) Middleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		s.client.Proxy(w, r)
+		file, err := s.hfs.Open(strings.TrimPrefix(r.URL.Path, "/"))
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				http.Error(w, err.Error(), http.StatusNotFound)
+				return
+			}
+			s.log.Error("view: open error", "error", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer file.Close()
+		stat, err := file.Stat()
+		if err != nil {
+			s.log.Error("view: stat error", "error", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		// Maintain support to resolve and run "/bud/node_modules/livebud/runtime".
+		if strings.HasPrefix(r.URL.Path, "/bud/node_modules/") ||
+			strings.HasSuffix(r.URL.Path, ".svelte") {
+			w.Header().Set("Content-Type", "application/javascript")
+		}
+		http.ServeContent(w, r, r.URL.Path, stat.ModTime(), file)
 	})
 }
 
@@ -47,8 +73,7 @@ func (s *liveServer) Handler(route string, props interface{}) http.Handler {
 func (s *liveServer) respond(w http.ResponseWriter, path string, props interface{}) {
 	res, err := s.render(path, props)
 	if err != nil {
-		// TODO: swap with logger
-		fmt.Println("view: render error", err)
+		s.log.Error("view: render error", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -65,13 +90,14 @@ func (s *liveServer) render(path string, props interface{}) (*ssr.Response, erro
 }
 
 // Static server serves the same files every time. Used during production.
-func Static(fsys fs.FS, vm js.VM, wrapProps func(path string, props interface{}) interface{}) *staticServer {
-	return &staticServer{fsys, http.FS(fsys), vm, wrapProps}
+func Static(fsys fs.FS, log log.Interface, vm js.VM, wrapProps func(path string, props interface{}) interface{}) *staticServer {
+	return &staticServer{fsys, http.FS(fsys), log, vm, wrapProps}
 }
 
 type staticServer struct {
 	fsys      fs.FS
 	hfs       http.FileSystem
+	log       log.Interface
 	vm        js.VM
 	wrapProps func(path string, props interface{}) interface{}
 }
@@ -86,8 +112,7 @@ type Map map[string]interface{}
 func (s *staticServer) respond(w http.ResponseWriter, path string, props interface{}) {
 	res, err := s.render(path, props)
 	if err != nil {
-		// TODO: swap with logger
-		fmt.Println("view: render error", err)
+		s.log.Error("view: client open error", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -150,15 +175,13 @@ func (s *staticServer) Handler(route string, props interface{}) http.Handler {
 func (s *staticServer) serveHTTP(w http.ResponseWriter, r *http.Request) {
 	file, err := s.hfs.Open(r.URL.Path)
 	if err != nil {
-		// TODO: swap with logger
-		fmt.Println("view: open error", err)
+		s.log.Error("view: open error", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	stat, err := file.Stat()
 	if err != nil {
-		// TODO: swap with logger
-		fmt.Println("view: stat error", err)
+		s.log.Error("view: stat error", "error", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

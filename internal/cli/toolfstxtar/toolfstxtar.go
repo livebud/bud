@@ -33,7 +33,8 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	module, err := bud.Module(c.Dir)
+	dir := path.Clean(c.Dir)
+	module, err := bud.Module(path.Join(c.bud.Dir, dir))
 	if err != nil {
 		return err
 	}
@@ -43,7 +44,6 @@ func (c *Command) Run(ctx context.Context) error {
 	}
 	defer close()
 	ar := new(txtar.Archive)
-	dir := path.Clean(c.Dir)
 	err = fs.WalkDir(fsys, dir, func(path string, de fs.DirEntry, err error) error {
 		if err != nil {
 			return err

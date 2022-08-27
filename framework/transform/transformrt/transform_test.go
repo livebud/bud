@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -82,6 +83,9 @@ func TestPlugins(t *testing.T) {
 			To:   ".svelte",
 			For: transformrt.Platforms{
 				transformrt.PlatformAll: func(file *transformrt.File) error {
+					if file.Path() != "hello.svelte" {
+						return fmt.Errorf("wrong file name: %s", file.Path())
+					}
 					file.Code = bytes.ReplaceAll(file.Code, []byte("<h1>"), []byte("<h1 id='link'>"))
 					return nil
 				},
@@ -92,6 +96,9 @@ func TestPlugins(t *testing.T) {
 			To:   ".svelte",
 			For: transformrt.Platforms{
 				transformrt.PlatformAll: func(file *transformrt.File) error {
+					if file.Path() != "hello.md" {
+						return fmt.Errorf("wrong file name: %s", file.Path())
+					}
 					file.Code = []byte(`<h1>Hi world</h1>`)
 					return nil
 				},
@@ -112,7 +119,8 @@ func TestPlugins(t *testing.T) {
 	plugins := transformer.SSR.Plugins()
 	is.Equal(len(plugins), 2)
 	// Create the test dir
-	dir := t.TempDir()
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	is.NoErr(err)
 	td := testdir.New(dir)
 	td.Files["index.js"] = `
 		import hello from "./hello.md"

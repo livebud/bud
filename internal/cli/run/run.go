@@ -19,7 +19,7 @@ import (
 	"github.com/livebud/bud/internal/prompter"
 	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/internal/versions"
-	"github.com/livebud/bud/package/budserver"
+	"github.com/livebud/bud/package/budhttp/budsvr"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/overlay"
@@ -170,7 +170,7 @@ func (s *budServer) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	devServer := budserver.New(s.fsys, s.bus, s.log, vm)
+	devServer := budsvr.New(s.fsys, s.bus, s.log, vm)
 	err = webrt.Serve(ctx, s.budln, devServer)
 	s.log.Debug("run: bud server closed", "err", err)
 	return err

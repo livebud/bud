@@ -14,7 +14,7 @@ type skipFunc = func(name string, isDir bool) bool
 
 type option struct {
 	Skip skipFunc
-	rel  func(path string) (string, error)
+	rel  func(spath string) (string, error)
 }
 
 type Option func(o *option)
@@ -42,8 +42,8 @@ func composeSkips(skips []skipFunc) skipFunc {
 }
 
 func Rel(sdir, tdir string) func(path string) (string, error) {
-	return func(path string) (string, error) {
-		rel, err := filepath.Rel(sdir, path)
+	return func(spath string) (string, error) {
+		rel, err := filepath.Rel(sdir, spath)
 		if err != nil {
 			return "", err
 		}
@@ -67,6 +67,11 @@ func Dir(sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string, options ...O
 	}
 	err = apply(sfs, tfs, ops)
 	return err
+}
+
+// To syncs the "to" directory from the source to target filesystem
+func To(sfs fs.FS, tfs vfs.ReadWritable, to string) error {
+	return Dir(sfs, to, tfs, to)
 }
 
 type OpType uint8
@@ -195,13 +200,14 @@ func updateOps(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir s
 		if de.Name() == "." {
 			continue
 		}
-		path := filepath.Join(sdir, de.Name())
-		if opt.Skip(path, de.IsDir()) {
+		spath := filepath.Join(sdir, de.Name())
+		if opt.Skip(spath, de.IsDir()) {
 			continue
 		}
+		tpath := filepath.Join(tdir, de.Name())
 		// Recurse directories
 		if de.IsDir() {
-			childOps, err := diff(opt, sfs, path, tfs, path)
+			childOps, err := diff(opt, sfs, spath, tfs, tpath)
 			if err != nil {
 				return nil, err
 			}
@@ -209,11 +215,11 @@ func updateOps(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir s
 			continue
 		}
 		// Otherwise, check if the file has changed
-		sourceStamp, err := stamp(sfs, path)
+		sourceStamp, err := stamp(sfs, spath)
 		if err != nil {
 			return nil, err
 		}
-		targetStamp, err := stamp(tfs, path)
+		targetStamp, err := stamp(tfs, tpath)
 		if err != nil {
 			return nil, err
 		}
@@ -221,7 +227,7 @@ func updateOps(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir s
 		if sourceStamp == targetStamp {
 			continue
 		}
-		data, err := fs.ReadFile(sfs, path)
+		data, err := fs.ReadFile(sfs, spath)
 		if err != nil {
 			// Don't error out on files that don't exist
 			if errors.Is(err, fs.ErrNotExist) {
@@ -229,7 +235,7 @@ func updateOps(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir s
 			}
 			return nil, err
 		}
-		rel, err := opt.rel(path)
+		rel, err := opt.rel(spath)
 		if err != nil {
 			return nil, err
 		}

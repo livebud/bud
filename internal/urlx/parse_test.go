@@ -66,6 +66,10 @@ var tests = []struct {
 		expect: "http:///whatever/tmp.sock",
 	},
 	{
+		input:  "./whatever/tmp.sock",
+		expect: "http://./whatever/tmp.sock",
+	},
+	{
 		input:  "https:",
 		expect: "https://127.0.0.1:443",
 	},
