@@ -43,6 +43,7 @@ type Input struct {
 	Env    []string
 
 	// Currently passed in only for testing
+	Css   string          // Can be empty
 	Dir   string          // Can be empty
 	BudLn socket.Listener // Can be nil
 	WebLn socket.Listener // Can be nil
