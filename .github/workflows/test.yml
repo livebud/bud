@@ -64,6 +64,10 @@ jobs:
           path: $TMPDIR/bud/snapshot
           key: ${{ runner.os }}
 
+      - name: Run Go Format on Go 1.19
+        if: matrix.go == '1.19'
+        run: make go.fmt
+
       - name: Run CI (Ubuntu Linux)
         if: matrix.os == 'ubuntu-latest'
         run: make ci.ubuntu
