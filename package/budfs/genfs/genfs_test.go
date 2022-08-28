@@ -12,7 +12,6 @@ import (
 	"strings"
 	"testing"
 	"testing/fstest"
-	"time"
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/budfs/genfs"
@@ -193,7 +192,7 @@ func TestAll(t *testing.T) {
 	is.True(fi.ModTime().IsZero())
 	is.Equal(fi.Mode(), fs.ModeDir)
 	is.Equal(fi.Name(), "bud")
-	is.Equal(fi.Size(), int64(0))
+	is.Equal(fi.Size(), int64(-1))
 	is.Equal(fi.Sys(), nil)
 	stat, err := file.Stat()
 	is.NoErr(err)
@@ -201,7 +200,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Mode(), fs.ModeDir)
 	is.True(stat.IsDir())
 	is.True(stat.ModTime().IsZero())
-	is.Equal(stat.Size(), int64(0))
+	is.Equal(stat.Size(), int64(-1))
 	is.Equal(stat.Sys(), nil)
 	// Stat .
 	stat, err = fs.Stat(gen, ".")
@@ -210,7 +209,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Mode(), fs.ModeDir)
 	is.True(stat.IsDir())
 	is.True(stat.ModTime().IsZero())
-	is.Equal(stat.Size(), int64(0))
+	is.Equal(stat.Size(), int64(-1))
 	is.Equal(stat.Sys(), nil)
 	// ReadDir .
 	des, err = fs.ReadDir(gen, ".")
@@ -237,7 +236,7 @@ func TestAll(t *testing.T) {
 	is.True(fi.ModTime().IsZero())
 	is.Equal(fi.Mode(), fs.ModeDir)
 	is.Equal(fi.Name(), "view")
-	is.Equal(fi.Size(), int64(0))
+	is.Equal(fi.Size(), int64(-1))
 	is.Equal(fi.Sys(), nil)
 	stat, err = file.Stat()
 	is.NoErr(err)
@@ -245,7 +244,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Mode(), fs.ModeDir)
 	is.True(stat.IsDir())
 	is.True(stat.ModTime().IsZero())
-	is.Equal(stat.Size(), int64(0))
+	is.Equal(stat.Size(), int64(-1))
 	is.Equal(stat.Sys(), nil)
 	// Stat bud
 	stat, err = fs.Stat(gen, "bud")
@@ -254,7 +253,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Mode(), fs.ModeDir)
 	is.True(stat.IsDir())
 	is.True(stat.ModTime().IsZero())
-	is.Equal(stat.Size(), int64(0))
+	is.Equal(stat.Size(), int64(-1))
 	is.Equal(stat.Sys(), nil)
 	// ReadDir bud
 	des, err = fs.ReadDir(gen, "bud")
@@ -281,7 +280,7 @@ func TestAll(t *testing.T) {
 	is.Equal(fi.IsDir(), true)
 	is.True(fi.ModTime().IsZero())
 	is.Equal(fi.Mode(), fs.ModeDir)
-	is.Equal(fi.Size(), int64(0))
+	is.Equal(fi.Size(), int64(-1))
 	is.Equal(fi.Sys(), nil)
 	is.Equal(des[1].Name(), "index.svelte")
 	is.Equal(des[1].IsDir(), false)
@@ -292,7 +291,7 @@ func TestAll(t *testing.T) {
 	is.Equal(fi.IsDir(), false)
 	is.True(fi.ModTime().IsZero())
 	is.Equal(fi.Mode(), fs.FileMode(0))
-	is.Equal(fi.Size(), int64(14))
+	is.Equal(fi.Size(), int64(-1))
 	is.Equal(fi.Sys(), nil)
 	stat, err = file.Stat()
 	is.NoErr(err)
@@ -300,7 +299,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Mode(), fs.ModeDir)
 	is.True(stat.IsDir())
 	is.True(stat.ModTime().IsZero())
-	is.Equal(stat.Size(), int64(0))
+	is.Equal(stat.Size(), int64(-1))
 	is.Equal(stat.Sys(), nil)
 	// Stat bud
 	stat, err = fs.Stat(gen, "bud/view")
@@ -309,7 +308,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Mode(), fs.ModeDir)
 	is.True(stat.IsDir())
 	is.True(stat.ModTime().IsZero())
-	is.Equal(stat.Size(), int64(0))
+	is.Equal(stat.Size(), int64(-1))
 	is.Equal(stat.Sys(), nil)
 	// ReadDir bud
 	des, err = fs.ReadDir(gen, "bud/view")
@@ -324,7 +323,7 @@ func TestAll(t *testing.T) {
 	is.Equal(fi.IsDir(), true)
 	is.True(fi.ModTime().IsZero())
 	is.Equal(fi.Mode(), fs.ModeDir)
-	is.Equal(fi.Size(), int64(0))
+	is.Equal(fi.Size(), int64(-1))
 	is.Equal(fi.Sys(), nil)
 	is.Equal(des[1].Name(), "index.svelte")
 	is.Equal(des[1].IsDir(), false)
@@ -335,7 +334,7 @@ func TestAll(t *testing.T) {
 	is.Equal(fi.IsDir(), false)
 	is.True(fi.ModTime().IsZero())
 	is.Equal(fi.Mode(), fs.FileMode(0))
-	is.Equal(fi.Size(), int64(14))
+	is.Equal(fi.Size(), int64(-1))
 	is.Equal(fi.Sys(), nil)
 
 	// bud/view/about
@@ -355,7 +354,7 @@ func TestAll(t *testing.T) {
 	is.Equal(fi.IsDir(), false)
 	is.True(fi.ModTime().IsZero())
 	is.Equal(fi.Mode(), fs.FileMode(0))
-	is.Equal(fi.Size(), int64(14))
+	is.Equal(fi.Size(), int64(-1))
 	is.Equal(fi.Sys(), nil)
 	stat, err = file.Stat()
 	is.NoErr(err)
@@ -363,7 +362,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Mode(), fs.ModeDir)
 	is.True(stat.IsDir())
 	is.True(stat.ModTime().IsZero())
-	is.Equal(stat.Size(), int64(0))
+	is.Equal(stat.Size(), int64(-1))
 	is.Equal(stat.Sys(), nil)
 	// Stat bud
 	stat, err = fs.Stat(gen, "bud/view/about")
@@ -372,7 +371,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Mode(), fs.ModeDir)
 	is.True(stat.IsDir())
 	is.True(stat.ModTime().IsZero())
-	is.Equal(stat.Size(), int64(0))
+	is.Equal(stat.Size(), int64(-1))
 	is.Equal(stat.Sys(), nil)
 	// ReadDir bud
 	des, err = fs.ReadDir(gen, "bud/view/about")
@@ -387,7 +386,7 @@ func TestAll(t *testing.T) {
 	is.Equal(fi.IsDir(), false)
 	is.True(fi.ModTime().IsZero())
 	is.Equal(fi.Mode(), fs.FileMode(0))
-	is.Equal(fi.Size(), int64(14))
+	is.Equal(fi.Size(), int64(-1))
 	is.Equal(fi.Sys(), nil)
 
 	// bud/view/index.svelte
@@ -400,7 +399,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Mode(), fs.FileMode(0))
 	is.Equal(stat.IsDir(), false)
 	is.True(stat.ModTime().IsZero())
-	is.Equal(stat.Size(), int64(14))
+	is.Equal(stat.Size(), int64(-1))
 	is.Equal(stat.Sys(), nil)
 	// Stat
 	stat, err = fs.Stat(gen, "bud/view/index.svelte")
@@ -409,7 +408,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Mode(), fs.FileMode(0))
 	is.Equal(stat.IsDir(), false)
 	is.True(stat.ModTime().IsZero())
-	is.Equal(stat.Size(), int64(14))
+	is.Equal(stat.Size(), int64(-1))
 	is.Equal(stat.Sys(), nil)
 	// ReadFile
 	code, err := fs.ReadFile(gen, "bud/view/index.svelte")
@@ -426,7 +425,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Mode(), fs.FileMode(0))
 	is.Equal(stat.IsDir(), false)
 	is.True(stat.ModTime().IsZero())
-	is.Equal(stat.Size(), int64(14))
+	is.Equal(stat.Size(), int64(-1))
 	is.Equal(stat.Sys(), nil)
 	// Stat
 	stat, err = fs.Stat(gen, "bud/view/about/about.svelte")
@@ -435,7 +434,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Mode(), fs.FileMode(0))
 	is.Equal(stat.IsDir(), false)
 	is.True(stat.ModTime().IsZero())
-	is.Equal(stat.Size(), int64(14))
+	is.Equal(stat.Size(), int64(-1))
 	is.Equal(stat.Sys(), nil)
 	// ReadFile
 	code, err = fs.ReadFile(gen, "bud/view/about/about.svelte")
@@ -541,7 +540,7 @@ func TestServeFile(t *testing.T) {
 	is.Equal(stat.Mode(), fs.FileMode(0))
 	is.Equal(stat.IsDir(), false)
 	is.True(stat.ModTime().IsZero())
-	is.Equal(stat.Size(), int64(29))
+	is.Equal(stat.Size(), int64(-1))
 	is.Equal(stat.Sys(), nil)
 	code, err := fs.ReadFile(gen, "bud/view/_index.svelte")
 	is.NoErr(err)
@@ -556,7 +555,7 @@ func TestServeFile(t *testing.T) {
 	is.Equal(stat.Mode(), fs.FileMode(0))
 	is.Equal(stat.IsDir(), false)
 	is.True(stat.ModTime().IsZero())
-	is.Equal(stat.Size(), int64(35))
+	is.Equal(stat.Size(), int64(-1))
 	is.Equal(stat.Sys(), nil)
 	code, err = fs.ReadFile(gen, "bud/view/about/_about.svelte")
 	is.NoErr(err)
@@ -892,7 +891,7 @@ func TestEmbedOpen(t *testing.T) {
 	is.Equal(string(code), `<h1>index</h1>`)
 	stat, err := fs.Stat(gen, "bud/view/index.svelte")
 	is.NoErr(err)
-	is.Equal(stat.ModTime(), time.Time{})
+	is.True(stat.ModTime().IsZero())
 	is.Equal(stat.Mode(), fs.FileMode(0))
 	is.Equal(stat.IsDir(), false)
 
@@ -902,7 +901,7 @@ func TestEmbedOpen(t *testing.T) {
 	is.Equal(string(code), `<h1>about</h1>`)
 	stat, err = fs.Stat(gen, "bud/view/about/about.svelte")
 	is.NoErr(err)
-	is.Equal(stat.ModTime(), time.Time{})
+	is.True(stat.ModTime().IsZero())
 	is.Equal(stat.Mode(), fs.FileMode(0))
 	is.Equal(stat.IsDir(), false)
 
@@ -912,7 +911,7 @@ func TestEmbedOpen(t *testing.T) {
 	is.Equal(string(code), `favicon.ico`)
 	stat, err = fs.Stat(gen, "bud/public/favicon.ico")
 	is.NoErr(err)
-	is.Equal(stat.ModTime(), time.Time{})
+	is.True(stat.ModTime().IsZero())
 	is.Equal(stat.Mode(), fs.FileMode(0))
 	is.Equal(stat.IsDir(), false)
 
@@ -986,7 +985,7 @@ func TestMount(t *testing.T) {
 	is.True(fi.ModTime().IsZero())
 	is.Equal(fi.Mode(), fs.FileMode(0))
 	is.Equal(fi.IsDir(), false)
-	is.Equal(fi.Size(), int64(16))
+	is.Equal(fi.Size(), int64(-1))
 	code, err := fs.ReadFile(gen, "bud/generator/tailwind/tailwind.css")
 	is.NoErr(err)
 	is.Equal(string(code), `/** tailwind **/`)
@@ -1042,18 +1041,6 @@ func TestFileAndDir(t *testing.T) {
 	is.Equal(string(code), "bud/node_modules/runtime/svelte")
 }
 
-func TestReadDirNotExists(t *testing.T) {
-	is := is.New(t)
-	// Add the view
-	gen := genfs.New()
-	gen.GenerateFile("bud/controller/controller.go", func(file *genfs.File) error {
-		return fs.ErrNotExist
-	})
-	des, err := fs.ReadDir(gen, "bud/controller")
-	is.NoErr(err)
-	is.Equal(len(des), 0)
-}
-
 func TestServeFileNative(t *testing.T) {
 	is := is.New(t)
 	gen := genfs.New()
@@ -1074,7 +1061,7 @@ func TestServeFileNative(t *testing.T) {
 	is.Equal(stat.Mode(), fs.FileMode(0))
 	is.Equal(stat.IsDir(), false)
 	is.True(stat.ModTime().IsZero())
-	is.Equal(stat.Size(), int64(29))
+	is.Equal(stat.Size(), int64(-1))
 	is.Equal(stat.Sys(), nil)
 	code, err := fs.ReadFile(gen, "duo/view/_index.svelte")
 	is.NoErr(err)
@@ -1089,9 +1076,42 @@ func TestServeFileNative(t *testing.T) {
 	is.Equal(stat.Mode(), fs.FileMode(0))
 	is.Equal(stat.IsDir(), false)
 	is.True(stat.ModTime().IsZero())
-	is.Equal(stat.Size(), int64(35))
+	is.Equal(stat.Size(), int64(-1))
 	is.Equal(stat.Sys(), nil)
 	code, err = fs.ReadFile(gen, "duo/view/about/_about.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), `duo/view/about/_about.svelte's data`)
+}
+
+func TestStatNoGen(t *testing.T) {
+	is := is.New(t)
+	// Add the view
+	gen := genfs.New()
+	count := 0
+	gen.GenerateFile("bud/controller/controller.go", func(file *genfs.File) error {
+		count++
+		return fs.ErrNotExist
+	})
+	stat, err := fs.Stat(gen, "bud/controller/controller.go")
+	is.NoErr(err)
+	is.Equal(stat.Name(), "controller.go")
+	is.Equal(stat.Mode(), fs.FileMode(0))
+	is.Equal(stat.IsDir(), false)
+	is.True(stat.ModTime().IsZero())
+	is.Equal(stat.Size(), int64(-1))
+	is.Equal(stat.Sys(), nil)
+	is.Equal(count, 0)
+}
+
+func TestReadDirNoGen(t *testing.T) {
+	is := is.New(t)
+	// Add the view
+	gen := genfs.New()
+	gen.GenerateFile("bud/controller/controller.go", func(file *genfs.File) error {
+		return fs.ErrNotExist
+	})
+	// Readdir won't run the generator to know that the file doesn't exist
+	des, err := fs.ReadDir(gen, "bud/controller")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
 }

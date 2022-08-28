@@ -3,7 +3,6 @@ package virtual
 import (
 	"encoding/json"
 	"io/fs"
-	"time"
 )
 
 func MarshalJSON(file fs.File) ([]byte, error) {
@@ -17,32 +16,23 @@ func MarshalJSON(file fs.File) ([]byte, error) {
 type jsonEntry struct {
 	Path    string
 	Data    []byte
-	Mode    fs.FileMode
-	ModTime time.Time
-	Sys     interface{}
 	Entries []*DirEntry
 }
 
 func (f *jsonEntry) Open() fs.File {
-	if f.Mode.IsDir() {
+	if f.Entries != nil {
 		entries := make([]fs.DirEntry, len(f.Entries))
 		for i, entry := range f.Entries {
 			entries[i] = entry
 		}
 		return &Dir{
 			Path:    f.Path,
-			Mode:    f.Mode,
-			ModTime: f.ModTime,
-			Sys:     f.Sys,
 			Entries: entries,
 		}
 	}
 	return &File{
-		Path:    f.Path,
-		Data:    f.Data,
-		Mode:    f.Mode,
-		ModTime: f.ModTime,
-		Sys:     f.Sys,
+		Path: f.Path,
+		Data: f.Data,
 	}
 }
 

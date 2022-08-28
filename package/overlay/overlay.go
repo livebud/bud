@@ -25,14 +25,14 @@ func Load(log log.Interface, module *gomod.Module) (*FileSystem, error) {
 	if err != nil {
 		return nil, err
 	}
-	gfs := genfs.New()
+	gen := genfs.New()
 	cacheFS := cachefs.New(log)
-	merged := mergefs.Merge(cacheFS.Wrap(gfs), pluginFS)
+	merged := mergefs.Merge(cacheFS.Wrap(gen), pluginFS)
 	dag := dag.New()
 	clear := func() {
 		cacheFS.Clear()
 	}
-	return &FileSystem{gfs, dag, merged, module, clear}, nil
+	return &FileSystem{gen, dag, merged, module, clear}, nil
 }
 
 // Serve is just load without the cache
@@ -42,11 +42,11 @@ func Serve(log log.Interface, module *gomod.Module) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	gfs := genfs.New()
-	merged := mergefs.Merge(gfs, pluginFS)
+	gen := genfs.New()
+	merged := mergefs.Merge(gen, pluginFS)
 	dag := dag.New()
 	clear := func() {}
-	return &FileSystem{gfs, dag, merged, module, clear}, nil
+	return &FileSystem{gen, dag, merged, module, clear}, nil
 }
 
 type Server = FileSystem
@@ -57,7 +57,7 @@ type F interface {
 }
 
 type FileSystem struct {
-	gfs    *genfs.FileSystem
+	gen    *genfs.FileSystem
 	dag    *dag.Graph
 	fsys   fs.FS
 	module *gomod.Module
@@ -87,7 +87,7 @@ func (fn GenerateFile) GenerateFile(ctx context.Context, fsys F, file *File) err
 }
 
 func (f *FileSystem) GenerateFile(path string, fn func(ctx context.Context, fsys F, file *File) error) {
-	f.gfs.GenerateFile(path, func(file *genfs.File) error {
+	f.gen.GenerateFile(path, func(file *genfs.File) error {
 		if err := fn(context.TODO(), f, &File{File: file}); err != nil {
 			return err
 		}
@@ -110,7 +110,7 @@ func (fn GenerateDir) GenerateDir(ctx context.Context, fsys F, dir *Dir) error {
 }
 
 func (f *FileSystem) GenerateDir(path string, fn func(ctx context.Context, fsys F, dir *Dir) error) {
-	f.gfs.GenerateDir(path, func(dir *genfs.Dir) error {
+	f.gen.GenerateDir(path, func(dir *genfs.Dir) error {
 		if err := fn(context.TODO(), f, &Dir{f, dir}); err != nil {
 			return err
 		}
@@ -123,7 +123,7 @@ func (f *FileSystem) DirGenerator(path string, generator DirGenerator) {
 }
 
 func (f *FileSystem) ServeFile(path string, fn func(ctx context.Context, fsys F, file *File) error) {
-	f.gfs.ServeFile(path, func(file *genfs.File) error {
+	f.gen.ServeFile(path, func(file *genfs.File) error {
 		return fn(context.TODO(), f, &File{file})
 	})
 }
@@ -141,5 +141,5 @@ func (f *FileSystem) Sync(dir string) error {
 
 // Mount a filesystem to a dir
 func (f *FileSystem) Mount(dir string, fsys fs.FS) {
-	f.gfs.Mount(dir, fsys)
+	f.gen.Mount(dir, fsys)
 }

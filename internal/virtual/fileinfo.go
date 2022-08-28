@@ -6,20 +6,30 @@ import (
 	"time"
 )
 
-// A fileInfo implements fs.FileInfo and fs.DirEntry for a given map file.
-type fileInfo struct {
-	path    string
-	size    int64
-	mode    fs.FileMode
-	modTime time.Time
-	sys     interface{}
+// FileInfo implements fs.FileInfo and fs.DirEntry for a given map file.
+type FileInfo struct {
+	Path    string
+	ModeDir bool
 }
 
-func (i *fileInfo) Name() string               { return path.Base(i.path) }
-func (i *fileInfo) Mode() fs.FileMode          { return i.mode }
-func (i *fileInfo) Type() fs.FileMode          { return i.mode.Type() }
-func (i *fileInfo) ModTime() time.Time         { return i.modTime }
-func (i *fileInfo) IsDir() bool                { return i.mode&fs.ModeDir != 0 }
-func (i *fileInfo) Sys() interface{}           { return i.sys }
-func (i *fileInfo) Info() (fs.FileInfo, error) { return i, nil }
-func (i *fileInfo) Size() int64                { return i.size }
+var _ fs.FileInfo = (*FileInfo)(nil)
+var _ fs.DirEntry = (*FileInfo)(nil)
+
+var zero time.Time
+
+const unknownSize = -1
+
+func (i *FileInfo) Name() string               { return path.Base(i.Path) }
+func (i *FileInfo) Type() fs.FileMode          { return i.Mode() }
+func (i *FileInfo) ModTime() time.Time         { return zero }
+func (i *FileInfo) IsDir() bool                { return i.ModeDir }
+func (i *FileInfo) Sys() interface{}           { return nil }
+func (i *FileInfo) Info() (fs.FileInfo, error) { return i, nil }
+func (i *FileInfo) Size() int64                { return unknownSize }
+
+func (i *FileInfo) Mode() fs.FileMode {
+	if i.ModeDir {
+		return fs.ModeDir
+	}
+	return 0
+}

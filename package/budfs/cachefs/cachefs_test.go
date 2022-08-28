@@ -9,6 +9,7 @@ import (
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/virtual"
 	"github.com/livebud/bud/package/budfs/cachefs"
+	"github.com/livebud/bud/package/budfs/genfs"
 	"github.com/livebud/bud/package/budfs/mergefs"
 	"github.com/livebud/bud/package/log/testlog"
 )
@@ -92,4 +93,25 @@ func TestTransparent(t *testing.T) {
 	bcfs := c2.Wrap(bfs)
 	cmerge := mergefs.Merge(acfs, bcfs)
 	is.NoErr(fstest.TestFS(cmerge, "a.txt", "b.txt"))
+}
+
+func TestFillerCaching(t *testing.T) {
+	is := is.New(t)
+	log := testlog.New()
+	gen := genfs.New()
+	count := 0
+	gen.GenerateFile("public/public.go", func(f *genfs.File) error {
+		count++
+		f.Data = []byte("public data")
+		return nil
+	})
+	cache := cachefs.New(log)
+	gencache := cache.Wrap(gen)
+	des, err := fs.ReadDir(gencache, "public")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
+	des, err = fs.ReadDir(gencache, "public")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
+	is.Equal(count, 0)
 }

@@ -1,16 +1,13 @@
 package virtual
 
 import (
+	"encoding/json"
 	"io"
 	"io/fs"
-	"time"
 )
 
 type Dir struct {
 	Path    string
-	Mode    fs.FileMode
-	ModTime time.Time
-	Sys     interface{}
 	Entries []fs.DirEntry
 	offset  int
 }
@@ -19,16 +16,24 @@ var _ fs.ReadDirFile = (*Dir)(nil)
 var _ fs.File = (*Dir)(nil)
 var _ Entry = (*Dir)(nil)
 
+func (d *Dir) MarshalJSON() ([]byte, error) {
+	type localType Dir
+	// Ensure entries is always set on dir because it's used to differentiate
+	// between files and directories.
+	if d.Entries == nil {
+		d.Entries = []fs.DirEntry{}
+	}
+	return json.Marshal(localType(*d))
+}
+
 func (d *Dir) Close() error {
 	return nil
 }
 
 func (d *Dir) Stat() (fs.FileInfo, error) {
-	return &fileInfo{
-		path:    d.Path,
-		mode:    d.Mode | fs.ModeDir,
-		modTime: d.ModTime,
-		sys:     d.Sys,
+	return &FileInfo{
+		Path:    d.Path,
+		ModeDir: true,
 	}, nil
 }
 
@@ -55,9 +60,6 @@ func (d *Dir) ReadDir(count int) ([]fs.DirEntry, error) {
 func (d *Dir) Open() fs.File {
 	return &Dir{
 		Path:    d.Path,
-		Mode:    d.Mode,
-		ModTime: d.ModTime,
-		Sys:     d.Sys,
 		Entries: d.Entries,
 		offset:  0, // reset offset
 	}

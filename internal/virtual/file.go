@@ -3,17 +3,13 @@ package virtual
 import (
 	"io"
 	"io/fs"
-	"time"
 )
 
 // File struct
 type File struct {
-	Path    string
-	Data    []byte
-	Mode    fs.FileMode
-	ModTime time.Time
-	Sys     interface{}
-	offset  int64
+	Path   string
+	Data   []byte
+	offset int64
 }
 
 var _ io.ReadSeeker = (*File)(nil)
@@ -37,12 +33,9 @@ func (f *File) Read(b []byte) (int, error) {
 }
 
 func (f *File) Stat() (fs.FileInfo, error) {
-	return &fileInfo{
-		path:    f.Path,
-		mode:    f.Mode &^ fs.ModeDir,
-		modTime: f.ModTime,
-		size:    int64(len(f.Data)),
-		sys:     f.Sys,
+	return &FileInfo{
+		Path:    f.Path,
+		ModeDir: false,
 	}, nil
 }
 
@@ -64,11 +57,8 @@ func (f *File) Seek(offset int64, whence int) (int64, error) {
 
 func (f *File) Open() fs.File {
 	return &File{
-		Path:    f.Path,
-		Data:    f.Data,
-		Mode:    f.Mode,
-		ModTime: f.ModTime,
-		Sys:     f.Sys,
-		offset:  0, // reset offset
+		Path:   f.Path,
+		Data:   f.Data,
+		offset: 0, // reset offset
 	}
 }

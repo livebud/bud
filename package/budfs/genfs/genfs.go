@@ -37,11 +37,21 @@ type FileSystem struct {
 	*dir
 }
 
+var _ fs.FS = (*FileSystem)(nil)
+var _ fs.StatFS = (*FileSystem)(nil)
+
 func (f *FileSystem) Open(target string) (fs.File, error) {
 	if !fs.ValidPath(target) {
 		return nil, formatError(fs.ErrInvalid, "invalid target path %q", target)
 	}
 	return f.dir.open(target)
+}
+
+func (f *FileSystem) Stat(target string) (fs.FileInfo, error) {
+	if !fs.ValidPath(target) {
+		return nil, formatError(fs.ErrInvalid, "invalid target path %q", target)
+	}
+	return f.dir.stat(target)
 }
 
 type dir struct {
@@ -99,6 +109,7 @@ func (f *File) Mode() fs.FileMode {
 	return f.mode
 }
 
+// Open the target entry
 func (d *dir) open(target string) (fs.File, error) {
 	// Find the closest match in the tree
 	node, prefix, ok := d.node.FindByPrefix(target)
@@ -112,6 +123,23 @@ func (d *dir) open(target string) (fs.File, error) {
 	// Run the generators
 	relPath := relativePath(prefix, target)
 	return node.Generate(relPath)
+}
+
+// Stat the target without calling generate
+func (d *dir) stat(target string) (fs.FileInfo, error) {
+	// Find the closest match in the tree
+	node, prefix, ok := d.node.FindByPrefix(target)
+	if !ok {
+		return nil, formatError(fs.ErrNotExist, "%q target not found in %q node", target, d.node.Path())
+	}
+	// Target must be an exact match for stat to succeed.
+	if prefix != target && node.Mode().IsRegular() {
+		return nil, formatError(fs.ErrNotExist, "genfs: stat %q must be an exactly match the target %q", d.node.Path(), target)
+	}
+	return &virtual.FileInfo{
+		Path:    target,
+		ModeDir: node.Mode().IsDir(),
+	}, nil
 }
 
 type fileGenerator struct {
@@ -129,7 +157,6 @@ func (g *fileGenerator) Generate(target string) (fs.File, error) {
 	}
 	return &virtual.File{
 		Path: file.Path(),
-		Mode: file.Mode(),
 		Data: file.Data,
 	}, nil
 }
@@ -183,7 +210,6 @@ func (g *dirGenerator) Generate(target string) (fs.File, error) {
 		}
 		return &virtual.Dir{
 			Path:    g.node.Path(),
-			Mode:    g.node.Mode(),
 			Entries: entries,
 		}, nil
 	}
@@ -238,7 +264,6 @@ func (g *fileServer) Generate(target string) (fs.File, error) {
 	}
 	return &virtual.File{
 		Path: file.Path(),
-		Mode: file.Mode(),
 		Data: file.Data,
 	}, nil
 }

@@ -6,7 +6,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/livebud/bud/package/log/testlog"
 
@@ -143,9 +142,9 @@ func TestOpen(t *testing.T) {
 	stat, err := file.Stat()
 	is.NoErr(err)
 	is.Equal(stat.Name(), "_index.svelte.js")
-	is.Equal(stat.Size(), int64(3690))
+	is.Equal(stat.Size(), int64(-1))
 	is.Equal(stat.Mode(), os.FileMode(0))
-	is.Equal(stat.ModTime(), time.Time{})
+	is.True(stat.ModTime().IsZero())
 	is.Equal(stat.IsDir(), false)
 	is.Equal(stat.Sys(), nil)
 
@@ -156,9 +155,9 @@ func TestOpen(t *testing.T) {
 	stat, err = file.Stat()
 	is.NoErr(err)
 	is.Equal(stat.Name(), "index.svelte")
-	is.Equal(stat.Size(), int64(3124))
+	is.Equal(stat.Size(), int64(-1))
 	is.Equal(stat.Mode(), os.FileMode(0))
-	is.Equal(stat.ModTime(), time.Time{})
+	is.True(stat.ModTime().IsZero())
 	is.Equal(stat.IsDir(), false)
 	is.Equal(stat.Sys(), nil)
 
@@ -169,9 +168,9 @@ func TestOpen(t *testing.T) {
 	stat, err = file.Stat()
 	is.NoErr(err)
 	is.Equal(stat.Name(), "internal")
-	is.Equal(stat.Size(), int64(56452))
+	is.Equal(stat.Size(), int64(-1))
 	is.Equal(stat.Mode(), os.FileMode(0))
-	is.Equal(stat.ModTime(), time.Time{})
+	is.True(stat.ModTime().IsZero())
 	is.Equal(stat.IsDir(), false)
 	is.Equal(stat.Sys(), nil)
 }

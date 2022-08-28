@@ -32,22 +32,14 @@ func (s *Service) Open(path string, vfile *fs.File) error {
 		}
 		entries := make([]fs.DirEntry, len(des))
 		for i, de := range des {
-			fi, err := de.Info()
-			if err != nil {
-				return err
-			}
 			entries[i] = &virtual.DirEntry{
 				Path:    de.Name(),
-				Mode:    de.Type(),
-				ModTime: fi.ModTime(),
-				Size:    fi.Size(),
+				ModeDir: de.IsDir(),
 			}
 		}
 		// Return a directory
 		*vfile = &virtual.Dir{
 			Path:    path,
-			ModTime: stat.ModTime(),
-			Mode:    stat.Mode(),
 			Entries: entries,
 		}
 		return nil
@@ -57,10 +49,8 @@ func (s *Service) Open(path string, vfile *fs.File) error {
 		return err
 	}
 	*vfile = &virtual.File{
-		Path:    path,
-		Data:    data,
-		ModTime: stat.ModTime(),
-		Mode:    stat.Mode(),
+		Path: path,
+		Data: data,
 	}
 	return nil
 }
@@ -71,16 +61,9 @@ func (s *Service) ReadDir(name string, vdes *[]fs.DirEntry) error {
 		return err
 	}
 	for _, de := range des {
-		stat, err := de.Info()
-		if err != nil {
-			return err
-		}
 		*vdes = append(*vdes, &virtual.DirEntry{
 			Path:    de.Name(),
-			Mode:    stat.Mode(),
-			ModTime: stat.ModTime(),
-			Sys:     stat.Sys(),
-			Size:    stat.Size(),
+			ModeDir: de.IsDir(),
 		})
 	}
 	return nil
