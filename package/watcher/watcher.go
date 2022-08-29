@@ -18,6 +18,9 @@ import (
 	"github.com/livebud/bud/internal/gitignore"
 )
 
+// Stop informs the watcher to stop.
+//
+//lint:ignore ST1012 stop is not an error, it's part of the control flow.
 var Stop = errors.New("stop watching")
 
 // Arbitrarily picked after some manual testing. OSX is pretty fast, but Ubuntu

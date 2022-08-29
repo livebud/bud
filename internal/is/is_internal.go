@@ -48,6 +48,7 @@ type I struct {
 
 func (is *I) log(args ...interface{}) {
 	s := is.decorate(fmt.Sprint(args...))
+	//lint:ignore SA1006 - s can be a formatted string
 	fmt.Fprintf(is.writer, s)
 	is.fail()
 }

@@ -77,6 +77,9 @@ go.vet:
 go.fmt:
 	@ test -z "$(shell go fmt $(GO_SOURCE))"
 
+go.staticcheck:
+	@ go run honnef.co/go/tools/cmd/staticcheck $(GO_SOURCE)
+
 go.install:
 	@ go build --trimpath \
 		--ldflags="-s -w \
@@ -169,8 +172,8 @@ budjs.test:
 ##
 
 test: test.dev
-test.dev: go.tools go.generate go.fmt go.vet budjs.check budjs.test go.test
-test.all: go.tools go.generate go.vet budjs.check budjs.test go.test
+test.dev: go.tools go.generate go.fmt go.vet go.staticcheck budjs.check budjs.test go.test
+test.all: go.tools go.generate go.vet go.staticcheck budjs.check budjs.test go.test
 
 ##
 # CI
