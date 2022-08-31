@@ -105,7 +105,7 @@ func (l *loader) loadDefaults() (files []*embed.File) {
 		}
 		files = append(files, &embed.File{
 			Path: "public/default.css",
-			Data: []byte(embedded.DefaultCss("")),
+			Data: embedded.EmptyCss(),
 		})
 	}
 	return files

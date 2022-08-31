@@ -8,18 +8,19 @@ import (
 var favicon []byte
 
 //go:embed normalize.css
-var normalize string
+var normalize []byte
 
 // Favicon returns the favicon data
 func Favicon() []byte {
 	return favicon
 }
 
-// DefaultCss returns the default css data
-func DefaultCss(css string) string {
-	switch css {
-	case "normalize":
-		return normalize
-	}
-	return "/* No Default CSS Loaded */"
+// NormalizeCss returns the normalize css data
+func NormalizeCss() []byte {
+	return normalize
+}
+
+// EmptyCss reset the default css data
+func EmptyCss() []byte {
+	return []byte("/* No Default CSS Loaded */")
 }

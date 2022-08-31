@@ -161,7 +161,7 @@ func (c *Command) Scaffold(state *State) error {
 	if err := scaffold.Scaffold(scaffold.OSFS(c.absDir),
 		scaffold.Template("go.mod", gomod, state.Module),
 		scaffold.Template(".gitignore", gitignore, nil),
-		scaffold.Template("public/default.css", embedded.DefaultCss(c.Css), nil),
+		scaffold.Template("public/default.css", string(embedded.NormalizeCss()), nil),
 		scaffold.JSON("package.json", state.Package),
 	); err != nil {
 		return err
