@@ -16,8 +16,8 @@ func (f *fillerDir) Generate(target string) (fs.File, error) {
 	path := f.node.Path()
 	// Filler directories must be exact matches with the target, otherwise we'll
 	// create files that aren't supposed to exist.
-	if target != "." {
-		return nil, fmt.Errorf("treefs: path doesn't match target in filler directory %s != %s. %w", path, target, fs.ErrNotExist)
+	if target != path {
+		return nil, fmt.Errorf("treefs: path doesn't match target in filler directory %s != %s", path, target)
 	}
 	children := f.node.Children()
 	var entries []fs.DirEntry
@@ -63,7 +63,7 @@ func (e *dirEntry) Info() (fs.FileInfo, error) {
 	if value == nil {
 		value = &fillerDir{e.node}
 	}
-	file, err := value.Generate(".")
+	file, err := value.Generate(e.node.Path())
 	if err != nil {
 		return nil, err
 	}

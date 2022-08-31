@@ -3,7 +3,6 @@ package genfs
 import (
 	"fmt"
 	"io/fs"
-	"path"
 	"strings"
 
 	"github.com/livebud/bud/internal/virtual"
@@ -66,7 +65,7 @@ func (d *dir) FileServer(path string, generator FileGenerator) {
 
 func (d *dir) Mount(path string, fsys fs.FS) {
 	d.node.InsertDir(path, Generate(func(target string) (fs.File, error) {
-		return fsys.Open(target)
+		return fsys.Open(relativePath(path, target))
 	}))
 }
 
@@ -100,18 +99,32 @@ func (f *File) Mode() fs.FileMode {
 }
 
 func (d *dir) open(target string) (fs.File, error) {
+	// When targeting directories directly, they are simply a virtual dirs
+	rel := relativePath(d.node.Path(), target)
+	if rel == "." {
+		children := d.node.Children()
+		entries := make([]fs.DirEntry, len(children))
+		for i, child := range children {
+			entries[i] = child.Entry()
+		}
+		return &virtual.Dir{
+			Path:    d.node.Path(),
+			Mode:    d.node.Mode(),
+			Entries: entries,
+		}, nil
+	}
 	// Find the closest match in the tree
-	node, prefix, ok := d.node.FindByPrefix(target)
+	node, _, ok := d.node.FindByPrefix(rel)
 	if !ok {
 		return nil, formatError(fs.ErrNotExist, "%q target not found in %q node", target, d.node.Path())
 	}
 	// File matches that aren't exact are not allowed.
-	if prefix != target && node.Mode().IsRegular() {
+	if node.Path() != target && node.Mode().IsRegular() {
+		// fmt.Println(node.Path(), prefix, target, rel)
 		return nil, formatError(fs.ErrNotExist, "%q file generator doesn't match %q target", d.node.Path(), target)
 	}
 	// Run the generators
-	relPath := relativePath(prefix, target)
-	return node.Generate(relPath)
+	return node.Generate(target)
 }
 
 type fileGenerator struct {
@@ -153,7 +166,7 @@ func (d *Dir) Mode() fs.FileMode {
 }
 
 func (d *Dir) Target() string {
-	return path.Join(d.Path(), d.target)
+	return d.target
 }
 
 func (d *Dir) Relative() string {
@@ -172,23 +185,8 @@ func (g *dirGenerator) Generate(target string) (fs.File, error) {
 	if err := g.generate(dir); err != nil {
 		return nil, err
 	}
-	// When targeting directory generators directly, they are simply a virtual
-	// directory that contains sub-generators.
-	rel := relativePath(g.node.Path(), target)
-	if rel == "." {
-		children := g.node.Children()
-		entries := make([]fs.DirEntry, len(children))
-		for i, child := range children {
-			entries[i] = child.Entry()
-		}
-		return &virtual.Dir{
-			Path:    g.node.Path(),
-			Mode:    g.node.Mode(),
-			Entries: entries,
-		}, nil
-	}
-	// Progress towards the target with the new branches in the child
-	return dir.open(rel)
+
+	return dir.open(target)
 }
 
 func relativePath(base, target string) string {
@@ -222,7 +220,8 @@ type fileServer struct {
 }
 
 func (g *fileServer) Generate(target string) (fs.File, error) {
-	if target == "." {
+	rel := relativePath(g.node.Path(), target)
+	if rel == "." {
 		return nil, &fs.PathError{
 			Op:   "open",
 			Path: g.node.Path(),
@@ -230,15 +229,15 @@ func (g *fileServer) Generate(target string) (fs.File, error) {
 		}
 	}
 	file := &File{
-		path: path.Join(g.node.Path(), target),
+		path: target,
 		mode: fs.FileMode(0),
 	}
 	if err := g.generate(file); err != nil {
 		return nil, formatError(err, "error serving file %q", file.Path())
 	}
 	return &virtual.File{
-		Path: file.Path(),
-		Mode: file.Mode(),
+		Path: file.path,
+		Mode: file.mode,
 		Data: file.Data,
 	}, nil
 }

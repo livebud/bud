@@ -14,6 +14,9 @@ import (
 	"testing/fstest"
 	"time"
 
+	"github.com/livebud/bud/package/vfs"
+
+	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/budfs/genfs"
 	"github.com/livebud/bud/package/budfs/mergefs"
@@ -535,6 +538,9 @@ func TestServeFile(t *testing.T) {
 	// _index.svelte
 	file, err := gen.Open("bud/view/_index.svelte")
 	is.NoErr(err)
+	code, err := fs.ReadFile(gen, "bud/view/_index.svelte")
+	is.NoErr(err)
+	is.Equal(string(code), `bud/view/_index.svelte's data`)
 	stat, err := file.Stat()
 	is.NoErr(err)
 	is.Equal(stat.Name(), "_index.svelte")
@@ -543,9 +549,6 @@ func TestServeFile(t *testing.T) {
 	is.True(stat.ModTime().IsZero())
 	is.Equal(stat.Size(), int64(29))
 	is.Equal(stat.Sys(), nil)
-	code, err := fs.ReadFile(gen, "bud/view/_index.svelte")
-	is.NoErr(err)
-	is.Equal(string(code), `bud/view/_index.svelte's data`)
 
 	// about/_about.svelte
 	file, err = gen.Open("bud/view/about/_about.svelte")
@@ -1068,6 +1071,9 @@ func TestServeFileNative(t *testing.T) {
 	// _index.svelte
 	file, err := gen.Open("duo/view/_index.svelte")
 	is.NoErr(err)
+	code, err := fs.ReadFile(gen, "duo/view/_index.svelte")
+	is.NoErr(err)
+	is.Equal(string(code), `duo/view/_index.svelte's data`)
 	stat, err := file.Stat()
 	is.NoErr(err)
 	is.Equal(stat.Name(), "_index.svelte")
@@ -1076,9 +1082,6 @@ func TestServeFileNative(t *testing.T) {
 	is.True(stat.ModTime().IsZero())
 	is.Equal(stat.Size(), int64(29))
 	is.Equal(stat.Sys(), nil)
-	code, err := fs.ReadFile(gen, "duo/view/_index.svelte")
-	is.NoErr(err)
-	is.Equal(string(code), `duo/view/_index.svelte's data`)
 
 	// about/_about.svelte
 	file, err = gen.Open("duo/view/about/_about.svelte")
@@ -1094,4 +1097,22 @@ func TestServeFileNative(t *testing.T) {
 	code, err = fs.ReadFile(gen, "duo/view/about/_about.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), `duo/view/about/_about.svelte's data`)
+}
+
+func TestCaching(t *testing.T) {
+	is := is.New(t)
+	gen := genfs.New()
+	count := 0
+	gen.GenerateFile("bud/public/public.go", func(file *genfs.File) error {
+		count++
+		file.Data = []byte("public")
+		return nil
+	})
+	tfs := vfs.Map{}
+	err := dsync.Dir(gen, ".", tfs, ".")
+	is.NoErr(err)
+	code, err := fs.ReadFile(gen, "bud/public/public.go")
+	is.NoErr(err)
+	is.Equal(string(code), "public")
+	is.Equal(count, 1)
 }
