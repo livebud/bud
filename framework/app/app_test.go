@@ -48,7 +48,7 @@ func TestOneUpPort(t *testing.T) {
 	is.NoErr(err)
 	_, err = app.Get("/")
 	is.NoErr(err)
-	req, err := http.NewRequest("GET", "http://localhost:3000/", nil)
+	req, err := http.NewRequest("GET", "http://localhost:3001/", nil)
 	is.NoErr(err)
 	res, err := http.DefaultClient.Do(req)
 	is.NoErr(err)
