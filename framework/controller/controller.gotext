@@ -72,7 +72,7 @@ func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpRes
 	// validate input
 	{{- if $action.HasCustomValidation }}
 	// single input struct has validate method
-	if err := in.Validate(); err != nil {
+	if err := in.Valid(); err != nil {
 		return &response.Format{
 			{{- if ne $action.Method "GET" }}
 			HTML: response.Status(http.StatusSeeOther).RedirectBack(httpRequest.URL.Path),

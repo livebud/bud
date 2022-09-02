@@ -2806,7 +2806,7 @@ func TestInputValidateMethod(t *testing.T) {
 		import "errors"
 		type Controller struct{}
 		type Input struct{}
-		func (in *Input) Validate() error {
+		func (in *Input) Valid() error {
 			return errors.New("")
 		}
 		func (c *Controller) Index(in *Input) []string {

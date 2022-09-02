@@ -65,7 +65,7 @@ func (a *Action) HasSingleInput() bool {
 }
 
 func (a *Action) HasCustomValidation() bool {
-	if a.HasSingleInput() && a.Params[0].HasValidate {
+	if a.HasSingleInput() && a.Params[0].HasValidMethod {
 		return true
 	} else {
 		return false
