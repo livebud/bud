@@ -348,6 +348,7 @@ func TestTrueOk(t *testing.T) {
 	out := new(bytes.Buffer)
 	is.writer = out
 	is.colorful = false
+	//lint:ignore SA4000 this is a test
 	is.True(1 == 1)
 	if m.failed {
 		t.Fatalf(`expected no failure`)
@@ -363,11 +364,12 @@ func TestTrueMessage(t *testing.T) {
 	out := new(bytes.Buffer)
 	is.writer = out
 	is.colorful = false
+	//lint:ignore SA4000 this is a test
 	is.True(1 != 1, "expected %d and %d to be equal", 1, 1)
 	if !m.failed {
 		t.Fatalf(`expected is.True to fail`)
 	}
-	expect := "is_test.go:366: not true: 1 != 1. expected 1 and 1 to be equal\n"
+	expect := "is_test.go:368: not true: 1 != 1. expected 1 and 1 to be equal\n"
 	if out.String() != expect {
 		t.Fatalf("expected %q, got %q", expect, out)
 	}
@@ -383,7 +385,7 @@ func TestInMessage(t *testing.T) {
 	if !m.failed {
 		t.Fatalf(`expected is.In to fail`)
 	}
-	expect := "is_test.go:382: hi not in hello. hello doesn't contain hi\n"
+	expect := "is_test.go:384: hi not in hello. hello doesn't contain hi\n"
 	if out.String() != expect {
 		t.Fatalf("expected %q, got %q", expect, out)
 	}
@@ -399,7 +401,7 @@ func TestFail(t *testing.T) {
 	if !m.failed {
 		t.Fatalf(`expected is.Fail to fail`)
 	}
-	expect := "is_test.go:398: failed\n"
+	expect := "is_test.go:400: failed\n"
 	if out.String() != expect {
 		t.Fatalf("expected %q, got %q", expect, out)
 	}
@@ -415,7 +417,7 @@ func TestFailMessage(t *testing.T) {
 	if !m.failed {
 		t.Fatalf(`expected is.Fail to fail`)
 	}
-	expect := "is_test.go:414: failed. context from \"component\" should have exited\n"
+	expect := "is_test.go:416: failed. context from \"component\" should have exited\n"
 	if out.String() != expect {
 		t.Fatalf("expected %q, got %q", expect, out)
 	}

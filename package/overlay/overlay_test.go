@@ -22,7 +22,7 @@ func TestPlugins(t *testing.T) {
 	log := testlog.New()
 	dir := t.TempDir()
 	td := testdir.New(dir)
-	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.8"
+	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.9"
 	td.Modules["github.com/livebud/bud-test-nested-plugin"] = "v0.0.5"
 	err := td.Write(ctx)
 	is.NoErr(err)

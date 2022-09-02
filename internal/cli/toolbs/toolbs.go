@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/livebud/bud/framework/web/webrt"
-	"github.com/livebud/bud/package/budserver"
+	"github.com/livebud/bud/package/budhttp/budsvr"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/socket"
 
@@ -46,7 +46,7 @@ func (c *Command) Run(ctx context.Context) error {
 		return err
 	}
 	bus := pubsub.New()
-	server := budserver.New(servefs, bus, log, vm)
+	server := budsvr.New(servefs, bus, log, vm)
 	budln, err := socket.Listen(":35729")
 	if err != nil {
 		return err

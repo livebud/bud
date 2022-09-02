@@ -98,8 +98,7 @@ func (s *StructField) Find(finder Finder) (Declaration, error) {
 // Given the following dependency: Web, tryStruct will match on the
 // following functions:
 //
-//   type Web struct { ... }
-//
+//	type Web struct { ... }
 func tryStruct(stct *parser.Struct, dataType string) (*Struct, error) {
 	if stct.Private() {
 		return nil, ErrNoMatch

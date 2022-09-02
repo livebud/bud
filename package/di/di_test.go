@@ -3,7 +3,6 @@ package di_test
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -81,7 +80,7 @@ func runTest(t testing.TB, test Test) {
 	err = os.MkdirAll(targetDir, 0755)
 	is.NoErr(err)
 	outPath := filepath.Join(targetDir, "di.go")
-	err = ioutil.WriteFile(outPath, []byte(code), 0644)
+	err = os.WriteFile(outPath, []byte(code), 0644)
 	is.NoErr(err)
 	stdout, err := goRun(ctx, modCache.Directory(), appDir)
 	is.NoErr(err)

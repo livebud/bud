@@ -31,6 +31,7 @@ func TestCreateOutsideGoPath(t *testing.T) {
 	cli := testcli.New(dir)
 	is.NoErr(td.NotExists(".gitignore"))
 	result, err := cli.Run(ctx, "create", dir)
+	is.NoErr(err)
 	is.Equal(result.Stdout(), "")
 	is.Equal(result.Stderr(), "")
 	is.Equal(fileFirstLine(filepath.Join(dir, "go.mod")), "module change.me\n")

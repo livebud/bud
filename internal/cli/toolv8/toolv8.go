@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	v8 "github.com/livebud/bud/package/js/v8"
 )
@@ -37,7 +36,7 @@ func (c *Command) Run(ctx context.Context) error {
 }
 
 func (c *Command) getScript() (string, error) {
-	code, err := ioutil.ReadAll(c.Stdin)
+	code, err := io.ReadAll(c.Stdin)
 	if err != nil {
 		return "", err
 	}

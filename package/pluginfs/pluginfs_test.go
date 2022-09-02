@@ -18,7 +18,7 @@ func TestMergeModules(t *testing.T) {
 	dir := t.TempDir()
 	td := testdir.New(dir)
 	td.Files["public/normalize.css"] = `/* normalize */`
-	td.Modules["github.com/livebud/bud-test-plugin"] = `v0.0.8`
+	td.Modules["github.com/livebud/bud-test-plugin"] = `v0.0.9`
 	err := td.Write(ctx)
 	is.NoErr(err)
 
@@ -29,14 +29,14 @@ func TestMergeModules(t *testing.T) {
 
 	des, err := fs.ReadDir(pfs, "public")
 	is.NoErr(err)
-	is.Equal(len(des), 2)
+	is.Equal(len(des), 3)
 
 	// normalize.css
-	is.Equal(des[0].Name(), "normalize.css")
-	is.Equal(des[0].IsDir(), false)
+	is.Equal(des[1].Name(), "normalize.css")
+	is.Equal(des[1].IsDir(), false)
 	// TODO: see if we can fix the FileMode
-	is.Equal(des[0].Type(), fs.FileMode(0))
-	fi, err := des[0].Info()
+	is.Equal(des[1].Type(), fs.FileMode(0))
+	fi, err := des[1].Info()
 	is.NoErr(err)
 	is.Equal(fi.IsDir(), false)
 	is.True(!fi.ModTime().IsZero())
@@ -57,11 +57,11 @@ func TestMergeModules(t *testing.T) {
 	is.Equal(string(code), `/* normalize */`)
 
 	// tailwind
-	is.Equal(des[1].Name(), "tailwind")
-	is.Equal(des[1].IsDir(), true)
+	is.Equal(des[2].Name(), "tailwind")
+	is.Equal(des[2].IsDir(), true)
 	// TODO: see if we can fix the FileMode
-	is.Equal(des[1].Type(), fs.FileMode(fs.ModeDir))
-	fi, err = des[1].Info()
+	is.Equal(des[2].Type(), fs.FileMode(fs.ModeDir))
+	fi, err = des[2].Info()
 	is.NoErr(err)
 	is.Equal(fi.IsDir(), true)
 	is.True(!fi.ModTime().IsZero())

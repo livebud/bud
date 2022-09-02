@@ -2,7 +2,6 @@ package welcome
 
 import (
 	"embed"
-	_ "embed"
 	"io/fs"
 	"net/http"
 
@@ -11,6 +10,7 @@ import (
 
 // Files are built in https://github.com/livebud/welcome and manually copied
 // over.
+//
 //go:embed build/index.html build/bud/view/_index.svelte.js
 var embeds embed.FS
 

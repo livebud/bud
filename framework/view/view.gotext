@@ -14,18 +14,18 @@ import (
 
 {{- if not $.Flag.Embed }}
 // Load the view server. Files are linked rather than embedded.
-func Load(client budclient.Client) Server {
-	return viewrt.Proxy(client)
+func Load(client budhttp.Client, log log.Interface) Server {
+	return viewrt.Proxy(client, log)
 }
 {{ else }}
 // New view server. Files are embedded rather than linked.
-func New(module *mod.Module, fsys *overlay.FileSystem, vm js.VM) Server {
+func New(module *mod.Module, fsys *overlay.FileSystem, log log.Interface, vm js.VM) Server {
 	{{- range $embed := $.Embeds }}
 	fsys.FileGenerator(`{{ $embed.Path }}`, &overlay.Embed{
 		{{ if $embed.Data }}Data: []byte("{{ $embed.Data }}"),{{ end }}
 	})
 	{{- end }}
-	return viewrt.Static(fsys, vm, func(path string, props interface{}) interface{} {
+	return viewrt.Static(fsys, log, vm, func(path string, props interface{}) interface{} {
 		return props
 	})
 }

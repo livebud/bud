@@ -130,5 +130,5 @@ func absolute(dir string) (abs string, err error) {
 		}
 		return absolute(filepath.Dir(dir))
 	}
-	return dir, nil
+	return filepath.EvalSymlinks(dir)
 }

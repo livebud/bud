@@ -73,15 +73,15 @@ type Command struct {
 
 // Run a custom command
 // TODO: finish supporting custom commands
-// 1. Compile
-//   a. Generate generator (later!)
-//   	 i. Generate bud/internal/generator
+//  1. Compile
+//     a. Generate generator (later!)
+//     i. Generate bud/internal/generator
 //     ii. Build bud/generator
 //     iii. Run bud/generator
-//   b. Generate custom command
+//     b. Generate custom command
 //     i. Generate bud/internal/command/${name}/
 //     ii. Build bud/command/${name}
-// 2. Run bud/command/${name}
+//  2. Run bud/command/${name}
 func (c *Command) Run(ctx context.Context) error {
 	return commander.Usage()
 }
