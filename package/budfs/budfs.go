@@ -11,18 +11,18 @@ import (
 	"github.com/livebud/bud/internal/dag"
 	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/once"
-	"github.com/livebud/bud/package/budfs/cachefs"
+	"github.com/livebud/bud/internal/virtual"
+	"github.com/livebud/bud/internal/virtual/vcache"
 	"github.com/livebud/bud/package/budfs/genfs"
 	"github.com/livebud/bud/package/budfs/mergefs"
 	"github.com/livebud/bud/package/log"
 )
 
-func New(fsys vfs.ReadWritable, log log.Interface) *FileSystem {
-	gen := genfs.New()
-	cache := cachefs.New(log)
+func New(cache vcache.Cache, fsys vfs.ReadWritable, log log.Interface) *FileSystem {
+	gen := genfs.New(cache)
 	merged := mergefs.Merge(gen, fsys)
-	syncfs := cache.Wrap(merged)
 	server := http.FileServer(http.FS(merged))
+	syncfs := wrapFS(cache, merged, log)
 	return &FileSystem{
 		cache:  cache,
 		closer: new(once.Closer),
@@ -36,7 +36,7 @@ func New(fsys vfs.ReadWritable, log log.Interface) *FileSystem {
 }
 
 type FileSystem struct {
-	cache  *cachefs.Cache
+	cache  vcache.Cache
 	closer *once.Closer
 	dag    *dag.Graph
 	gen    *genfs.FileSystem
@@ -236,4 +236,26 @@ func (f *FileSystem) Delete(filepath string) {
 	for _, ancestor := range f.dag.Ancestors(dir) {
 		f.cache.Delete(ancestor)
 	}
+}
+
+// wrapFS wraps a filesystem with a cache
+func wrapFS(c vcache.Cache, fsys fs.FS, log log.Interface) fs.FS {
+	return virtual.Opener(func(name string) (fs.File, error) {
+		entry, ok := c.Get(name)
+		if ok {
+			log.Debug("cachefs: cache hit", "file", name)
+			return entry.Open(), nil
+		}
+		log.Debug("cachefs: cache miss", "file", name)
+		file, err := fsys.Open(name)
+		if err != nil {
+			return nil, err
+		}
+		entry, err = virtual.From(file)
+		if err != nil {
+			return nil, err
+		}
+		c.Set(name, entry)
+		return entry.Open(), nil
+	})
 }

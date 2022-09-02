@@ -16,6 +16,7 @@ import (
 	"github.com/livebud/bud/package/vfs"
 
 	"github.com/livebud/bud/internal/testsub"
+	"github.com/livebud/bud/internal/virtual/vcache"
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/budfs"
@@ -29,7 +30,8 @@ func TestReadFsys(t *testing.T) {
 	fsys := vfs.Memory{
 		"a.txt": &fstest.MapFile{Data: []byte("a")},
 	}
-	bfs := budfs.New(fsys, log)
+	cache := vcache.New()
+	bfs := budfs.New(cache, fsys, log)
 	des, err := fs.ReadDir(bfs, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
@@ -41,7 +43,8 @@ func TestGeneratorPriority(t *testing.T) {
 	fsys := vfs.Memory{
 		"a.txt": &fstest.MapFile{Data: []byte("a")},
 	}
-	bfs := budfs.New(fsys, log)
+	cache := vcache.New()
+	bfs := budfs.New(cache, fsys, log)
 	bfs.GenerateFile("a.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 		file.Data = []byte("b")
 		return nil
@@ -55,7 +58,8 @@ func TestCaching(t *testing.T) {
 	is := is.New(t)
 	log := testlog.New()
 	fsys := vfs.Memory{}
-	bfs := budfs.New(fsys, log)
+	cache := vcache.New()
+	bfs := budfs.New(cache, fsys, log)
 	count := 1
 	bfs.GenerateFile("a.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 		file.Data = []byte(strconv.Itoa(count))
@@ -77,7 +81,8 @@ func TestFileFSUpdate(t *testing.T) {
 	fsys := vfs.Memory{
 		"a.txt": &fstest.MapFile{Data: []byte(strconv.Itoa(count))},
 	}
-	bfs := budfs.New(fsys, log)
+	cache := vcache.New()
+	bfs := budfs.New(cache, fsys, log)
 	bfs.GenerateFile("b.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 		code, err := fs.ReadFile(fsys, "a.txt")
 		if err != nil {
@@ -108,7 +113,8 @@ func TestFileGenUpdate(t *testing.T) {
 	is := is.New(t)
 	log := testlog.New()
 	fsys := vfs.Memory{}
-	bfs := budfs.New(fsys, log)
+	cache := vcache.New()
+	bfs := budfs.New(cache, fsys, log)
 	count := 1
 	bfs.GenerateFile("a.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 		file.Data = []byte(strconv.Itoa(count))
@@ -144,7 +150,8 @@ func TestDirFSCreate(t *testing.T) {
 	fsys := vfs.Memory{
 		"a.txt": &fstest.MapFile{Data: []byte("a")},
 	}
-	bfs := budfs.New(fsys, log)
+	cache := vcache.New()
+	bfs := budfs.New(cache, fsys, log)
 	des, err := fs.ReadDir(bfs, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
@@ -167,7 +174,8 @@ func TestDirGenCreate(t *testing.T) {
 	fsys := vfs.Memory{
 		"docs/a.txt": &fstest.MapFile{Data: []byte("a")},
 	}
-	bfs := budfs.New(fsys, log)
+	cache := vcache.New()
+	bfs := budfs.New(cache, fsys, log)
 	bfs.GenerateFile("bud/docs.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 		des, err := fs.ReadDir(fsys, "docs")
 		if err != nil {
@@ -200,7 +208,8 @@ func TestDirFSDelete(t *testing.T) {
 		"a.txt": &fstest.MapFile{Data: []byte("a")},
 		"b.txt": &fstest.MapFile{Data: []byte("b")},
 	}
-	bfs := budfs.New(fsys, log)
+	cache := vcache.New()
+	bfs := budfs.New(cache, fsys, log)
 	des, err := fs.ReadDir(bfs, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 2)
@@ -224,7 +233,8 @@ func TestDirGenDelete(t *testing.T) {
 		"docs/a.txt": &fstest.MapFile{Data: []byte("a")},
 		"docs/b.txt": &fstest.MapFile{Data: []byte("b")},
 	}
-	bfs := budfs.New(fsys, log)
+	cache := vcache.New()
+	bfs := budfs.New(cache, fsys, log)
 	bfs.GenerateFile("bud/docs.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 		des, err := fs.ReadDir(fsys, "docs")
 		if err != nil {
@@ -258,7 +268,8 @@ func TestMount(t *testing.T) {
 		"tailwind/tailwind.css":  &fstest.MapFile{Data: []byte("/** tailwind **/")},
 		"tailwind/preflight.css": &fstest.MapFile{Data: []byte("/** preflight **/")},
 	}
-	bfs := budfs.New(fsys, log)
+	cache := vcache.New()
+	bfs := budfs.New(cache, fsys, log)
 	bfs.Mount("generator", tailwind)
 	code, err := fs.ReadFile(bfs, "generator/tailwind/tailwind.css")
 	is.NoErr(err)
@@ -283,7 +294,8 @@ func TestServer(t *testing.T) {
 	fsys := vfs.Memory{
 		"view/index.svelte": &fstest.MapFile{Data: []byte("<h1>index</h1>")},
 	}
-	bfs := budfs.New(fsys, log)
+	cache := vcache.New()
+	bfs := budfs.New(cache, fsys, log)
 	// Request the file
 	r := httptest.NewRequest("GET", "/view/index.svelte", nil)
 	w := httptest.NewRecorder()
@@ -310,7 +322,8 @@ func TestDefer(t *testing.T) {
 	is := is.New(t)
 	log := testlog.New()
 	fsys := vfs.Memory{}
-	bfs := budfs.New(fsys, log)
+	cache := vcache.New()
+	bfs := budfs.New(cache, fsys, log)
 	called := 0
 	bfs.GenerateFile("a.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 		fsys.Defer(func() error {
@@ -339,7 +352,8 @@ func TestRemoteFS(t *testing.T) {
 	parent := func(t testing.TB, cmd *exec.Cmd) {
 		log := testlog.New()
 		fsys := vfs.Memory{}
-		bfs := budfs.New(fsys, log)
+		cache := vcache.New()
+		bfs := budfs.New(cache, fsys, log)
 		count := 1
 		bfs.GenerateDir("bud/generator", func(ctx context.Context, fsys budfs.FS, dir *budfs.Dir) error {
 			dir.GenerateFile(dir.Relative(), func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
@@ -399,7 +413,8 @@ func TestMountRemoteFS(t *testing.T) {
 	fsys := vfs.Memory{}
 	ctx := context.Background()
 	parent := func(t testing.TB, cmd *exec.Cmd) {
-		bfs := budfs.New(fsys, log)
+		cache := vcache.New()
+		bfs := budfs.New(cache, fsys, log)
 		command := remotefs.Command{
 			Env:    cmd.Env,
 			Stderr: os.Stderr,
@@ -429,7 +444,8 @@ func TestMountRemoteFS(t *testing.T) {
 	}
 	child := func(t testing.TB) {
 		count := 1
-		bfs := budfs.New(fsys, log)
+		cache := vcache.New()
+		bfs := budfs.New(cache, fsys, log)
 		bfs.GenerateFile("a.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 			file.Data = []byte(strings.Repeat(string("a"), count))
 			count++
@@ -486,7 +502,8 @@ func TestRemoteService(t *testing.T) {
 	}
 	ctx := context.Background()
 	parent := func(t testing.TB, cmd *exec.Cmd) {
-		bfs := budfs.New(fsys, log)
+		cache := vcache.New()
+		bfs := budfs.New(cache, fsys, log)
 		defer bfs.Close()
 		bfs.FileGenerator("bud/service/generator.url", &remoteService{cmd: cmd})
 		// Return a URL to connect to
@@ -537,7 +554,8 @@ func TestRemoteService(t *testing.T) {
 	}
 	child := func(t testing.TB) {
 		count := 1
-		bfs := budfs.New(fsys, log)
+		cache := vcache.New()
+		bfs := budfs.New(cache, fsys, log)
 		defer bfs.Close()
 		bfs.GenerateFile("a.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
 			file.Data = []byte(strings.Repeat(string("a"), count))

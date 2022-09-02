@@ -108,7 +108,6 @@ func TestFindPrefix(t *testing.T) {
 	s.Equal(ok, false)
 	s.Equal(f, nil)
 	s.Equal(prefix, "")
-	s.Equal(f.Path(), "")
 	f, prefix, ok = n.FindByPrefix("b/c/h")
 	s.True(ok)
 	s.Equal(prefix, "b/c")
@@ -117,7 +116,6 @@ func TestFindPrefix(t *testing.T) {
 	s.Equal(ok, false)
 	s.Equal(f, nil)
 	s.Equal(prefix, "")
-	s.Equal(f.Path(), "")
 	// Special case
 	f, prefix, ok = n.FindByPrefix(".")
 	s.True(ok)

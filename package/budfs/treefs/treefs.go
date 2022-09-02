@@ -24,6 +24,7 @@ func New(name string) *Node {
 		childMap:  map[string]*Node{},
 		generator: nil,
 	}
+	root.path = computePath(root)
 	root.generator = &fillerDir{root}
 	return root
 }
@@ -40,6 +41,7 @@ const (
 )
 
 type Node struct {
+	path      string
 	name      string
 	mode      fs.FileMode
 	kind      nodeKind
@@ -48,7 +50,7 @@ type Node struct {
 	generator Generator
 }
 
-func (n *Node) Path() (path string) {
+func computePath(n *Node) (path string) {
 	if n == nil {
 		return ""
 	} else if n.parent == nil {
@@ -68,6 +70,10 @@ func (n *Node) Path() (path string) {
 		path += names[i]
 	}
 	return path
+}
+
+func (n *Node) Path() string {
+	return n.path
 }
 
 func (n *Node) Mode() fs.FileMode {
@@ -122,6 +128,7 @@ func (n *Node) insert(path string, mode fs.FileMode, generator Generator) *Node 
 			parent:   parent,
 			childMap: map[string]*Node{},
 		}
+		child.path = computePath(child)
 		parent.childMap[segments[last]] = child
 	}
 	// Create or update the child's attributes
@@ -145,6 +152,7 @@ func (n *Node) mkdirAll(segments []string) *Node {
 				childMap:  map[string]*Node{},
 				generator: nil,
 			}
+			child.path = computePath(child)
 			child.generator = &fillerDir{child}
 			parent.childMap[segment] = child
 		}
