@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/livebud/bud/internal/is"
-	"github.com/livebud/bud/internal/virtual"
+	"github.com/livebud/bud/package/virtual"
 )
 
 var now = time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)

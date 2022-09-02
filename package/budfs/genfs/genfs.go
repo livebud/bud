@@ -5,9 +5,9 @@ import (
 	"io/fs"
 	"strings"
 
-	"github.com/livebud/bud/internal/virtual"
 	"github.com/livebud/bud/internal/virtual/vcache"
 	"github.com/livebud/bud/package/budfs/treefs"
+	"github.com/livebud/bud/package/virtual"
 )
 
 type Generator interface {

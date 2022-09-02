@@ -1116,3 +1116,18 @@ func TestCaching(t *testing.T) {
 	is.Equal(string(code), "public")
 	is.Equal(count, 1)
 }
+
+func TestGenerateDirNotExists(t *testing.T) {
+	is := is.New(t)
+	// Add the view
+	gen := genfs.New(vcache.New())
+	gen.GenerateDir("bud/public", func(dir *genfs.Dir) error {
+		return fs.ErrNotExist
+	})
+	stat, err := fs.Stat(gen, "bud/public")
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.Equal(stat, nil)
+	des, err := fs.ReadDir(gen, "bud/public")
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.Equal(len(des), 0)
+}

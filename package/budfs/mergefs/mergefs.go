@@ -12,8 +12,8 @@ import (
 	"github.com/livebud/bud/internal/errs"
 )
 
-// Merge the filesystems together
-// TODO: give the filesystems names
+// Merge the filesystems together. When there are conflicts, the earlier
+// filesystem has priority.
 func Merge(fileSystems ...fs.FS) *FS {
 	return &FS{fileSystems}
 }

@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/livebud/bud/internal/virtual"
+	"github.com/livebud/bud/package/virtual"
 
 	"github.com/livebud/bud/package/budhttp"
 	"github.com/livebud/bud/package/hot"

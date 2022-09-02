@@ -6,6 +6,7 @@ import (
 	"go/build"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -274,4 +275,25 @@ func TestMissingModule(t *testing.T) {
 	is.True(err != nil)
 	is.Equal(err.Error(), `mod: missing module statement in "go.mod", received "require github.com/evanw/esbuild v0.14.11\n"`)
 	is.Equal(module, nil)
+}
+
+func TestFindBy(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	is.NoErr(err)
+	td := testdir.New(dir)
+	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.9"
+	td.Modules["github.com/livebud/bud-test-nested-plugin"] = "v0.0.5"
+	err = td.Write(ctx)
+	is.NoErr(err)
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	modules, err := module.FindBy(func(mod *gomod.Require) bool {
+		return strings.HasPrefix(path.Base(mod.Mod.Path), "bud-")
+	})
+	is.NoErr(err)
+	is.Equal(len(modules), 2)
+	is.Equal(modules[0].Import(), "github.com/livebud/bud-test-nested-plugin")
+	is.Equal(modules[1].Import(), "github.com/livebud/bud-test-plugin")
 }

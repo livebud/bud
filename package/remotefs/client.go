@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/keegancsmith/rpc"
-	"github.com/livebud/bud/internal/virtual"
 	"github.com/livebud/bud/package/socket"
+	"github.com/livebud/bud/package/virtual"
 )
 
 func init() {

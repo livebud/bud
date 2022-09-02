@@ -159,7 +159,7 @@ func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, fl
 	genfs.FileGenerator("bud/internal/app/web/web.go", web.New(module, parser))
 	genfs.FileGenerator("bud/internal/app/controller/controller.go", controller.New(injector, module, parser))
 	genfs.FileGenerator("bud/internal/app/view/view.go", view.New(module, transforms, flag))
-	genfs.FileGenerator("bud/internal/app/public/public.go", public.New(flag))
+	genfs.DirGenerator("bud/internal/app/public", public.New(flag, module))
 	genfs.FileGenerator("bud/internal/generate/main.go", generate.New(injector, module))
 	genfs.FileGenerator("bud/internal/generate/generator/generator.go", generator.New(module, parser))
 	// Sync generate now to support custom generators, if any
