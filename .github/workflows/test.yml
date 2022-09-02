@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        go: ['1.17', '1.18']
+        go: ['1.17', '1.18', '1.19']
         node: ['16']
         include:
           - os: ubuntu-latest
@@ -22,6 +22,9 @@ jobs:
             node: 18
           - os: macos-latest
             go: 1.18
+            node: 18
+          - os: macos-latest
+            go: 1.19
             node: 18
 
     steps:
@@ -60,6 +63,10 @@ jobs:
         with:
           path: $TMPDIR/bud/snapshot
           key: ${{ runner.os }}
+
+      - name: Run Go Format on Go 1.19
+        if: matrix.go == '1.19'
+        run: make go.fmt
 
       - name: Run CI (Ubuntu Linux)
         if: matrix.os == 'ubuntu-latest'

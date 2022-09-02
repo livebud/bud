@@ -156,7 +156,7 @@ func TestFindNested(t *testing.T) {
 	dir, err := filepath.EvalSymlinks(t.TempDir())
 	is.NoErr(err)
 	td := testdir.New(dir)
-	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.8"
+	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.9"
 	err = td.Write(ctx)
 	is.NoErr(err)
 	modCache := modcache.Default()
@@ -171,7 +171,7 @@ func TestFindNested(t *testing.T) {
 	module2, err := module1.Find("github.com/livebud/bud-test-plugin")
 	is.NoErr(err)
 	is.Equal(module2.Import(), "github.com/livebud/bud-test-plugin")
-	is.Equal(module2.Directory(), modCache.Directory("github.com/livebud", "bud-test-plugin@v0.0.8"))
+	is.Equal(module2.Directory(), modCache.Directory("github.com/livebud", "bud-test-plugin@v0.0.9"))
 	data, err = fs.ReadFile(module2, "go.mod")
 	is.NoErr(err)
 	m2, err := gomod.Parse("go.mod", data)
@@ -197,7 +197,7 @@ func TestFindNested(t *testing.T) {
 
 	// Ensure module2 is not overridden
 	is.Equal(module2.Import(), "github.com/livebud/bud-test-plugin")
-	is.Equal(module2.Directory(), modCache.Directory("github.com/livebud", "bud-test-plugin@v0.0.8"))
+	is.Equal(module2.Directory(), modCache.Directory("github.com/livebud", "bud-test-plugin@v0.0.9"))
 }
 
 func TestOpen(t *testing.T) {

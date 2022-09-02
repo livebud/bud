@@ -172,7 +172,6 @@ func (n *Node) print(tp treeprint.Tree) {
 		cp := tp.AddBranch(formatNode(child))
 		child.print(cp)
 	}
-	return
 }
 
 func (n *Node) Find(path string) (node *Node, found bool) {

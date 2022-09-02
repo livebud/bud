@@ -25,8 +25,9 @@ type Lexer interface {
 //
 // Example of lexer state:
 // /:firstName
-//        ^ pos is at "N", width 1 ("N" is 1 byte wide)
-//  ^ start is at ":"
+//
+//	      ^ pos is at "N", width 1 ("N" is 1 byte wide)
+//	^ start is at ":"
 type lexer struct {
 	tokenCh chan Token
 	input   string // buffer containing the full route
@@ -78,11 +79,6 @@ func (l *lexer) emit(t token) {
 // backup steps back one rune. Can only be called once per call of next.
 func (l *lexer) backup() {
 	l.pos -= l.width
-}
-
-// ignore skips over the pending input before this point.
-func (l *lexer) ignore() {
-	l.start = l.pos
 }
 
 func (l *lexer) errorf(format string, args ...interface{}) stateFn {
@@ -217,16 +213,6 @@ func lexSlotRest(l *lexer) stateFn {
 	default:
 		// All other slot values should be invalid
 		return l.errorf(`route %q: invalid slot character %q`, l.input, string(r))
-	}
-}
-
-// The character after the slot can't be a character that could be in the slot
-func lexAfterSlot(l *lexer) stateFn {
-	switch r := l.peek(); r {
-	case '.', '/', end:
-		return lexText
-	default:
-		return l.errorf(`route %q: invalid value after slot %q`, l.input, string(r))
 	}
 }
 

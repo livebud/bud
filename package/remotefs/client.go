@@ -5,7 +5,6 @@ import (
 	"encoding/gob"
 	"io/fs"
 	"strings"
-	"time"
 
 	"github.com/keegancsmith/rpc"
 	"github.com/livebud/bud/internal/virtual"
@@ -17,9 +16,6 @@ func init() {
 	gob.Register(&virtual.Dir{})
 	gob.Register(&virtual.DirEntry{})
 }
-
-// client timeout defaults to 10 seconds
-const clientTimeout = 10 * time.Second
 
 func Dial(ctx context.Context, addr string) (*Client, error) {
 	conn, err := socket.Dial(ctx, addr)

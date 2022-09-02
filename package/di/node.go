@@ -168,31 +168,30 @@ func (g *generator) WriteString(code string) (n int, err error) {
 //
 // For example, given the `web`, `log`, and `console` packages:
 //
-//   package web
-//   func Load(log log.Log) *Web {}
-//   type Web struct {}
+//	package web
+//	func Load(log log.Log) *Web {}
+//	type Web struct {}
 //
-//   package log
-//   type Log interface {
-//     Log(msg string)
-//   }
+//	package log
+//	type Log interface {
+//	  Log(msg string)
+//	}
 //
-//   package console
-//   type Console struct {}
-//   func (c *Console) Log(msg string)
+//	package console
+//	type Console struct {}
+//	func (c *Console) Log(msg string)
 //
 // If we generate into the `genweb` package for `*Web`, the `log` package isn't
 // actually referenced.
 //
-//   package genweb
-//   import "web"
-//   import "console"
-//   func Load() *web.Web {
-//     consoleConsole := &console.Console{}
-//     webWeb := Load(consoleConsole)
-//     return webWeb
-//   }
-//
+//	package genweb
+//	import "web"
+//	import "console"
+//	func Load() *web.Web {
+//	  consoleConsole := &console.Console{}
+//	  webWeb := Load(consoleConsole)
+//	  return webWeb
+//	}
 func (g *generator) Variable(importPath, typeName string) string {
 	if typeName == "error" {
 		return "err"
