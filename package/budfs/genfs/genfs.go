@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/internal/virtual"
+	"github.com/livebud/bud/internal/virtual/vcache"
 	"github.com/livebud/bud/package/budfs/treefs"
 )
 
@@ -27,9 +28,9 @@ func (fn Generate) Generate(target string) (fs.File, error) {
 	return fn(target)
 }
 
-func New() *FileSystem {
+func New(cache vcache.Cache) *FileSystem {
 	tree := treefs.New(".")
-	return &FileSystem{&dir{tree}}
+	return &FileSystem{&dir{cache, tree}}
 }
 
 type FileSystem struct {
@@ -44,7 +45,8 @@ func (f *FileSystem) Open(target string) (fs.File, error) {
 }
 
 type dir struct {
-	node *treefs.Node
+	cache vcache.Cache
+	node  *treefs.Node
 }
 
 func (d *dir) Print() string {
@@ -63,25 +65,45 @@ func (d *dir) FileServer(path string, generator FileGenerator) {
 	d.ServeFile(path, generator.GenerateFile)
 }
 
+// wrap the generator in a cache
+func (d *dir) wrap(generator Generator) Generator {
+	return Generate(func(target string) (fs.File, error) {
+		entry, ok := d.cache.Get(target)
+		if ok {
+			return entry.Open(), nil
+		}
+		file, err := generator.Generate(target)
+		if err != nil {
+			return nil, err
+		}
+		entry, err = virtual.From(file)
+		if err != nil {
+			return nil, err
+		}
+		d.cache.Set(target, entry)
+		return entry.Open(), nil
+	})
+}
+
 func (d *dir) Mount(path string, fsys fs.FS) {
-	d.node.InsertDir(path, Generate(func(target string) (fs.File, error) {
+	d.node.InsertDir(path, d.wrap(Generate(func(target string) (fs.File, error) {
 		return fsys.Open(relativePath(path, target))
-	}))
+	})))
 }
 
 func (d *dir) GenerateFile(path string, fn func(file *File) error) {
 	fileg := &fileGenerator{nil, fn}
-	fileg.node = d.node.InsertFile(path, fileg)
+	fileg.node = d.node.InsertFile(path, d.wrap(fileg))
 }
 
 func (d *dir) GenerateDir(path string, fn func(dir *Dir) error) {
-	dirg := &dirGenerator{nil, fn}
-	dirg.node = d.node.InsertDir(path, dirg)
+	dirg := &dirGenerator{d.cache, nil, fn}
+	dirg.node = d.node.InsertDir(path, d.wrap(dirg))
 }
 
 func (d *dir) ServeFile(path string, fn func(file *File) error) {
 	servef := &fileServer{nil, fn}
-	servef.node = d.node.InsertDir(path, servef)
+	servef.node = d.node.InsertDir(path, d.wrap(servef))
 }
 
 type File struct {
@@ -148,6 +170,7 @@ func (g *fileGenerator) Generate(target string) (fs.File, error) {
 }
 
 type dirGenerator struct {
+	cache    vcache.Cache
 	node     *treefs.Node
 	generate func(dir *Dir) error
 }
@@ -181,7 +204,7 @@ func (d *Dir) Relative() string {
 
 func (g *dirGenerator) Generate(target string) (fs.File, error) {
 	// Call the generator function from the child
-	dir := &Dir{&dir{g.node}, target}
+	dir := &Dir{&dir{g.cache, g.node}, target}
 	if err := g.generate(dir); err != nil {
 		return nil, err
 	}
