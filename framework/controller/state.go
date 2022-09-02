@@ -79,14 +79,14 @@ type View struct {
 
 // ActionParam struct
 type ActionParam struct {
-	Name        string
-	Pascal      string
-	Snake       string
-	Type        string
-	Kind        string
-	Variable    string
-	Tag         string
-	HasValidate bool
+	Name           string
+	Pascal         string
+	Snake          string
+	Type           string
+	Kind           string
+	Variable       string
+	Tag            string
+	HasValidMethod bool
 }
 
 func (ap *ActionParam) IsContext() bool {
