@@ -1,7 +1,6 @@
 package budfs_test
 
 import (
-	"context"
 	"io/fs"
 	"testing"
 	"testing/fstest"
@@ -32,7 +31,7 @@ func TestGeneratorPriority(t *testing.T) {
 		"a.txt": &fstest.MapFile{Data: []byte("a")},
 	}
 	bfs := budfs.New(fsys, log)
-	bfs.GenerateFile("a.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
+	bfs.GenerateFile("a.txt", func(ctx *budfs.Context, file *budfs.File) error {
 		file.Data = []byte("b")
 		return nil
 	})
@@ -47,7 +46,7 @@ func TestGeneratorPriority(t *testing.T) {
 // 	fsys := vfs.Memory{}
 // 	bfs := budfs.New(fsys, log)
 // 	count := 1
-// 	bfs.GenerateFile("a.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
+// 	bfs.GenerateFile("a.txt", func(ctx *budfs.Context, file *budfs.File) error {
 // 		file.Data = []byte(strconv.Itoa(count))
 // 		count++
 // 		return nil
@@ -68,7 +67,7 @@ func TestGeneratorPriority(t *testing.T) {
 // 		"a.txt": &fstest.MapFile{Data: []byte(strconv.Itoa(count))},
 // 	}
 // 	bfs := budfs.New(fsys, log)
-// 	bfs.GenerateFile("b.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
+// 	bfs.GenerateFile("b.txt", func(ctx *budfs.Context, file *budfs.File) error {
 // 		code, err := fs.ReadFile(fsys, "a.txt")
 // 		if err != nil {
 // 			return err
@@ -100,12 +99,12 @@ func TestGeneratorPriority(t *testing.T) {
 // 	fsys := vfs.Memory{}
 // 	bfs := budfs.New(fsys, log)
 // 	count := 1
-// 	bfs.GenerateFile("a.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
+// 	bfs.GenerateFile("a.txt", func(ctx *budfs.Context, file *budfs.File) error {
 // 		file.Data = []byte(strconv.Itoa(count))
 // 		count++
 // 		return nil
 // 	})
-// 	bfs.GenerateFile("b.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
+// 	bfs.GenerateFile("b.txt", func(ctx *budfs.Context, file *budfs.File) error {
 // 		code, err := fs.ReadFile(fsys, "a.txt")
 // 		if err != nil {
 // 			return err
@@ -158,7 +157,7 @@ func TestGeneratorPriority(t *testing.T) {
 // 		"docs/a.txt": &fstest.MapFile{Data: []byte("a")},
 // 	}
 // 	bfs := budfs.New(fsys, log)
-// 	bfs.GenerateFile("bud/docs.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
+// 	bfs.GenerateFile("bud/docs.txt", func(ctx *budfs.Context, file *budfs.File) error {
 // 		des, err := fs.ReadDir(fsys, "docs")
 // 		if err != nil {
 // 			return err
@@ -215,7 +214,7 @@ func TestGeneratorPriority(t *testing.T) {
 // 		"docs/b.txt": &fstest.MapFile{Data: []byte("b")},
 // 	}
 // 	bfs := budfs.New(fsys, log)
-// 	bfs.GenerateFile("bud/docs.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
+// 	bfs.GenerateFile("bud/docs.txt", func(ctx *budfs.Context, file *budfs.File) error {
 // 		des, err := fs.ReadDir(fsys, "docs")
 // 		if err != nil {
 // 			return err
@@ -302,7 +301,7 @@ func TestGeneratorPriority(t *testing.T) {
 // 	fsys := vfs.Memory{}
 // 	bfs := budfs.New(fsys, log)
 // 	called := 0
-// 	bfs.GenerateFile("a.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
+// 	bfs.GenerateFile("a.txt", func(ctx *budfs.Context, file *budfs.File) error {
 // 		fsys.Defer(func() error {
 // 			called++
 // 			return nil
@@ -331,8 +330,8 @@ func TestGeneratorPriority(t *testing.T) {
 // 		fsys := vfs.Memory{}
 // 		bfs := budfs.New(fsys, log)
 // 		count := 1
-// 		bfs.GenerateDir("bud/generator", func(ctx context.Context, fsys budfs.FS, dir *budfs.Dir) error {
-// 			dir.GenerateFile(dir.Relative(), func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
+// 		bfs.GenerateDir("bud/generator", func(ctx *budfs.Context, dir *budfs.Dir) error {
+// 			dir.GenerateFile(dir.Relative(), func(ctx *budfs.Context, file *budfs.File) error {
 // 				command := remotefs.Command{
 // 					Env:    cmd.Env,
 // 					Stderr: os.Stderr,
@@ -420,12 +419,12 @@ func TestGeneratorPriority(t *testing.T) {
 // 	child := func(t testing.TB) {
 // 		count := 1
 // 		bfs := budfs.New(fsys, log)
-// 		bfs.GenerateFile("a.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
+// 		bfs.GenerateFile("a.txt", func(ctx *budfs.Context, file *budfs.File) error {
 // 			file.Data = []byte(strings.Repeat(string("a"), count))
 // 			count++
 // 			return nil
 // 		})
-// 		bfs.GenerateFile("b.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
+// 		bfs.GenerateFile("b.txt", func(ctx *budfs.Context, file *budfs.File) error {
 // 			file.Data = []byte(strings.Repeat(string("b"), count))
 // 			count++
 // 			return nil
@@ -441,7 +440,7 @@ func TestGeneratorPriority(t *testing.T) {
 // 	process *remotefs.Process
 // }
 
-// func (s *remoteService) GenerateFile(ctx context.Context, fsys budfs.FS, file *budfs.File) (err error) {
+// func (s *remoteService) GenerateFile(ctx *budfs.Context, file *budfs.File) (err error) {
 // 	// This remote service depends on the generators
 // 	_, err = fs.Glob(fsys, "generator/*/*.go")
 // 	if err != nil {
@@ -529,12 +528,12 @@ func TestGeneratorPriority(t *testing.T) {
 // 		count := 1
 // 		bfs := budfs.New(fsys, log)
 // 		defer bfs.Close()
-// 		bfs.GenerateFile("a.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
+// 		bfs.GenerateFile("a.txt", func(ctx *budfs.Context, file *budfs.File) error {
 // 			file.Data = []byte(strings.Repeat(string("a"), count))
 // 			count++
 // 			return nil
 // 		})
-// 		bfs.GenerateFile("b.txt", func(ctx context.Context, fsys budfs.FS, file *budfs.File) error {
+// 		bfs.GenerateFile("b.txt", func(ctx *budfs.Context, file *budfs.File) error {
 // 			file.Data = []byte(strings.Repeat(string("b"), count))
 // 			count++
 // 			return nil
@@ -543,4 +542,28 @@ func TestGeneratorPriority(t *testing.T) {
 // 		is.NoErr(err)
 // 	}
 // 	testsub.Run(t, parent, child)
+// }
+
+// func TestCacheThroughDir(t *testing.T) {
+// 	is := is.New(t)
+// 	gen := genfs.New()
+// 	dirCount := 0
+// 	fileCount := 0
+// 	gen.GenerateDir("bud/public", func(dir *genfs.Dir) error {
+// 		dirCount++
+// 		dir.GenerateFile("public.go", func(file *genfs.File) error {
+// 			fileCount++
+// 			file.Data = []byte("public")
+// 			return nil
+// 		})
+// 		return nil
+// 	})
+// 	code, err := fs.ReadFile(gen, "bud/public/public.go")
+// 	is.NoErr(err)
+// 	is.Equal(string(code), "public")
+// 	des, err := fs.ReadDir(gen, "bud/public")
+// 	is.NoErr(err)
+// 	is.Equal(len(des), 1)
+// 	is.Equal(fileCount, 1)
+// 	is.Equal(dirCount, 1)
 // }
