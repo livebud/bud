@@ -77,7 +77,7 @@ func Listen(path string) (Listener, error) {
 }
 
 // ListenUp is similar to listen, but will increment the port number until it
-// finds a free one
+// finds a free one or reaches the maximum number of attempts
 func ListenUp(path string, attempts int) (Listener, error) {
 	ln, err := Listen(path)
 	if err != nil {
