@@ -6,6 +6,15 @@ Get the latest release of Bud by running the following in your terminal:
 curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
 ```
 
+## v0.2.4
+
+- Partial support for auto-incrementing the port if already in use (#250)
+- Fix `staticcheck` problems and integrate into CI (#263)
+- Add support for Go 1.19 (#262)
+- `bud tool ...` now support `-C` chdir support (#255)
+- Auto infer module when `bud create` outside $GOPATH (#242) (thanks @012e!)
+- Add console.error, console.warn, setTimeout, setInterval, clearTimeout and clearInterval to V8 (#233)
+
 ## v0.2.3
 
 - Fix regression in v0.2.2 where embedded files aren't available in the runtime package (#226)
