@@ -70,7 +70,8 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	// Listening on the web listener as soon as possible
 	webln := c.in.WebLn
 	if webln == nil {
-		webln, err = socket.Listen(c.Listen)
+		// Listen and increment if the port is already in use up to 10 times
+		webln, err = socket.ListenUp(c.Listen, 10)
 		if err != nil {
 			return err
 		}
