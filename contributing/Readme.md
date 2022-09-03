@@ -16,7 +16,7 @@ Run the following commands to download and run Bud locally:
 ```sh
 git clone https://github.com/livebud/bud
 cd bud
-make install # fresh installs take a few minutes because of V8
+make # fresh installs take a few minutes because of V8
 go run main.go
 ```
 
