@@ -15,7 +15,6 @@ import (
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/internal/txtar"
-	"github.com/livebud/bud/internal/virtual/vcache"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/vfs"
 )
@@ -195,8 +194,7 @@ func TestGenerate(t *testing.T) {
 	td := testdir.New(dir)
 	td.Modules["github.com/livebud/bud-test-plugin"] = `v0.0.8`
 	is.NoErr(td.Write(ctx))
-	cache := vcache.New()
-	gen := genfs.New(cache)
+	gen := genfs.New()
 	merged := mergefs.Merge(os.DirFS(dir), gen)
 	gen.GenerateFile("hello/hello.go", func(file *genfs.File) error {
 		file.Data = []byte(`

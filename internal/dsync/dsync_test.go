@@ -9,7 +9,6 @@ import (
 
 	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/is"
-	"github.com/livebud/bud/internal/virtual/vcache"
 	"github.com/livebud/bud/package/budfs/genfs"
 	"github.com/livebud/bud/package/vfs"
 )
@@ -185,8 +184,7 @@ func TestSkipNotExist(t *testing.T) {
 	vfs.Now = func() time.Time { return after }
 
 	// starting points
-	cache := vcache.New()
-	sourceFS := genfs.New(cache)
+	sourceFS := genfs.New()
 	sourceFS.GenerateFile("bud/generate/main.go", func(file *genfs.File) error {
 		return fs.ErrNotExist
 	})
@@ -205,8 +203,7 @@ func TestErrorGenerator(t *testing.T) {
 	vfs.Now = func() time.Time { return after }
 
 	// starting points
-	cache := vcache.New()
-	sourceFS := genfs.New(cache)
+	sourceFS := genfs.New()
 	sourceFS.GenerateFile("bud/generate/main.go", func(file *genfs.File) error {
 		return errors.New("uh oh")
 	})

@@ -8,8 +8,6 @@ import (
 	"github.com/livebud/bud/package/budfs/mergefs"
 
 	"github.com/livebud/bud/internal/dsync"
-	"github.com/livebud/bud/internal/virtual/vcache"
-	"github.com/livebud/bud/package/virtual"
 
 	"io/fs"
 
@@ -26,15 +24,12 @@ func Load(log log.Interface, module *gomod.Module) (*FileSystem, error) {
 	if err != nil {
 		return nil, err
 	}
-	cache := vcache.New()
-	gen := genfs.New(cache)
+	gen := genfs.New()
 	merged := mergefs.Merge(gen, pluginFS)
-	syncfs := wrapFS(cache, merged, log)
 	dag := dag.New()
 	clear := func() {
-		cache.Clear()
 	}
-	return &FileSystem{gen, dag, syncfs, module, clear}, nil
+	return &FileSystem{gen, dag, merged, module, clear}, nil
 }
 
 // Serve is just load without the cache
@@ -44,12 +39,10 @@ func Serve(log log.Interface, module *gomod.Module) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	cache := vcache.Discard
-	gen := genfs.New(cache)
+	gen := genfs.New()
 	merged := mergefs.Merge(gen, pluginFS)
 	dag := dag.New()
 	clear := func() {
-		cache.Clear()
 	}
 	return &FileSystem{gen, dag, merged, module, clear}, nil
 }
@@ -149,24 +142,24 @@ func (f *FileSystem) Mount(dir string, fsys fs.FS) {
 	f.gen.Mount(dir, fsys)
 }
 
-// wrapFS wraps a filesystem with a cache
-func wrapFS(c vcache.Cache, fsys fs.FS, log log.Interface) fs.FS {
-	return virtual.Opener(func(name string) (fs.File, error) {
-		entry, ok := c.Get(name)
-		if ok {
-			log.Debug("cachefs: cache hit", "file", name)
-			return entry.Open(), nil
-		}
-		log.Debug("cachefs: cache miss", "file", name)
-		file, err := fsys.Open(name)
-		if err != nil {
-			return nil, err
-		}
-		entry, err = virtual.From(file)
-		if err != nil {
-			return nil, err
-		}
-		c.Set(name, entry)
-		return entry.Open(), nil
-	})
-}
+// // wrapFS wraps a filesystem with a cache
+// func wrapFS(c vcache.Cache, fsys fs.FS, log log.Interface) fs.FS {
+// 	return virtual.Opener(func(name string) (fs.File, error) {
+// 		entry, ok := c.Get(name)
+// 		if ok {
+// 			log.Debug("cachefs: cache hit", "file", name)
+// 			return entry.Open(), nil
+// 		}
+// 		log.Debug("cachefs: cache miss", "file", name)
+// 		file, err := fsys.Open(name)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		entry, err = virtual.From(file)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		c.Set(name, entry)
+// 		return entry.Open(), nil
+// 	})
+// }
