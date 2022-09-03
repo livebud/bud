@@ -1,6 +1,7 @@
 package gomod
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -58,6 +59,23 @@ func (m *Module) FindIn(fsys fs.FS, importPath string) (*Module, error) {
 		return nil, err
 	}
 	return find(m.opt, dir)
+}
+
+func (m *Module) FindBy(match func(req *Require) bool) (modules []*Module, err error) {
+	for _, req := range m.file.Requires() {
+		if match(req) {
+			module, err := m.Find(req.Mod.Path)
+			if err != nil {
+				// Ignore imports that don't have a go.mod (e.g. legacy modules)
+				if errors.Is(err, fs.ErrNotExist) {
+					continue
+				}
+				return nil, err
+			}
+			modules = append(modules, module)
+		}
+	}
+	return modules, nil
 }
 
 // Open a file within the module

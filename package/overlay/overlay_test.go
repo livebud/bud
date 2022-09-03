@@ -2,6 +2,7 @@ package overlay_test
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -57,4 +58,29 @@ func TestReadRoot(t *testing.T) {
 	des, err := fs.ReadDir(ofs, ".")
 	is.NoErr(err)
 	is.True(len(des) > 1)
+}
+
+func TestGenerateDirNotExists(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	log := testlog.New()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["controller/controller.go"] = `package controller`
+	err := td.Write(ctx)
+	is.NoErr(err)
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	// Load the overlay
+	ofs, err := overlay.Load(log, module)
+	is.NoErr(err)
+	ofs.GenerateDir("bud/public", func(ctx context.Context, fsys overlay.F, dir *overlay.Dir) error {
+		return fs.ErrNotExist
+	})
+	stat, err := fs.Stat(ofs, "bud/public")
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.Equal(stat, nil)
+	des, err := fs.ReadDir(ofs, "bud/public")
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.Equal(len(des), 0)
 }

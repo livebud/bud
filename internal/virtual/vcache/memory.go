@@ -3,7 +3,7 @@ package vcache
 import (
 	"sync"
 
-	"github.com/livebud/bud/internal/virtual"
+	"github.com/livebud/bud/package/virtual"
 )
 
 type Cache interface {

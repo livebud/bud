@@ -4,7 +4,7 @@ import (
 	"io"
 	"io/fs"
 
-	"github.com/livebud/bud/internal/virtual"
+	"github.com/livebud/bud/package/virtual"
 )
 
 func NewService(fsys fs.FS) *Service {

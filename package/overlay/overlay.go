@@ -8,8 +8,8 @@ import (
 	"github.com/livebud/bud/package/budfs/mergefs"
 
 	"github.com/livebud/bud/internal/dsync"
-	"github.com/livebud/bud/internal/virtual"
 	"github.com/livebud/bud/internal/virtual/vcache"
+	"github.com/livebud/bud/package/virtual"
 
 	"io/fs"
 

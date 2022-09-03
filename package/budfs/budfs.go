@@ -11,11 +11,11 @@ import (
 	"github.com/livebud/bud/internal/dag"
 	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/once"
-	"github.com/livebud/bud/internal/virtual"
 	"github.com/livebud/bud/internal/virtual/vcache"
 	"github.com/livebud/bud/package/budfs/genfs"
 	"github.com/livebud/bud/package/budfs/mergefs"
 	"github.com/livebud/bud/package/log"
+	"github.com/livebud/bud/package/virtual"
 )
 
 func New(cache vcache.Cache, fsys vfs.ReadWritable, log log.Interface) *FileSystem {

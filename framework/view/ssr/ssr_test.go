@@ -3,7 +3,6 @@ package ssr_test
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
@@ -267,7 +266,6 @@ func TestSvelteProps(t *testing.T) {
 	is.Equal(res.Status, 200)
 	is.Equal(len(res.Headers), 1)
 	is.Equal(res.Headers["Content-Type"], "text/html")
-	fmt.Println(res.Body)
 	is.In(res.Body, `<aside><!-- HTML_TAG_START -->[{"name":"Alice","email":"alice@livebud.com"},{"name":"Tom","email":"tom@livebud.com"}]<!-- HTML_TAG_END --></aside>`)
 }
 

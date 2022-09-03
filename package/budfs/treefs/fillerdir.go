@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 
-	"github.com/livebud/bud/internal/virtual"
+	"github.com/livebud/bud/package/virtual"
 )
 
 type fillerDir struct {

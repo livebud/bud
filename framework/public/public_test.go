@@ -149,7 +149,6 @@ func TestGetChangeGet(t *testing.T) {
 }
 
 func TestEmbedFavicon(t *testing.T) {
-	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
@@ -157,7 +156,7 @@ func TestEmbedFavicon(t *testing.T) {
 	td.BFiles["public/favicon.ico"] = favicon
 	is.NoErr(td.Write(ctx))
 	cli := testcli.New(dir)
-	app, err := cli.Start(ctx, "run", "--embed")
+	app, err := cli.Start(ctx, "run", "--embed", "--hot=false")
 	is.NoErr(err)
 	defer app.Close()
 	res, err := app.Get("/favicon.ico")
@@ -199,6 +198,7 @@ func TestDefaults(t *testing.T) {
 	res, err := app.Get("/favicon.ico")
 	is.NoErr(err)
 	is.Equal(200, res.Status())
+	is.Equal(len(res.Body().Bytes()), len(embedded.Favicon()))
 	is.Equal(res.Body().Bytes(), embedded.Favicon())
 	is.NoErr(app.Close())
 }

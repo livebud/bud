@@ -1,6 +1,6 @@
 package vcache
 
-import "github.com/livebud/bud/internal/virtual"
+import "github.com/livebud/bud/package/virtual"
 
 var Discard Cache = discard{}
 
