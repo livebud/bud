@@ -17,8 +17,8 @@ import (
 	"github.com/livebud/bud/framework/transform/transformrt"
 	"github.com/livebud/bud/internal/entrypoint"
 	"github.com/livebud/bud/internal/gotemplate"
+	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/gomod"
-	"github.com/livebud/bud/package/overlay"
 )
 
 // Response from evaluating SSR files
@@ -95,8 +95,8 @@ func (c *Compiler) Compile(ctx context.Context, fsys fs.FS) ([]byte, error) {
 	return result.OutputFiles[0].Contents, nil
 }
 
-func (c *Compiler) GenerateFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
-	code, err := c.Compile(ctx, fsys)
+func (c *Compiler) GenerateFile(fsys *budfs.FS, file *budfs.File) error {
+	code, err := c.Compile(fsys.Context(), fsys)
 	if err != nil {
 		return err
 	}

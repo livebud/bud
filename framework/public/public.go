@@ -1,13 +1,12 @@
 package public
 
 import (
-	"context"
 	_ "embed"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/public/publicrt"
+	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/gomod"
-	"github.com/livebud/bud/package/overlay"
 
 	"github.com/livebud/bud/internal/gotemplate"
 )
@@ -35,12 +34,12 @@ type Generator struct {
 	module *gomod.Module
 }
 
-func (g *Generator) GenerateDir(ctx context.Context, _ overlay.F, dir *overlay.Dir) error {
+func (g *Generator) GenerateDir(_ *budfs.FS, dir *budfs.Dir) error {
 	fsys, err := publicrt.LoadFS(g.module)
 	if err != nil {
 		return err
 	}
-	dir.GenerateFile("public.go", func(ctx context.Context, _ overlay.F, file *overlay.File) error {
+	dir.GenerateFile("public.go", func(_ *budfs.FS, file *budfs.File) error {
 		state, err := Load(fsys, g.flag)
 		if err != nil {
 			return err

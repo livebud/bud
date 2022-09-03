@@ -19,10 +19,10 @@ import (
 	"github.com/livebud/bud/internal/prompter"
 	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/internal/versions"
+	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/budhttp/budsvr"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log"
-	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/package/watcher"
 )
@@ -91,7 +91,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		log.Debug("run: bud server is listening", "url", "http://"+budln.Addr().String())
 	}
 	// Load the generator filesystem
-	genfs, close, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
+	bfs, close, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		builder:  gobuild.New(module),
 		prompter: &prompter,
 		bus:      bus,
-		genfs:    genfs,
+		bfs:      bfs,
 		log:      log,
 		starter:  starter,
 	}
@@ -183,7 +183,7 @@ type appServer struct {
 	builder  *gobuild.Builder
 	prompter *prompter.Prompter
 	bus      pubsub.Client
-	genfs    *overlay.FileSystem
+	bfs      *budfs.FileSystem
 	log      log.Interface
 	starter  *exe.Command
 }
@@ -191,7 +191,7 @@ type appServer struct {
 // Run the app server
 func (a *appServer) Run(ctx context.Context) error {
 	// Generate the app
-	if err := a.genfs.Sync("bud/internal"); err != nil {
+	if err := a.bfs.Sync("bud/internal"); err != nil {
 		a.bus.Publish("app:error", []byte(err.Error()))
 		a.log.Debug("run: published event", "event", "app:error")
 		return err
@@ -232,7 +232,7 @@ func (a *appServer) Run(ctx context.Context) error {
 		a.bus.Publish("backend:update", nil)
 		a.log.Debug("run: published event", "event", "backend:update")
 		// Generate the app
-		if err := a.genfs.Sync("bud/internal"); err != nil {
+		if err := a.bfs.Sync("bud/internal"); err != nil {
 			return err
 		}
 		// Build the app

@@ -1,37 +1,48 @@
 package budfs_test
 
 import (
+	"context"
 	"io/fs"
 	"testing"
-	"testing/fstest"
 
-	"github.com/livebud/bud/package/vfs"
+	"github.com/livebud/bud/package/gomod"
 
 	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/log/testlog"
 )
 
 func TestReadFsys(t *testing.T) {
+	ctx := context.Background()
 	is := is.New(t)
 	log := testlog.New()
-	fsys := vfs.Memory{
-		"a.txt": &fstest.MapFile{Data: []byte("a")},
-	}
-	bfs := budfs.New(fsys, log)
-	des, err := fs.ReadDir(bfs, ".")
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["a.txt"] = "a"
+	err := td.Write(ctx)
 	is.NoErr(err)
-	is.Equal(len(des), 1)
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	bfs := budfs.New(module, log)
+	code, err := fs.ReadFile(bfs, "a.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "a")
 }
 
 func TestGeneratorPriority(t *testing.T) {
+	ctx := context.Background()
 	is := is.New(t)
 	log := testlog.New()
-	fsys := vfs.Memory{
-		"a.txt": &fstest.MapFile{Data: []byte("a")},
-	}
-	bfs := budfs.New(fsys, log)
-	bfs.GenerateFile("a.txt", func(ctx *budfs.Context, file *budfs.File) error {
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["a.txt"] = "a"
+	err := td.Write(ctx)
+	is.NoErr(err)
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	bfs := budfs.New(module, log)
+	bfs.GenerateFile("a.txt", func(fsys *budfs.FS, file *budfs.File) error {
 		file.Data = []byte("b")
 		return nil
 	})
