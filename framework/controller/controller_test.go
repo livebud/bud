@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/lithammer/dedent"
 	"github.com/livebud/bud/internal/cli/testcli"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
@@ -1751,53 +1750,6 @@ func TestResourceContext(t *testing.T) {
 	is.NoErr(app.Close())
 }
 
-func TestOkChangeOk(t *testing.T) {
-	is := is.New(t)
-	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.Files["controller/controller.go"] = `
-		package controller
-		type Controller struct {}
-		func (c *Controller) Index() string {
-			return "Hello Users!"
-		}
-	`
-	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
-	app, err := cli.Start(ctx, "run")
-	is.NoErr(err)
-	defer app.Close()
-	res, err := app.Get("/")
-	is.NoErr(err)
-	is.NoErr(err)
-	is.NoErr(res.DiffHeaders(`
-		HTTP/1.1 200 OK
-		Content-Type: text/html
-	`))
-	is.In(res.Body().String(), `Hello Users!`)
-	// Update controller
-	controllerFile := filepath.Join(dir, "controller", "controller.go")
-	is.NoErr(os.MkdirAll(filepath.Dir(controllerFile), 0755))
-	is.NoErr(os.WriteFile(controllerFile, []byte(dedent.Dedent(`
-		package controller
-		type Controller struct {}
-		func (c *Controller) Index() string {
-			return "Hello Humans!"
-		}
-	`)), 0644))
-	is.NoErr(app.Ready(ctx))
-	// Try again with the new file
-	res, err = app.Get("/")
-	is.NoErr(err)
-	is.NoErr(res.DiffHeaders(`
-		HTTP/1.1 200 OK
-		Content-Type: text/html
-	`))
-	is.In(res.Body().String(), `Hello Humans!`)
-	is.NoErr(app.Close())
-}
-
 func TestEmptyActionWithView(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
@@ -2039,51 +1991,6 @@ func TestSameNestedName(t *testing.T) {
 
 		"/admins/:id/users"
 	`)
-	is.NoErr(app.Close())
-}
-
-func TestControllerChange(t *testing.T) {
-	is := is.New(t)
-	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.Files["controller/controller.go"] = `
-		package controller
-		type Controller struct {}
-		func (c *Controller) Index() (string, error) { return "/", nil }
-	`
-	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
-	app, err := cli.Start(ctx, "run")
-	is.NoErr(err)
-	defer app.Close()
-	res, err := app.GetJSON("/")
-	is.NoErr(err)
-	res.Diff(`
-		HTTP/1.1 200 OK
-		Content-Type: application/json
-
-		"/"
-	`)
-	// Update controller
-	controllerFile := filepath.Join(dir, "controller", "controller.go")
-	is.NoErr(os.MkdirAll(filepath.Dir(controllerFile), 0755))
-	is.NoErr(os.WriteFile(controllerFile, []byte(dedent.Dedent(`
-		package controller
-		type Controller struct {}
-		func (c *Controller) Index() string { return "/" }
-	`)), 0644))
-	// Wait for the app to be ready again
-	is.NoErr(app.Ready(ctx))
-	// Try again with the new file
-	res, err = app.GetJSON("/")
-	is.NoErr(err)
-	is.NoErr(res.Diff(`
-		HTTP/1.1 200 OK
-		Content-Type: application/json
-
-		"/"
-	`))
 	is.NoErr(app.Close())
 }
 
@@ -2791,4 +2698,298 @@ func TestIndexControllerWithRootIndexAction(t *testing.T) {
 		[]
 	`))
 	is.NoErr(app.Close())
+}
+
+func TestCreateRouteAndControllerAndView(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.NodeModules["svelte"] = versions.Svelte
+	td.Files["controller/controller.go"] = `
+		package controller
+		type Controller struct{}
+		func (c *Controller) Index() string {
+			return "/"
+		}
+	`
+	is.NoErr(td.Write(ctx))
+	// Start
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	// Test index
+	res, err := app.GetJSON("/")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		"/"
+	`))
+	// Create a new route
+	is.NoErr(os.WriteFile(filepath.Join(dir, "controller", "controller.go"), []byte(`
+		package controller
+		type Controller struct{}
+		func (c *Controller) Index() string {
+			return "/"
+		}
+		func (c *Controller) Show(id string) string {
+			return "/" + id
+		}
+	`), 0644))
+	is.NoErr(app.Ready(ctx))
+	res, err = app.GetJSON("/10")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		"/10"
+	`))
+	// Create a new controller
+	is.NoErr(os.MkdirAll(filepath.Join(dir, "controller", "posts"), 0755))
+	is.NoErr(os.WriteFile(filepath.Join(dir, "controller", "posts", "controller.go"), []byte(`
+		package posts
+		type Controller struct{}
+		func (c *Controller) Index() string {
+			return "/posts"
+		}
+	`), 0644))
+	is.NoErr(app.Ready(ctx))
+	res, err = app.GetJSON("/posts")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		"/posts"
+	`))
+	// Create a new view
+	is.NoErr(os.MkdirAll(filepath.Join(dir, "view", "posts"), 0755))
+	is.NoErr(os.WriteFile(filepath.Join(dir, "view", "posts", "index.svelte"), []byte(`
+		<h1>Posts</h1>
+	`), 0644))
+	is.NoErr(app.Ready(ctx))
+	res, err = app.Get("/posts")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Transfer-Encoding: chunked
+		Content-Type: text/html
+	`))
+	sel, err := res.Query("#bud_target")
+	is.NoErr(err)
+	html, err := sel.Html()
+	is.NoErr(err)
+	is.Equal(html, `<h1>Posts</h1>`)
+	// Create a controller-less view
+	is.NoErr(os.WriteFile(filepath.Join(dir, "view", "posts", "show.svelte"), []byte(`
+		<h1>Show Posts</h1>
+	`), 0644))
+	is.NoErr(app.Ready(ctx))
+	res, err = app.Get("/posts/10")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 404 Not Found
+		Content-Type: text/plain; charset=utf-8
+		X-Content-Type-Options: nosniff
+	`))
+	// Create the accompanying route
+	is.NoErr(os.WriteFile(filepath.Join(dir, "controller", "posts", "controller.go"), []byte(`
+		package posts
+		type Controller struct{}
+		func (c *Controller) Index() string {
+			return "/posts"
+		}
+		func (c *Controller) Show() {
+		}
+	`), 0644))
+	is.NoErr(app.Ready(ctx))
+	res, err = app.Get("/posts/10")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Transfer-Encoding: chunked
+		Content-Type: text/html
+	`))
+	sel, err = res.Query("#bud_target")
+	is.NoErr(err)
+	html, err = sel.Html()
+	is.NoErr(err)
+	is.Equal(html, `<h1>Show Posts</h1>`)
+}
+
+func TestDeleteRouteAndControllerAndView(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.NodeModules["svelte"] = versions.Svelte
+	td.Files["controller/posts/controller.go"] = `
+		package controller
+		type Controller struct{}
+		func (c *Controller) Index() string {
+			return "/"
+		}
+		func (c *Controller) Show(id string) string {
+			return "/"+id
+		}
+	`
+	td.Files["view/posts/index.svelte"] = `
+		<h1>Posts</h1>
+	`
+	td.Files["view/posts/show.svelte"] = `
+		<h1>Show Posts</h1>
+	`
+	is.NoErr(td.Write(ctx))
+	// Start
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	// Test /posts
+	res, err := app.Get("/posts")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Transfer-Encoding: chunked
+		Content-Type: text/html
+	`))
+	sel, err := res.Query("#bud_target")
+	is.NoErr(err)
+	html, err := sel.Html()
+	is.NoErr(err)
+	is.Equal(html, `<h1>Posts</h1>`)
+	// Test /posts/10
+	res, err = app.Get("/posts/10")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Transfer-Encoding: chunked
+		Content-Type: text/html
+	`))
+	sel, err = res.Query("#bud_target")
+	is.NoErr(err)
+	html, err = sel.Html()
+	is.NoErr(err)
+	is.Equal(html, `<h1>Show Posts</h1>`)
+	// Delete the show view
+	is.NoErr(os.Remove(filepath.Join(dir, "view", "posts", "show.svelte")))
+	is.NoErr(app.Ready(ctx))
+	// Try again
+	res, err = app.Get("/posts/10")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+	`))
+	is.NotIn(res.Body().String(), "<h1>Show Posts</h1>")
+	// Delete the controller
+	is.NoErr(os.RemoveAll(filepath.Join(dir, "controller", "posts")))
+	is.NoErr(app.Ready(ctx))
+	// Re-test /posts
+	res, err = app.Get("/posts")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 404 Not Found
+		Content-Type: text/plain; charset=utf-8
+		X-Content-Type-Options: nosniff
+	`))
+	// Re-test /posts/10
+	res, err = app.Get("/posts/10")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 404 Not Found
+		Content-Type: text/plain; charset=utf-8
+		X-Content-Type-Options: nosniff
+	`))
+}
+
+func TestUpdateBodyAndSignatureAndRoute(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["controller/controller.go"] = `
+		package controller
+		type Controller struct {}
+		func (c *Controller) Index() string {
+			return "Hello Users!"
+		}
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	// Test initial route
+	res, err := app.Get("/")
+	is.NoErr(err)
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+	`))
+	is.In(res.Body().String(), `Hello Users!`)
+	// Update controller body
+	is.NoErr(os.WriteFile(filepath.Join(dir, "controller", "controller.go"), []byte(`
+		package controller
+		type Controller struct {}
+		func (c *Controller) Index() string {
+			return "Hello Humans!"
+		}
+	`), 0644))
+	is.NoErr(app.Ready(ctx))
+	// Retry
+	res, err = app.Get("/")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+	`))
+	is.In(res.Body().String(), `Hello Humans!`)
+	// Update controller signature
+	is.NoErr(os.WriteFile(filepath.Join(dir, "controller", "controller.go"), []byte(`
+		package controller
+		type Controller struct {}
+		func (c *Controller) Index(name string) (string, error) {
+			return "Hello " + name + "!", nil
+		}
+	`), 0644))
+	is.NoErr(app.Ready(ctx))
+	// Retry
+	res, err = app.Get("/?name=Mark")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+	`))
+	is.In(res.Body().String(), `Hello Mark!`)
+	// Update route
+	is.NoErr(os.WriteFile(filepath.Join(dir, "controller", "controller.go"), []byte(`
+		package controller
+		type Controller struct {}
+		func (c *Controller) Show(id string) (string, error) {
+			return "/"+id, nil
+		}
+	`), 0644))
+	is.NoErr(app.Ready(ctx))
+	// Retry
+	res, err = app.Get("/?name=Mark")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 404 Not Found
+		Content-Type: text/plain; charset=utf-8
+		X-Content-Type-Options: nosniff
+	`))
+	// Try new route
+	res, err = app.Get("/10")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Content-Type: text/html
+	`))
+	is.In(res.Body().String(), `/10`)
 }
