@@ -179,6 +179,15 @@ func (d *Dir) Relative() string {
 	return rel
 }
 
+func (d *Dir) Entries() []fs.DirEntry {
+	children := d.node.Children()
+	entries := make([]fs.DirEntry, len(children))
+	for i, child := range children {
+		entries[i] = child.Entry()
+	}
+	return entries
+}
+
 func (g *dirGenerator) Generate(target string) (fs.File, error) {
 	// Call the generator function from the child
 	dir := &Dir{&dir{g.node}, target}

@@ -2,13 +2,15 @@ package budfs
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"io/fs"
-	"net/http"
 	"path"
 
-	"github.com/livebud/bud/internal/virtual/vcache"
+	"github.com/livebud/bud/package/virtual/vcache"
 
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/virtual"
 
 	"github.com/livebud/bud/internal/dag"
 	"github.com/livebud/bud/internal/dsync"
@@ -18,19 +20,17 @@ import (
 	"github.com/livebud/bud/package/log"
 )
 
-func New(module *gomod.Module, log log.Interface) *FileSystem {
+func New(cache vcache.Cache, module *gomod.Module, log log.Interface) *FileSystem {
 	gen := genfs.New()
 	merged := mergefs.Merge(gen, module)
-	server := http.FileServer(http.FS(merged))
 	return &FileSystem{
-		cache:  vcache.New(),
+		cache:  cache,
 		closer: new(once.Closer),
 		dag:    dag.New(),
 		gen:    gen,
 		log:    log,
 		module: module,
-		syncfs: merged,
-		server: server,
+		fsys:   merged,
 	}
 }
 
@@ -41,8 +41,7 @@ type FileSystem struct {
 	gen    *genfs.FileSystem
 	log    log.Interface
 	module *gomod.Module
-	syncfs fs.FS
-	server http.Handler
+	fsys   fs.FS
 }
 
 type File = genfs.File
@@ -95,6 +94,7 @@ func (f *FS) Defer(fn func() error) {
 }
 
 type Dir struct {
+	cache  vcache.Cache
 	closer *once.Closer
 	dag    *dag.Graph
 	fsys   fs.FS
@@ -125,7 +125,16 @@ func (d *Dir) FileGenerator(path string, generator FileGenerator) {
 func (d *Dir) GenerateDir(path string, fn func(fsys *FS, dir *Dir) error) {
 	fsys := &FS{d.closer, context.TODO(), d.dag, d.fsys, path}
 	d.dir.GenerateDir(path, func(dir *genfs.Dir) error {
-		return fn(fsys, &Dir{d.closer, d.dag, d.fsys, dir})
+		d := &Dir{d.cache, d.closer, d.dag, d.fsys, dir}
+		if err := fn(fsys, d); err != nil {
+			return err
+		}
+		d.cache.Set(d.dir.Path(), &virtual.Dir{
+			Path:    d.dir.Path(),
+			Mode:    d.dir.Mode(),
+			Entries: d.dir.Entries(),
+		})
+		return nil
 	})
 }
 
@@ -163,11 +172,23 @@ func (e *EmbedFile) GenerateFile(fsys *FS, file *File) error {
 }
 
 func (f *FileSystem) Open(name string) (fs.File, error) {
-	file, err := f.syncfs.Open(name)
+	f.log.Debug("budfs: open", "name", name)
+	entry, ok := f.cache.Get(name)
+	f.log.Debug("budfs: cache hit", "name", name)
+	if ok {
+		return entry.Open(), nil
+	}
+	f.log.Debug("budfs: cache miss", "name", name)
+	file, err := f.fsys.Open(name)
 	if err != nil {
 		return nil, err
 	}
-	return file, nil
+	entry, err = f.toEntry(name, file)
+	if err != nil {
+		return nil, err
+	}
+	f.cache.Set(name, entry)
+	return entry.Open(), nil
 }
 
 func (f *FileSystem) Close() error {
@@ -175,7 +196,7 @@ func (f *FileSystem) Close() error {
 }
 
 func (f *FileSystem) GenerateFile(path string, fn func(fsys *FS, file *File) error) {
-	fsys := &FS{f.closer, context.TODO(), f.dag, f.syncfs, path}
+	fsys := &FS{f.closer, context.TODO(), f.dag, f.fsys, path}
 	f.gen.GenerateFile(path, func(file *genfs.File) error { return fn(fsys, file) })
 }
 
@@ -184,9 +205,18 @@ func (f *FileSystem) FileGenerator(path string, generator FileGenerator) {
 }
 
 func (f *FileSystem) GenerateDir(path string, fn func(fsys *FS, dir *Dir) error) {
-	fsys := &FS{f.closer, context.TODO(), f.dag, f.syncfs, path}
+	fsys := &FS{f.closer, context.TODO(), f.dag, f.fsys, path}
 	f.gen.GenerateDir(path, func(dir *genfs.Dir) error {
-		return fn(fsys, &Dir{f.closer, f.dag, f.syncfs, dir})
+		d := &Dir{f.cache, f.closer, f.dag, f, dir}
+		if err := fn(fsys, d); err != nil {
+			return err
+		}
+		f.cache.Set(d.dir.Path(), &virtual.Dir{
+			Path:    d.dir.Path(),
+			Mode:    d.dir.Mode(),
+			Entries: d.dir.Entries(),
+		})
+		return nil
 	})
 }
 
@@ -195,7 +225,7 @@ func (f *FileSystem) DirGenerator(path string, generator DirGenerator) {
 }
 
 func (f *FileSystem) ServeFile(path string, fn func(fsys *FS, file *File) error) {
-	fsys := &FS{f.closer, context.TODO(), f.dag, f.syncfs, path}
+	fsys := &FS{f.closer, context.TODO(), f.dag, f.fsys, path}
 	f.gen.ServeFile(path, func(file *genfs.File) error { return fn(fsys, file) })
 }
 
@@ -203,16 +233,11 @@ func (f *FileSystem) FileServer(path string, generator FileGenerator) {
 	f.ServeFile(path, generator.GenerateFile)
 }
 
-// ServeHTTP serves the filesystem. Served files are not cached.
-func (f *FileSystem) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	f.server.ServeHTTP(w, r)
-}
-
 // Sync the overlay to the filesystem
 func (f *FileSystem) Sync(to string) error {
 	// Clear the filesystem cache before syncing again
 	f.cache.Clear()
-	return dsync.To(f.syncfs, f.module.DirFS("."), to)
+	return dsync.To(f.fsys, f.module.DirFS("."), to)
 }
 
 func (f *FileSystem) Mount(path string, fsys fs.FS) {
@@ -254,4 +279,67 @@ func (f *FileSystem) Delete(filepath string) {
 	for _, ancestor := range f.dag.Ancestors(dir) {
 		f.cache.Delete(ancestor)
 	}
+}
+
+// toEntry converts a fs.File into a reusable virtual entry
+func (f *FileSystem) toEntry(fullpath string, file fs.File) (virtual.Entry, error) {
+	stat, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+	// Handle files
+	if !stat.IsDir() {
+		// Read the data fully
+		data, err := io.ReadAll(file)
+		if err != nil {
+			return nil, err
+		}
+		return &virtual.File{
+			Path:    fullpath,
+			Data:    data,
+			ModTime: stat.ModTime(),
+			Mode:    stat.Mode(),
+			Sys:     stat.Sys(),
+		}, nil
+	}
+	vdir := &virtual.Dir{
+		Path:    fullpath,
+		ModTime: stat.ModTime(),
+		Mode:    stat.Mode(),
+		Sys:     stat.Sys(),
+	}
+	dir, ok := file.(fs.ReadDirFile)
+	if !ok {
+		return nil, fmt.Errorf("budfs: dir does not have ReadDir: %s", fullpath)
+	}
+	des, err := dir.ReadDir(-1)
+	if err != nil {
+		return nil, err
+	}
+	for _, de := range des {
+		stat, err := f.toEntryInfo(fullpath, de)
+		if err != nil {
+			return nil, err
+		}
+		vdir.Entries = append(vdir.Entries, &virtual.DirEntry{
+			Path:    de.Name(),
+			ModTime: stat.ModTime(),
+			Mode:    stat.Mode(),
+			Sys:     stat.Sys(),
+			Size:    stat.Size(),
+		})
+	}
+	return vdir, nil
+}
+
+func (f *FileSystem) toEntryInfo(fullpath string, de fs.DirEntry) (fs.FileInfo, error) {
+	entryPath := path.Join(fullpath, de.Name())
+	f.log.Debug("budfs: entry info", "name", entryPath)
+	entry, ok := f.cache.Get(entryPath)
+	if ok {
+		f.log.Debug("budfs: cache hit", "name", entryPath)
+		return entry.Open().Stat()
+	}
+	f.log.Debug("budfs: cache miss", "name", entryPath)
+	return de.Info()
 }

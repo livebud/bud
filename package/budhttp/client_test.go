@@ -10,6 +10,7 @@ import (
 
 	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/log/testlog"
+	"github.com/livebud/bud/package/virtual/vcache"
 
 	"github.com/livebud/bud/framework/transform/transformrt"
 	"github.com/livebud/bud/framework/view/dom"
@@ -43,7 +44,8 @@ func loadServer(bus pubsub.Client, dir string) (*httptest.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	bfs := budfs.New(module, log)
+	cache := vcache.New()
+	bfs := budfs.New(cache, module, log)
 	bfs.FileServer("bud/view", dom.New(module, transforms.DOM))
 	bfs.FileServer("bud/node_modules", dom.NodeModules(module))
 	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
