@@ -8,7 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/log/testlog"
+	"github.com/livebud/bud/package/virtual/vcache"
 
 	"github.com/livebud/bud/framework/transform/transformrt"
 	"github.com/livebud/bud/framework/view/dom"
@@ -21,7 +23,6 @@ import (
 	"github.com/livebud/bud/package/budhttp/budsvr"
 	"github.com/livebud/bud/package/gomod"
 	v8 "github.com/livebud/bud/package/js/v8"
-	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/svelte"
 )
 
@@ -43,14 +44,12 @@ func loadServer(bus pubsub.Client, dir string) (*httptest.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	genfs, err := overlay.Load(log, module)
-	if err != nil {
-		return nil, err
-	}
-	genfs.FileServer("bud/view", dom.New(module, transforms.DOM))
-	genfs.FileServer("bud/node_modules", dom.NodeModules(module))
-	genfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
-	handler := budsvr.New(genfs, bus, log, vm)
+	cache := vcache.New()
+	bfs := budfs.New(cache, module, log)
+	bfs.FileServer("bud/view", dom.New(module, transforms.DOM))
+	bfs.FileServer("bud/node_modules", dom.NodeModules(module))
+	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
+	handler := budsvr.New(bfs, bus, log, vm)
 	return httptest.NewServer(handler), nil
 }
 

@@ -83,6 +83,6 @@ func (l *loader) loadImports(generators []*Gen) []*imports.Import {
 	if len(generators) == 0 {
 		return nil
 	}
-	l.imports.AddNamed("overlay", "github.com/livebud/bud/package/overlay")
+	l.imports.AddNamed("budfs", "github.com/livebud/bud/package/budfs")
 	return l.imports.List()
 }

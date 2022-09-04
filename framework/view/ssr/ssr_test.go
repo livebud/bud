@@ -14,12 +14,13 @@ import (
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/internal/versions"
+	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/js"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log/testlog"
-	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/svelte"
+	"github.com/livebud/bud/package/virtual/vcache"
 )
 
 func TestSvelteHello(t *testing.T) {
@@ -38,11 +39,12 @@ func TestSvelteHello(t *testing.T) {
 	transformer := transformrt.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	overlay, err := overlay.Load(log, module)
+	cache := vcache.New()
+	bfs := budfs.New(cache, module, log)
 	is.NoErr(err)
-	overlay.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
+	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	// Read the wrapped version of index.svelte with node_modules rewritten
-	code, err := fs.ReadFile(overlay, "bud/view/_ssr.js")
+	code, err := fs.ReadFile(bfs, "bud/view/_ssr.js")
 	is.NoErr(err)
 	is.True(strings.Contains(string(code), `create_ssr_component(`))
 	is.True(strings.Contains(string(code), `<h1>hi world</h1>`))
@@ -94,11 +96,12 @@ func TestSvelteAwait(t *testing.T) {
 	transformer := transformrt.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	overlay, err := overlay.Load(log, module)
+	cache := vcache.New()
+	bfs := budfs.New(cache, module, log)
 	is.NoErr(err)
-	overlay.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
+	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	// Read the wrapped version of index.svelte with node_modules rewritten
-	code, err := fs.ReadFile(overlay, "bud/view/_ssr.js")
+	code, err := fs.ReadFile(bfs, "bud/view/_ssr.js")
 	is.NoErr(err)
 	result, err := vm.Eval("render.js", string(code)+`; bud.render("/", {})`)
 	is.NoErr(err)
@@ -192,11 +195,12 @@ func TestSvelteProps(t *testing.T) {
 	transformer := transformrt.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	overlay, err := overlay.Load(log, module)
+	cache := vcache.New()
+	bfs := budfs.New(cache, module, log)
 	is.NoErr(err)
-	overlay.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
+	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	// Read the wrapped version of index.svelte with node_modules rewritten
-	code, err := fs.ReadFile(overlay, "bud/view/_ssr.js")
+	code, err := fs.ReadFile(bfs, "bud/view/_ssr.js")
 	is.NoErr(err)
 	// index
 	type User struct {
@@ -310,11 +314,12 @@ func TestSvelteLocalImports(t *testing.T) {
 	transformer := transformrt.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	overlay, err := overlay.Load(log, module)
+	cache := vcache.New()
+	bfs := budfs.New(cache, module, log)
 	is.NoErr(err)
-	overlay.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
+	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	// Read the wrapped version of index.svelte with node_modules rewritten
-	code, err := fs.ReadFile(overlay, "bud/view/_ssr.js")
+	code, err := fs.ReadFile(bfs, "bud/view/_ssr.js")
 	is.NoErr(err)
 	type Comment struct {
 		Message string `json:"message"`

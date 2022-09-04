@@ -8,10 +8,11 @@ import (
 
 	"github.com/livebud/bud/internal/cli/bud"
 	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
-	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/parser"
+	"github.com/livebud/bud/package/virtual/vcache"
 )
 
 func New(bud *bud.Command, in *bud.Input) *Command {
@@ -38,11 +39,9 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	overlay, err := overlay.Load(log, module)
-	if err != nil {
-		return err
-	}
-	parser := parser.New(overlay, module)
+	cache := vcache.New()
+	bfs := budfs.New(cache, module, log)
+	parser := parser.New(bfs, module)
 	fn := &di.Function{
 		Hoist: c.Hoist,
 	}
@@ -84,7 +83,7 @@ func (c *Command) Run(ctx context.Context) error {
 			Type:   ext.TypeName(),
 		})
 	}
-	injector := di.New(overlay, log, module, parser)
+	injector := di.New(bfs, log, module, parser)
 	node, err := injector.Load(fn)
 	if err != nil {
 		return err

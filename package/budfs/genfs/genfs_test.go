@@ -14,11 +14,7 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/livebud/bud/package/vfs"
-
-	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/is"
-	"github.com/livebud/bud/internal/virtual/vcache"
 	"github.com/livebud/bud/package/budfs/genfs"
 	"github.com/livebud/bud/package/budfs/mergefs"
 )
@@ -44,7 +40,7 @@ func TestFS(t *testing.T) {
 	// fsys := fstest.MapFS{
 	// 	"bud/public/index.html": &fstest.MapFile{Data: []byte("<h1>hello</h1>")},
 	// }
-	genfs := genfs.New(vcache.New())
+	genfs := genfs.New()
 	genfs.FileGenerator("bud/public/tailwind/tailwind.css", &tailwind{})
 	genfs.FileGenerator("bud/view/index.svelte", &svelte{})
 
@@ -121,7 +117,7 @@ func view() func(dir *genfs.Dir) error {
 
 func TestViewFS(t *testing.T) {
 	is := is.New(t)
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.GenerateDir("bud/view", view())
 
 	// bud
@@ -176,7 +172,7 @@ func TestViewFS(t *testing.T) {
 
 func TestAll(t *testing.T) {
 	is := is.New(t)
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.GenerateDir("bud/view", view())
 
 	// .
@@ -452,7 +448,7 @@ func TestAll(t *testing.T) {
 
 func TestDir(t *testing.T) {
 	is := is.New(t)
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.GenerateDir("bud/view", func(dir *genfs.Dir) error {
 		dir.GenerateDir("about", func(dir *genfs.Dir) error {
 			dir.GenerateDir("me", func(dir *genfs.Dir) error {
@@ -497,7 +493,7 @@ func TestDir(t *testing.T) {
 
 func TestGenerateFileError(t *testing.T) {
 	is := is.New(t)
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.GenerateFile("bud/main.go", func(file *genfs.File) error {
 		return fs.ErrNotExist
 	})
@@ -510,7 +506,7 @@ func TestGenerateFileError(t *testing.T) {
 
 func TestServeFile(t *testing.T) {
 	is := is.New(t)
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.GenerateDir("bud/view", func(dir *genfs.Dir) error {
 		switch dir.Relative() {
 		case ".":
@@ -568,7 +564,7 @@ func TestServeFile(t *testing.T) {
 
 func TestHTTP(t *testing.T) {
 	is := is.New(t)
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.GenerateDir("bud/view", func(dir *genfs.Dir) error {
 		dir.GenerateFile(dir.Relative(), func(file *genfs.File) error {
 			file.Data = []byte(dir.Target() + "'s data")
@@ -612,7 +608,7 @@ func rootless(fpath string) string {
 func TestTargetPath(t *testing.T) {
 	is := is.New(t)
 	// Test inner file and rootless
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.GenerateDir("bud/view", func(dir *genfs.Dir) error {
 		dir.GenerateFile("about/about.svelte", func(file *genfs.File) error {
 			file.Data = []byte(rootless(file.Path()))
@@ -627,7 +623,7 @@ func TestTargetPath(t *testing.T) {
 
 func TestDynamicDir(t *testing.T) {
 	is := is.New(t)
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.GenerateDir("bud/view", func(dir *genfs.Dir) error {
 		doms := []string{"about/about.svelte", "index.svelte"}
 		for _, dom := range doms {
@@ -652,7 +648,7 @@ func TestDynamicDir(t *testing.T) {
 
 func TestBases(t *testing.T) {
 	is := is.New(t)
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.GenerateDir("bud/view", func(dir *genfs.Dir) error {
 		return nil
 	})
@@ -669,7 +665,7 @@ func TestBases(t *testing.T) {
 
 func TestDirUnevenMerge(t *testing.T) {
 	is := is.New(t)
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.GenerateDir("bud/view", func(dir *genfs.Dir) error {
 		dir.GenerateDir("public", func(dir *genfs.Dir) error {
 			dir.GenerateFile("favicon.ico", func(file *genfs.File) error {
@@ -700,7 +696,7 @@ func TestDirUnevenMerge(t *testing.T) {
 
 func TestDirMerge(t *testing.T) {
 	is := is.New(t)
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.GenerateDir("bud/view", func(dir *genfs.Dir) error {
 		dir.GenerateFile("index.svelte", func(file *genfs.File) error {
 			file.Data = []byte(`<h1>index</h1>`)
@@ -736,7 +732,7 @@ func TestDirMerge(t *testing.T) {
 func TestAddGenerator(t *testing.T) {
 	is := is.New(t)
 	// Add the view
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.GenerateDir("bud/view", view())
 
 	// Add the controller
@@ -789,7 +785,7 @@ func (c *commandGenerator) ServeFile(file *genfs.File) error {
 
 func TestFileGenerator(t *testing.T) {
 	is := is.New(t)
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.FileGenerator("bud/command/command.go", &commandGenerator{Input: "a"})
 	code, err := fs.ReadFile(gen, "bud/command/command.go")
 	is.NoErr(err)
@@ -799,7 +795,7 @@ func TestFileGenerator(t *testing.T) {
 func TestDirGenerator(t *testing.T) {
 	is := is.New(t)
 	// Add the view
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.DirGenerator("bud/view", &commandGenerator{Input: "a"})
 	code, err := fs.ReadFile(gen, "bud/view/index.svelte")
 	is.NoErr(err)
@@ -808,7 +804,7 @@ func TestDirGenerator(t *testing.T) {
 
 // func TestFileServer(t *testing.T) {
 // 	is := is.New(t)
-// 	gen := genfs.New(vcache.New())
+// 	gen := genfs.New()
 // 	gen.FileServer("bud/view", &commandGenerator{Input: "a"})
 // 	code, err := fs.ReadFile(gen, "bud/view/index.svelte")
 // 	is.NoErr(err)
@@ -817,7 +813,7 @@ func TestDirGenerator(t *testing.T) {
 
 func TestDotReadDirEmpty(t *testing.T) {
 	is := is.New(t)
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.GenerateFile("bud/generate/main.go", func(file *genfs.File) error {
 		file.Data = []byte("package main")
 		return nil
@@ -838,7 +834,7 @@ func TestDotReadDirFiles(t *testing.T) {
 	is.NoErr(err)
 	err = os.WriteFile(filepath.Join(tmp, "b.txt"), []byte("b"), 0644)
 	is.NoErr(err)
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	mapfs := fstest.MapFS{
 		"a.txt": &fstest.MapFile{Data: []byte("a"), Mode: 0644},
 		"b.txt": &fstest.MapFile{Data: []byte("b"), Mode: 0644},
@@ -862,7 +858,7 @@ func TestReadDirDuplicates(t *testing.T) {
 	mapfs := fstest.MapFS{
 		"go.mod": &fstest.MapFile{Data: []byte(`module app.com`)},
 	}
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.GenerateFile("go.mod", func(file *genfs.File) error {
 		file.Data = []byte("module app.cool")
 		return nil
@@ -879,7 +875,7 @@ func TestReadDirDuplicates(t *testing.T) {
 
 func TestEmbedOpen(t *testing.T) {
 	is := is.New(t)
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.FileGenerator("bud/view/index.svelte", &genfs.EmbedFile{
 		Data: []byte(`<h1>index</h1>`),
 	})
@@ -928,7 +924,7 @@ func TestEmbedOpen(t *testing.T) {
 
 func TestGoModGoMod(t *testing.T) {
 	is := is.New(t)
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.GenerateFile("go.mod", func(file *genfs.File) error {
 		file.Data = []byte("module app.com\nrequire mod.test/module v1.2.4")
 		return nil
@@ -944,7 +940,7 @@ func TestGoModGoMod(t *testing.T) {
 
 func TestGoModGoModEmbed(t *testing.T) {
 	is := is.New(t)
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.FileGenerator("go.mod", &genfs.EmbedFile{
 		Data: []byte("module app.com\nrequire mod.test/module v1.2.4"),
 	})
@@ -959,11 +955,11 @@ func TestGoModGoModEmbed(t *testing.T) {
 
 func TestMount(t *testing.T) {
 	is := is.New(t)
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.GenerateDir("bud/view", view())
-	gfs := genfs.New(vcache.New())
-	gen.Mount("bud/generator", gfs)
-	gfs.FileGenerator("tailwind/tailwind.css", &genfs.EmbedFile{
+	gen2 := genfs.New()
+	gen.Mount("bud/generator", gen2)
+	gen2.FileGenerator("tailwind/tailwind.css", &genfs.EmbedFile{
 		Data: []byte(`/** tailwind **/`),
 	})
 	des, err := fs.ReadDir(gen, "bud")
@@ -998,7 +994,7 @@ func TestMount(t *testing.T) {
 func TestFillerDirBecomesFile(t *testing.T) {
 	is := is.New(t)
 	// Add the view
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.GenerateDir("bud/node_modules", func(dir *genfs.Dir) error {
 		dir.GenerateFile(dir.Relative(), func(file *genfs.File) error {
 			file.Data = []byte(file.Path())
@@ -1023,7 +1019,7 @@ func TestFillerDirBecomesFile(t *testing.T) {
 func TestFileAndDir(t *testing.T) {
 	is := is.New(t)
 	// Add the view
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.GenerateDir("bud/node_modules", func(dir *genfs.Dir) error {
 		dir.GenerateFile(dir.Relative(), func(file *genfs.File) error {
 			file.Data = []byte(file.Path())
@@ -1048,7 +1044,7 @@ func TestFileAndDir(t *testing.T) {
 func TestReadDirNotExists(t *testing.T) {
 	is := is.New(t)
 	// Add the view
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.GenerateFile("bud/controller/controller.go", func(file *genfs.File) error {
 		return fs.ErrNotExist
 	})
@@ -1059,7 +1055,7 @@ func TestReadDirNotExists(t *testing.T) {
 
 func TestServeFileNative(t *testing.T) {
 	is := is.New(t)
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.ServeFile("duo/view", func(file *genfs.File) error {
 		file.Data = []byte(file.Path() + `'s data`)
 		return nil
@@ -1099,28 +1095,10 @@ func TestServeFileNative(t *testing.T) {
 	is.Equal(string(code), `duo/view/about/_about.svelte's data`)
 }
 
-func TestCaching(t *testing.T) {
-	is := is.New(t)
-	gen := genfs.New(vcache.New())
-	count := 0
-	gen.GenerateFile("bud/public/public.go", func(file *genfs.File) error {
-		count++
-		file.Data = []byte("public")
-		return nil
-	})
-	tfs := vfs.Map{}
-	err := dsync.Dir(gen, "bud", tfs, "bud")
-	is.NoErr(err)
-	code, err := fs.ReadFile(gen, "bud/public/public.go")
-	is.NoErr(err)
-	is.Equal(string(code), "public")
-	is.Equal(count, 1)
-}
-
 func TestGenerateDirNotExists(t *testing.T) {
 	is := is.New(t)
 	// Add the view
-	gen := genfs.New(vcache.New())
+	gen := genfs.New()
 	gen.GenerateDir("bud/public", func(dir *genfs.Dir) error {
 		return fs.ErrNotExist
 	})

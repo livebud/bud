@@ -19,13 +19,16 @@ func Load(client budhttp.Client, log log.Interface) Server {
 }
 {{ else }}
 // New view server. Files are embedded rather than linked.
-func New(module *mod.Module, fsys *overlay.FileSystem, log log.Interface, vm js.VM) Server {
+func New(module *gomod.Module, log log.Interface, vm js.VM) Server {
+	vmap := virtual.Map{}
 	{{- range $embed := $.Embeds }}
-	fsys.FileGenerator(`{{ $embed.Path }}`, &overlay.Embed{
-		{{ if $embed.Data }}Data: []byte("{{ $embed.Data }}"),{{ end }}
-	})
+	vmap["{{ $embed.Path }}"] = &virtual.File{
+		Path: "{{ $embed.Path }}",
+		{{/* Using double quotes matters because $embed.Data is escaped hex */}}
+		Data: []byte("{{ $embed.Data }}"),
+	}
 	{{- end }}
-	return viewrt.Static(fsys, log, vm, func(path string, props interface{}) interface{} {
+	return viewrt.Static(vmap, log, vm, func(path string, props interface{}) interface{} {
 		return props
 	})
 }

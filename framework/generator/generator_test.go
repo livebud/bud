@@ -27,12 +27,12 @@ func TestGenerators(t *testing.T) {
 		)
 		type Generator struct {
 		}
-		func (g *Generator) GenerateDir(ctx context.Context, fsys overlay.F, dir *overlay.Dir) error {
-			dir.GenerateFile("tailwind.css", func(ctx context.Context, fsys overlay.F, file *overlay.File) error {
+		func (g *Generator) GenerateDir(fsys *budfs.FS, dir *budfs.Dir) error {
+			dir.GenerateFile("tailwind.css", func(fsys *budfs.FS, file *budfs.File) error {
 				file.Data = []byte("/** tailwind **/")
 				return nil
 			})
-			dir.GenerateFile("preflight.css", func(ctx context.Context, fsys overlay.F, file *overlay.File) error {
+			dir.GenerateFile("preflight.css", func(fsys *budfs.FS, file *budfs.File) error {
 				file.Data = []byte("/** preflight **/")
 				return nil
 			})
@@ -61,12 +61,12 @@ func TestGenerators(t *testing.T) {
 		type Generator struct {
 			Markdoc *markdoc.Compiler
 		}
-		func (g *Generator) GenerateDir(ctx context.Context, fsys overlay.F, dir *overlay.Dir) error {
+		func (g *Generator) GenerateDir(fsys *budfs.FS, dir *budfs.Dir) error {
 			dir.GenerateFile("view/index.md", g.compile)
 			dir.GenerateFile("view/about/index.md", g.compile)
 			return nil
 		}
-		func (g *Generator) compile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
+		func (g *Generator) compile(fsys *budfs.FS, file *budfs.File) error {
 			data, err := fs.ReadFile(fsys, strings.TrimPrefix(file.Path(), "bud/internal/generator/markdoc/"))
 			if err != nil {
 				return err
@@ -87,8 +87,8 @@ func TestGenerators(t *testing.T) {
 		)
 		type Generator struct {
 		}
-		func (g *Generator) GenerateDir(ctx context.Context, fsys overlay.F, dir *overlay.Dir) error {
-			dir.GenerateFile("viewer.go", func(ctx context.Context, fsys overlay.F, file *overlay.File) error {
+		func (g *Generator) GenerateDir(fsys *budfs.FS, dir *budfs.Dir) error {
+			dir.GenerateFile("viewer.go", func(fsys *budfs.FS, file *budfs.File) error {
 				file.Data = []byte("package viewer")
 				return nil
 			})
@@ -166,7 +166,7 @@ func TestSyntaxError(t *testing.T) {
 			"github.com/livebud/bud/package/overlay"
 		)
 		type Generator struct {}
-		func (g *Generator) GenerateDir(ctx context.Context, fsys overlay.F, dir *overlay.Dir) error {
+		func (g *Generator) GenerateDir(fsys *budfs.FS, dir *budfs.Dir) error {
 			return "oh noz"
 		}
 	`
@@ -193,8 +193,8 @@ func TestChange(t *testing.T) {
 		)
 		type Generator struct {
 		}
-		func (g *Generator) GenerateDir(ctx context.Context, fsys overlay.F, dir *overlay.Dir) error {
-			dir.GenerateFile("tailwind.css", func(ctx context.Context, fsys overlay.F, file *overlay.File) error {
+		func (g *Generator) GenerateDir(fsys *budfs.FS, dir *budfs.Dir) error {
+			dir.GenerateFile("tailwind.css", func(fsys *budfs.FS, file *budfs.File) error {
 				file.Data = []byte("/** tailwind **/")
 				return nil
 			})
@@ -220,8 +220,8 @@ func TestChange(t *testing.T) {
 		)
 		type Generator struct {
 		}
-		func (g *Generator) GenerateDir(ctx context.Context, fsys overlay.F, dir *overlay.Dir) error {
-			dir.GenerateFile("preflight.css", func(ctx context.Context, fsys overlay.F, file *overlay.File) error {
+		func (g *Generator) GenerateDir(fsys *budfs.FS, dir *budfs.Dir) error {
+			dir.GenerateFile("preflight.css", func(fsys *budfs.FS, file *budfs.File) error {
 				file.Data = []byte("/** preflight **/")
 				return nil
 			})

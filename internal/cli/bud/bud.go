@@ -29,6 +29,7 @@ import (
 	"github.com/livebud/bud/framework/view/dom"
 	"github.com/livebud/bud/framework/view/ssr"
 	"github.com/livebud/bud/framework/web"
+	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/commander"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
@@ -37,12 +38,12 @@ import (
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/log/console"
 	"github.com/livebud/bud/package/log/filter"
-	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/parser"
 	"github.com/livebud/bud/package/remotefs"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/package/svelte"
 	"github.com/livebud/bud/package/vfs"
+	"github.com/livebud/bud/package/virtual/vcache"
 )
 
 // Input contains the configuration that gets passed into the commands
@@ -129,7 +130,7 @@ func Log(stderr io.Writer, logFilter string) (log.Interface, error) {
 	return log.New(handler), nil
 }
 
-func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, flag *framework.Flag, in *Input) (*overlay.FileSystem, func() error, error) {
+func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, flag *framework.Flag, in *Input) (*budfs.FileSystem, func() error, error) {
 	closers := []func() error{}
 	closer := func() (err error) {
 		for i := len(closers) - 1; i >= 0; i-- {
@@ -137,12 +138,10 @@ func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, fl
 		}
 		return err
 	}
-	genfs, err := overlay.Load(log, module)
-	if err != nil {
-		return nil, closer, err
-	}
-	parser := parser.New(genfs, module)
-	injector := di.New(genfs, log, module, parser)
+	cache := vcache.New()
+	bfs := budfs.New(cache, module, log)
+	parser := parser.New(bfs, module)
+	injector := di.New(bfs, log, module, parser)
 	vm, err := v8.Load()
 	if err != nil {
 		return nil, closer, err
@@ -155,15 +154,15 @@ func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, fl
 	if err != nil {
 		return nil, closer, err
 	}
-	genfs.FileGenerator("bud/internal/app/main.go", app.New(injector, module, flag))
-	genfs.FileGenerator("bud/internal/app/web/web.go", web.New(module, parser))
-	genfs.FileGenerator("bud/internal/app/controller/controller.go", controller.New(injector, module, parser))
-	genfs.FileGenerator("bud/internal/app/view/view.go", view.New(module, transforms, flag))
-	genfs.DirGenerator("bud/internal/app/public", public.New(flag, module))
-	genfs.FileGenerator("bud/internal/generate/main.go", generate.New(injector, module))
-	genfs.FileGenerator("bud/internal/generate/generator/generator.go", generator.New(module, parser))
+	bfs.FileGenerator("bud/internal/app/main.go", app.New(injector, module, flag))
+	bfs.FileGenerator("bud/internal/app/web/web.go", web.New(module, parser))
+	bfs.FileGenerator("bud/internal/app/controller/controller.go", controller.New(injector, module, parser))
+	bfs.FileGenerator("bud/internal/app/view/view.go", view.New(module, transforms, flag))
+	bfs.DirGenerator("bud/internal/app/public", public.New(flag, module))
+	bfs.FileGenerator("bud/internal/generate/main.go", generate.New(injector, module))
+	bfs.FileGenerator("bud/internal/generate/generator/generator.go", generator.New(module, parser))
 	// Sync generate now to support custom generators, if any
-	if err := genfs.Sync("bud/internal/generate"); err != nil {
+	if err := bfs.Sync("bud/internal/generate"); err != nil {
 		return nil, closer, err
 	}
 	// Support custom generators
@@ -203,16 +202,14 @@ func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, fl
 			return nil, closer, err
 		}
 		closers = append(closers, remotefs.Close)
-		genfs.Mount("bud/internal/generator", remotefs)
+		bfs.Mount("bud/internal/generator", remotefs)
 	}
-	return genfs, closer, nil
+	return bfs, closer, nil
 }
 
-func FileServer(log log.Interface, module *gomod.Module, vm js.VM, flag *framework.Flag) (*overlay.Server, error) {
-	servefs, err := overlay.Serve(log, module)
-	if err != nil {
-		return nil, err
-	}
+func FileServer(log log.Interface, module *gomod.Module, vm js.VM, flag *framework.Flag) (*budfs.FileSystem, error) {
+	cache := vcache.Discard
+	bfs := budfs.New(cache, module, log)
 	svelteCompiler, err := svelte.Load(vm)
 	if err != nil {
 		return nil, err
@@ -221,10 +218,10 @@ func FileServer(log log.Interface, module *gomod.Module, vm js.VM, flag *framewo
 	if err != nil {
 		return nil, err
 	}
-	servefs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
-	servefs.FileServer("bud/view", dom.New(module, transforms.DOM))
-	servefs.FileServer("bud/node_modules", dom.NodeModules(module))
-	return servefs, nil
+	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
+	bfs.FileServer("bud/view", dom.New(module, transforms.DOM))
+	bfs.FileServer("bud/node_modules", dom.NodeModules(module))
+	return bfs, nil
 }
 
 // EnsureVersionAlignment ensures that the CLI and runtime versions are aligned.
