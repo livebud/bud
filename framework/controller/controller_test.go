@@ -2792,3 +2792,36 @@ func TestIndexControllerWithRootIndexAction(t *testing.T) {
 	`))
 	is.NoErr(app.Close())
 }
+
+// Asserts the Validate() method is called on single input
+// structs.
+func TestInputValidateMethod(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	// root controller with input struct to validate
+	td.Files["controller/controller.go"] = `
+		package controller
+		import "errors"
+		type Controller struct{}
+		type Input struct{}
+		func (in *Input) Valid() error {
+			return errors.New("")
+		}
+		func (c *Controller) Index(in *Input) []string {
+			return []string{}
+		}
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	res, err := app.GetJSON("/")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 400 Bad Request
+		Content-Type: application/json
+	`))
+}

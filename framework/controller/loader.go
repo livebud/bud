@@ -300,6 +300,13 @@ func (l *loader) loadActionParam(param *parser.Param, nth, numParams int) *Actio
 	switch {
 	// Single struct input
 	case numParams == 1 && dec.Kind() == parser.KindStruct:
+		// this should always work because kind is KindStruct
+		stct := dec.Package().Struct(dec.Name())
+		validateMethod := stct.Method("Valid")
+		if validateMethod != nil && len(validateMethod.Results()) == 1 && validateMethod.Results()[0].IsError() {
+			// mark that the action param has Valid() error
+			ap.HasValidMethod = true
+		}
 		ap.Variable = "in"
 	// Handle context.Context
 	case ap.IsContext():
@@ -342,6 +349,7 @@ func (l *loader) loadType(dt parser.Type, dec parser.Declaration) string {
 
 func (l *loader) loadActionInput(params []*ActionParam) string {
 	if len(params) == 1 && params[0].Kind == string(parser.KindStruct) {
+		// single struct input
 		return params[0].Type
 	}
 	return l.loadActionInputStruct(params)

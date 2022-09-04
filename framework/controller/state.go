@@ -60,6 +60,18 @@ type Action struct {
 	PropsKey    string
 }
 
+func (a *Action) HasSingleInput() bool {
+	return len(a.Params) == 1
+}
+
+func (a *Action) HasCustomValidation() bool {
+	if a.HasSingleInput() && a.Params[0].HasValidMethod {
+		return true
+	} else {
+		return false
+	}
+}
+
 // View struct
 type View struct {
 	Route string
@@ -67,13 +79,14 @@ type View struct {
 
 // ActionParam struct
 type ActionParam struct {
-	Name     string
-	Pascal   string
-	Snake    string
-	Type     string
-	Kind     string
-	Variable string
-	Tag      string
+	Name           string
+	Pascal         string
+	Snake          string
+	Type           string
+	Kind           string
+	Variable       string
+	Tag            string
+	HasValidMethod bool
 }
 
 func (ap *ActionParam) IsContext() bool {
