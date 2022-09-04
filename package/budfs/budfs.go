@@ -237,7 +237,7 @@ func (f *FileSystem) FileServer(path string, generator FileGenerator) {
 func (f *FileSystem) Sync(to string) error {
 	// Clear the filesystem cache before syncing again
 	f.cache.Clear()
-	return dsync.To(f.fsys, f.module.DirFS("."), to)
+	return dsync.To(f, f.module.DirFS("."), to)
 }
 
 func (f *FileSystem) Mount(path string, fsys fs.FS) {
