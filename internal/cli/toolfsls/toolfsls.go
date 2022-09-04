@@ -37,12 +37,12 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	fsys, close, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
+	bfs, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
 	if err != nil {
 		return err
 	}
-	defer close()
-	des, err := fs.ReadDir(fsys, dir)
+	defer bfs.Close()
+	des, err := fs.ReadDir(bfs, dir)
 	if err != nil {
 		return err
 	}
