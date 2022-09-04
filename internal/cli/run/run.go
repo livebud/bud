@@ -91,11 +91,11 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		log.Debug("run: bud server is listening", "url", "http://"+budln.Addr().String())
 	}
 	// Load the generator filesystem
-	bfs, close, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
+	bfs, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
 	if err != nil {
 		return err
 	}
-	defer close()
+	defer bfs.Close()
 	// Load V8
 	vm, err := v8.Load()
 	if err != nil {

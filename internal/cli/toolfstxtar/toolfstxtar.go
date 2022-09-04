@@ -38,19 +38,19 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	fsys, close, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
+	bfs, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
 	if err != nil {
 		return err
 	}
-	defer close()
+	defer bfs.Close()
 	ar := new(txtar.Archive)
-	err = fs.WalkDir(fsys, dir, func(path string, de fs.DirEntry, err error) error {
+	err = fs.WalkDir(bfs, dir, func(path string, de fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		} else if de.IsDir() {
 			return nil
 		}
-		code, err := fs.ReadFile(fsys, path)
+		code, err := fs.ReadFile(bfs, path)
 		if err != nil {
 			return err
 		}
