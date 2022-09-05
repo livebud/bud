@@ -1,7 +1,6 @@
 package dag_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/livebud/bud/internal/dag"
@@ -21,9 +20,7 @@ func TestRemove(t *testing.T) {
 	graph.Link("duo/view/_ssr.js", "node_modules/react-dom/cjs/react-dom-server.browser.development.js")
 	graph.Link("duo/main.go", "duo/program/program.go")
 	graph.Link("duo/program/program.go", "duo/web/web.go")
-	fmt.Println(graph.String())
 	graph.Remove(graph.Parents("modules/uid/index.ts")...)
-	fmt.Println(graph.String())
 }
 
 func TestShortestPath(t *testing.T) {
@@ -97,4 +94,26 @@ func TestShortestPathOfNone(t *testing.T) {
 	nodes, err := graph.ShortestPathOf(".md", []string{".jsx", ".mdx"})
 	is.Equal(err.Error(), `dag: no path between ".md" and [.jsx .mdx]`)
 	is.Equal(nodes, nil)
+}
+
+func TestAncestors(t *testing.T) {
+	is := is.New(t)
+	graph := dag.New()
+	graph.Link("bud/internal/app/controller/controller.go", "controller/controller.go")
+	graph.Link("bud/internal/app/web/web.go", "bud/internal/app/controller/controller.go")
+	ancestors := graph.Ancestors("controller/controller.go")
+	is.Equal(len(ancestors), 2)
+	is.Equal(ancestors[0], "bud/internal/app/controller/controller.go")
+	is.Equal(ancestors[1], "bud/internal/app/web/web.go")
+}
+
+func TestDescendants(t *testing.T) {
+	is := is.New(t)
+	graph := dag.New()
+	graph.Link("bud/internal/app/controller/controller.go", "controller/controller.go")
+	graph.Link("bud/internal/app/web/web.go", "bud/internal/app/controller/controller.go")
+	descendants := graph.Descendants("bud/internal/app/web/web.go")
+	is.Equal(len(descendants), 2)
+	is.Equal(descendants[0], "bud/internal/app/controller/controller.go")
+	is.Equal(descendants[1], "controller/controller.go")
 }

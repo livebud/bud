@@ -1,3 +1,8 @@
+// Package dag provides a directed acyclic graph data structure
+// The API is designed around a family tree, where the arrows flow downwards.
+// This means that grandparents point to parents point to children. This design
+// choice is arbitrary, but understanding the direction of the arrows is key
+// to making sense of the API.
 package dag
 
 import (
@@ -98,12 +103,14 @@ func (g *Graph) children(from string) (froms []string) {
 }
 
 // Descendants recursively returns children, children of children, etc.
-// Descendants includes self.
 func (g *Graph) Descendants(path string) (descendants []string) {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
-	descendants = append(descendants, path)
-	descendants = append(descendants, g.children(path)...)
+	children := g.children(path)
+	descendants = append(descendants, children...)
+	for _, child := range children {
+		descendants = append(descendants, g.Descendants(child)...)
+	}
 	return descendants
 }
 
@@ -124,7 +131,13 @@ func (g *Graph) parents(to string) (tos []string) {
 
 // Ancestors recursively returns parents, parents of parents, etc.
 func (g *Graph) Ancestors(path string) (ancestors []string) {
-	ancestors = append(ancestors, g.parents(path)...)
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	parents := g.parents(path)
+	ancestors = append(ancestors, parents...)
+	for _, parent := range parents {
+		ancestors = append(ancestors, g.Ancestors(parent)...)
+	}
 	return ancestors
 }
 

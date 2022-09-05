@@ -211,6 +211,16 @@ func (a *appServer) Run(ctx context.Context) error {
 	}
 	// Watch for changes
 	return watcher.Watch(ctx, a.dir, catchError(a.prompter, func(events []watcher.Event) error {
+		for _, event := range events {
+			switch event.Op {
+			case watcher.OpCreate:
+				a.bfs.Create(event.Path)
+			case watcher.OpUpdate:
+				a.bfs.Update(event.Path)
+			case watcher.OpDelete:
+				a.bfs.Delete(event.Path)
+			}
+		}
 		a.log.Debug("run: file changes", "paths", events)
 		a.prompter.Reloading(events)
 		if canIncrementallyReload(events) {

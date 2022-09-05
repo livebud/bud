@@ -7,6 +7,8 @@ import (
 	"io/fs"
 	"path"
 
+	"github.com/livebud/bud/internal/valid"
+
 	"github.com/livebud/bud/package/virtual/vcache"
 
 	"github.com/livebud/bud/package/gomod"
@@ -14,6 +16,7 @@ import (
 
 	"github.com/livebud/bud/internal/dag"
 	"github.com/livebud/bud/internal/dsync"
+	"github.com/livebud/bud/internal/glob"
 	"github.com/livebud/bud/internal/once"
 	"github.com/livebud/bud/package/budfs/genfs"
 	"github.com/livebud/bud/package/budfs/mergefs"
@@ -73,14 +76,30 @@ func (f *FS) Open(name string) (fs.File, error) {
 }
 
 // Glob implements fs.GlobFS
-func (f *FS) Glob(name string) ([]string, error) {
-	matches, err := fs.Glob(f.fsys, name)
+func (f *FS) Glob(pattern string) (matches []string, err error) {
+	// Compile the pattern into a glob matcher
+	matcher, err := glob.Compile(pattern)
 	if err != nil {
 		return nil, err
 	}
-	for _, match := range matches {
-		f.dag.Link(f.path, match)
+	// Base is a minor optimization to avoid walking the entire tree
+	base := glob.Base(pattern)
+	// Walk the directory tree, filtering out non-valid paths
+	err = fs.WalkDir(f.fsys, base, valid.WalkDirFunc(func(path string, de fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		// If the paths match, add it to the list of matches
+		if matcher.Match(path) {
+			f.dag.Link(f.path, path)
+			matches = append(matches, path)
+		}
+		return nil
+	}))
+	if err != nil {
+		return nil, err
 	}
+	// return the list of matches
 	return matches, nil
 }
 
@@ -235,9 +254,8 @@ func (f *FileSystem) FileServer(path string, generator FileGenerator) {
 
 // Sync the overlay to the filesystem
 func (f *FileSystem) Sync(to string) error {
-	// Clear the filesystem cache before syncing again
-	f.cache.Clear()
-	return dsync.To(f, f.module.DirFS("."), to)
+	err := dsync.To(f, f.module.DirFS("."), to)
+	return err
 }
 
 func (f *FileSystem) Mount(path string, fsys fs.FS) {

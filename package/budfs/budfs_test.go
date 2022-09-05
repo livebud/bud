@@ -736,3 +736,47 @@ func TestRemoteService(t *testing.T) {
 	}
 	testsub.Run(t, parent, child)
 }
+
+func TestGlob(t *testing.T) {
+	ctx := context.Background()
+	is := is.New(t)
+	log := testlog.New()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["controller/controller.go"] = "package controller"
+	td.Files["controller/_show.go"] = "package controller"
+	td.Files["controller/posts/controller.go"] = "package posts"
+	td.Files["controller/posts/.show.go"] = "package posts"
+	td.Files["controller/_articles/controller.go"] = "package articles"
+	td.Files["controller/.users/controller.go"] = "package users"
+	err := td.Write(ctx)
+	is.NoErr(err)
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	cache := vcache.New()
+	bfs := budfs.New(cache, module, log)
+	defer bfs.Close()
+	bfs.GenerateDir("bud/controller", func(fsys *budfs.FS, dir *budfs.Dir) error {
+		results, err := fs.Glob(fsys, "controller/**.go")
+		if err != nil {
+			return err
+		} else if len(results) == 0 {
+			return fs.ErrNotExist
+		}
+		dir.GenerateFile("controller.go", func(fsys *budfs.FS, file *budfs.File) error {
+			file.Data = []byte(strings.Join(results, " "))
+			return nil
+		})
+		return nil
+	})
+	des, err := fs.ReadDir(bfs, "bud/controller")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
+	is.Equal(des[0].Name(), "controller.go")
+	code, err := fs.ReadFile(bfs, "bud/controller/controller.go")
+	is.NoErr(err)
+	is.Equal(string(code), "controller/controller.go controller/posts/controller.go")
+	// Ensure that the graph is correct
+	is.In(bfs.Print(), `"bud/controller" -> "controller/posts/controller.go"`)
+	is.In(bfs.Print(), `"bud/controller" -> "controller/controller.go"`)
+}

@@ -14,19 +14,19 @@ import (
 
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/parser"
-	"github.com/livebud/bud/package/vfs"
 	"github.com/matthewmueller/gotext"
 	"github.com/matthewmueller/text"
 )
 
-func Load(fsys fs.FS, injector *di.Injector, module *gomod.Module, parser *parser.Parser) (*State, error) {
-	exist, err := vfs.SomeExist(fsys, "controller")
+func Load(fsys *budfs.FS, injector *di.Injector, module *gomod.Module, parser *parser.Parser) (*State, error) {
+	files, err := fs.Glob(fsys, "{controller/**.go,view/**}")
 	if err != nil {
 		return nil, err
-	} else if len(exist) == 0 {
+	} else if len(files) == 0 {
 		return nil, fs.ErrNotExist
 	}
 	loader := &loader{
@@ -36,7 +36,6 @@ func Load(fsys fs.FS, injector *di.Injector, module *gomod.Module, parser *parse
 		injector:  injector,
 		module:    module,
 		parser:    parser,
-		exist:     exist,
 	}
 	return loader.Load()
 }
@@ -50,7 +49,6 @@ type loader struct {
 	providers *providerSet
 	module    *gomod.Module
 	parser    *parser.Parser
-	exist     map[string]bool
 }
 
 // load fn
