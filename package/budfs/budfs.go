@@ -2,10 +2,13 @@ package budfs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"path"
+
+	"github.com/livebud/bud/internal/oset"
 
 	"github.com/livebud/bud/internal/valid"
 
@@ -83,7 +86,31 @@ func (f *FS) Glob(pattern string) (matches []string, err error) {
 		return nil, err
 	}
 	// Base is a minor optimization to avoid walking the entire tree
-	base := glob.Base(pattern)
+	bases, err := glob.Bases(pattern)
+	if err != nil {
+		return nil, err
+	}
+	// Compute the matches for each base
+	for _, base := range bases {
+		results, err := f.glob(matcher, base)
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				continue
+			}
+			return nil, err
+		}
+		matches = append(matches, results...)
+	}
+	// Deduplicate the matches
+	matches = oset.Strings(matches...)
+	// Link each match
+	for _, match := range matches {
+		f.dag.Link(f.path, match)
+	}
+	return matches, nil
+}
+
+func (f *FS) glob(matcher glob.Matcher, base string) (matches []string, err error) {
 	// Walk the directory tree, filtering out non-valid paths
 	err = fs.WalkDir(f.fsys, base, valid.WalkDirFunc(func(path string, de fs.DirEntry, err error) error {
 		if err != nil {
@@ -91,7 +118,6 @@ func (f *FS) Glob(pattern string) (matches []string, err error) {
 		}
 		// If the paths match, add it to the list of matches
 		if matcher.Match(path) {
-			f.dag.Link(f.path, path)
 			matches = append(matches, path)
 		}
 		return nil
