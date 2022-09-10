@@ -1,6 +1,6 @@
 package glob
 
-import "github.com/livebud/bud/internal/oset"
+import "github.com/livebud/bud/internal/orderedset"
 
 // Bases returns all non-magical parts of the glob
 func Bases(pattern string) ([]string, error) {
@@ -12,5 +12,5 @@ func Bases(pattern string) ([]string, error) {
 	for i, expand := range expands {
 		bases[i] = Base(expand)
 	}
-	return oset.Strings(bases...), nil
+	return orderedset.Strings(bases...), nil
 }

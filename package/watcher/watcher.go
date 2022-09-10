@@ -262,7 +262,6 @@ func Watch(ctx context.Context, dir string, fn func(events []Event) error) error
 				if evt.Name == "" {
 					continue
 				}
-
 				// Switch over the operations
 				switch op := evt.Op; {
 

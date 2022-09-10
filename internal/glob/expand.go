@@ -5,7 +5,7 @@ import (
 
 	"github.com/gobwas/glob/syntax/ast"
 	"github.com/gobwas/glob/syntax/lexer"
-	"github.com/livebud/bud/internal/oset"
+	"github.com/livebud/bud/internal/orderedset"
 )
 
 func Expand(str string) ([]string, error) {
@@ -18,7 +18,7 @@ func Expand(str string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return oset.Strings(patterns...), nil
+	return orderedset.Strings(patterns...), nil
 }
 
 func expand(node *ast.Node) (patterns []string, err error) {

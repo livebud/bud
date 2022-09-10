@@ -42,7 +42,7 @@ func TestReadFsys(t *testing.T) {
 	is.Equal(string(code), "a")
 }
 
-func TestGeneratorPriority(t *testing.T) {
+func TestModulePriority(t *testing.T) {
 	ctx := context.Background()
 	is := is.New(t)
 	log := testlog.New()
@@ -61,7 +61,7 @@ func TestGeneratorPriority(t *testing.T) {
 	})
 	code, err := fs.ReadFile(bfs, "a.txt")
 	is.NoErr(err)
-	is.Equal(string(code), "b")
+	is.Equal(string(code), "a")
 }
 
 func TestCaching(t *testing.T) {
@@ -131,7 +131,7 @@ func TestCachingThroughDir(t *testing.T) {
 	is.Equal(fileCount, 1)
 	is.Equal(dirCount, 1)
 	// Update and try again
-	bfs.Update("bud/public")
+	bfs.Change("bud/public")
 	code, err = fs.ReadFile(bfs, "bud/public/public.go")
 	is.NoErr(err)
 	is.Equal(string(code), "public")
@@ -192,6 +192,32 @@ func TestFileFSUpdate(t *testing.T) {
 	is.NoErr(err)
 	cache := vcache.New()
 	bfs := budfs.New(cache, module, log)
+	code, err := fs.ReadFile(bfs, "a.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "1")
+	// Update the count
+	count++
+	is.NoErr(os.WriteFile(filepath.Join(dir, "a.txt"), []byte(strconv.Itoa(count)), 0644))
+	// Files are uncached
+	code, err = fs.ReadFile(bfs, "a.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "2")
+}
+
+func TestFileGenUpdate(t *testing.T) {
+	ctx := context.Background()
+	is := is.New(t)
+	log := testlog.New()
+	dir := t.TempDir()
+	count := 1
+	td := testdir.New(dir)
+	td.Files["a.txt"] = strconv.Itoa(count)
+	err := td.Write(ctx)
+	is.NoErr(err)
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	cache := vcache.New()
+	bfs := budfs.New(cache, module, log)
 	bfs.GenerateFile("b.txt", func(fsys *budfs.FS, file *budfs.File) error {
 		code, err := fs.ReadFile(fsys, "a.txt")
 		if err != nil {
@@ -206,19 +232,19 @@ func TestFileFSUpdate(t *testing.T) {
 	// Update the count
 	count++
 	is.NoErr(os.WriteFile(filepath.Join(dir, "a.txt"), []byte(strconv.Itoa(count)), 0644))
-	// Cached
+	// Cached generator
 	code, err = fs.ReadFile(bfs, "b.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "1")
 	// Update the file
-	bfs.Update("a.txt")
+	bfs.Change("a.txt")
 	// Read again
 	code, err = fs.ReadFile(bfs, "b.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "2")
 }
 
-func TestUpdateGenDep(t *testing.T) {
+func TestFileGenUpdateChain(t *testing.T) {
 	ctx := context.Background()
 	is := is.New(t)
 	log := testlog.New()
@@ -252,7 +278,7 @@ func TestUpdateGenDep(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(string(code), "1")
 	// Update the file
-	bfs.Update("a.txt")
+	bfs.Change("a.txt")
 	// Read again
 	code, err = fs.ReadFile(bfs, "b.txt")
 	is.NoErr(err)
@@ -277,13 +303,7 @@ func TestDirFSCreate(t *testing.T) {
 	is.Equal(len(des), 3) // includes go.mod and package.json
 	// Create a new file
 	is.NoErr(os.WriteFile(filepath.Join(dir, "b.txt"), []byte("b"), 0644))
-	// Cached
-	des, err = fs.ReadDir(bfs, ".")
-	is.NoErr(err)
-	is.Equal(len(des), 3)
-	// Create the file
-	bfs.Create("b.txt")
-	// Try again
+	// Files are uncached
 	des, err = fs.ReadDir(bfs, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 4)
@@ -320,11 +340,54 @@ func TestDirGenCreate(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(string(code), "1")
 	// Create the file
-	bfs.Create("docs/b.txt")
+	bfs.Change("docs/b.txt")
 	// Try again
 	code, err = fs.ReadFile(bfs, "bud/docs.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "2")
+}
+
+func TestDirGenCreateMultiple(t *testing.T) {
+	ctx := context.Background()
+	is := is.New(t)
+	log := testlog.New()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["docs/a.txt"] = "a"
+	td.Files["ui/a.txt"] = "a"
+	err := td.Write(ctx)
+	is.NoErr(err)
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	cache := vcache.New()
+	bfs := budfs.New(cache, module, log)
+	bfs.GenerateFile("bud/docs.txt", func(fsys *budfs.FS, file *budfs.File) error {
+		des, err := fs.ReadDir(fsys, "docs")
+		if err != nil {
+			return err
+		}
+		des2, err := fs.ReadDir(fsys, "ui")
+		if err != nil {
+			return err
+		}
+		file.Data = []byte(strconv.Itoa(len(des) + len(des2)))
+		return nil
+	})
+	code, err := fs.ReadFile(bfs, "bud/docs.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "2")
+	// Add files
+	is.NoErr(os.WriteFile(filepath.Join(dir, "docs/b.txt"), []byte("b"), 0644))
+	// Cached
+	code, err = fs.ReadFile(bfs, "bud/docs.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "2")
+	// Create the file
+	bfs.Change("docs/b.txt")
+	// Try again
+	code, err = fs.ReadFile(bfs, "bud/docs.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "3")
 }
 
 func TestDirFSDelete(t *testing.T) {
@@ -346,13 +409,7 @@ func TestDirFSDelete(t *testing.T) {
 	is.Equal(len(des), 4)
 	// Remove file
 	is.NoErr(os.RemoveAll(filepath.Join(dir, "b.txt")))
-	// Cached
-	des, err = fs.ReadDir(bfs, ".")
-	is.NoErr(err)
-	is.Equal(len(des), 4)
-	// Create the file
-	bfs.Delete("b.txt")
-	// Try again
+	// Files are uncached
 	des, err = fs.ReadDir(bfs, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 3)
@@ -390,7 +447,7 @@ func TestDirGenDelete(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(string(code), "2")
 	// Create the file
-	bfs.Delete("docs/b.txt")
+	bfs.Change("docs/b.txt")
 	// Try again
 	code, err = fs.ReadFile(bfs, "bud/docs.txt")
 	is.NoErr(err)
@@ -424,41 +481,12 @@ func TestMount(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(string(code), "/** tailwind **/")
 	// Mark the file as being updated
-	bfs.Update("generator/tailwind/tailwind.css")
+	bfs.Change("generator/tailwind/tailwind.css")
 	// Read the file again
 	code, err = fs.ReadFile(bfs, "generator/tailwind/tailwind.css")
 	is.NoErr(err)
 	is.Equal(string(code), "/** css **/")
 }
-
-// func TestServer(t *testing.T) {
-// 	is := is.New(t)
-// 	log := testlog.New()
-// 	fsys := vfs.Memory{
-// 		"view/index.svelte": &fstest.MapFile{Data: []byte("<h1>index</h1>")},
-// 	}
-// 	bfs := budfs.New(fsys, log)
-// 	// Request the file
-// 	r := httptest.NewRequest("GET", "/view/index.svelte", nil)
-// 	w := httptest.NewRecorder()
-// 	bfs.ServeHTTP(w, r)
-// 	res := w.Result()
-// 	is.Equal(res.StatusCode, 200)
-// 	code, err := io.ReadAll(res.Body)
-// 	is.NoErr(err)
-// 	is.Equal(string(code), "<h1>index</h1>")
-// 	// Change the file
-// 	fsys["view/index.svelte"] = &fstest.MapFile{Data: []byte("<h1>index!</h1>")}
-// 	// Request the file again
-// 	r = httptest.NewRequest("GET", "/view/index.svelte", nil)
-// 	w = httptest.NewRecorder()
-// 	bfs.ServeHTTP(w, r)
-// 	res = w.Result()
-// 	is.Equal(res.StatusCode, 200)
-// 	code, err = io.ReadAll(res.Body)
-// 	is.NoErr(err)
-// 	is.Equal(string(code), "<h1>index!</h1>")
-// }
 
 func TestDefer(t *testing.T) {
 	ctx := context.Background()
@@ -484,7 +512,7 @@ func TestDefer(t *testing.T) {
 	code, err := fs.ReadFile(bfs, "a.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "b")
-	bfs.Update("a.txt")
+	bfs.Change("a.txt")
 	code, err = fs.ReadFile(bfs, "a.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "b")
@@ -544,7 +572,7 @@ func TestRemoteFS(t *testing.T) {
 		is.NoErr(err)
 		is.Equal(string(code), "bb")
 		// Update the file
-		bfs.Update("bud/generator/a.txt")
+		bfs.Change("bud/generator/a.txt")
 		// Read again
 		code, err = fs.ReadFile(bfs, "bud/generator/a.txt")
 		is.NoErr(err)
@@ -596,7 +624,7 @@ func TestMountRemoteFS(t *testing.T) {
 		is.NoErr(err)
 		is.Equal(string(code), "bb")
 		// Update the file
-		bfs.Update("bud/generator/a.txt")
+		bfs.Change("bud/generator/a.txt")
 		// Read again
 		code, err = fs.ReadFile(bfs, "bud/generator/a.txt")
 		is.NoErr(err)
@@ -699,7 +727,7 @@ func TestRemoteService(t *testing.T) {
 		is.NoErr(err)
 		is.Equal(string(code), "bb")
 		// Update a dependency
-		bfs.Update("generator/tailwind/tailwind.go")
+		bfs.Change("generator/tailwind/tailwind.go")
 		// Should lead to the generator service being uncached again
 		url2, err := fs.ReadFile(bfs, "bud/service/generator.url")
 		is.NoErr(err)
@@ -776,7 +804,96 @@ func TestGlob(t *testing.T) {
 	code, err := fs.ReadFile(bfs, "bud/controller/controller.go")
 	is.NoErr(err)
 	is.Equal(string(code), "controller/controller.go controller/posts/controller.go")
-	// Ensure that the graph is correct
-	is.In(bfs.Print(), `"bud/controller" -> "controller/posts/controller.go"`)
-	is.In(bfs.Print(), `"bud/controller" -> "controller/controller.go"`)
+}
+
+func TestGlobCreate(t *testing.T) {
+	ctx := context.Background()
+	is := is.New(t)
+	log := testlog.New()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	err := td.Write(ctx)
+	is.NoErr(err)
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	cache := vcache.New()
+	bfs := budfs.New(cache, module, log)
+	defer bfs.Close()
+	bfs.GenerateFile("bud/view/view.go", func(fsys *budfs.FS, file *budfs.File) error {
+		views, err := fs.Glob(fsys, "view/**")
+		if err != nil {
+			return err
+		}
+		file.Data = []byte(strings.Join(views, " "))
+		return nil
+	})
+	bfs.GenerateFile("bud/controller/controller.go", func(fsys *budfs.FS, file *budfs.File) error {
+		budView, err := fs.ReadFile(fsys, "bud/view/view.go")
+		if err != nil {
+			return err
+		}
+		file.Data = budView
+		return nil
+	})
+	code, err := fs.ReadFile(bfs, "bud/view/view.go")
+	is.NoErr(err)
+	is.Equal(string(code), "")
+	code, err = fs.ReadFile(bfs, "bud/controller/controller.go")
+	is.NoErr(err)
+	is.Equal(string(code), "")
+	is.NoErr(os.MkdirAll(filepath.Join(dir, "view", "about"), 0755))
+	is.NoErr(os.WriteFile(filepath.Join(dir, "view", "about", "index.svelte"), []byte("<h1>about</h1>"), 0644))
+	bfs.Change("view/about/index.svelte")
+	code, err = fs.ReadFile(bfs, "bud/view/view.go")
+	is.NoErr(err)
+	is.Equal(string(code), "view/about view/about/index.svelte")
+	code, err = fs.ReadFile(bfs, "bud/controller/controller.go")
+	is.NoErr(err)
+	is.Equal(string(code), "view/about view/about/index.svelte")
+}
+
+func TestLink(t *testing.T) {
+	ctx := context.Background()
+	is := is.New(t)
+	log := testlog.New()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["docs/a.txt"] = "a"
+	td.Files["docs/b.txt"] = "b"
+	err := td.Write(ctx)
+	is.NoErr(err)
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	cache := vcache.New()
+	bfs := budfs.New(cache, module, log)
+	count := 0
+	bfs.GenerateFile("bud/docs.txt", func(fsys *budfs.FS, file *budfs.File) error {
+		file.Link("docs/a.txt", "docs/b.txt")
+		count++
+		file.Data = []byte(strconv.Itoa(count))
+		return nil
+	})
+	code, err := fs.ReadFile(bfs, "bud/docs.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "1")
+	// Cached
+	code, err = fs.ReadFile(bfs, "bud/docs.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "1")
+	// Trigger change
+	bfs.Change("docs/b.txt")
+	// Try again
+	code, err = fs.ReadFile(bfs, "bud/docs.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "2")
+	// Cached
+	code, err = fs.ReadFile(bfs, "bud/docs.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "2")
+	// Trigger change
+	bfs.Change("docs/a.txt")
+	// Try again
+	code, err = fs.ReadFile(bfs, "bud/docs.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "3")
 }

@@ -141,7 +141,7 @@ func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, fl
 	bfs.FileGenerator("bud/internal/app/web/web.go", web.New(module, parser))
 	bfs.FileGenerator("bud/internal/app/controller/controller.go", controller.New(injector, module, parser))
 	bfs.FileGenerator("bud/internal/app/view/view.go", view.New(module, transforms, flag))
-	bfs.DirGenerator("bud/internal/app/public", public.New(flag, module))
+	bfs.FileGenerator("bud/internal/app/public/public.go", public.New(flag, module))
 	return bfs, nil
 }
 

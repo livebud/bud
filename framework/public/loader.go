@@ -41,7 +41,7 @@ func (l *loader) Load() (state *State, err error) {
 	l.imports.AddNamed("publicrt", "github.com/livebud/bud/framework/public/publicrt")
 	// Load embeds
 	if l.flag.Embed {
-		state.Embeds = l.loadEmbedsFrom(".", ".")
+		state.Embeds = l.loadEmbedsFrom("public", ".")
 	}
 	// Load default public files. Out of convenience, these defaults are embedded
 	// regardless of flag.Embed

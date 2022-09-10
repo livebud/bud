@@ -64,7 +64,7 @@ func NodeModules(module *gomod.Module) budfs.FileGenerator {
 		file.Data = code
 		source := strings.TrimPrefix(file.Path(), "bud/")
 		// fmt.Println("linked", file.Path(), "->", source)
-		fsys.Link(file.Path(), source)
+		file.Link(source)
 		return nil
 	})
 }
@@ -186,7 +186,7 @@ func (c *Compiler) GenerateFile(fsys *budfs.FS, file *budfs.File) error {
 	code = replaceDependencyPaths(code)
 	file.Data = code
 	source := strings.TrimPrefix(file.Path(), "bud/")
-	fsys.Link(file.Path(), source)
+	file.Link(source)
 	return nil
 }
 
