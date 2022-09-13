@@ -296,11 +296,11 @@ func (n *Node) open(target string) (fs.File, error) {
 		for i, child := range children {
 			entries[i] = child.dirEntry()
 		}
-		return &virtual.Dir{
+		return virtual.New(&virtual.Dir{
 			Path:    n.Path(),
 			Mode:    n.Mode(),
 			Entries: entries,
-		}, nil
+		}), nil
 	}
 	// Find the closest match in the tree
 	node, _, ok := n.FindByPrefix(rel)

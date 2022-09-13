@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/package/modcache"
-	"github.com/livebud/bud/package/virtual/vfs"
+	"github.com/livebud/bud/package/virtual"
 	"golang.org/x/mod/modfile"
 )
 
@@ -101,7 +101,7 @@ func parse(opt *option, path string, data []byte) (*Module, error) {
 		return nil, fmt.Errorf("mod: missing module statement in %q, received %q", path, string(modFile))
 	}
 	dir := filepath.Dir(path)
-	return &Module{opt, &File{modfile}, dir, vfs.Dir(dir)}, nil
+	return &Module{opt, &File{modfile}, dir, virtual.OS(dir)}, nil
 }
 
 // Absolute traverses up the filesystem until it finds a directory

@@ -25,7 +25,7 @@ func (f *cachedfs) Open(name string) (fs.File, error) {
 	entry, ok := f.cache.Get(name)
 	if ok {
 		f.log.Debug("vcache: cache hit", "name", name)
-		return entry.Open(), nil
+		return virtual.New(entry), nil
 	}
 	f.log.Debug("vcache: cache miss", "name", name)
 	// fmt.Println("opening", name)
@@ -39,7 +39,7 @@ func (f *cachedfs) Open(name string) (fs.File, error) {
 		return nil, err
 	}
 	f.cache.Set(name, entry)
-	return entry.Open(), nil
+	return virtual.New(entry), nil
 }
 
 // toEntry converts a fs.File into a reusable virtual entry
@@ -60,14 +60,12 @@ func (f *cachedfs) toEntry(fullpath string, file fs.File) (virtual.Entry, error)
 			Data:    data,
 			ModTime: stat.ModTime(),
 			Mode:    stat.Mode(),
-			Sys:     stat.Sys(),
 		}, nil
 	}
 	vdir := &virtual.Dir{
 		Path:    fullpath,
 		ModTime: stat.ModTime(),
 		Mode:    stat.Mode(),
-		Sys:     stat.Sys(),
 	}
 	dir, ok := file.(fs.ReadDirFile)
 	if !ok {
@@ -86,7 +84,6 @@ func (f *cachedfs) toEntry(fullpath string, file fs.File) (virtual.Entry, error)
 			Path:    de.Name(),
 			ModTime: stat.ModTime(),
 			Mode:    stat.Mode(),
-			Sys:     stat.Sys(),
 			Size:    stat.Size(),
 		})
 	}
@@ -99,7 +96,7 @@ func (f *cachedfs) toEntryInfo(fullpath string, de fs.DirEntry) (fs.FileInfo, er
 	entry, ok := f.cache.Get(entryPath)
 	if ok {
 		f.log.Debug("vcache: cache hit", "name", entryPath)
-		return entry.Open().Stat()
+		return virtual.New(entry).Stat()
 	}
 	f.log.Debug("vcache: cache miss", "name", entryPath)
 	return de.Info()

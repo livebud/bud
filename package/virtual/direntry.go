@@ -11,7 +11,6 @@ type DirEntry struct {
 	Size    int64
 	Mode    fs.FileMode
 	ModTime time.Time
-	Sys     interface{}
 }
 
 var _ fs.DirEntry = (*DirEntry)(nil)
@@ -33,7 +32,6 @@ func (e *DirEntry) Info() (fs.FileInfo, error) {
 		path:    e.Path,
 		mode:    e.Mode,
 		modTime: e.ModTime,
-		sys:     e.Sys,
 		size:    e.Size,
 	}, nil
 }

@@ -42,14 +42,14 @@ func (c *Client) WithContext(ctx context.Context) *Client {
 }
 
 func (c *Client) Open(name string) (fs.File, error) {
-	vfile := new(fs.File)
-	if err := c.rpc.Call(c.ctx, "remotefs.Open", name, vfile); err != nil {
+	entry := new(virtual.Entry)
+	if err := c.rpc.Call(c.ctx, "remotefs.Open", name, entry); err != nil {
 		if isNotExist(err) {
 			return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
 		}
 		return nil, err
 	}
-	return *vfile, nil
+	return virtual.New(*entry), nil
 }
 
 func (c *Client) ReadDir(name string) (des []fs.DirEntry, err error) {

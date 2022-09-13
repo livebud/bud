@@ -20,7 +20,7 @@ func TestStat(t *testing.T) {
 	})
 	entry, ok := cache.Get("go.mod")
 	is.True(ok)
-	file := entry.Open()
+	file := virtual.New(entry)
 	info, err := file.Stat()
 	is.NoErr(err)
 	is.Equal(info.Mode().String(), "-rw-r--r--")

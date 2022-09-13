@@ -204,10 +204,10 @@ func TestGenerate(t *testing.T) {
 			import plugin "github.com/livebud/bud-test-plugin"
 			type A struct { plugin.Answer }
 		`)
-		return &virtual.File{
+		return virtual.New(&virtual.File{
 			Path: target,
 			Data: data,
-		}, nil
+		}), nil
 	}))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)

@@ -202,12 +202,12 @@ type nodeModule struct {
 func (n *nodeModule) Generate(target string) (fs.File, error) {
 	switch target {
 	case "bud/node_modules/runtime":
-		return &virtual.Dir{
+		return virtual.New(&virtual.Dir{
 			Path: "bud/node_modules/runtime",
 			Mode: 0755 | fs.ModeDir,
-		}, nil
+		}), nil
 	case "bud/node_modules":
-		return &virtual.Dir{
+		return virtual.New(&virtual.Dir{
 			Path: "bud/node_modules",
 			Mode: 0755 | fs.ModeDir,
 			Entries: []fs.DirEntry{
@@ -216,7 +216,7 @@ func (n *nodeModule) Generate(target string) (fs.File, error) {
 					Mode: 0755 | fs.ModeDir,
 				},
 			},
-		}, nil
+		}), nil
 	default:
 		return nil, fmt.Errorf("error generating %q. %w", target, fs.ErrNotExist)
 	}

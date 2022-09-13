@@ -2,13 +2,18 @@ package virtual
 
 import "io/fs"
 
-type Entry interface {
-	Open() fs.File
+type FS interface {
+	fs.FS
+	MkdirAll(path string, perm fs.FileMode) error
+	WriteFile(name string, data []byte, perm fs.FileMode) error
+	RemoveAll(path string) error
+	Sub(path string) (FS, error)
 }
 
-// Open is a utility function that implements Entry
-type Open func() fs.File
+type Entry interface {
+	open() fs.File
+}
 
-func (fn Open) Open() fs.File {
-	return fn()
+func New(entry Entry) fs.File {
+	return entry.open()
 }

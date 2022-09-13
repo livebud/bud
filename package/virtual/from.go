@@ -6,7 +6,7 @@ import (
 )
 
 // From a file to a virtual file
-func From(file fs.File) (entry Entry, err error) {
+func from(file fs.File) (entry Entry, err error) {
 	// Get the stats
 	stat, err := file.Stat()
 	if err != nil {
@@ -24,7 +24,6 @@ func fromDir(file fs.File, stat fs.FileInfo) (entry Entry, err error) {
 		Path:    stat.Name(),
 		ModTime: stat.ModTime(),
 		Mode:    stat.Mode(),
-		Sys:     stat.Sys(),
 	}
 	if dir, ok := file.(fs.ReadDirFile); ok {
 		des, err := dir.ReadDir(-1)
@@ -40,7 +39,6 @@ func fromDir(file fs.File, stat fs.FileInfo) (entry Entry, err error) {
 				Path:    de.Name(),
 				ModTime: fi.ModTime(),
 				Mode:    fi.Mode(),
-				Sys:     fi.Sys(),
 				Size:    fi.Size(),
 			})
 		}
@@ -59,6 +57,5 @@ func fromFile(file fs.File, stat fs.FileInfo) (entry Entry, err error) {
 		Data:    data,
 		ModTime: stat.ModTime(),
 		Mode:    stat.Mode(),
-		Sys:     stat.Sys(),
 	}, nil
 }

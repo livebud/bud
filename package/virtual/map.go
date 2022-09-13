@@ -1,4 +1,4 @@
-package vfs
+package virtual
 
 import (
 	"io/fs"
@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type Map map[string]*Entry
+type Map map[string]*File
 
 var _ FS = (Map)(nil)
 
@@ -14,25 +14,27 @@ func (m Map) Open(path string) (fs.File, error) {
 	if !fs.ValidPath(path) {
 		return nil, &fs.PathError{Op: "open", Path: path, Err: fs.ErrInvalid}
 	}
-	entry, ok := m[path]
+	file, ok := m[path]
 	if !ok {
 		return nil, fs.ErrNotExist
 	}
-	if entry.Mode.IsDir() {
-		return &entryDir{entry, nil, path, 0}, nil
+	// Found a file or (empty) directory
+	file.Path = path
+	if file.IsDir() {
+		return &entryDir{&Dir{file.Path, file.Mode, file.ModTime, nil}, 0}, nil
 	}
-	return &entryFile{entry, path, 0}, nil
+	return &entryFile{file, 0}, nil
 }
 
 // Mkdir create a directory.
 func (m Map) MkdirAll(path string, perm fs.FileMode) error {
-	m[path] = &Entry{nil, perm | fs.ModeDir, time.Time{}}
+	m[path] = &File{path, nil, perm | fs.ModeDir, time.Time{}}
 	return nil
 }
 
 // WriteFile writes a file
 func (m Map) WriteFile(path string, data []byte, perm fs.FileMode) error {
-	m[path] = &Entry{data, perm, time.Time{}}
+	m[path] = &File{path, data, perm, time.Time{}}
 	return nil
 }
 

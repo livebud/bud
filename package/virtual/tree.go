@@ -1,4 +1,4 @@
-package vfs
+package virtual
 
 import (
 	"io/fs"
@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-type Tree map[string]*Entry
+type Tree map[string]*File
 
 var _ FS = (Tree)(nil)
 
@@ -16,16 +16,17 @@ func (fsys Tree) Open(path string) (fs.File, error) {
 	if !fs.ValidPath(path) {
 		return nil, &fs.PathError{Op: "open", Path: path, Err: fs.ErrInvalid}
 	}
-
-	// The following logic is based on "testing/fstest".MapFS.Open
-	entry, ok := fsys[path]
+	file, ok := fsys[path]
 	if ok {
-		if entry.Mode.IsDir() {
-			return &entryDir{entry, nil, path, 0}, nil
+		// Can be either a file or a empty directory
+		file.Path = path
+		if file.IsDir() {
+			return &entryDir{&Dir{file.Path, file.Mode, file.ModTime, nil}, 0}, nil
 		}
-		return &entryFile{entry, path, 0}, nil
+		return &entryFile{file, 0}, nil
 	}
 
+	// The following logic is based on "testing/fstest".MapFS.Open
 	// Directory, possibly synthesized.
 	// Note that file can be nil here: the map need not contain explicit parent directories for all its files.
 	// But file can also be non-nil, in case the user wants to set metadata for the directory explicitly.
@@ -33,11 +34,12 @@ func (fsys Tree) Open(path string) (fs.File, error) {
 	var list []fs.DirEntry
 	var need = make(map[string]bool)
 	if path == "." {
-		for fname, entry := range fsys {
+		for fname, file := range fsys {
 			i := strings.Index(fname, "/")
 			if i < 0 {
 				if fname != "." {
-					list = append(list, &dirEntry{entry, fname})
+					file.Path = fname
+					list = append(list, file)
 				}
 			} else {
 				need[fname[:i]] = true
@@ -45,12 +47,13 @@ func (fsys Tree) Open(path string) (fs.File, error) {
 		}
 	} else {
 		prefix := path + "/"
-		for fname, entry := range fsys {
+		for fname, file := range fsys {
 			if strings.HasPrefix(fname, prefix) {
 				felem := fname[len(prefix):]
 				i := strings.Index(felem, "/")
 				if i < 0 {
-					list = append(list, &dirEntry{entry, felem})
+					file.Path = felem
+					list = append(list, file)
 				} else {
 					need[fname[len(prefix):len(prefix)+i]] = true
 				}
@@ -59,7 +62,7 @@ func (fsys Tree) Open(path string) (fs.File, error) {
 		// If the directory name is not in the map,
 		// and there are no children of the name in the map,
 		// then the directory is treated as not existing.
-		if entry == nil && list == nil && len(need) == 0 {
+		if file == nil && list == nil && len(need) == 0 {
 			return nil, &fs.PathError{Op: "open", Path: path, Err: fs.ErrNotExist}
 		}
 	}
@@ -67,29 +70,26 @@ func (fsys Tree) Open(path string) (fs.File, error) {
 		delete(need, fi.Name())
 	}
 	for path := range need {
-		dir := &Entry{nil, fs.ModeDir, time.Time{}}
-		list = append(list, &dirEntry{dir, path})
+		dir := &Dir{path, fs.ModeDir, time.Time{}, nil}
+		list = append(list, dir)
 	}
 	sort.Slice(list, func(i, j int) bool {
 		return list[i].Name() < list[j].Name()
 	})
-
-	if entry == nil {
-		entry = &Entry{nil, fs.ModeDir, time.Time{}}
-	}
-	return &entryDir{entry, list, path, 0}, nil
+	// Return the synthesized entries as a directory.
+	return &entryDir{&Dir{path, fs.ModeDir, time.Time{}, list}, 0}, nil
 }
 
 // Mkdir create a directory.
 func (t Tree) MkdirAll(path string, perm fs.FileMode) error {
-	t[path] = &Entry{nil, perm | fs.ModeDir, time.Time{}}
+	t[path] = &File{path, nil, perm | fs.ModeDir, time.Time{}}
 	return nil
 }
 
 // WriteFile writes a file
 // TODO: WriteFile should fail if path.Dir(name) doesn't exist
 func (t Tree) WriteFile(path string, data []byte, perm fs.FileMode) error {
-	t[path] = &Entry{data, perm, time.Time{}}
+	t[path] = &File{path, data, perm, time.Time{}}
 	return nil
 }
 

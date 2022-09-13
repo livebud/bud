@@ -11,7 +11,6 @@ import (
 	"github.com/livebud/bud/package/budfs/linkmap"
 
 	"github.com/livebud/bud/package/virtual/vcache"
-	"github.com/livebud/bud/package/virtual/vfs"
 
 	"github.com/livebud/bud/package/virtual"
 
@@ -197,7 +196,7 @@ type fileGenerator struct {
 
 func (g *fileGenerator) Generate(target string) (fs.File, error) {
 	if entry, ok := g.fsys.cache.Get(target); ok {
-		return entry.Open(), nil
+		return virtual.New(entry), nil
 	}
 	fctx := &fileSystem{context.TODO(), g.fsys, g.fsys.lmap.Scope(target)}
 	file := &File{nil, g.node, target}
@@ -210,7 +209,7 @@ func (g *fileGenerator) Generate(target string) (fs.File, error) {
 		Data: file.Data,
 	}
 	g.fsys.cache.Set(target, vfile)
-	return vfile, nil
+	return virtual.New(vfile), nil
 }
 
 func (f *FileSystem) GenerateFile(path string, fn func(fsys FS, file *File) error) {
@@ -262,7 +261,7 @@ type fileServer struct {
 
 func (g *fileServer) Generate(target string) (fs.File, error) {
 	if entry, ok := g.fsys.cache.Get(target); ok {
-		return entry.Open(), nil
+		return virtual.New(entry), nil
 	}
 	rel := relativePath(g.node.Path(), target)
 	if rel == "." {
@@ -281,11 +280,11 @@ func (g *fileServer) Generate(target string) (fs.File, error) {
 	}
 	vfile := &virtual.File{
 		Path: target,
-		Mode: g.node.Mode(),
+		Mode: fs.FileMode(0),
 		Data: file.Data,
 	}
 	g.fsys.cache.Set(target, vfile)
-	return vfile, nil
+	return virtual.New(vfile), nil
 }
 
 func (f *FileSystem) ServeFile(dir string, fn func(fsys FS, file *File) error) {
@@ -298,7 +297,7 @@ func (f *FileSystem) FileServer(dir string, generator FileGenerator) {
 }
 
 // Sync the overlay to the filesystem
-func (f *FileSystem) Sync(writable vfs.FS, to string) error {
+func (f *FileSystem) Sync(writable virtual.FS, to string) error {
 	// Temporarily replace the underlying fs.FS with a cached fs.FS
 	cache := vcache.New()
 	fsys := f.fsys

@@ -1,4 +1,4 @@
-package vfs_test
+package virtual_test
 
 import (
 	"io/fs"
@@ -6,16 +6,16 @@ import (
 	"testing/fstest"
 
 	"github.com/livebud/bud/internal/is"
-	"github.com/livebud/bud/package/virtual/vfs"
+	"github.com/livebud/bud/package/virtual"
 )
 
 func TestFSTree(t *testing.T) {
 	is := is.New(t)
-	fsys := vfs.Tree{
-		"bud/view/index.svelte": &vfs.Entry{
+	fsys := virtual.Tree{
+		"bud/view/index.svelte": &virtual.File{
 			Data: []byte(`<h1>index</h1>`),
 		},
-		"bud/view/about/index.svelte": &vfs.Entry{
+		"bud/view/about/index.svelte": &virtual.File{
 			Data: []byte(`<h1>about</h1>`),
 		},
 	}
@@ -25,11 +25,11 @@ func TestFSTree(t *testing.T) {
 
 func TestReadDir(t *testing.T) {
 	is := is.New(t)
-	fsys := vfs.Tree{
-		"bud/view/index.svelte": &vfs.Entry{
+	fsys := virtual.Tree{
+		"bud/view/index.svelte": &virtual.File{
 			Data: []byte(`<h1>index</h1>`),
 		},
-		"bud/view/about/index.svelte": &vfs.Entry{
+		"bud/view/about/index.svelte": &virtual.File{
 			Data: []byte(`<h1>about</h1>`),
 		},
 	}
@@ -42,7 +42,7 @@ func TestReadDir(t *testing.T) {
 
 func TestTreeWriteRead(t *testing.T) {
 	is := is.New(t)
-	fsys := vfs.Tree{}
+	fsys := virtual.Tree{}
 
 	// Create a directory
 	err := fsys.MkdirAll("a/b", 0755)
@@ -58,4 +58,12 @@ func TestTreeWriteRead(t *testing.T) {
 	code, err := fs.ReadFile(fsys, "a/b/c.txt")
 	is.NoErr(err)
 	is.Equal(string(code), `c`)
+}
+
+func TestTreeRoot(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Tree{}
+	des, err := fs.ReadDir(fsys, ".")
+	is.NoErr(err)
+	is.Equal(len(des), 0)
 }
