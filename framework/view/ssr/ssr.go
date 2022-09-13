@@ -95,7 +95,7 @@ func (c *Compiler) Compile(ctx context.Context, fsys fs.FS) ([]byte, error) {
 	return result.OutputFiles[0].Contents, nil
 }
 
-func (c *Compiler) GenerateFile(fsys *budfs.FS, file *budfs.File) error {
+func (c *Compiler) GenerateFile(fsys budfs.FS, file *budfs.File) error {
 	code, err := c.Compile(fsys.Context(), fsys)
 	if err != nil {
 		return err

@@ -20,7 +20,6 @@ import (
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/svelte"
-	"github.com/livebud/bud/package/virtual/vcache"
 )
 
 func TestSvelteHello(t *testing.T) {
@@ -39,8 +38,7 @@ func TestSvelteHello(t *testing.T) {
 	transformer := transformrt.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	cache := vcache.New()
-	bfs := budfs.New(cache, module, log)
+	bfs := budfs.New(module, log)
 	is.NoErr(err)
 	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	// Read the wrapped version of index.svelte with node_modules rewritten
@@ -96,8 +94,7 @@ func TestSvelteAwait(t *testing.T) {
 	transformer := transformrt.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	cache := vcache.New()
-	bfs := budfs.New(cache, module, log)
+	bfs := budfs.New(module, log)
 	is.NoErr(err)
 	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	// Read the wrapped version of index.svelte with node_modules rewritten
@@ -195,8 +192,7 @@ func TestSvelteProps(t *testing.T) {
 	transformer := transformrt.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	cache := vcache.New()
-	bfs := budfs.New(cache, module, log)
+	bfs := budfs.New(module, log)
 	is.NoErr(err)
 	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	// Read the wrapped version of index.svelte with node_modules rewritten
@@ -314,8 +310,7 @@ func TestSvelteLocalImports(t *testing.T) {
 	transformer := transformrt.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	cache := vcache.New()
-	bfs := budfs.New(cache, module, log)
+	bfs := budfs.New(module, log)
 	is.NoErr(err)
 	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	// Read the wrapped version of index.svelte with node_modules rewritten

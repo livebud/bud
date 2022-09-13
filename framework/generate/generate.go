@@ -1,42 +1,34 @@
-package controller
+package generate
 
 import (
-
-	// Embed templates
-
 	_ "embed"
 
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
-	"github.com/livebud/bud/package/parser"
 )
 
-//go:embed controller.gotext
+//go:embed main.gotext
 var template string
 
-var generator = gotemplate.MustParse("framework/controller/controller.gotext", template)
+var generator = gotemplate.MustParse("framework/generate/main.gotext", template)
 
-// Generate the controller template from state
 func Generate(state *State) ([]byte, error) {
 	return generator.Generate(state)
 }
 
-// New controller generator
-func New(injector *di.Injector, module *gomod.Module, parser *parser.Parser) *Generator {
-	return &Generator{injector, module, parser}
+func New(injector *di.Injector, module *gomod.Module) *Generator {
+	return &Generator{injector, module}
 }
 
-// Generator for controllers
 type Generator struct {
 	injector *di.Injector
 	module   *gomod.Module
-	parser   *parser.Parser
 }
 
 func (g *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
-	state, err := Load(fsys, g.injector, g.module, g.parser)
+	state, err := Load(fsys, g.injector, g.module)
 	if err != nil {
 		return err
 	}

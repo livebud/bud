@@ -34,12 +34,12 @@ type Generator struct {
 	module *gomod.Module
 }
 
-func (g *Generator) GenerateDir(_ *budfs.FS, dir *budfs.Dir) error {
+func (g *Generator) GenerateDir(_ budfs.FS, dir *budfs.Dir) error {
 	fsys, err := publicrt.LoadFS(g.module)
 	if err != nil {
 		return err
 	}
-	dir.GenerateFile("public.go", func(_ *budfs.FS, file *budfs.File) error {
+	dir.GenerateFile("public.go", func(_ budfs.FS, file *budfs.File) error {
 		state, err := Load(fsys, g.flag)
 		if err != nil {
 			return err

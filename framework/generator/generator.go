@@ -1,4 +1,4 @@
-package web
+package generator
 
 import (
 	_ "embed"
@@ -9,12 +9,11 @@ import (
 	"github.com/livebud/bud/package/parser"
 )
 
-//go:embed web.gotext
+//go:embed generator.gotext
 var template string
 
-var generator = gotemplate.MustParse("framework/web/web.gotext", template)
+var generator = gotemplate.MustParse("framework/generator/generator.gotext", template)
 
-// Generate the web server from state
 func Generate(state *State) ([]byte, error) {
 	return generator.Generate(state)
 }
@@ -33,7 +32,7 @@ func (g *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
 	if err != nil {
 		return err
 	}
-	code, err := generator.Generate(state)
+	code, err := Generate(state)
 	if err != nil {
 		return err
 	}

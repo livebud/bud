@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/package/budfs"
-	"github.com/livebud/bud/package/virtual/vcache"
 
 	"github.com/livebud/bud/package/log/testlog"
 
@@ -41,8 +40,7 @@ func TestServeFile(t *testing.T) {
 	is.NoErr(td.Write(ctx))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	cache := vcache.New()
-	bfs := budfs.New(cache, module, log)
+	bfs := budfs.New(module, log)
 	bfs.FileServer("bud/view", dom.New(module, transformer.DOM))
 	// Read the wrapped version of index.svelte with node_modules rewritten
 	code, err := fs.ReadFile(bfs, "bud/view/_index.svelte.js")
@@ -98,8 +96,7 @@ func TestNodeModules(t *testing.T) {
 	is.NoErr(td.Write(ctx))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	cache := vcache.New()
-	bfs := budfs.New(cache, module, log)
+	bfs := budfs.New(module, log)
 	bfs.FileServer("bud/node_modules", dom.NodeModules(module))
 	// Read the re-written node_modules
 	code, err := fs.ReadFile(bfs, "bud/node_modules/svelte/internal")
@@ -126,8 +123,7 @@ func TestGenerateDir(t *testing.T) {
 	transformer := transformrt.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	cache := vcache.New()
-	bfs := budfs.New(cache, module, log)
+	bfs := budfs.New(module, log)
 	bfs.DirGenerator("bud/view", dom.New(module, transformer.DOM))
 	des, err := fs.ReadDir(bfs, "bud/view")
 	is.NoErr(err)

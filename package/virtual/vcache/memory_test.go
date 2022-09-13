@@ -25,6 +25,6 @@ func TestStat(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(info.Mode().String(), "-rw-r--r--")
 	de := fs.FileInfoToDirEntry(info)
-	is.Equal(de.Type().String(), "-rw-r--r--")
-	is.Equal(info.Mode().Type().String(), "-rw-r--r--")
+	is.Equal(de.Type().String(), "----------")
+	is.Equal(info.Mode().Type().String(), "----------")
 }

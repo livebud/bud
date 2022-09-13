@@ -33,7 +33,6 @@ import (
 	"github.com/livebud/bud/package/parser"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/package/svelte"
-	"github.com/livebud/bud/package/virtual/vcache"
 )
 
 // Input contains the configuration that gets passed into the commands
@@ -121,8 +120,7 @@ func Log(stderr io.Writer, logFilter string) (log.Interface, error) {
 }
 
 func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, flag *framework.Flag, in *Input) (*budfs.FileSystem, error) {
-	cache := vcache.New()
-	bfs := budfs.New(cache, module, log)
+	bfs := budfs.New(module, log)
 	parser := parser.New(bfs, module)
 	injector := di.New(bfs, log, module, parser)
 	vm, err := v8.Load()
@@ -146,8 +144,7 @@ func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, fl
 }
 
 func FileServer(log log.Interface, module *gomod.Module, vm js.VM, flag *framework.Flag) (*budfs.FileSystem, error) {
-	cache := vcache.Discard
-	bfs := budfs.New(cache, module, log)
+	bfs := budfs.New(module, log)
 	svelteCompiler, err := svelte.Load(vm)
 	if err != nil {
 		return nil, err

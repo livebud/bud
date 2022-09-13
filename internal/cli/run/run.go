@@ -21,6 +21,7 @@ import (
 	"github.com/livebud/bud/internal/versions"
 	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/budhttp/budsvr"
+	"github.com/livebud/bud/package/gomod"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/socket"
@@ -143,6 +144,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		bus:      bus,
 		bfs:      bfs,
 		log:      log,
+		module:   module,
 		starter:  starter,
 	}
 	// Start the servers
@@ -185,13 +187,14 @@ type appServer struct {
 	bus      pubsub.Client
 	bfs      *budfs.FileSystem
 	log      log.Interface
+	module   *gomod.Module
 	starter  *exe.Command
 }
 
 // Run the app server
 func (a *appServer) Run(ctx context.Context) error {
 	// Generate the app
-	if err := a.bfs.Sync("bud/internal"); err != nil {
+	if err := a.bfs.Sync(a.module, "bud/internal"); err != nil {
 		a.bus.Publish("app:error", []byte(err.Error()))
 		a.log.Debug("run: published event", "event", "app:error")
 		return err
@@ -232,7 +235,7 @@ func (a *appServer) Run(ctx context.Context) error {
 		a.bus.Publish("backend:update", nil)
 		a.log.Debug("run: published event", "event", "backend:update")
 		// Generate the app
-		if err := a.bfs.Sync("bud/internal"); err != nil {
+		if err := a.bfs.Sync(a.module, "bud/internal"); err != nil {
 			return err
 		}
 		// Build the app

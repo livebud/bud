@@ -12,7 +12,6 @@ import (
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/parser"
-	"github.com/livebud/bud/package/virtual/vcache"
 )
 
 func New(bud *bud.Command, in *bud.Input) *Command {
@@ -39,8 +38,7 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	cache := vcache.New()
-	bfs := budfs.New(cache, module, log)
+	bfs := budfs.New(module, log)
 	parser := parser.New(bfs, module)
 	fn := &di.Function{
 		Hoist: c.Hoist,

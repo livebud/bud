@@ -31,7 +31,7 @@ func NodeModules(module *gomod.Module) budfs.FileGenerator {
 	plugins := []esbuild.Plugin{
 		domExternalizePlugin(),
 	}
-	return budfs.GenerateFile(func(fsys *budfs.FS, file *budfs.File) error {
+	return budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
 		// If the name starts with node_modules, trim it to allow esbuild to do
 		// the resolving. e.g. node_modules/timeago.js => timeago.js
 		entryPoint := trimEntrypoint(file.Path())
@@ -62,9 +62,9 @@ func NodeModules(module *gomod.Module) budfs.FileGenerator {
 		// Replace require statements and updates the path on imports
 		code := replaceDependencyPaths(content)
 		file.Data = code
-		source := strings.TrimPrefix(file.Path(), "bud/")
+		// source := strings.TrimPrefix(file.Path(), "bud/")
 		// fmt.Println("linked", file.Path(), "->", source)
-		fsys.Link(file.Path(), source)
+		// fsys.Link(file.Path(), source)
 		return nil
 	})
 }
@@ -137,7 +137,7 @@ func (c *Compiler) Compile(ctx context.Context, fsys fs.FS) ([]esbuild.OutputFil
 }
 
 // GenerateDir generates a directory of compiled files
-func (c *Compiler) GenerateDir(fsys *budfs.FS, dir *budfs.Dir) error {
+func (c *Compiler) GenerateDir(fsys budfs.FS, dir *budfs.Dir) error {
 	files, err := c.Compile(fsys.Context(), fsys)
 	if err != nil {
 		return err
@@ -151,7 +151,7 @@ func (c *Compiler) GenerateDir(fsys *budfs.FS, dir *budfs.Dir) error {
 }
 
 // GenerateFile generates a single file, used in development
-func (c *Compiler) GenerateFile(fsys *budfs.FS, file *budfs.File) error {
+func (c *Compiler) GenerateFile(fsys budfs.FS, file *budfs.File) error {
 	// If the name starts with node_modules, trim it to allow esbuild to do
 	// the resolving. e.g. node_modules/livebud => livebud
 	entryPoint := trimEntrypoint(file.Path())
@@ -185,8 +185,8 @@ func (c *Compiler) GenerateFile(fsys *budfs.FS, file *budfs.File) error {
 	// Replace require statements and updates the path on imports
 	code = replaceDependencyPaths(code)
 	file.Data = code
-	source := strings.TrimPrefix(file.Path(), "bud/")
-	fsys.Link(file.Path(), source)
+	// source := strings.TrimPrefix(file.Path(), "bud/")
+	// fsys.Link(file.Path(), source)
 	return nil
 }
 
