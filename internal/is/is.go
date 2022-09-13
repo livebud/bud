@@ -123,7 +123,7 @@ func (is *I) NotIn(list interface{}, item interface{}, args ...interface{}) {
 	}
 }
 
-// ErrIs asserts that err is the same type of error as target
-func (is *I) ErrIs(err, target error, args ...interface{}) {
-	panic("TODO: implement")
-}
+// // ErrIs asserts that err is the same type of error as target
+// func (is *I) ErrIs(err, target error, args ...interface{}) {
+// 	panic("TODO: implement")
+// }

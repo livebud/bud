@@ -6,9 +6,9 @@ type Entry interface {
 	Open() fs.File
 }
 
-// Opener is a utility function that implements fs.FS
-type Opener func(name string) (fs.File, error)
+// Open is a utility function that implements Entry
+type Open func() fs.File
 
-func (fn Opener) Open(name string) (fs.File, error) {
-	return fn(name)
+func (fn Open) Open() fs.File {
+	return fn()
 }

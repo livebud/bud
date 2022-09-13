@@ -1,4 +1,4 @@
-package virtual_test
+package vfs_test
 
 import (
 	"errors"
@@ -6,18 +6,16 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/internal/is"
-	"github.com/livebud/bud/package/virtual"
+	"github.com/livebud/bud/package/virtual/vfs"
 )
 
 func TestMap(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{
-		"bud/view/index.svelte": &virtual.File{
-			Path: "bud/view/index.svelte",
+	fsys := vfs.Map{
+		"bud/view/index.svelte": &vfs.Entry{
 			Data: []byte(`<h1>index</h1>`),
 		},
-		"bud/view/about/index.svelte": &virtual.File{
-			Path: "bud/view/about/index.svelte",
+		"bud/view/about/index.svelte": &vfs.Entry{
 			Data: []byte(`<h1>about</h1>`),
 		},
 	}
@@ -33,7 +31,7 @@ func TestMap(t *testing.T) {
 	is.Equal(string(code), `<h1>about</h1>`)
 
 	// Remove bud/view/index.svelte
-	err = fsys.Remove("bud/view/index.svelte")
+	err = fsys.RemoveAll("bud/view/index.svelte")
 	is.NoErr(err)
 
 	// Read bud/view/index.svelte
@@ -44,15 +42,15 @@ func TestMap(t *testing.T) {
 
 func TestMapWriteRead(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := vfs.Map{}
 
 	// Create a directory
-	err := fsys.Mkdir("a/b", 0755)
+	err := fsys.MkdirAll("a/b", 0755)
 	is.NoErr(err)
 	stat, err := fs.Stat(fsys, "a/b")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "b")
-	is.Equal(stat.IsDir(), true)
+	is.Equal(stat.IsDir(), true, "a/b should be a directory")
 
 	// Write a file
 	err = fsys.WriteFile("a/b/c.txt", []byte("c"), 0644)

@@ -15,8 +15,11 @@ type fileInfo struct {
 	sys     interface{}
 }
 
+var _ fs.FileInfo = (*fileInfo)(nil)
+var _ fs.DirEntry = (*fileInfo)(nil)
+
 func (i *fileInfo) Name() string               { return path.Base(i.path) }
-func (i *fileInfo) Mode() fs.FileMode          { return i.mode }
+func (i *fileInfo) Mode() fs.FileMode          { return fs.FileMode(i.mode) }
 func (i *fileInfo) Type() fs.FileMode          { return i.mode.Type() }
 func (i *fileInfo) ModTime() time.Time         { return i.modTime }
 func (i *fileInfo) IsDir() bool                { return i.mode&fs.ModeDir != 0 }

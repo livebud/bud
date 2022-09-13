@@ -1,6 +1,7 @@
 package valid
 
 import (
+	"io/fs"
 	"path"
 	"strings"
 	"unicode"
@@ -19,6 +20,13 @@ func invalidDir(name string) bool {
 		name[0] == '.' || // Starts with .
 		name == "bud" || // Named bud (reserved)
 		strings.ToLower(name) != name // Has uppercase letters
+}
+
+// invalidFile check
+func invalidFile(name string) bool {
+	return len(name) == 0 || // Empty string
+		name[0] == '_' || // Starts with _
+		name[0] == '.' // Starts with .
 }
 
 // PluginDir validates that the name is a valid plugin directory
@@ -68,4 +76,24 @@ func CommandFile(name string) bool {
 
 func GoFile(name string) bool {
 	return !invalidGoFile(name)
+}
+
+func WalkDirFunc(fn fs.WalkDirFunc) fs.WalkDirFunc {
+	return func(path string, de fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		// Check directories
+		if de.IsDir() {
+			if path != "." && invalidDir(de.Name()) {
+				return fs.SkipDir
+			}
+			return fn(path, de, err)
+		}
+		// Check files
+		if invalidFile(de.Name()) {
+			return nil
+		}
+		return fn(path, de, err)
+	}
 }
