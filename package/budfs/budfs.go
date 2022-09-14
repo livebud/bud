@@ -34,7 +34,7 @@ func New(fsys fs.FS, log log.Interface) *FileSystem {
 		fsys:   merged,
 		node:   node,
 		log:    log,
-		lmap:   linkmap.New(),
+		lmap:   linkmap.New(log),
 	}
 }
 
@@ -73,6 +73,7 @@ type FS interface {
 	fs.FS
 	fs.ReadDirFS
 	fs.GlobFS
+	Link(to string)
 	Context() context.Context
 	Defer(func() error)
 }
@@ -200,6 +201,7 @@ func (g *fileGenerator) Generate(target string) (fs.File, error) {
 	}
 	fctx := &fileSystem{context.TODO(), g.fsys, g.fsys.lmap.Scope(target)}
 	file := &File{nil, g.node, target}
+	g.fsys.log.Debug("budfs: running file generator function", "target", target)
 	if err := g.fn(fctx, file); err != nil {
 		return nil, err
 	}
@@ -233,6 +235,7 @@ func (g *dirGenerator) Generate(target string) (fs.File, error) {
 	}
 	fctx := &fileSystem{context.TODO(), g.fsys, g.fsys.lmap.Scope(target)}
 	dir := &Dir{g.fsys, g.node, target}
+	g.fsys.log.Debug("budfs: running dir generator function", "path", g.node.Path(), "target", target)
 	if err := g.fn(fctx, dir); err != nil {
 		return nil, err
 	}
@@ -275,6 +278,7 @@ func (g *fileServer) Generate(target string) (fs.File, error) {
 	// File differs slightly than others because g.node.Path() is the directory
 	// path, but we want the target path for serving files.
 	file := &File{nil, g.node, target}
+	g.fsys.log.Debug("budfs: running file server function", "path", g.node.Path(), "target", target)
 	if err := g.fn(fctx, file); err != nil {
 		return nil, err
 	}
@@ -338,10 +342,12 @@ func (f *fileSystem) Open(name string) (fs.File, error) {
 	if err != nil {
 		return nil, err
 	}
-	f.link.Add(func(path string) bool {
-		return path == name
-	})
+	f.link.Link("open", name)
 	return file, nil
+}
+
+func (f *fileSystem) Link(to string) {
+	f.link.Link("link", to)
 }
 
 func (f *fileSystem) Context() context.Context {
@@ -361,7 +367,8 @@ func (f *fileSystem) Glob(pattern string) (matches []string, err error) {
 	if err != nil {
 		return nil, err
 	}
-	f.link.Add(func(path string) bool {
+	// Watch for changes to the pattern
+	f.link.Select("glob", func(path string) bool {
 		return matcher.Match(path)
 	})
 	// Base is a minor optimization to avoid walking the entire tree
@@ -390,7 +397,7 @@ func (f *fileSystem) ReadDir(name string) ([]fs.DirEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	f.link.Add(func(path string) bool {
+	f.link.Select("readdir", func(path string) bool {
 		return path == name || filepath.Dir(path) == name
 	})
 	return des, nil

@@ -14,12 +14,13 @@ import (
 	"github.com/livebud/bud/internal/embed"
 	"github.com/livebud/bud/internal/entrypoint"
 	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/gomod"
 )
 
 func Load(
 	ctx context.Context,
-	fsys fs.FS,
+	fsys budfs.FS,
 	module *gomod.Module,
 	transform *transformrt.Map,
 	flag *framework.Flag,
@@ -34,7 +35,7 @@ func Load(
 }
 
 type loader struct {
-	fsys      fs.FS
+	fsys      budfs.FS
 	module    *gomod.Module
 	transform *transformrt.Map
 	flag      *framework.Flag

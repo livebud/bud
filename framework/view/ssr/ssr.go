@@ -16,6 +16,7 @@ import (
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/livebud/bud/framework/transform/transformrt"
 	"github.com/livebud/bud/internal/entrypoint"
+	"github.com/livebud/bud/internal/esmeta"
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/gomod"
@@ -46,7 +47,7 @@ type Compiler struct {
 	transformer transformrt.Transformer
 }
 
-func (c *Compiler) Compile(ctx context.Context, fsys fs.FS) ([]byte, error) {
+func (c *Compiler) Compile(ctx context.Context, fsys budfs.FS) ([]byte, error) {
 	dir := c.module.Directory()
 	result := esbuild.Build(esbuild.BuildOptions{
 		EntryPointsAdvanced: []esbuild.EntryPoint{
@@ -86,15 +87,13 @@ func (c *Compiler) Compile(ctx context.Context, fsys fs.FS) ([]byte, error) {
 	if len(result.OutputFiles) != 1 {
 		return nil, fmt.Errorf("expected exactly 1 output file but got %d", len(result.OutputFiles))
 	}
-	// metafile, err := esmeta.Parse(result.Metafile)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// for _, dep := range metafile.Dependencies() {
-	// 	if _, err := fs.Stat(fsys, dep); err != nil {
-	// 		return nil, err
-	// 	}
-	// }
+	metafile, err := esmeta.Parse(result.Metafile)
+	if err != nil {
+		return nil, err
+	}
+	for _, dep := range metafile.Dependencies() {
+		fsys.Link(dep)
+	}
 	return result.OutputFiles[0].Contents, nil
 }
 

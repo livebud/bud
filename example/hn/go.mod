@@ -12,6 +12,7 @@ require (
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/evanw/esbuild v0.14.11 // indirect
 	github.com/gedex/inflector v0.0.0-20170307190818-16278e9db813 // indirect
+	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac // indirect
 	github.com/matthewmueller/text v0.0.0-20210424201111-ec1e4af8dfe8 // indirect
 	github.com/timewasted/go-accept-headers v0.0.0-20130320203746-c78f304b1b09 // indirect

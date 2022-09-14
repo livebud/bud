@@ -5,21 +5,25 @@ import (
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/budfs/linkmap"
+	"github.com/livebud/bud/package/log/testlog"
 	"golang.org/x/sync/errgroup"
 )
 
 func TestLinkMap(t *testing.T) {
 	is := is.New(t)
-	linkMap := linkmap.New()
+	log := testlog.New()
+	linkMap := linkmap.New(log)
 	list := linkMap.Scope("bud/view.go")
-	list.Add(func(path string) bool {
+	list.Link("test", "controller/controller.go")
+	list.Select("test", func(path string) bool {
 		return path == "view/index.svelte"
 	})
-	list.Add(func(path string) bool {
+	list.Select("test", func(path string) bool {
 		return path == "view/about/index.svelte"
 	})
 	list, ok := linkMap.Get("bud/view.go")
 	is.True(ok)
+	is.True(list.Check("controller/controller.go"))
 	is.True(list.Check("view/about/index.svelte"))
 	is.True(list.Check("view/index.svelte"))
 	is.True(!list.Check("view"))
@@ -27,14 +31,15 @@ func TestLinkMap(t *testing.T) {
 
 func TestLinkSafe(t *testing.T) {
 	is := is.New(t)
+	log := testlog.New()
+	linkMap := linkmap.New(log)
 	eg := new(errgroup.Group)
-	linkMap := linkmap.New()
 	eg.Go(func() error {
 		list := linkMap.Scope("bud/view.go")
-		list.Add(func(path string) bool {
+		list.Select("test", func(path string) bool {
 			return path == "view/index.svelte"
 		})
-		list.Add(func(path string) bool {
+		list.Select("test", func(path string) bool {
 			return path == "view/about/index.svelte"
 		})
 		list, ok := linkMap.Get("bud/view.go")
@@ -46,10 +51,10 @@ func TestLinkSafe(t *testing.T) {
 	})
 	eg.Go(func() error {
 		list := linkMap.Scope("bud/view.go")
-		list.Add(func(path string) bool {
+		list.Select("test", func(path string) bool {
 			return path == "view/index.svelte"
 		})
-		list.Add(func(path string) bool {
+		list.Select("test", func(path string) bool {
 			return path == "view/about/index.svelte"
 		})
 		list, ok := linkMap.Get("bud/view.go")
@@ -64,17 +69,18 @@ func TestLinkSafe(t *testing.T) {
 
 func TestLinkRange(t *testing.T) {
 	is := is.New(t)
-	linkMap := linkmap.New()
+	log := testlog.New()
+	linkMap := linkmap.New(log)
 	expect := map[string]bool{
 		"bud/view.go":       false,
 		"bud/controller.go": false,
 	}
 	l1 := linkMap.Scope("bud/view.go")
-	l1.Add(func(path string) bool {
+	l1.Select("test", func(path string) bool {
 		return path == "view/index.svelte"
 	})
 	l2 := linkMap.Scope("bud/controller.go")
-	l2.Add(func(path string) bool {
+	l2.Select("test", func(path string) bool {
 		return path == "view/index.svelte"
 	})
 	linkMap.Range(func(path string, list *linkmap.List) bool {
