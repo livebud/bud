@@ -56,16 +56,18 @@ func NodeModules(module *gomod.Module) budfs.FileGenerator {
 			})
 			return fmt.Errorf(strings.Join(msgs, "\n"))
 		}
-		// if err := esmeta.Link2(dfs, result.Metafile); err != nil {
-		// 	return nil, err
-		// }
 		content := result.OutputFiles[0].Contents
 		// Replace require statements and updates the path on imports
 		code := replaceDependencyPaths(content)
 		file.Data = code
-		// source := strings.TrimPrefix(file.Target(), "bud/")
-		// fmt.Println("linked", file.Target(), "->", source)
-		// fsys.Link(file.Target(), source)
+		// Link the dependencies
+		metafile, err := esmeta.Parse(result.Metafile)
+		if err != nil {
+			return err
+		}
+		for _, dep := range metafile.Dependencies() {
+			fsys.Link(dep)
+		}
 		return nil
 	})
 }
