@@ -6,7 +6,9 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
+	"github.com/lithammer/dedent"
 	"github.com/livebud/bud/internal/cli/testcli"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
@@ -1991,6 +1993,53 @@ func TestSameNestedName(t *testing.T) {
 
 		"/admins/:id/users"
 	`)
+	is.NoErr(app.Close())
+}
+
+func TestControllerChange(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["controller/controller.go"] = `
+		package controller
+		type Controller struct {}
+		func (c *Controller) Index() (string, error) { return "/", nil }
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	res, err := app.GetJSON("/")
+	is.NoErr(err)
+	res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		"/"
+	`)
+	// Update controller
+	controllerFile := filepath.Join(dir, "controller", "controller.go")
+	is.NoErr(os.MkdirAll(filepath.Dir(controllerFile), 0755))
+	is.NoErr(os.WriteFile(controllerFile, []byte(dedent.Dedent(`
+		package controller
+		type Controller struct {}
+		func (c *Controller) Index() string { return "/" }
+	`)), 0644))
+	// Wait for the app to be ready again
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	is.NoErr(app.Ready(ctx))
+	// Try again with the new file
+	res, err = app.GetJSON("/")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		"/"
+	`))
 	is.NoErr(app.Close())
 }
 

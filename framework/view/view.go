@@ -34,7 +34,7 @@ type Generator struct {
 	transform *transformrt.Map
 }
 
-func (c *Generator) GenerateFile(fsys *budfs.FS, file *budfs.File) error {
+func (c *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
 	state, err := Load(fsys.Context(), fsys, c.module, c.transform, c.flag)
 	if err != nil {
 		return err

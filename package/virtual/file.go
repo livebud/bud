@@ -3,6 +3,7 @@ package virtual
 import (
 	"io"
 	"io/fs"
+	"path"
 	"time"
 )
 
@@ -12,19 +13,53 @@ type File struct {
 	Data    []byte
 	Mode    fs.FileMode
 	ModTime time.Time
-	Sys     interface{}
-	offset  int64
 }
 
-var _ io.ReadSeeker = (*File)(nil)
-var _ fs.File = (*File)(nil)
+var _ fs.DirEntry = (*File)(nil)
 var _ Entry = (*File)(nil)
 
-func (f *File) Close() error {
+// Name of the entry. Implements the fs.DirEntry interface.
+func (f *File) Name() string {
+	return path.Base(f.Path)
+}
+
+// Returns true if entry is a directory. Implements the fs.DirEntry interface.
+func (f *File) IsDir() bool {
+	return f.Mode.IsDir()
+}
+
+// Returns the type of entry. Implements the fs.DirEntry interface.
+func (f *File) Type() fs.FileMode {
+	return f.Mode.Type()
+}
+
+// Returns the file info. Implements the fs.DirEntry interface.
+func (f *File) Info() (fs.FileInfo, error) {
+	return &fileInfo{
+		path:    f.Path,
+		mode:    f.Mode &^ fs.ModeDir,
+		modTime: f.ModTime,
+		size:    int64(len(f.Data)),
+	}, nil
+}
+
+func (f *File) open() fs.File {
+	return &entryFile{f, 0}
+}
+
+type entryFile struct {
+	*File
+	offset int64
+}
+
+var _ io.ReadSeeker = (*entryFile)(nil)
+var _ fs.File = (*entryFile)(nil)
+
+func (f *entryFile) Close() error {
 	return nil
 }
 
-func (f *File) Read(b []byte) (int, error) {
+func (f *entryFile) Read(b []byte) (int, error) {
 	if f.offset >= int64(len(f.Data)) {
 		return 0, io.EOF
 	}
@@ -36,17 +71,11 @@ func (f *File) Read(b []byte) (int, error) {
 	return n, nil
 }
 
-func (f *File) Stat() (fs.FileInfo, error) {
-	return &fileInfo{
-		path:    f.Path,
-		mode:    f.Mode &^ fs.ModeDir,
-		modTime: f.ModTime,
-		size:    int64(len(f.Data)),
-		sys:     f.Sys,
-	}, nil
+func (f *entryFile) Stat() (fs.FileInfo, error) {
+	return f.Info()
 }
 
-func (f *File) Seek(offset int64, whence int) (int64, error) {
+func (f *entryFile) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case 0:
 		// offset += 0
@@ -60,15 +89,4 @@ func (f *File) Seek(offset int64, whence int) (int64, error) {
 	}
 	f.offset = offset
 	return offset, nil
-}
-
-func (f *File) Open() fs.File {
-	return &File{
-		Path:    f.Path,
-		Data:    f.Data,
-		Mode:    f.Mode,
-		ModTime: f.ModTime,
-		Sys:     f.Sys,
-		offset:  0, // reset offset
-	}
 }

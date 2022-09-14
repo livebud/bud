@@ -16,6 +16,7 @@ import (
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/livebud/bud/framework/transform/transformrt"
 	"github.com/livebud/bud/internal/entrypoint"
+	"github.com/livebud/bud/internal/esmeta"
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/gomod"
@@ -46,7 +47,7 @@ type Compiler struct {
 	transformer transformrt.Transformer
 }
 
-func (c *Compiler) Compile(ctx context.Context, fsys fs.FS) ([]byte, error) {
+func (c *Compiler) Compile(ctx context.Context, fsys budfs.FS) ([]byte, error) {
 	dir := c.module.Directory()
 	result := esbuild.Build(esbuild.BuildOptions{
 		EntryPointsAdvanced: []esbuild.EntryPoint{
@@ -86,16 +87,17 @@ func (c *Compiler) Compile(ctx context.Context, fsys fs.FS) ([]byte, error) {
 	if len(result.OutputFiles) != 1 {
 		return nil, fmt.Errorf("expected exactly 1 output file but got %d", len(result.OutputFiles))
 	}
-	// if err := esmeta.Link2(dfs, result.Metafile); err != nil {
-	// 	return nil, err
-	// }
-	// TODO: remove WriteEvent and externalize actual file contents so we only
-	// need to watch directory changes.
-	// file.Watch("bud/view/**/*.{svelte,jsx}", gen.CreateEvent|gen.RemoveEvent|gen.WriteEvent)
+	metafile, err := esmeta.Parse(result.Metafile)
+	if err != nil {
+		return nil, err
+	}
+	for _, dep := range metafile.Dependencies() {
+		fsys.Link(dep)
+	}
 	return result.OutputFiles[0].Contents, nil
 }
 
-func (c *Compiler) GenerateFile(fsys *budfs.FS, file *budfs.File) error {
+func (c *Compiler) GenerateFile(fsys budfs.FS, file *budfs.File) error {
 	code, err := c.Compile(fsys.Context(), fsys)
 	if err != nil {
 		return err
@@ -111,7 +113,7 @@ var ssrTemplate string
 var ssrGenerator = gotemplate.MustParse("ssr.gotext", ssrTemplate)
 
 // Generate the bud/view/_ssr.js file
-func ssrPlugin(osfs fs.FS, dir string) esbuild.Plugin {
+func ssrPlugin(fsys fs.FS, dir string) esbuild.Plugin {
 	return esbuild.Plugin{
 		Name: "ssr",
 		Setup: func(epb esbuild.PluginBuild) {
@@ -121,7 +123,7 @@ func ssrPlugin(osfs fs.FS, dir string) esbuild.Plugin {
 				return result, nil
 			})
 			epb.OnLoad(esbuild.OnLoadOptions{Filter: `.*`, Namespace: "ssr"}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
-				views, err := entrypoint.List(osfs, "view")
+				views, err := entrypoint.List(fsys, "view")
 				if err != nil {
 					return result, err
 				}

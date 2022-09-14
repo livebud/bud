@@ -11,24 +11,21 @@ import (
 	"github.com/cespare/xxhash"
 	"github.com/livebud/bud/internal/gois"
 	"github.com/livebud/bud/internal/goroot"
-	"github.com/livebud/bud/package/vfs"
+	"github.com/livebud/bud/package/virtual"
 )
 
 type Module struct {
 	opt  *option
 	file *File
 	dir  string
+	fsys virtual.FS
 }
+
+var _ virtual.FS = (*Module)(nil)
 
 // Directory returns the module directory (e.g. /Users/$USER/...)
 func (m *Module) Directory(subpaths ...string) string {
 	return filepath.Join(append([]string{m.dir}, subpaths...)...)
-}
-
-// DirFS returns an OS filesystem you can read and write from.
-// TODO: remove vfs.ReadWritable
-func (m *Module) DirFS(subpaths ...string) vfs.ReadWritable {
-	return vfs.OS(m.Directory(subpaths...))
 }
 
 // ModCache returns the module cache directory
@@ -182,6 +179,26 @@ func (m *Module) Hash() []byte {
 	h := xxhash.New()
 	h.Write(code)
 	return h.Sum(nil)
+}
+
+// MkdirAll creates dir within the module dir. Used to implement virtual.FS
+func (m *Module) MkdirAll(path string, perm fs.FileMode) error {
+	return m.fsys.MkdirAll(path, perm)
+}
+
+// WriteFile writes a file within the module dir. Used to implement virtual.FS.
+func (m *Module) WriteFile(name string, data []byte, perm fs.FileMode) error {
+	return m.fsys.WriteFile(name, data, perm)
+}
+
+// RemoveAll removes a file within the module dir. Used to implement virtual.FS.
+func (m *Module) RemoveAll(path string) error {
+	return m.fsys.RemoveAll(path)
+}
+
+// RemoveAll removes a file within the module dir. Used to implement virtual.FS.
+func (m *Module) Sub(dir string) (virtual.FS, error) {
+	return m.fsys.Sub(dir)
 }
 
 // Resolve allows `path` to be replaced by an absolute path in `rest`

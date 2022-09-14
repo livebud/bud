@@ -28,7 +28,7 @@ type Generator struct {
 	parser *parser.Parser
 }
 
-func (g *Generator) GenerateFile(fsys *budfs.FS, file *budfs.File) error {
+func (g *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
 	state, err := Load(fsys, g.module, g.parser)
 	if err != nil {
 		return err

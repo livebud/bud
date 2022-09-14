@@ -33,11 +33,11 @@ func (f *fillerDir) Generate(target string) (fs.File, error) {
 		}
 		entries = append(entries, de)
 	}
-	return &virtual.Dir{
+	return virtual.New(&virtual.Dir{
 		Path:    path,
 		Mode:    fs.ModeDir,
 		Entries: entries,
-	}, nil
+	}), nil
 }
 
 type dirEntry struct {

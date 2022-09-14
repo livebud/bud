@@ -6,6 +6,8 @@ import (
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -20,7 +22,6 @@ import (
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/svelte"
-	"github.com/livebud/bud/package/virtual/vcache"
 )
 
 func TestSvelteHello(t *testing.T) {
@@ -39,8 +40,7 @@ func TestSvelteHello(t *testing.T) {
 	transformer := transformrt.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	cache := vcache.New()
-	bfs := budfs.New(cache, module, log)
+	bfs := budfs.New(module, log)
 	is.NoErr(err)
 	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	// Read the wrapped version of index.svelte with node_modules rewritten
@@ -96,8 +96,7 @@ func TestSvelteAwait(t *testing.T) {
 	transformer := transformrt.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	cache := vcache.New()
-	bfs := budfs.New(cache, module, log)
+	bfs := budfs.New(module, log)
 	is.NoErr(err)
 	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	// Read the wrapped version of index.svelte with node_modules rewritten
@@ -195,8 +194,7 @@ func TestSvelteProps(t *testing.T) {
 	transformer := transformrt.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	cache := vcache.New()
-	bfs := budfs.New(cache, module, log)
+	bfs := budfs.New(module, log)
 	is.NoErr(err)
 	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	// Read the wrapped version of index.svelte with node_modules rewritten
@@ -314,8 +312,7 @@ func TestSvelteLocalImports(t *testing.T) {
 	transformer := transformrt.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	cache := vcache.New()
-	bfs := budfs.New(cache, module, log)
+	bfs := budfs.New(module, log)
 	is.NoErr(err)
 	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
 	// Read the wrapped version of index.svelte with node_modules rewritten
@@ -342,4 +339,90 @@ func TestSvelteLocalImports(t *testing.T) {
 	is.Equal(res.Headers["Content-Type"], "text/html")
 	is.True(strings.Contains(res.Body, `<h1>first story</h1>`))
 	is.True(strings.Contains(res.Body, `<h2>first comment</h2><h2>second comment</h2>`))
+}
+
+func TestUpdateFile(t *testing.T) {
+	is := is.New(t)
+	log := testlog.New()
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.NodeModules["svelte"] = versions.Svelte
+	td.Files["view/Story.svelte"] = `<h2>Story</h2>`
+	td.Files["view/index.svelte"] = `
+		<script>
+			import Story from "./Story.svelte";
+		</script>
+		<h1>home</h1>
+		<Story />
+	`
+	is.NoErr(td.Write(ctx))
+	vm, err := v8.Load()
+	is.NoErr(err)
+	svelteCompiler, err := svelte.Load(vm)
+	is.NoErr(err)
+	transformer := transformrt.MustLoad(svelte.NewTransformable(svelteCompiler))
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	bfs := budfs.New(module, log)
+	is.NoErr(err)
+	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
+	// Read the wrapped version of index.svelte with node_modules rewritten
+	code, err := fs.ReadFile(bfs, "bud/view/_ssr.js")
+	is.NoErr(err)
+	is.True(strings.Contains(string(code), `create_ssr_component(`))
+	is.True(strings.Contains(string(code), `<h1>home</h1>`))
+	is.True(strings.Contains(string(code), `<h2>Story</h2>`))
+	is.True(strings.Contains(string(code), `views["/"] = `))
+	// Update the file
+	os.WriteFile(filepath.Join(dir, "view/Story.svelte"), []byte(`<h2>Stories</h2>`), 0644)
+	os.WriteFile(filepath.Join(dir, "view/index.svelte"), []byte(`
+		<script>
+			import Story from "./Story.svelte";
+		</script>
+		<h1>homie</h1>
+		<Story />
+	`), 0644)
+	// Check _ssr again (cached)
+	code, err = fs.ReadFile(bfs, "bud/view/_ssr.js")
+	is.NoErr(err)
+	is.True(strings.Contains(string(code), `create_ssr_component(`))
+	is.True(strings.Contains(string(code), `<h1>home</h1>`))
+	is.True(strings.Contains(string(code), `<h2>Story</h2>`))
+	is.True(strings.Contains(string(code), `views["/"] = `))
+	// Mark the file as changed
+	bfs.Change("view/index.svelte", "view/Story.svelte")
+	// And try again (uncached)
+	code, err = fs.ReadFile(bfs, "bud/view/_ssr.js")
+	is.NoErr(err)
+	is.True(strings.Contains(string(code), `create_ssr_component(`))
+	is.True(strings.Contains(string(code), `<h1>homie</h1>`), "homie not updated")
+	is.True(strings.Contains(string(code), `<h2>Stories</h2>`), "stories not updated")
+	is.True(strings.Contains(string(code), `views["/"] = `))
+
+	// Add a file
+	is.NoErr(os.WriteFile(filepath.Join(dir, "view/show.svelte"), []byte(`<h1>Show</h1>`), 0644))
+	// Check _ssr again (cached)
+	code, err = fs.ReadFile(bfs, "bud/view/_ssr.js")
+	is.NoErr(err)
+	is.True(!strings.Contains(string(code), `views["/:id"] = `), "cached version shouldn't contain /:id")
+	// Mark the file as added
+	bfs.Change("view/show.svelte")
+	// And try again (uncached)
+	code, err = fs.ReadFile(bfs, "bud/view/_ssr.js")
+	is.NoErr(err)
+	is.True(strings.Contains(string(code), `views["/:id"] = `), "cached version should contain /:id")
+
+	// Remove a file
+	is.NoErr(os.Remove(filepath.Join(dir, "view/show.svelte")))
+	// Check _ssr again (cached)
+	code, err = fs.ReadFile(bfs, "bud/view/_ssr.js")
+	is.NoErr(err)
+	is.True(strings.Contains(string(code), `views["/:id"] = `), "cached version should contain /:id")
+	// Mark the file as removed
+	bfs.Change("view/show.svelte")
+	// And try again (uncached)
+	code, err = fs.ReadFile(bfs, "bud/view/_ssr.js")
+	is.NoErr(err)
+	is.True(!strings.Contains(string(code), `views["/:id"] = `), "cached version shouldn't contain /:id")
 }

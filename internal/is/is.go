@@ -122,8 +122,3 @@ func (is *I) NotIn(list interface{}, item interface{}, args ...interface{}) {
 		is.logf("%v is in %+v%s", item, list, is.formatArgs(args))
 	}
 }
-
-// ErrIs asserts that err is the same type of error as target
-func (is *I) ErrIs(err, target error, args ...interface{}) {
-	panic("TODO: implement")
-}

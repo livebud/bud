@@ -11,6 +11,7 @@ import (
 
 	"github.com/livebud/bud/framework/view/ssr"
 	"github.com/livebud/bud/internal/urlx"
+	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/package/virtual"
 )
@@ -23,15 +24,15 @@ type Client interface {
 
 // Try tries loading a dev client from an environment variable or returns an
 // empty client if no environment variable is set
-func Try(addr string) (Client, error) {
+func Try(log log.Interface, addr string) (Client, error) {
 	if addr == "" {
 		return discard{}, nil
 	}
-	return Load(addr)
+	return Load(log, addr)
 }
 
 // Load a client from an address
-func Load(addr string) (Client, error) {
+func Load(log log.Interface, addr string) (Client, error) {
 	url, err := urlx.Parse(addr)
 	if err != nil {
 		return nil, err
@@ -49,18 +50,21 @@ func Load(addr string) (Client, error) {
 	return &client{
 		baseURL:    url.String(),
 		httpClient: httpClient,
+		log:        log,
 	}, nil
 }
 
 type client struct {
 	baseURL    string
 	httpClient *http.Client
+	log        log.Interface
 }
 
 var _ Client = (*client)(nil)
 
 // Render a path with props on the dev server
 func (c *client) Render(route string, props interface{}) (*ssr.Response, error) {
+	c.log.Debug("budhttp: client rendering", "route", route)
 	body, err := json.Marshal(props)
 	if err != nil {
 		return nil, err
@@ -76,6 +80,9 @@ func (c *client) Render(route string, props interface{}) (*ssr.Response, error) 
 		return nil, err
 	}
 	if res.StatusCode != http.StatusOK {
+		if res.StatusCode == http.StatusNotFound {
+			return nil, fmt.Errorf("budhttp: render %q. %w", route, fs.ErrNotExist)
+		}
 		return nil, fmt.Errorf("budhttp: render returned unexpected %d. %s", res.StatusCode, resBody)
 	}
 	out := new(ssr.Response)
@@ -86,7 +93,7 @@ func (c *client) Render(route string, props interface{}) (*ssr.Response, error) 
 }
 
 func (c *client) Open(name string) (fs.File, error) {
-	res, err := c.httpClient.Get(c.baseURL + "/" + name)
+	res, err := c.httpClient.Get(c.baseURL + "/open/" + name)
 	if err != nil {
 		return nil, err
 	}
@@ -96,6 +103,9 @@ func (c *client) Open(name string) (fs.File, error) {
 		return nil, err
 	}
 	if res.StatusCode != http.StatusOK {
+		if res.StatusCode == http.StatusNotFound {
+			return nil, fmt.Errorf("budhttp: open %q. %w", name, fs.ErrNotExist)
+		}
 		return nil, fmt.Errorf("budhttp: open returned unexpected %d. %s", res.StatusCode, body)
 	}
 	return virtual.UnmarshalJSON(body)

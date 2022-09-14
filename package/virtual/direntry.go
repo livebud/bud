@@ -2,21 +2,21 @@ package virtual
 
 import (
 	"io/fs"
+	"path"
 	"time"
 )
 
 type DirEntry struct {
 	Path    string
+	Size    int64
 	Mode    fs.FileMode
 	ModTime time.Time
-	Sys     interface{}
-	Size    int64
 }
 
 var _ fs.DirEntry = (*DirEntry)(nil)
 
 func (e *DirEntry) Name() string {
-	return e.Path
+	return path.Base(e.Path)
 }
 
 func (e *DirEntry) IsDir() bool {
@@ -24,7 +24,7 @@ func (e *DirEntry) IsDir() bool {
 }
 
 func (e *DirEntry) Type() fs.FileMode {
-	return e.Mode
+	return e.Mode.Type()
 }
 
 func (e *DirEntry) Info() (fs.FileInfo, error) {
@@ -32,7 +32,6 @@ func (e *DirEntry) Info() (fs.FileInfo, error) {
 		path:    e.Path,
 		mode:    e.Mode,
 		modTime: e.ModTime,
-		sys:     e.Sys,
 		size:    e.Size,
 	}, nil
 }

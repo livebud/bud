@@ -15,6 +15,7 @@ import (
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/livebud/bud/framework/transform/transformrt"
 	"github.com/livebud/bud/internal/entrypoint"
+	"github.com/livebud/bud/internal/esmeta"
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/package/gomod"
 )
@@ -31,10 +32,10 @@ func NodeModules(module *gomod.Module) budfs.FileGenerator {
 	plugins := []esbuild.Plugin{
 		domExternalizePlugin(),
 	}
-	return budfs.GenerateFile(func(fsys *budfs.FS, file *budfs.File) error {
+	return budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
 		// If the name starts with node_modules, trim it to allow esbuild to do
 		// the resolving. e.g. node_modules/timeago.js => timeago.js
-		entryPoint := trimEntrypoint(file.Path())
+		entryPoint := trimEntrypoint(file.Target())
 		result := esbuild.Build(esbuild.BuildOptions{
 			EntryPoints:   []string{entryPoint},
 			AbsWorkingDir: module.Directory(),
@@ -55,16 +56,18 @@ func NodeModules(module *gomod.Module) budfs.FileGenerator {
 			})
 			return fmt.Errorf(strings.Join(msgs, "\n"))
 		}
-		// if err := esmeta.Link2(dfs, result.Metafile); err != nil {
-		// 	return nil, err
-		// }
 		content := result.OutputFiles[0].Contents
 		// Replace require statements and updates the path on imports
 		code := replaceDependencyPaths(content)
 		file.Data = code
-		source := strings.TrimPrefix(file.Path(), "bud/")
-		// fmt.Println("linked", file.Path(), "->", source)
-		fsys.Link(file.Path(), source)
+		// Link the dependencies
+		metafile, err := esmeta.Parse(result.Metafile)
+		if err != nil {
+			return err
+		}
+		for _, dep := range metafile.Dependencies() {
+			fsys.Link(dep)
+		}
 		return nil
 	})
 }
@@ -137,7 +140,7 @@ func (c *Compiler) Compile(ctx context.Context, fsys fs.FS) ([]esbuild.OutputFil
 }
 
 // GenerateDir generates a directory of compiled files
-func (c *Compiler) GenerateDir(fsys *budfs.FS, dir *budfs.Dir) error {
+func (c *Compiler) GenerateDir(fsys budfs.FS, dir *budfs.Dir) error {
 	files, err := c.Compile(fsys.Context(), fsys)
 	if err != nil {
 		return err
@@ -151,10 +154,18 @@ func (c *Compiler) GenerateDir(fsys *budfs.FS, dir *budfs.Dir) error {
 }
 
 // GenerateFile generates a single file, used in development
-func (c *Compiler) GenerateFile(fsys *budfs.FS, file *budfs.File) error {
+func (c *Compiler) GenerateFile(fsys budfs.FS, file *budfs.File) error {
 	// If the name starts with node_modules, trim it to allow esbuild to do
 	// the resolving. e.g. node_modules/livebud => livebud
-	entryPoint := trimEntrypoint(file.Path())
+	entryPoint := trimEntrypoint(file.Target())
+	// Check that the entrypoint exists, ignoring generated files to avoid
+	// infinite recursion
+	if !strings.HasPrefix(entryPoint, "bud/") {
+		if _, err := fs.Stat(fsys, entryPoint); err != nil {
+			return err
+		}
+	}
+	// Run esbuild
 	result := esbuild.Build(esbuild.BuildOptions{
 		EntryPoints:   []string{entryPoint},
 		AbsWorkingDir: c.module.Directory(),
@@ -185,8 +196,14 @@ func (c *Compiler) GenerateFile(fsys *budfs.FS, file *budfs.File) error {
 	// Replace require statements and updates the path on imports
 	code = replaceDependencyPaths(code)
 	file.Data = code
-	source := strings.TrimPrefix(file.Path(), "bud/")
-	fsys.Link(file.Path(), source)
+	// Link the dependencies
+	metafile, err := esmeta.Parse(result.Metafile)
+	if err != nil {
+		return err
+	}
+	for _, dep := range metafile.Dependencies() {
+		fsys.Link(dep)
+	}
 	return nil
 }
 

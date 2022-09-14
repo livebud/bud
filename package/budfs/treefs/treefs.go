@@ -6,15 +6,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/livebud/bud/package/virtual"
 	"github.com/xlab/treeprint"
 )
-
-// type Node interface {
-// 	Parent() Node
-// 	Children() []Node
-// 	Name() string
-// 	Generate(target string) (fs.File, error)
-// }
 
 func New(name string) *Node {
 	root := &Node{
@@ -27,6 +21,12 @@ func New(name string) *Node {
 	root.path = computePath(root)
 	root.generator = &fillerDir{root}
 	return root
+}
+
+type Generate func(target string) (fs.File, error)
+
+func (fn Generate) Generate(target string) (fs.File, error) {
+	return fn(target)
 }
 
 type Generator interface {
@@ -80,12 +80,15 @@ func (n *Node) Mode() fs.FileMode {
 	return n.mode
 }
 
-func (n *Node) Generate(target string) (fs.File, error) {
-	return n.generator.Generate(target)
+func (n *Node) Entries() (entries []fs.DirEntry) {
+	for _, child := range n.Children() {
+		entries = append(entries, child.dirEntry())
+	}
+	return entries
 }
 
 // Entry returns node as a directory entry.
-func (n *Node) Entry() fs.DirEntry {
+func (n *Node) dirEntry() fs.DirEntry {
 	return &dirEntry{n}
 }
 
@@ -108,11 +111,11 @@ func (n *Node) Children() (children []*Node) {
 	return children
 }
 
-func (n *Node) InsertDir(path string, generator Generator) *Node {
+func (n *Node) DirGenerator(path string, generator Generator) *Node {
 	return n.insert(path, fs.ModeDir, generator)
 }
 
-func (n *Node) InsertFile(path string, generator Generator) *Node {
+func (n *Node) FileGenerator(path string, generator Generator) *Node {
 	return n.insert(path, fs.FileMode(0), generator)
 }
 
@@ -275,4 +278,53 @@ func (n *Node) Delete(path ...string) (node *Node, found bool) {
 	delete(parent.childMap, node.name)
 	// Return the deleted node
 	return node, true
+}
+
+func (n *Node) Open(target string) (fs.File, error) {
+	if !fs.ValidPath(target) {
+		return nil, formatError(fs.ErrInvalid, "invalid target path %q", target)
+	}
+	return n.open(target)
+}
+
+func (n *Node) open(target string) (fs.File, error) {
+	// When targeting directories directly, they are simply a virtual dirs
+	rel := relativePath(n.Path(), target)
+	if rel == "." {
+		children := n.Children()
+		entries := make([]fs.DirEntry, len(children))
+		for i, child := range children {
+			entries[i] = child.dirEntry()
+		}
+		return virtual.New(&virtual.Dir{
+			Path:    n.Path(),
+			Mode:    n.Mode(),
+			Entries: entries,
+		}), nil
+	}
+	// Find the closest match in the tree
+	node, _, ok := n.FindByPrefix(rel)
+	if !ok {
+		return nil, formatError(fs.ErrNotExist, "%q target not found in %q node", target, n.Path())
+	}
+	// File matches that aren't exact are not allowed.
+	if node.Path() != target && node.Mode().IsRegular() {
+		return nil, formatError(fs.ErrNotExist, "%q file generator doesn't match %q target", n.Path(), target)
+	}
+	// Run the generators
+	return node.generator.Generate(target)
+}
+
+func relativePath(base, target string) string {
+	rel := strings.TrimPrefix(target, base)
+	if rel == "" {
+		return "."
+	} else if rel[0] == '/' {
+		rel = rel[1:]
+	}
+	return rel
+}
+
+func formatError(err error, format string, args ...interface{}) error {
+	return fmt.Errorf("treefs: %s. %w", fmt.Sprintf(format, args...), err)
 }

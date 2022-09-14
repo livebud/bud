@@ -2,7 +2,9 @@ package budhttp_test
 
 import (
 	"context"
+	"errors"
 	"io"
+	"io/fs"
 	"net/http/httptest"
 	"os"
 	"testing"
@@ -10,7 +12,6 @@ import (
 
 	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/log/testlog"
-	"github.com/livebud/bud/package/virtual/vcache"
 
 	"github.com/livebud/bud/framework/transform/transformrt"
 	"github.com/livebud/bud/framework/view/dom"
@@ -44,8 +45,7 @@ func loadServer(bus pubsub.Client, dir string) (*httptest.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	cache := vcache.New()
-	bfs := budfs.New(cache, module, log)
+	bfs := budfs.New(module, log)
 	bfs.FileServer("bud/view", dom.New(module, transforms.DOM))
 	bfs.FileServer("bud/node_modules", dom.NodeModules(module))
 	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
@@ -56,6 +56,7 @@ func loadServer(bus pubsub.Client, dir string) (*httptest.Server, error) {
 func TestRender(t *testing.T) {
 	ctx := context.Background()
 	is := is.New(t)
+	log := testlog.New()
 	dir := t.TempDir()
 	td := testdir.New(dir)
 	td.Files["view/index.svelte"] = `
@@ -70,7 +71,7 @@ func TestRender(t *testing.T) {
 	server, err := loadServer(ps, dir)
 	is.NoErr(err)
 	defer server.Close()
-	client, err := budhttp.Load(server.URL)
+	client, err := budhttp.Load(log, server.URL)
 	is.NoErr(err)
 	res, err := client.Render("/", map[string]interface{}{
 		"_string": "marshmallow",
@@ -85,6 +86,7 @@ func TestRender(t *testing.T) {
 func TestRenderNested(t *testing.T) {
 	ctx := context.Background()
 	is := is.New(t)
+	log := testlog.New()
 	dir := t.TempDir()
 	td := testdir.New(dir)
 	td.Files["view/posts/comments/edit.svelte"] = `
@@ -99,7 +101,7 @@ func TestRenderNested(t *testing.T) {
 	server, err := loadServer(ps, dir)
 	is.NoErr(err)
 	defer server.Close()
-	client, err := budhttp.Load(server.URL)
+	client, err := budhttp.Load(log, server.URL)
 	is.NoErr(err)
 	res, err := client.Render("/posts/:post_id/comments/:id/edit", map[string]interface{}{
 		"_string": "marshmallow",
@@ -111,9 +113,29 @@ func TestRenderNested(t *testing.T) {
 	is.In(res.Body, `<h1>Hello, marshmallow!</h1>`)
 }
 
+func TestRender404(t *testing.T) {
+	t.SkipNow()
+	ctx := context.Background()
+	is := is.New(t)
+	log := testlog.New()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	is.NoErr(td.Write(ctx))
+	ps := pubsub.New()
+	server, err := loadServer(ps, dir)
+	is.NoErr(err)
+	defer server.Close()
+	client, err := budhttp.Load(log, server.URL)
+	is.NoErr(err)
+	res, err := client.Render("/", map[string]interface{}{})
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.Equal(res, nil)
+}
+
 func TestOpen(t *testing.T) {
 	ctx := context.Background()
 	is := is.New(t)
+	log := testlog.New()
 	dir := t.TempDir()
 	td := testdir.New(dir)
 	td.Files["view/index.svelte"] = `
@@ -123,12 +145,13 @@ func TestOpen(t *testing.T) {
 		<h1>Hello, {_string}!</h1>
 	`
 	td.NodeModules["svelte"] = versions.Svelte
+	td.NodeModules["livebud"] = "*"
 	is.NoErr(td.Write(ctx))
 	bus := pubsub.New()
 	server, err := loadServer(bus, dir)
 	is.NoErr(err)
 	defer server.Close()
-	client, err := budhttp.Load(server.URL)
+	client, err := budhttp.Load(log, server.URL)
 	is.NoErr(err)
 
 	// Check the entrypoint
@@ -175,9 +198,28 @@ func TestOpen(t *testing.T) {
 	is.Equal(stat.Sys(), nil)
 }
 
+func TestOpen404(t *testing.T) {
+	ctx := context.Background()
+	is := is.New(t)
+	log := testlog.New()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	is.NoErr(td.Write(ctx))
+	bus := pubsub.New()
+	server, err := loadServer(bus, dir)
+	is.NoErr(err)
+	defer server.Close()
+	client, err := budhttp.Load(log, server.URL)
+	is.NoErr(err)
+	file, err := client.Open("public/favicon.ico")
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.Equal(file, nil)
+}
+
 func TestEvents(t *testing.T) {
 	ctx := context.Background()
 	is := is.New(t)
+	log := testlog.New()
 	dir := t.TempDir()
 	td := testdir.New(dir)
 	is.NoErr(td.Write(ctx))
@@ -185,7 +227,7 @@ func TestEvents(t *testing.T) {
 	server, err := loadServer(ps, dir)
 	is.NoErr(err)
 	defer server.Close()
-	client, err := budhttp.Load(server.URL)
+	client, err := budhttp.Load(log, server.URL)
 	is.NoErr(err)
 	sub := ps.Subscribe("ready")
 	defer sub.Close()

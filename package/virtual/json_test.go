@@ -19,9 +19,8 @@ func TestFile(t *testing.T) {
 		Data:    []byte("c"),
 		ModTime: now,
 		Mode:    0644,
-		Sys:     nil,
 	}
-	result, err := virtual.MarshalJSON(expect)
+	result, err := virtual.MarshalJSON(virtual.New(expect))
 	is.NoErr(err)
 	actual, err := virtual.UnmarshalJSON(result)
 	is.NoErr(err)
@@ -44,25 +43,22 @@ func TestDir(t *testing.T) {
 		Path:    "a/b.txt",
 		ModTime: now,
 		Mode:    0755,
-		Sys:     nil,
 		Entries: []fs.DirEntry{
 			&virtual.DirEntry{
 				Path:    "c.txt",
 				ModTime: now,
 				Mode:    0644,
-				Sys:     nil,
 				Size:    10,
 			},
 			&virtual.DirEntry{
 				Path:    "d.txt",
 				ModTime: now,
 				Mode:    0644,
-				Sys:     nil,
 				Size:    20,
 			},
 		},
 	}
-	result, err := virtual.MarshalJSON(expect)
+	result, err := virtual.MarshalJSON(virtual.New(expect))
 	is.NoErr(err)
 	actual, err := virtual.UnmarshalJSON(result)
 	is.NoErr(err)

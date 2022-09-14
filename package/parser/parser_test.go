@@ -2,12 +2,14 @@ package parser_test
 
 import (
 	"context"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/livebud/bud/package/budfs/genfs"
 	"github.com/livebud/bud/package/budfs/mergefs"
+	"github.com/livebud/bud/package/budfs/treefs"
+	"github.com/livebud/bud/package/virtual"
 
 	"github.com/livebud/bud/package/modcache"
 	"github.com/livebud/bud/package/parser"
@@ -194,16 +196,19 @@ func TestGenerate(t *testing.T) {
 	td := testdir.New(dir)
 	td.Modules["github.com/livebud/bud-test-plugin"] = `v0.0.8`
 	is.NoErr(td.Write(ctx))
-	gen := genfs.New()
-	merged := mergefs.Merge(os.DirFS(dir), gen)
-	gen.GenerateFile("hello/hello.go", func(file *genfs.File) error {
-		file.Data = []byte(`
+	tree := treefs.New(".")
+	merged := mergefs.Merge(os.DirFS(dir), tree)
+	tree.FileGenerator("hello/hello.go", treefs.Generate(func(target string) (fs.File, error) {
+		data := []byte(`
 			package hello
 			import plugin "github.com/livebud/bud-test-plugin"
 			type A struct { plugin.Answer }
 		`)
-		return nil
-	})
+		return virtual.New(&virtual.File{
+			Path: target,
+			Data: data,
+		}), nil
+	}))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
 	p := parser.New(merged, module)

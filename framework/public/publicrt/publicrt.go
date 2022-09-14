@@ -8,6 +8,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/livebud/bud/package/budhttp"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/middleware"
 	"github.com/livebud/bud/package/pluginmod"
@@ -48,12 +49,8 @@ type Server interface {
 	Serve(fsys fs.FS) middleware.Middleware
 }
 
-func Live(module *gomod.Module) (*LiveServer, error) {
-	fsys, err := LoadFS(module)
-	if err != nil {
-		return nil, err
-	}
-	return &LiveServer{fsys}, nil
+func Live(client budhttp.Client) (*LiveServer, error) {
+	return &LiveServer{client}, nil
 }
 
 type LiveServer struct {
@@ -85,7 +82,7 @@ func serve(fsys fs.FS, serveContent func(w http.ResponseWriter, req *http.Reques
 				next.ServeHTTP(w, r)
 				return
 			}
-			file, err := hfs.Open(urlPath)
+			file, err := hfs.Open(path.Join("public", urlPath))
 			if err != nil {
 				if errors.Is(err, fs.ErrNotExist) {
 					next.ServeHTTP(w, r)

@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
-	"strings"
 
 	"github.com/livebud/bud/package/virtual"
 
@@ -33,7 +32,7 @@ func New(fsys fs.FS, bus pubsub.Client, log log.Interface, vm js.VM) *Server {
 	}
 	// Routes that are proxied to from the browser through the app to bud
 	router.Post("/bud/view/:route*", http.HandlerFunc(server.render))
-	router.Get("/bud/:path*", http.HandlerFunc(server.open))
+	router.Get("/open/:path*", http.HandlerFunc(server.open))
 	// Routes that are directly requested by the browser to
 	router.Get("/bud/hot/:page*", hot.New(log, bus))
 	// Private routes between the app and bud
@@ -67,6 +66,10 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request) {
 	}
 	script, err := fs.ReadFile(s.fsys, "bud/view/_ssr.js")
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -81,8 +84,8 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) open(w http.ResponseWriter, r *http.Request) {
-	s.log.Debug("devserver: opening", "file", r.URL.Path)
-	path := strings.TrimPrefix(r.URL.Path, "/")
+	path := r.URL.Query().Get("path")
+	s.log.Debug("devserver: opening", "file", path)
 	file, err := s.fsys.Open(path)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {

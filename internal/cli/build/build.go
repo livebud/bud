@@ -46,7 +46,7 @@ func (c *Command) Run(ctx context.Context) error {
 		return err
 	}
 	defer bfs.Close()
-	if err := bfs.Sync("bud/internal"); err != nil {
+	if err := bfs.Sync(module, "bud/internal"); err != nil {
 		return err
 	}
 	builder := gobuild.New(module)

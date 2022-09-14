@@ -3,14 +3,13 @@ package toolbs
 import (
 	"context"
 
+	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/web/webrt"
+	"github.com/livebud/bud/internal/cli/bud"
+	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/package/budhttp/budsvr"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/socket"
-
-	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/internal/cli/bud"
-	"github.com/livebud/bud/internal/pubsub"
 )
 
 func New(bud *bud.Command, in *bud.Input) *Command {
@@ -41,7 +40,7 @@ func (c *Command) Run(ctx context.Context) error {
 		return err
 	}
 	// Load the file server
-	servefs, err := bud.FileServer(log, module, vm, c.Flag)
+	servefs, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
 	if err != nil {
 		return err
 	}

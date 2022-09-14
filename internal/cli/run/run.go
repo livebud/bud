@@ -21,6 +21,7 @@ import (
 	"github.com/livebud/bud/internal/versions"
 	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/budhttp/budsvr"
+	"github.com/livebud/bud/package/gomod"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/socket"
@@ -96,16 +97,6 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		return err
 	}
 	defer bfs.Close()
-	// Load V8
-	vm, err := v8.Load()
-	if err != nil {
-		return err
-	}
-	// Load the file server
-	servefs, err := bud.FileServer(log, module, vm, c.Flag)
-	if err != nil {
-		return err
-	}
 	// Create a bus if we don't have one yet
 	bus := c.in.Bus
 	if bus == nil {
@@ -115,7 +106,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	budServer := &budServer{
 		budln: budln,
 		bus:   bus,
-		fsys:  servefs,
+		fsys:  bfs,
 		log:   log,
 	}
 	// Setup the starter command
@@ -143,6 +134,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		bus:      bus,
 		bfs:      bfs,
 		log:      log,
+		module:   module,
 		starter:  starter,
 	}
 	// Start the servers
@@ -185,13 +177,14 @@ type appServer struct {
 	bus      pubsub.Client
 	bfs      *budfs.FileSystem
 	log      log.Interface
+	module   *gomod.Module
 	starter  *exe.Command
 }
 
 // Run the app server
 func (a *appServer) Run(ctx context.Context) error {
 	// Generate the app
-	if err := a.bfs.Sync("bud/internal"); err != nil {
+	if err := a.bfs.Sync(a.module, "bud/internal"); err != nil {
 		a.bus.Publish("app:error", []byte(err.Error()))
 		a.log.Debug("run: published event", "event", "app:error")
 		return err
@@ -211,8 +204,16 @@ func (a *appServer) Run(ctx context.Context) error {
 	}
 	// Watch for changes
 	return watcher.Watch(ctx, a.dir, catchError(a.prompter, func(events []watcher.Event) error {
-		a.log.Debug("run: file changes", "paths", events)
+		// Trigger reloading
 		a.prompter.Reloading(events)
+		// Inform the bud filesystem of the changes
+		changes := make([]string, len(events))
+		for i, event := range events {
+			a.log.Debug("run: file changed", "path", event.Path)
+			changes[i] = event.Path
+		}
+		a.bfs.Change(changes...)
+		// Check if we can incrementally reload
 		if canIncrementallyReload(events) {
 			a.log.Debug("run: incrementally reloading")
 			// Publish the frontend:update event
@@ -232,7 +233,7 @@ func (a *appServer) Run(ctx context.Context) error {
 		a.bus.Publish("backend:update", nil)
 		a.log.Debug("run: published event", "event", "backend:update")
 		// Generate the app
-		if err := a.bfs.Sync("bud/internal"); err != nil {
+		if err := a.bfs.Sync(a.module, "bud/internal"); err != nil {
 			return err
 		}
 		// Build the app

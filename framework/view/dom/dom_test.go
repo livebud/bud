@@ -2,13 +2,15 @@ package dom_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/livebud/bud/package/budfs"
-	"github.com/livebud/bud/package/virtual/vcache"
 
 	"github.com/livebud/bud/package/log/testlog"
 
@@ -38,11 +40,11 @@ func TestServeFile(t *testing.T) {
 	td := testdir.New(dir)
 	td.Files["view/index.svelte"] = `<h1>index</h1>`
 	td.Files["view/about/index.svelte"] = `<h2>about</h2>`
+	td.NodeModules["svelte"] = versions.Svelte
 	is.NoErr(td.Write(ctx))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	cache := vcache.New()
-	bfs := budfs.New(cache, module, log)
+	bfs := budfs.New(module, log)
 	bfs.FileServer("bud/view", dom.New(module, transformer.DOM))
 	// Read the wrapped version of index.svelte with node_modules rewritten
 	code, err := fs.ReadFile(bfs, "bud/view/_index.svelte.js")
@@ -98,8 +100,7 @@ func TestNodeModules(t *testing.T) {
 	is.NoErr(td.Write(ctx))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	cache := vcache.New()
-	bfs := budfs.New(cache, module, log)
+	bfs := budfs.New(module, log)
 	bfs.FileServer("bud/node_modules", dom.NodeModules(module))
 	// Read the re-written node_modules
 	code, err := fs.ReadFile(bfs, "bud/node_modules/svelte/internal")
@@ -126,8 +127,7 @@ func TestGenerateDir(t *testing.T) {
 	transformer := transformrt.MustLoad(svelte.NewTransformable(svelteCompiler))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	cache := vcache.New()
-	bfs := budfs.New(cache, module, log)
+	bfs := budfs.New(module, log)
 	bfs.DirGenerator("bud/view", dom.New(module, transformer.DOM))
 	des, err := fs.ReadDir(bfs, "bud/view")
 	is.NoErr(err)
@@ -171,10 +171,86 @@ func TestGenerateDir(t *testing.T) {
 	is.True(strings.Contains(string(code), `"bud_props"`))
 }
 
-func TestImportLocal(t *testing.T) {
-	t.SkipNow()
-}
+func TestUpdateFile(t *testing.T) {
+	is := is.New(t)
+	log := testlog.New()
+	ctx := context.Background()
+	dir := t.TempDir()
+	vm, err := v8.Load()
+	is.NoErr(err)
+	svelteCompiler, err := svelte.Load(vm)
+	is.NoErr(err)
+	transformer := transformrt.MustLoad(
+		svelte.NewTransformable(svelteCompiler),
+	)
+	td := testdir.New(dir)
+	td.NodeModules["svelte"] = versions.Svelte
+	td.Files["view/Story.svelte"] = `<h2>Story</h2>`
+	td.Files["view/index.svelte"] = `
+		<script>
+			import Story from "./Story.svelte";
+		</script>
+		<h1>home</h1>
+		<Story />
+	`
+	is.NoErr(td.Write(ctx))
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	bfs := budfs.New(module, log)
+	bfs.FileServer("bud/view", dom.New(module, transformer.DOM))
+	// check entry
+	code, err := fs.ReadFile(bfs, "bud/view/_index.svelte.js")
+	is.NoErr(err)
+	is.True(strings.Contains(string(code), `"home"`), "missing home")
+	is.True(strings.Contains(string(code), `"Story"`), "missing Story")
+	// check component
+	code, err = fs.ReadFile(bfs, "bud/view/index.svelte")
+	is.NoErr(err)
+	is.True(strings.Contains(string(code), `"home"`), "missing home")
+	is.True(strings.Contains(string(code), `"Story"`), "missing Story")
+	// Change view/Story.svelte and view/index.svelte
+	os.WriteFile(filepath.Join(dir, "view/Story.svelte"), []byte(`<h2>Stories</h2>`), 0644)
+	os.WriteFile(filepath.Join(dir, "view/index.svelte"), []byte(`
+		<script>
+			import Story from "./Story.svelte";
+		</script>
+		<h1>homies</h1>
+		<Story />
+	`), 0644)
+	// check entry (cached)
+	code, err = fs.ReadFile(bfs, "bud/view/_index.svelte.js")
+	is.NoErr(err)
+	is.True(strings.Contains(string(code), `"home"`), "missing home")
+	is.True(strings.Contains(string(code), `"Story"`), "missing Story")
+	// check component (cached)
+	code, err = fs.ReadFile(bfs, "bud/view/index.svelte")
+	is.NoErr(err)
+	is.True(strings.Contains(string(code), `"home"`), "missing home")
+	is.True(strings.Contains(string(code), `"Story"`), "missing Story")
+	// Mark view/Story.svelte and view/index.svelte as changed
+	bfs.Change("view/index.svelte", "view/Story.svelte")
+	// check entry (uncached)
+	code, err = fs.ReadFile(bfs, "bud/view/_index.svelte.js")
+	is.NoErr(err)
+	is.True(strings.Contains(string(code), `"homies"`), "missing homies")
+	is.True(strings.Contains(string(code), `"Stories"`), "missing Stories")
+	// check component (uncached)
+	code, err = fs.ReadFile(bfs, "bud/view/index.svelte")
+	is.NoErr(err)
+	is.True(strings.Contains(string(code), `"homies"`), "missing homies")
+	is.True(strings.Contains(string(code), `"Stories"`), "missing Stories")
 
-func TestImportNodeModule(t *testing.T) {
-	t.SkipNow()
+	// Remove a file
+	is.NoErr(os.Remove(filepath.Join(dir, "view/index.svelte")))
+	// check page (cached)
+	code, err = fs.ReadFile(bfs, "bud/view/index.svelte")
+	is.NoErr(err)
+	is.True(strings.Contains(string(code), `"homies"`), "missing homies")
+	is.True(strings.Contains(string(code), `"Stories"`), "missing Stories")
+	// Mark view/index.svelte  as changed
+	bfs.Change("view/index.svelte")
+	// check page (uncached)
+	code, err = fs.ReadFile(bfs, "bud/view/index.svelte")
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.Equal(code, nil)
 }

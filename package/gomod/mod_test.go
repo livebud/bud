@@ -244,13 +244,13 @@ func TestModuleFindFromFS(t *testing.T) {
 	is.Equal(module1.Directory("imagine"), absDir)
 }
 
-func TestDirFS(t *testing.T) {
+func TestSubFS(t *testing.T) {
 	is := is.New(t)
 	wd, err := os.Getwd()
 	is.NoErr(err)
 	module, err := gomod.Find(wd)
 	is.NoErr(err)
-	fsys := module.DirFS("internal")
+	fsys, err := fs.Sub(module, "internal")
 	is.NoErr(err)
 	des, err := fs.ReadDir(fsys, ".")
 	is.NoErr(err)

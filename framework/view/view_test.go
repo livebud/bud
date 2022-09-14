@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/lithammer/dedent"
 	"github.com/livebud/bud/internal/cli/testcli"
@@ -64,6 +65,26 @@ func TestHello(t *testing.T) {
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), "<h1>hi</h1>")
+	// Change svelte file
+	indexFile = filepath.Join(dir, "view/index.svelte")
+	is.NoErr(os.MkdirAll(filepath.Dir(indexFile), 0755))
+	is.NoErr(os.WriteFile(indexFile, []byte(`<h1>hola</h1>`), 0644))
+	// Wait for the app to be ready again
+	app.Ready(ctx)
+	// Check that we received a hot reload event
+	event, err = hot.Next(ctx)
+	is.NoErr(err)
+	is.In(string(event.Data), `{"scripts":["/bud/view/index.svelte?ts=`)
+	// Should change
+	res, err = app.Get("/")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Transfer-Encoding: chunked
+		Content-Type: text/html
+	`))
+	is.In(res.Body().String(), "<h1>hola</h1>")
+	// Change svelte file one more time
 	is.NoErr(app.Close())
 }
 
@@ -289,6 +310,8 @@ func TestRenameView(t *testing.T) {
 		filepath.Join(dir, "view/_show.svele"),
 	))
 	// Wait for the app to be ready again
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
 	app.Ready(ctx)
 	// Check that we received a hot reload event
 	event, err := hot.Next(ctx)

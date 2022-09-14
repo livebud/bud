@@ -13,7 +13,7 @@ import (
 )
 
 func Load(fsys fs.FS, injector *di.Injector, module *gomod.Module, flag *framework.Flag) (*State, error) {
-	if err := vfs.Exist(fsys, "bud/internal/app/web"); err != nil {
+	if err := vfs.Exist(fsys, "bud/internal/app/web/web.go"); err != nil {
 		return nil, err
 	}
 	return (&loader{

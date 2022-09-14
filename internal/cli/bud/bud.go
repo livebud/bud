@@ -25,7 +25,6 @@ import (
 	"github.com/livebud/bud/package/commander"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
-	"github.com/livebud/bud/package/js"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/log/console"
@@ -33,7 +32,6 @@ import (
 	"github.com/livebud/bud/package/parser"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/package/svelte"
-	"github.com/livebud/bud/package/virtual/vcache"
 )
 
 // Input contains the configuration that gets passed into the commands
@@ -121,8 +119,7 @@ func Log(stderr io.Writer, logFilter string) (log.Interface, error) {
 }
 
 func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, flag *framework.Flag, in *Input) (*budfs.FileSystem, error) {
-	cache := vcache.New()
-	bfs := budfs.New(cache, module, log)
+	bfs := budfs.New(module, log)
 	parser := parser.New(bfs, module)
 	injector := di.New(bfs, log, module, parser)
 	vm, err := v8.Load()
@@ -141,21 +138,7 @@ func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, fl
 	bfs.FileGenerator("bud/internal/app/web/web.go", web.New(module, parser))
 	bfs.FileGenerator("bud/internal/app/controller/controller.go", controller.New(injector, module, parser))
 	bfs.FileGenerator("bud/internal/app/view/view.go", view.New(module, transforms, flag))
-	bfs.DirGenerator("bud/internal/app/public", public.New(flag, module))
-	return bfs, nil
-}
-
-func FileServer(log log.Interface, module *gomod.Module, vm js.VM, flag *framework.Flag) (*budfs.FileSystem, error) {
-	cache := vcache.Discard
-	bfs := budfs.New(cache, module, log)
-	svelteCompiler, err := svelte.Load(vm)
-	if err != nil {
-		return nil, err
-	}
-	transforms, err := transformrt.Load(svelte.NewTransformable(svelteCompiler))
-	if err != nil {
-		return nil, err
-	}
+	bfs.FileGenerator("bud/internal/app/public/public.go", public.New(flag, module))
 	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
 	bfs.FileServer("bud/view", dom.New(module, transforms.DOM))
 	bfs.FileServer("bud/node_modules", dom.NodeModules(module))

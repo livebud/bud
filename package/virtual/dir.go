@@ -3,6 +3,7 @@ package virtual
 import (
 	"io"
 	"io/fs"
+	"path"
 	"time"
 )
 
@@ -10,33 +11,61 @@ type Dir struct {
 	Path    string
 	Mode    fs.FileMode
 	ModTime time.Time
-	Sys     interface{}
 	Entries []fs.DirEntry
-	offset  int
 }
 
-var _ fs.ReadDirFile = (*Dir)(nil)
-var _ fs.File = (*Dir)(nil)
+var _ fs.DirEntry = (*Dir)(nil)
 var _ Entry = (*Dir)(nil)
 
-func (d *Dir) Close() error {
-	return nil
+// Name of the entry. Implements the fs.DirEntry interface.
+func (d *Dir) Name() string {
+	return path.Base(d.Path)
 }
 
-func (d *Dir) Stat() (fs.FileInfo, error) {
+// Returns true if entry is a directory. Implements the fs.DirEntry interface.
+func (d *Dir) IsDir() bool {
+	return d.Mode.IsDir()
+}
+
+// Returns the type of entry. Implements the fs.DirEntry interface.
+func (d *Dir) Type() fs.FileMode {
+	return d.Mode.Type()
+}
+
+// Returns the file info. Implements the fs.DirEntry interface.
+func (d *Dir) Info() (fs.FileInfo, error) {
 	return &fileInfo{
 		path:    d.Path,
 		mode:    d.Mode | fs.ModeDir,
 		modTime: d.ModTime,
-		sys:     d.Sys,
 	}, nil
 }
 
-func (d *Dir) Read(p []byte) (int, error) {
+func (d *Dir) open() fs.File {
+	return &entryDir{d, 0}
+}
+
+type entryDir struct {
+	*Dir
+	offset int
+}
+
+var _ fs.File = (*entryDir)(nil)
+var _ fs.ReadDirFile = (*entryDir)(nil)
+
+func (d *entryDir) Close() error {
+	return nil
+}
+
+func (d *entryDir) Stat() (fs.FileInfo, error) {
+	return d.Info()
+}
+
+func (d *entryDir) Read(p []byte) (int, error) {
 	return 0, &fs.PathError{Op: "read", Path: d.Path, Err: fs.ErrInvalid}
 }
 
-func (d *Dir) ReadDir(count int) ([]fs.DirEntry, error) {
+func (d *entryDir) ReadDir(count int) ([]fs.DirEntry, error) {
 	n := len(d.Entries) - d.offset
 	if count > 0 && n > count {
 		n = count
@@ -50,15 +79,4 @@ func (d *Dir) ReadDir(count int) ([]fs.DirEntry, error) {
 	}
 	d.offset += n
 	return list, nil
-}
-
-func (d *Dir) Open() fs.File {
-	return &Dir{
-		Path:    d.Path,
-		Mode:    d.Mode,
-		ModTime: d.ModTime,
-		Sys:     d.Sys,
-		Entries: d.Entries,
-		offset:  0, // reset offset
-	}
 }
