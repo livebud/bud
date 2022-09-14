@@ -86,12 +86,15 @@ func (c *Compiler) Compile(ctx context.Context, fsys fs.FS) ([]byte, error) {
 	if len(result.OutputFiles) != 1 {
 		return nil, fmt.Errorf("expected exactly 1 output file but got %d", len(result.OutputFiles))
 	}
-	// if err := esmeta.Link2(dfs, result.Metafile); err != nil {
+	// metafile, err := esmeta.Parse(result.Metafile)
+	// if err != nil {
 	// 	return nil, err
 	// }
-	// TODO: remove WriteEvent and externalize actual file contents so we only
-	// need to watch directory changes.
-	// file.Watch("bud/view/**/*.{svelte,jsx}", gen.CreateEvent|gen.RemoveEvent|gen.WriteEvent)
+	// for _, dep := range metafile.Dependencies() {
+	// 	if _, err := fs.Stat(fsys, dep); err != nil {
+	// 		return nil, err
+	// 	}
+	// }
 	return result.OutputFiles[0].Contents, nil
 }
 
@@ -111,7 +114,7 @@ var ssrTemplate string
 var ssrGenerator = gotemplate.MustParse("ssr.gotext", ssrTemplate)
 
 // Generate the bud/view/_ssr.js file
-func ssrPlugin(osfs fs.FS, dir string) esbuild.Plugin {
+func ssrPlugin(fsys fs.FS, dir string) esbuild.Plugin {
 	return esbuild.Plugin{
 		Name: "ssr",
 		Setup: func(epb esbuild.PluginBuild) {
@@ -121,7 +124,7 @@ func ssrPlugin(osfs fs.FS, dir string) esbuild.Plugin {
 				return result, nil
 			})
 			epb.OnLoad(esbuild.OnLoadOptions{Filter: `.*`, Namespace: "ssr"}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
-				views, err := entrypoint.List(osfs, "view")
+				views, err := entrypoint.List(fsys, "view")
 				if err != nil {
 					return result, err
 				}

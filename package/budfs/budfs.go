@@ -34,7 +34,7 @@ func New(fsys fs.FS, log log.Interface) *FileSystem {
 		fsys:   merged,
 		node:   node,
 		log:    log,
-		lmap:   linkmap.Map{},
+		lmap:   linkmap.New(),
 	}
 }
 
@@ -43,7 +43,7 @@ type FileSystem struct {
 	closer *once.Closer
 	fsys   fs.FS
 	node   *treefs.Node
-	lmap   linkmap.Map
+	lmap   *linkmap.Map
 	log    log.Interface
 }
 
@@ -315,11 +315,12 @@ func (f *FileSystem) Change(paths ...string) {
 			f.log.Debug("budfs: cache", "delete", path)
 			f.cache.Delete(path)
 		}
-		for genPath, fns := range f.lmap {
+		f.lmap.Range(func(genPath string, fns *linkmap.List) bool {
 			if f.cache.Has(genPath) && fns.Check(path) {
 				paths = append(paths, genPath)
 			}
-		}
+			return true
+		})
 	}
 }
 

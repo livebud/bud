@@ -28,12 +28,10 @@ func (f *cachedfs) Open(name string) (fs.File, error) {
 		return virtual.New(entry), nil
 	}
 	f.log.Debug("vcache: cache miss", "name", name)
-	// fmt.Println("opening", name)
 	file, err := f.fsys.Open(name)
 	if err != nil {
 		return nil, err
 	}
-	// fmt.Println("opened")
 	entry, err = f.toEntry(name, file)
 	if err != nil {
 		return nil, err

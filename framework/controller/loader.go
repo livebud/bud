@@ -29,6 +29,11 @@ func Load(fsys fs.FS, injector *di.Injector, module *gomod.Module, parser *parse
 	} else if len(exist) == 0 {
 		return nil, fs.ErrNotExist
 	}
+	// TODO clean this up
+	_, err = fs.Glob(fsys, "view/**")
+	if err != nil {
+		return nil, err
+	}
 	loader := &loader{
 		fsys:      fsys,
 		providers: newProviderSet(),

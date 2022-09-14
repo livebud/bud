@@ -33,6 +33,12 @@ type loader struct {
 // Load the command state
 func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
+	files, err := fs.Glob(l.fsys, "{public/**,view/**}")
+	if err != nil {
+		return nil, err
+	} else if len(files) == 0 {
+		return nil, fs.ErrNotExist
+	}
 	state = new(State)
 	state.Flag = l.flag
 	// Default imports
@@ -41,7 +47,7 @@ func (l *loader) Load() (state *State, err error) {
 	l.imports.AddNamed("publicrt", "github.com/livebud/bud/framework/public/publicrt")
 	// Load embeds
 	if l.flag.Embed {
-		state.Embeds = l.loadEmbedsFrom(".", ".")
+		state.Embeds = l.loadEmbedsFrom("public", ".")
 	}
 	// Load default public files. Out of convenience, these defaults are embedded
 	// regardless of flag.Embed
@@ -73,7 +79,7 @@ func (l *loader) loadEmbedsFrom(root, dir string) (files []*embed.File) {
 			l.Bail(err)
 		}
 		files = append(files, &embed.File{
-			Path: filePath,
+			Path: fullPath,
 			Data: data,
 		})
 	}
@@ -82,12 +88,12 @@ func (l *loader) loadEmbedsFrom(root, dir string) (files []*embed.File) {
 
 func (l *loader) loadDefaults() (files []*embed.File) {
 	// Add a public favicon if it doesn't exist
-	if err := vfs.Exist(l.fsys, "favicon.ico"); err != nil {
+	if err := vfs.Exist(l.fsys, "public/favicon.ico"); err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			l.Bail(err)
 		}
 		files = append(files, &embed.File{
-			Path: "favicon.ico",
+			Path: "public/favicon.ico",
 			Data: embedded.Favicon(),
 		})
 	}

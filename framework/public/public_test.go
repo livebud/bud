@@ -76,7 +76,7 @@ func TestPublic(t *testing.T) {
 	// /favicon.ico
 	res, err := app.Get("/favicon.ico")
 	is.NoErr(err)
-	is.Equal(200, res.Status())
+	is.Equal(200, res.Status(), "unable to user-defined /favicon.ico")
 	is.Equal(res.Body().Bytes(), favicon)
 	// Ubuntu CI reports a different MIME type than OSX
 	is.In(res.Header("Content-Type"), "image/")
@@ -103,6 +103,7 @@ func TestPublic(t *testing.T) {
 }
 
 func TestPlugin(t *testing.T) {
+	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
@@ -115,7 +116,7 @@ func TestPlugin(t *testing.T) {
 	defer app.Close()
 	res, err := app.Get("/tailwind/preflight.css")
 	is.NoErr(err)
-	is.Equal(200, res.Status())
+	is.Equal(200, res.Status(), "unable to get tailwind plugin")
 	is.Equal(res.Body().String(), `/* tailwind */`)
 }
 

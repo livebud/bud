@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/lithammer/dedent"
 	"github.com/livebud/bud/internal/cli/testcli"
@@ -289,6 +290,8 @@ func TestRenameView(t *testing.T) {
 		filepath.Join(dir, "view/_show.svele"),
 	))
 	// Wait for the app to be ready again
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 	app.Ready(ctx)
 	// Check that we received a hot reload event
 	event, err := hot.Next(ctx)

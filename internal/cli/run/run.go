@@ -98,15 +98,15 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	}
 	defer bfs.Close()
 	// Load V8
-	vm, err := v8.Load()
-	if err != nil {
-		return err
-	}
+	// vm, err := v8.Load()
+	// if err != nil {
+	// 	return err
+	// }
 	// Load the file server
-	servefs, err := bud.FileServer(log, module, vm, c.Flag)
-	if err != nil {
-		return err
-	}
+	// servefs, err := bud.FileServer(log, module, vm, c.Flag)
+	// if err != nil {
+	// 	return err
+	// }
 	// Create a bus if we don't have one yet
 	bus := c.in.Bus
 	if bus == nil {
@@ -116,7 +116,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	budServer := &budServer{
 		budln: budln,
 		bus:   bus,
-		fsys:  servefs,
+		fsys:  bfs,
 		log:   log,
 	}
 	// Setup the starter command
@@ -214,8 +214,16 @@ func (a *appServer) Run(ctx context.Context) error {
 	}
 	// Watch for changes
 	return watcher.Watch(ctx, a.dir, catchError(a.prompter, func(events []watcher.Event) error {
-		a.log.Debug("run: file changes", "paths", events)
+		// Trigger reloading
 		a.prompter.Reloading(events)
+		// Inform the bud filesystem of the changes
+		changes := make([]string, len(events))
+		for i, event := range events {
+			a.log.Debug("run: file changed", "path", event.Path)
+			changes[i] = event.Path
+		}
+		a.bfs.Change(changes...)
+		// Check if we can incrementally reload
 		if canIncrementallyReload(events) {
 			a.log.Debug("run: incrementally reloading")
 			// Publish the frontend:update event
