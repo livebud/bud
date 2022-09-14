@@ -290,7 +290,7 @@ func TestRenameView(t *testing.T) {
 		filepath.Join(dir, "view/_show.svele"),
 	))
 	// Wait for the app to be ready again
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	app.Ready(ctx)
 	// Check that we received a hot reload event

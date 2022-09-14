@@ -2028,7 +2028,7 @@ func TestControllerChange(t *testing.T) {
 		func (c *Controller) Index() string { return "/" }
 	`)), 0644))
 	// Wait for the app to be ready again
-	ctx, cancel := context.WithTimeout(ctx, 20*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	is.NoErr(app.Ready(ctx))
 	// Try again with the new file
