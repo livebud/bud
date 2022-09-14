@@ -25,14 +25,12 @@ func (f *fillerDir) Generate(target string) (fs.File, error) {
 	for _, child := range children {
 		de := &dirEntry{child}
 		// Stat to ensure the file exists before adding it as a directory entry
-		// fmt.Println("stating", de.Name())
 		if _, err := de.Info(); err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
 				continue
 			}
 			return nil, err
 		}
-		// fmt.Println("stated", de.Name())
 		entries = append(entries, de)
 	}
 	return virtual.New(&virtual.Dir{

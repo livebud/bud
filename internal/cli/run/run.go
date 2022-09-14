@@ -97,16 +97,6 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		return err
 	}
 	defer bfs.Close()
-	// Load V8
-	// vm, err := v8.Load()
-	// if err != nil {
-	// 	return err
-	// }
-	// Load the file server
-	// servefs, err := bud.FileServer(log, module, vm, c.Flag)
-	// if err != nil {
-	// 	return err
-	// }
 	// Create a bus if we don't have one yet
 	bus := c.in.Bus
 	if bus == nil {
