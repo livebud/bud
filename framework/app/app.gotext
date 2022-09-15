@@ -83,6 +83,7 @@ func (a *App) Run(ctx context.Context) error {
 		{{- if $.Provider.Variable "github.com/livebud/bud/package/log.Interface" }}log,{{ end }}
 	)
 	if err != nil {
+		budClient.Publish("app:error", []byte(err.Error()))
 		return err
 	}
 	// Inform bud that we're ready
