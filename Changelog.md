@@ -6,6 +6,10 @@ Get the latest release of Bud by running the following in your terminal:
 curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
 ```
 
+## v0.2.5
+
+- Implement filesystem caching (#281)
+
 ## v0.2.4
 
 - Partial support for auto-incrementing the port if already in use (#250)
