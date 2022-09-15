@@ -229,3 +229,51 @@ func TestGenerate(t *testing.T) {
 	err := fstest.TestFS(n, "bud/node_modules/runtime")
 	is.NoErr(err)
 }
+
+func TestRemove(t *testing.T) {
+	is := is.New(t)
+	n := treefs.New(".")
+	n.FileGenerator("a", ag)
+	bn := n.DirGenerator("b", bg)
+	cn := bn.DirGenerator("c", cg)
+	cn.FileGenerator("e", eg)
+	cn.FileGenerator("f", fg)
+	expect := `. mode=d---------
+├── a generator=a mode=----------
+└── b generator=b mode=d---------
+    └── c generator=c mode=d---------
+        ├── e generator=e mode=----------
+        └── f generator=f mode=----------
+`
+	is.Equal(n.Print(), expect)
+	n.Remove("b")
+	expect = `. mode=d---------
+└── a generator=a mode=----------
+`
+	is.Equal(n.Print(), expect)
+}
+
+func TestClear(t *testing.T) {
+	is := is.New(t)
+	n := treefs.New(".")
+	n.FileGenerator("a", ag)
+	bn := n.DirGenerator("b", bg)
+	cn := bn.DirGenerator("c", cg)
+	cn.FileGenerator("e", eg)
+	cn.FileGenerator("f", fg)
+	expect := `. mode=d---------
+├── a generator=a mode=----------
+└── b generator=b mode=d---------
+    └── c generator=c mode=d---------
+        ├── e generator=e mode=----------
+        └── f generator=f mode=----------
+`
+	is.Equal(n.Print(), expect)
+	cn.Clear()
+	expect = `. mode=d---------
+├── a generator=a mode=----------
+└── b generator=b mode=d---------
+    └── c generator=c mode=d---------
+`
+	is.Equal(n.Print(), expect)
+}

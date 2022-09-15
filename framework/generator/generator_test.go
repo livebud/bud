@@ -52,7 +52,6 @@ func TestGenerators(t *testing.T) {
 			"app.com/internal/markdoc"
 			"github.com/livebud/bud/package/budfs"
 			"io/fs"
-			"strings"
 		)
 		type Generator struct {
 			Markdoc *markdoc.Compiler
@@ -63,7 +62,7 @@ func TestGenerators(t *testing.T) {
 			return nil
 		}
 		func (g *Generator) compile(fsys budfs.FS, file *budfs.File) error {
-			data, err := fs.ReadFile(fsys, strings.TrimPrefix(file.Target(), "markdoc/"))
+			data, err := fs.ReadFile(fsys, file.Path())
 			if err != nil {
 				return err
 			}
@@ -177,11 +176,6 @@ func TestUpdateGenerator(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)
-	td.Files["controller/controller.go"] = `
-		package controller
-		type Controller struct {}
-		func (c *Controller) Index() (string, error) { return "/", nil }
-	`
 	td.Files["generator/tailwind/tailwind.go"] = `
 		package tailwind
 		import (
@@ -238,4 +232,56 @@ func TestUpdateGenerator(t *testing.T) {
 	data, err = os.ReadFile(td.Path("bud/internal/generator/tailwind/tailwind.css"))
 	is.NoErr(err)
 	is.Equal(string(data), "/** tailwind2 **/")
+}
+
+func TestRemoveGenerator(t *testing.T) {
+	t.SkipNow()
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["generator/tailwind/tailwind.go"] = `
+		package tailwind
+		import (
+			"github.com/livebud/bud/package/budfs"
+		)
+		type Generator struct {}
+		func (g *Generator) GenerateDir(fsys budfs.FS, dir *budfs.Dir) error {
+			dir.GenerateFile("tailwind.css", func(fsys budfs.FS, file *budfs.File) error {
+				file.Data = []byte("/** tailwind **/")
+				return nil
+			})
+			return nil
+		}
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	// Check for tailwind
+	data, err := os.ReadFile(td.Path("bud/internal/generator/tailwind/tailwind.css"))
+	is.NoErr(err)
+	is.Equal(string(data), "/** tailwind **/")
+	// Update generator
+	generatorFile := filepath.Join(dir, "generator", "tailwind", "tailwind.go")
+	is.NoErr(os.WriteFile(generatorFile, []byte(dedent.Dedent(`
+		package tailwind
+		import (
+			"github.com/livebud/bud/package/budfs"
+		)
+		type Generator struct {
+		}
+		func (g *Generator) GenerateDir(fsys budfs.FS, dir *budfs.Dir) error {
+			return nil
+		}
+	`)), 0644))
+	// Wait for the app to be ready again
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	is.NoErr(app.Ready(ctx))
+	// Check that tailwind has been updated
+	data, err = os.ReadFile(td.Path("bud/internal/generator/tailwind/tailwind.css"))
+	is.True(os.IsNotExist(err))
+	is.Equal(data, nil)
 }

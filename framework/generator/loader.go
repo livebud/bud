@@ -48,7 +48,7 @@ func (l *loader) Load(bfs budfs.FS) (state *State, err error) {
 		return nil, fs.ErrNotExist
 	}
 	state.Provider = l.loadProvider(state.Generators)
-	l.imports.AddStd("context", "os", "errors")
+	l.imports.AddStd("context", "os", "errors", "io/fs")
 	l.imports.AddNamed("gomod", "github.com/livebud/bud/package/gomod")
 	l.imports.AddNamed("log", "github.com/livebud/bud/package/log")
 	l.imports.AddNamed("filter", "github.com/livebud/bud/package/log/filter")

@@ -49,7 +49,8 @@ type FileSystem struct {
 
 type File struct {
 	Data   []byte
-	node   *treefs.Node
+	path   string
+	mode   fs.FileMode
 	target string
 }
 
@@ -58,15 +59,15 @@ func (f *File) Target() string {
 }
 
 func (f *File) Relative() string {
-	return relativePath(f.node.Path(), f.target)
+	return relativePath(f.path, f.target)
 }
 
 func (f *File) Path() string {
-	return f.node.Path()
+	return f.path
 }
 
 func (f *File) Mode() fs.FileMode {
-	return f.node.Mode()
+	return f.mode
 }
 
 type FS interface {
@@ -101,7 +102,7 @@ func (d *Dir) Mode() fs.FileMode {
 }
 
 func (d *Dir) GenerateFile(path string, fn func(fsys FS, file *File) error) {
-	fileg := &fileGenerator{d.fsys, fn, nil}
+	fileg := &fileGenerator{d.fsys, fn, nil, path}
 	fileg.node = d.node.FileGenerator(path, fileg)
 }
 
@@ -193,6 +194,7 @@ type fileGenerator struct {
 	fsys *FileSystem
 	fn   func(fsys FS, file *File) error
 	node *treefs.Node
+	path string
 }
 
 func (g *fileGenerator) Generate(target string) (fs.File, error) {
@@ -200,7 +202,7 @@ func (g *fileGenerator) Generate(target string) (fs.File, error) {
 		return virtual.New(entry), nil
 	}
 	fctx := &fileSystem{context.TODO(), g.fsys, g.fsys.lmap.Scope(target)}
-	file := &File{nil, g.node, target}
+	file := &File{nil, g.path, g.node.Mode(), target}
 	g.fsys.log.Debug("budfs: running file generator function", "target", target)
 	if err := g.fn(fctx, file); err != nil {
 		return nil, err
@@ -215,7 +217,7 @@ func (g *fileGenerator) Generate(target string) (fs.File, error) {
 }
 
 func (f *FileSystem) GenerateFile(path string, fn func(fsys FS, file *File) error) {
-	fileg := &fileGenerator{f, fn, nil}
+	fileg := &fileGenerator{f, fn, nil, path}
 	fileg.node = f.node.FileGenerator(path, fileg)
 }
 
@@ -233,6 +235,8 @@ func (g *dirGenerator) Generate(target string) (fs.File, error) {
 	if _, ok := g.fsys.cache.Get(g.node.Path()); ok {
 		return g.node.Open(target)
 	}
+	// Clear the subdirectories
+	g.node.Clear()
 	fctx := &fileSystem{context.TODO(), g.fsys, g.fsys.lmap.Scope(target)}
 	dir := &Dir{g.fsys, g.node, target}
 	g.fsys.log.Debug("budfs: running dir generator function", "path", g.node.Path(), "target", target)
@@ -260,6 +264,7 @@ type fileServer struct {
 	fsys *FileSystem
 	fn   func(fsys FS, file *File) error
 	node *treefs.Node
+	path string
 }
 
 func (g *fileServer) Generate(target string) (fs.File, error) {
@@ -277,7 +282,7 @@ func (g *fileServer) Generate(target string) (fs.File, error) {
 	fctx := &fileSystem{context.TODO(), g.fsys, g.fsys.lmap.Scope(target)}
 	// File differs slightly than others because g.node.Path() is the directory
 	// path, but we want the target path for serving files.
-	file := &File{nil, g.node, target}
+	file := &File{nil, g.path, g.node.Mode(), target}
 	g.fsys.log.Debug("budfs: running file server function", "path", g.node.Path(), "target", target)
 	if err := g.fn(fctx, file); err != nil {
 		return nil, err
@@ -292,7 +297,7 @@ func (g *fileServer) Generate(target string) (fs.File, error) {
 }
 
 func (f *FileSystem) ServeFile(dir string, fn func(fsys FS, file *File) error) {
-	fileg := &fileServer{f, fn, nil}
+	fileg := &fileServer{f, fn, nil, dir}
 	fileg.node = f.node.DirGenerator(dir, fileg)
 }
 
