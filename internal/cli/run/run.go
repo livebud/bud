@@ -31,9 +31,14 @@ import (
 // New command for bud run.
 func New(bud *bud.Command, in *bud.Input) *Command {
 	return &Command{
-		bud:  bud,
-		in:   in,
-		Flag: new(framework.Flag),
+		bud: bud,
+		in:  in,
+		Flag: &framework.Flag{
+			Env:    in.Env,
+			Stderr: in.Stderr,
+			Stdin:  in.Stdin,
+			Stdout: in.Stdout,
+		},
 	}
 }
 
@@ -92,7 +97,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		log.Debug("run: bud server is listening", "url", "http://"+budln.Addr().String())
 	}
 	// Load the generator filesystem
-	bfs, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
+	bfs, err := bud.FileSystem(ctx, log, module, c.Flag)
 	if err != nil {
 		return err
 	}
@@ -115,7 +120,8 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		Stdout: c.in.Stdout,
 		Stderr: c.in.Stderr,
 		Dir:    module.Directory(),
-		Env: append(c.in.Env,
+		Env: append(
+			append([]string{}, c.in.Env...),
 			"BUD_LISTEN="+budln.Addr().String(),
 		),
 	}

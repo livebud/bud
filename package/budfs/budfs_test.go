@@ -705,43 +705,6 @@ func TestDirUnevenMerge(t *testing.T) {
 	is.Equal(string(code), "package controller")
 }
 
-func TestDirMerge(t *testing.T) {
-	is := is.New(t)
-	fsys := virtual.Map{}
-	log := testlog.New()
-	bfs := budfs.New(fsys, log)
-	bfs.GenerateDir("bud/view", func(fsys budfs.FS, dir *budfs.Dir) error {
-		dir.GenerateFile("index.svelte", func(fsys budfs.FS, file *budfs.File) error {
-			file.Data = []byte(`<h1>index</h1>`)
-			return nil
-		})
-		dir.GenerateDir("somedir", func(fsys budfs.FS, dir *budfs.Dir) error {
-			return nil
-		})
-		return nil
-	})
-	bfs.GenerateFile("bud/view/view.go", func(fsys budfs.FS, file *budfs.File) error {
-		file.Data = []byte(`package view`)
-		return nil
-	})
-	bfs.GenerateFile("bud/view/plugin.go", func(fsys budfs.FS, file *budfs.File) error {
-		file.Data = []byte(`package plugin`)
-		return nil
-	})
-	// bud/view
-	des, err := fs.ReadDir(bfs, "bud/view")
-	is.NoErr(err)
-	is.Equal(len(des), 4)
-	is.Equal(des[0].Name(), "index.svelte")
-	is.Equal(des[0].IsDir(), false)
-	is.Equal(des[1].Name(), "plugin.go")
-	is.Equal(des[1].IsDir(), false)
-	is.Equal(des[2].Name(), "somedir")
-	is.Equal(des[2].IsDir(), true)
-	is.Equal(des[3].Name(), "view.go")
-	is.Equal(des[3].IsDir(), false)
-}
-
 // Add the view
 func TestAddGenerator(t *testing.T) {
 	is := is.New(t)
@@ -814,15 +777,6 @@ func TestDirGenerator(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(string(code), "aa")
 }
-
-// func TestFileServer(t *testing.T) {
-// 	is := is.New(t)
-// 	bfs := bfsfs.New()
-// 	bfs.FileServer("bud/view", &commandGenerator{Input: "a"})
-// 	code, err := fs.ReadFile(bfs, "bud/view/index.svelte")
-// 	is.NoErr(err)
-// 	is.Equal(string(code), "a/bud/view/index.svelte")
-// }
 
 func TestDotReadDirEmpty(t *testing.T) {
 	is := is.New(t)
@@ -1000,7 +954,7 @@ func TestServeFile(t *testing.T) {
 		return nil
 	})
 	des, err := fs.ReadDir(bfs, "duo/view")
-	is.True(errors.Is(err, fs.ErrInvalid))
+	is.True(errors.Is(err, fs.ErrNotExist))
 	is.Equal(len(des), 0)
 
 	// _index.svelte
@@ -1462,239 +1416,79 @@ func TestCacheMount(t *testing.T) {
 	is.Equal(count["bud/generator/b.txt"], 1, "wrong bud/generator/b.txt mount reads")
 }
 
-// func TestRemoteFS(t *testing.T) {
-// 	is := is.New(t)
-// 	parent := func(t testing.TB, cmd *exec.Cmd) {
-// 		ctx := context.Background()
-// 		is := is.New(t)
-// 		log := testlog.New()
-// 		dir := t.TempDir()
-// 		td := testdir.New(dir)
-// 		err := td.Write(ctx)
-// 		is.NoErr(err)
-// 		module, err := gomod.Find(dir)
-// 		is.NoErr(err)
-// 		bfs := budfs.New(module, log)
-// 		count := 1
-// 		bfs.GenerateDir("bud/generator", func(fsys budfs.FS, dir *budfs.Dir) error {
-// 			dir.GenerateFile(dir.Relative(), func(fsys budfs.FS, file *budfs.File) error {
-// 				command := remotefs.Command{
-// 					Env:    cmd.Env,
-// 					Stderr: os.Stderr,
-// 					Stdout: os.Stdout,
-// 				}
-// 				remotefs, err := command.Start(ctx, cmd.Path, cmd.Args[1:]...)
-// 				if err != nil {
-// 					return err
-// 				}
-// 				defer remotefs.Close()
-// 				data, err := fs.ReadFile(remotefs, dir.Relative())
-// 				if err != nil {
-// 					return err
-// 				}
-// 				file.Data = []byte(strings.Repeat(string(data), count))
-// 				count++
-// 				return nil
-// 			})
-// 			return nil
-// 		})
-// 		code, err := fs.ReadFile(bfs, "bud/generator/a.txt")
-// 		is.NoErr(err)
-// 		is.Equal(string(code), "a")
-// 		// Cached
-// 		code, err = fs.ReadFile(bfs, "bud/generator/a.txt")
-// 		is.NoErr(err)
-// 		is.Equal(string(code), "a")
-// 		// Read new path (uncached)
-// 		code, err = fs.ReadFile(bfs, "bud/generator/b.txt")
-// 		is.NoErr(err)
-// 		is.Equal(string(code), "bb")
-// 		// Update the file
-// 		bfs.Update("bud/generator/a.txt")
-// 		// Read again
-// 		code, err = fs.ReadFile(bfs, "bud/generator/a.txt")
-// 		is.NoErr(err)
-// 		is.Equal(string(code), "aaa")
-// 	}
-// 	child := func(t testing.TB) {
-// 		ctx := context.Background()
-// 		fsys := virtual.Memory{
-// 			"a.txt": &fstest.MapFile{Data: []byte("a")},
-// 			"b.txt": &fstest.MapFile{Data: []byte("b")},
-// 		}
-// 		err := remotefs.ServeFrom(ctx, fsys, "")
-// 		is.NoErr(err)
-// 	}
-// 	testsub.Run(t, parent, child)
-// }
+func TestChangingMount(t *testing.T) {
+	is := is.New(t)
+	log := testlog.New()
+	fsys := virtual.Map{}
+	bfs := budfs.New(fsys, log)
+	m1 := virtual.Tree{
+		"a.txt": &virtual.File{Data: []byte("a")},
+	}
+	m2 := virtual.Tree{
+		"b.txt": &virtual.File{Data: []byte("b")},
+	}
+	bfs.GenerateDir("bud", func(fsys budfs.FS, dir *budfs.Dir) error {
+		if dir.Target() == "bud/a.txt" {
+			return dir.Mount(m1)
+		}
+		if dir.Target() == "bud/b.txt" {
+			return dir.Mount(m2)
+		}
+		return nil
+	})
+	// Initial tests
+	code, err := fs.ReadFile(bfs, "bud/a.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "a", "wrong a.txt code")
+	code, err = fs.ReadFile(bfs, "bud/b.txt")
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.Equal(code, nil)
+	// Mark the directory as changed
+	bfs.Change("bud")
+	// It should reverse
+	code, err = fs.ReadFile(bfs, "bud/b.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "b", "wrong b.txt code")
+	code, err = fs.ReadFile(bfs, "bud/a.txt")
+	is.True(errors.Is(err, fs.ErrNotExist), "bud/a.txt should not exist")
+	is.Equal(code, nil)
+}
 
-// func TestMountRemoteFS(t *testing.T) {
-// 	ctx := context.Background()
-// 	is := is.New(t)
-// 	log := testlog.New()
-// 	dir := t.TempDir()
-// 	td := testdir.New(dir)
-// 	err := td.Write(ctx)
-// 	is.NoErr(err)
-// 	module, err := gomod.Find(dir)
-// 	is.NoErr(err)
-// 	parent := func(t testing.TB, cmd *exec.Cmd) {
-// 		bfs := budfs.New(module, log)
-// 		command := remotefs.Command{
-// 			Env:    cmd.Env,
-// 			Stderr: os.Stderr,
-// 			Stdout: os.Stdout,
-// 		}
-// 		remotefs, err := command.Start(ctx, cmd.Path, cmd.Args[1:]...)
-// 		is.NoErr(err)
-// 		defer remotefs.Close()
-// 		bfs.Mount("bud/generator", remotefs)
-// 		code, err := fs.ReadFile(bfs, "bud/generator/a.txt")
-// 		is.NoErr(err)
-// 		is.Equal(string(code), "a")
-// 		// Cached
-// 		code, err = fs.ReadFile(bfs, "bud/generator/a.txt")
-// 		is.NoErr(err)
-// 		is.Equal(string(code), "a")
-// 		// Read new path (uncached)
-// 		code, err = fs.ReadFile(bfs, "bud/generator/b.txt")
-// 		is.NoErr(err)
-// 		is.Equal(string(code), "bb")
-// 		// Update the file
-// 		bfs.Update("bud/generator/a.txt")
-// 		// Read again
-// 		code, err = fs.ReadFile(bfs, "bud/generator/a.txt")
-// 		is.NoErr(err)
-// 		is.Equal(string(code), "a")
-// 	}
-// 	child := func(t testing.TB) {
-// 		count := 1
-// 		bfs := budfs.New(module, log)
-// 		bfs.GenerateFile("a.txt", func(fsys budfs.FS, file *budfs.File) error {
-// 			file.Data = []byte(strings.Repeat(string("a"), count))
-// 			count++
-// 			return nil
-// 		})
-// 		bfs.GenerateFile("b.txt", func(fsys budfs.FS, file *budfs.File) error {
-// 			file.Data = []byte(strings.Repeat(string("b"), count))
-// 			count++
-// 			return nil
-// 		})
-// 		err := remotefs.ServeFrom(ctx, bfs, "")
-// 		is.NoErr(err)
-// 	}
-// 	testsub.Run(t, parent, child)
-// }
-
-// type remoteService struct {
-// 	cmd     *exec.Cmd
-// 	process *remotefs.Process
-// }
-
-// func (s *remoteService) GenerateFile(fsys budfs.FS, file *budfs.File) (err error) {
-// 	// This remote service depends on the generators
-// 	_, err = fs.Glob(fsys, "generator/*/*.go")
-// 	if err != nil {
-// 		return err
-// 	}
-// 	if s.process != nil {
-// 		if err := s.process.Close(); err != nil {
-// 			return err
-// 		}
-// 	}
-// 	command := remotefs.Command{
-// 		Env:    s.cmd.Env,
-// 		Stderr: os.Stderr,
-// 		Stdout: os.Stdout,
-// 	}
-// 	s.process, err = command.Start(fsys.Context(), s.cmd.Path, s.cmd.Args[1:]...)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	fsys.Defer(func() error {
-// 		return s.process.Close()
-// 	})
-// 	file.Data = []byte(s.process.URL())
-// 	return nil
-// }
-
-// func TestRemoteService(t *testing.T) {
-// 	ctx := context.Background()
-// 	is := is.New(t)
-// 	log := testlog.New()
-// 	dir := t.TempDir()
-// 	td := testdir.New(dir)
-// 	td.Files["generator/tailwind/tailwind.go"] = "package tailwind"
-// 	err := td.Write(ctx)
-// 	is.NoErr(err)
-// 	module, err := gomod.Find(dir)
-// 	is.NoErr(err)
-// 	parent := func(t testing.TB, cmd *exec.Cmd) {
-// 		bfs := budfs.New(module, log)
-// 		defer bfs.Close()
-// 		bfs.FileGenerator("bud/service/generator.url", &remoteService{cmd: cmd})
-// 		// Return a URL to connect to
-// 		url, err := fs.ReadFile(bfs, "bud/service/generator.url")
-// 		is.NoErr(err)
-// 		// Dial that URL
-// 		client, err := remotefs.Dial(ctx, string(url))
-// 		is.NoErr(err)
-// 		defer client.Close()
-// 		// Read the remote file
-// 		code, err := fs.ReadFile(client, "a.txt")
-// 		is.NoErr(err)
-// 		is.Equal(string(code), "a")
-// 		// Cached
-// 		code, err = fs.ReadFile(client, "a.txt")
-// 		is.NoErr(err)
-// 		is.Equal(string(code), "a")
-// 		// Uncached because it's a new file
-// 		code, err = fs.ReadFile(client, "b.txt")
-// 		is.NoErr(err)
-// 		is.Equal(string(code), "bb")
-// 		// Still cached
-// 		url, err = fs.ReadFile(bfs, "bud/service/generator.url")
-// 		is.NoErr(err)
-// 		code, err = fs.ReadFile(client, "a.txt")
-// 		is.NoErr(err)
-// 		is.Equal(string(code), "a")
-// 		code, err = fs.ReadFile(client, "b.txt")
-// 		is.NoErr(err)
-// 		is.Equal(string(code), "bb")
-// 		// Update a dependency
-// 		bfs.Update("generator/tailwind/tailwind.go")
-// 		// Should lead to the generator service being uncached again
-// 		url2, err := fs.ReadFile(bfs, "bud/service/generator.url")
-// 		is.NoErr(err)
-// 		is.True(!bytes.Equal(url, url2))
-// 		// Dial the new URL
-// 		client2, err := remotefs.Dial(ctx, string(url2))
-// 		is.NoErr(err)
-// 		defer client2.Close()
-// 		// Still cached, even though the remote has been restarted
-// 		code, err = fs.ReadFile(client2, "a.txt")
-// 		is.NoErr(err)
-// 		is.Equal(string(code), "a")
-// 		code, err = fs.ReadFile(client2, "b.txt")
-// 		is.NoErr(err)
-// 		is.Equal(string(code), "bb")
-// 	}
-// 	child := func(t testing.TB) {
-// 		count := 1
-// 		bfs := budfs.New(module, log)
-// 		defer bfs.Close()
-// 		bfs.GenerateFile("a.txt", func(fsys budfs.FS, file *budfs.File) error {
-// 			file.Data = []byte(strings.Repeat(string("a"), count))
-// 			count++
-// 			return nil
-// 		})
-// 		bfs.GenerateFile("b.txt", func(fsys budfs.FS, file *budfs.File) error {
-// 			file.Data = []byte(strings.Repeat(string("b"), count))
-// 			count++
-// 			return nil
-// 		})
-// 		err := remotefs.ServeFrom(ctx, bfs, "")
-// 		is.NoErr(err)
-// 	}
-// 	testsub.Run(t, parent, child)
-// }
+func TestChangingMountDir(t *testing.T) {
+	is := is.New(t)
+	log := testlog.New()
+	fsys := virtual.Map{}
+	bfs := budfs.New(fsys, log)
+	m1 := virtual.Tree{
+		"tailwind/a.txt": &virtual.File{Data: []byte("a")},
+	}
+	m2 := virtual.Tree{
+		"markdoc/b.txt": &virtual.File{Data: []byte("b")},
+	}
+	count := 0
+	bfs.GenerateDir("bud", func(fsys budfs.FS, dir *budfs.Dir) error {
+		if count == 0 {
+			count++
+			return dir.Mount(m1)
+		}
+		return dir.Mount(m2)
+	})
+	// Initial tests
+	des, err := fs.ReadDir(bfs, "bud")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
+	is.Equal(des[0].Name(), "tailwind")
+	code, err := fs.ReadFile(bfs, "bud/tailwind/a.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "a", "wrong a.txt code")
+	// Mark the directory as changed
+	bfs.Change("bud")
+	// Now the mount should be markdoc
+	des, err = fs.ReadDir(bfs, "bud")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
+	is.Equal(des[0].Name(), "markdoc")
+	code, err = fs.ReadFile(bfs, "bud/markdoc/b.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "b", "wrong b.txt code")
+}

@@ -1,0 +1,73 @@
+package main
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+// main entrypoint
+func main() {
+	ctx := context.Background()
+	if err := run(ctx); err != nil {
+		if errors.Is(err, context.Canceled) {
+			return
+		}
+		console.Error(err.Error())
+		os.Exit(1)
+	}
+}
+
+func run(ctx context.Context) error {
+	cli := commander.New("generate")
+	cli.Run(generate)
+	return cli.Parse(ctx, os.Args[1:])
+}
+
+func logger() (log.Interface, error) {
+	{{/* TODO: configurable log level */}}
+	handler, err := filter.Load(console.New(os.Stderr), "info")
+	if err != nil {
+		return nil, err
+	}
+	return log.New(handler), nil
+}
+
+func generate(ctx context.Context) error {
+	log, err := logger()
+	if err != nil {
+		return err
+	}
+	module, err := gomod.Find(".")
+	if err != nil {
+		return err
+	}
+	generators, err := {{ $.Provider.Name }}(
+		{{- if $.Provider.Variable "context.Context" }}ctx,{{ end }}
+		{{- if $.Provider.Variable "github.com/livebud/bud/package/gomod.*Module" }}module,{{ end }}
+		{{- if $.Provider.Variable "github.com/livebud/bud/package/log.Interface" }}log,{{ end }}
+	)
+	if err != nil {
+		return err
+	}
+	bfs := budfs.New(module, log)
+	{{- range $generator := $.Generators }}
+	bfs.DirGenerator("bud/internal/generator/{{ $generator.Path }}", generators.{{ $generator.Pascal }})
+	{{- end }}
+	log.Debug("framework/generator: serving remote 'bud/internal/generator' directory")
+	return remotefs.ServeFrom(ctx, bfs, "")
+}
+
+{{/* Provider that creates a function for initializing Generator */}}
+{{ $.Provider.Function }}
+
+{{/* Generator needs to be synced with *di.Provider */}}
+// Generator is a struct of generators
+type Generator struct {
+	{{- range $generator := $.Generators }}
+	{{ $generator.Pascal }} *{{ $generator.Import.Name }}.Generator
+	{{- end }}
+}

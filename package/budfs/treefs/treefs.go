@@ -164,6 +164,22 @@ func (n *Node) mkdirAll(segments []string) *Node {
 	return parent
 }
 
+func (n *Node) Remove(path string) {
+	child, ok := n.childMap[path]
+	if !ok {
+		return
+	}
+	child.parent = nil
+	delete(n.childMap, path)
+}
+
+func (n *Node) Clear() {
+	for _, child := range n.childMap {
+		child.parent = nil
+	}
+	n.childMap = map[string]*Node{}
+}
+
 func formatNode(node *Node) string {
 	if node.kind == kindGenerator {
 		return fmt.Sprintf("%s generator=%v mode=%s", node.name, node.generator, node.mode)

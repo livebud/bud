@@ -15,6 +15,7 @@ import (
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/app"
 	"github.com/livebud/bud/framework/controller"
+	"github.com/livebud/bud/framework/generator"
 	"github.com/livebud/bud/framework/public"
 	"github.com/livebud/bud/framework/transform/transformrt"
 	"github.com/livebud/bud/framework/view"
@@ -118,7 +119,7 @@ func Log(stderr io.Writer, logFilter string) (log.Interface, error) {
 	return log.New(handler), nil
 }
 
-func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, flag *framework.Flag, in *Input) (*budfs.FileSystem, error) {
+func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, flag *framework.Flag) (*budfs.FileSystem, error) {
 	bfs := budfs.New(module, log)
 	parser := parser.New(bfs, module)
 	injector := di.New(bfs, log, module, parser)
@@ -142,6 +143,7 @@ func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, fl
 	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
 	bfs.FileServer("bud/view", dom.New(module, transforms.DOM))
 	bfs.FileServer("bud/node_modules", dom.NodeModules(module))
+	bfs.DirGenerator("bud/internal/generator", generator.New(flag, injector, log, module, parser))
 	return bfs, nil
 }
 
