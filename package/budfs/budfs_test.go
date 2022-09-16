@@ -954,7 +954,7 @@ func TestServeFile(t *testing.T) {
 		return nil
 	})
 	des, err := fs.ReadDir(bfs, "duo/view")
-	is.True(errors.Is(err, fs.ErrInvalid))
+	is.True(errors.Is(err, fs.ErrNotExist))
 	is.Equal(len(des), 0)
 
 	// _index.svelte
@@ -1452,4 +1452,43 @@ func TestChangingMount(t *testing.T) {
 	code, err = fs.ReadFile(bfs, "bud/a.txt")
 	is.True(errors.Is(err, fs.ErrNotExist), "bud/a.txt should not exist")
 	is.Equal(code, nil)
+}
+
+func TestChangingMountDir(t *testing.T) {
+	is := is.New(t)
+	log := testlog.New()
+	fsys := virtual.Map{}
+	bfs := budfs.New(fsys, log)
+	m1 := virtual.Tree{
+		"tailwind/a.txt": &virtual.File{Data: []byte("a")},
+	}
+	m2 := virtual.Tree{
+		"markdoc/b.txt": &virtual.File{Data: []byte("b")},
+	}
+	count := 0
+	bfs.GenerateDir("bud", func(fsys budfs.FS, dir *budfs.Dir) error {
+		if count == 0 {
+			count++
+			return dir.Mount(m1)
+		}
+		return dir.Mount(m2)
+	})
+	// Initial tests
+	des, err := fs.ReadDir(bfs, "bud")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
+	is.Equal(des[0].Name(), "tailwind")
+	code, err := fs.ReadFile(bfs, "bud/tailwind/a.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "a", "wrong a.txt code")
+	// Mark the directory as changed
+	bfs.Change("bud")
+	// Now the mount should be markdoc
+	des, err = fs.ReadDir(bfs, "bud")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
+	is.Equal(des[0].Name(), "markdoc")
+	code, err = fs.ReadFile(bfs, "bud/markdoc/b.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "b", "wrong b.txt code")
 }

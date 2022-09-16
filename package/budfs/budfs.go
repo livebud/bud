@@ -25,6 +25,11 @@ import (
 )
 
 func New(fsys fs.FS, log log.Interface) *FileSystem {
+	// Exclude the underlying filesystem (often os) from contributing bud/* files.
+	// The bud/* directory is owned by the generator filesytem.
+	fsys = virtual.Exclude(fsys, func(path string) bool {
+		return path == "bud" || strings.HasPrefix(path, "bud/")
+	})
 	cache := vcache.New()
 	node := treefs.New(".")
 	merged := mergefs.Merge(node, fsys)
@@ -276,7 +281,7 @@ func (g *fileServer) Generate(target string) (fs.File, error) {
 		return nil, &fs.PathError{
 			Op:   "open",
 			Path: g.node.Path(),
-			Err:  fs.ErrInvalid,
+			Err:  fs.ErrNotExist,
 		}
 	}
 	fctx := &fileSystem{context.TODO(), g.fsys, g.fsys.lmap.Scope(target)}

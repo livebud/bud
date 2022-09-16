@@ -57,13 +57,8 @@ func generate(ctx context.Context) error {
 	{{- range $generator := $.Generators }}
 	bfs.DirGenerator("bud/internal/generator/{{ $generator.Path }}", generators.{{ $generator.Pascal }})
 	{{- end }}
-	{{/* Avoid serving the whole directory from module since that recurse including go.mod and bud/ */}}
-	subfs, err := fs.Sub(bfs, "bud/internal/generator")
-	if err != nil {
-		return err
-	}
 	log.Debug("framework/generator: serving remote 'bud/internal/generator' directory")
-	return remotefs.ServeFrom(ctx, subfs, "")
+	return remotefs.ServeFrom(ctx, bfs, "")
 }
 
 {{/* Provider that creates a function for initializing Generator */}}
