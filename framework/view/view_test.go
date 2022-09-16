@@ -414,3 +414,41 @@ func TestSvelteImportFromNodeModule(t *testing.T) {
 	is.In(res.Body().String(), "<time datetime=\"2022-07-19 10:19:00\">Jul 19, 2022</time>")
 	is.NoErr(app.Close())
 }
+
+func TestSvelteImportFromOtherDir(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.NodeModules["svelte"] = versions.Svelte
+	td.NodeModules["svelte-time"] = "*"
+	td.NodeModules["livebud"] = "*"
+	td.Files["controller/controller.go"] = `
+		package controller
+		type Controller struct {}
+		func (c *Controller) Index() string { return "" }
+	`
+	td.Files["ui/Time.svelte"] = `
+		<h1>The Time</h1>
+	`
+	td.Files["view/index.svelte"] = `
+	 	<script>
+			import Time from "../ui/Time.svelte"
+		</script>
+		<Time/>
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	res, err := app.Get("/")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Transfer-Encoding: chunked
+		Content-Type: text/html
+	`))
+	is.In(res.Body().String(), "<h1>The Time</h1>")
+	is.NoErr(app.Close())
+}
