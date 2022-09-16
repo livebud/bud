@@ -51,8 +51,8 @@ func TestHello(t *testing.T) {
 	is.NoErr(os.MkdirAll(filepath.Dir(indexFile), 0755))
 	is.NoErr(os.WriteFile(indexFile, []byte(`<h1>hi</h1>`), 0644))
 	// Wait for the app to be ready again
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
-	is.NoErr(app.Ready(ctx))
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
 	cancel()
 	// Check that we received a hot reload event
 	event, err := hot.Next(ctx)
@@ -72,8 +72,8 @@ func TestHello(t *testing.T) {
 	is.NoErr(os.MkdirAll(filepath.Dir(indexFile), 0755))
 	is.NoErr(os.WriteFile(indexFile, []byte(`<h1>hola</h1>`), 0644))
 	// Wait for the app to be ready again
-	ctx, cancel = context.WithTimeout(ctx, 15*time.Second)
-	is.NoErr(app.Ready(ctx))
+	readyCtx, cancel = context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
 	cancel()
 	// Check that we received a hot reload event
 	event, err = hot.Next(ctx)
@@ -316,8 +316,8 @@ func TestRenameView(t *testing.T) {
 		filepath.Join(dir, "view/_show.svele"),
 	))
 	// Wait for the app to be ready again
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
-	is.NoErr(app.Ready(ctx))
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
 	cancel()
 	// Check that we received a hot reload event
 	event, err := hot.Next(ctx)
@@ -371,8 +371,8 @@ func TestAddView(t *testing.T) {
 		<h1>{id}</h1>
 	`)), 0644))
 	// Wait for the app to be ready again
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
-	is.NoErr(app.Ready(ctx))
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
 	cancel()
 	// Check that we received a hot reload event
 	event, err := hot.Next(ctx)
