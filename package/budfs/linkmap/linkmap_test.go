@@ -42,26 +42,26 @@ func TestLinkSafe(t *testing.T) {
 		list.Select("test", func(path string) bool {
 			return path == "view/about/index.svelte"
 		})
-		list, ok := linkMap.Get("bud/view.go")
+		lm, ok := linkMap.Get("bud/view.go")
 		is.True(ok)
-		is.True(list.Check("view/about/index.svelte"))
-		is.True(list.Check("view/index.svelte"))
-		is.True(!list.Check("view"))
+		is.True(lm.Check("view/about/index.svelte"))
+		is.True(lm.Check("view/index.svelte"))
+		is.True(!lm.Check("view"))
 		return nil
 	})
 	eg.Go(func() error {
-		list := linkMap.Scope("bud/view.go")
+		list := linkMap.Scope("bud/controller.go")
 		list.Select("test", func(path string) bool {
-			return path == "view/index.svelte"
+			return path == "controller/index.svelte"
 		})
 		list.Select("test", func(path string) bool {
-			return path == "view/about/index.svelte"
+			return path == "controller/about/index.svelte"
 		})
-		list, ok := linkMap.Get("bud/view.go")
+		lm, ok := linkMap.Get("bud/controller.go")
 		is.True(ok)
-		is.True(list.Check("view/about/index.svelte"))
-		is.True(list.Check("view/index.svelte"))
-		is.True(!list.Check("view"))
+		is.True(lm.Check("controller/about/index.svelte"))
+		is.True(lm.Check("controller/index.svelte"))
+		is.True(!lm.Check("controller"))
 		return nil
 	})
 	is.NoErr(eg.Wait())
