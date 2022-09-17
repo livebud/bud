@@ -221,9 +221,9 @@ func TestUpdateGenerator(t *testing.T) {
 		}
 	`)), 0644))
 	// Wait for the app to be ready again
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
-	defer cancel()
-	is.NoErr(app.Ready(ctx))
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	// Check for preflight
 	data, err = os.ReadFile(td.Path("bud/internal/generator/tailwind/preflight.css"))
 	is.NoErr(err)
@@ -276,9 +276,9 @@ func TestRemoveGenerator(t *testing.T) {
 		}
 	`)), 0644))
 	// Wait for the app to be ready again
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
-	defer cancel()
-	is.NoErr(app.Ready(ctx))
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	// Check that tailwind has been updated
 	data, err = os.ReadFile(td.Path("bud/internal/generator/tailwind/tailwind.css"))
 	is.True(os.IsNotExist(err))

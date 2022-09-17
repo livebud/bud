@@ -2028,9 +2028,9 @@ func TestControllerChange(t *testing.T) {
 		func (c *Controller) Index() string { return "/" }
 	`)), 0644))
 	// Wait for the app to be ready again
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
-	defer cancel()
-	is.NoErr(app.Ready(ctx))
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	// Try again with the new file
 	res, err = app.GetJSON("/")
 	is.NoErr(err)
@@ -2788,7 +2788,10 @@ func TestCreateRouteAndControllerAndView(t *testing.T) {
 			return "/" + id
 		}
 	`), 0644))
-	is.NoErr(app.Ready(ctx))
+	// Wait for the app to be ready again
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	res, err = app.GetJSON("/10")
 	is.NoErr(err)
 	is.NoErr(res.Diff(`
@@ -2806,7 +2809,10 @@ func TestCreateRouteAndControllerAndView(t *testing.T) {
 			return "/posts"
 		}
 	`), 0644))
-	is.NoErr(app.Ready(ctx))
+	// Wait for the app to be ready again
+	readyCtx, cancel = context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	res, err = app.GetJSON("/posts")
 	is.NoErr(err)
 	is.NoErr(res.Diff(`
@@ -2820,7 +2826,10 @@ func TestCreateRouteAndControllerAndView(t *testing.T) {
 	is.NoErr(os.WriteFile(filepath.Join(dir, "view", "posts", "index.svelte"), []byte(`
 		<h1>Posts</h1>
 	`), 0644))
-	is.NoErr(app.Ready(ctx))
+	// Wait for the app to be ready again
+	readyCtx, cancel = context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	res, err = app.Get("/posts")
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
@@ -2837,7 +2846,10 @@ func TestCreateRouteAndControllerAndView(t *testing.T) {
 	is.NoErr(os.WriteFile(filepath.Join(dir, "view", "posts", "show.svelte"), []byte(`
 		<h1>Show Posts</h1>
 	`), 0644))
-	is.NoErr(app.Ready(ctx))
+	// Wait for the app to be ready again
+	readyCtx, cancel = context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	res, err = app.Get("/posts/10")
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
@@ -2855,7 +2867,10 @@ func TestCreateRouteAndControllerAndView(t *testing.T) {
 		func (c *Controller) Show() {
 		}
 	`), 0644))
-	is.NoErr(app.Ready(ctx))
+	// Wait for the app to be ready again
+	readyCtx, cancel = context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	res, err = app.Get("/posts/10")
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
@@ -2926,7 +2941,10 @@ func TestDeleteRouteAndControllerAndView(t *testing.T) {
 	is.Equal(html, `<h1>Show Posts</h1>`)
 	// Delete the show view
 	is.NoErr(os.Remove(filepath.Join(dir, "view", "posts", "show.svelte")))
-	is.NoErr(app.Ready(ctx))
+	// Wait for the app to be ready again
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	// Try again
 	res, err = app.Get("/posts/10")
 	is.NoErr(err)
@@ -2937,7 +2955,10 @@ func TestDeleteRouteAndControllerAndView(t *testing.T) {
 	is.NotIn(res.Body().String(), "<h1>Show Posts</h1>")
 	// Delete the controller
 	is.NoErr(os.RemoveAll(filepath.Join(dir, "controller", "posts")))
-	is.NoErr(app.Ready(ctx))
+	// Wait for the app to be ready again
+	readyCtx, cancel = context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	// Re-test /posts
 	res, err = app.Get("/posts")
 	is.NoErr(err)
@@ -2990,7 +3011,10 @@ func TestUpdateBodyAndSignatureAndRoute(t *testing.T) {
 			return "Hello Humans!"
 		}
 	`), 0644))
-	is.NoErr(app.Ready(ctx))
+	// Wait for the app to be ready again
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	// Retry
 	res, err = app.Get("/")
 	is.NoErr(err)
@@ -3007,7 +3031,10 @@ func TestUpdateBodyAndSignatureAndRoute(t *testing.T) {
 			return "Hello " + name + "!", nil
 		}
 	`), 0644))
-	is.NoErr(app.Ready(ctx))
+	// Wait for the app to be ready again
+	readyCtx, cancel = context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	// Retry
 	res, err = app.Get("/?name=Mark")
 	is.NoErr(err)
@@ -3024,7 +3051,10 @@ func TestUpdateBodyAndSignatureAndRoute(t *testing.T) {
 			return "/"+id, nil
 		}
 	`), 0644))
-	is.NoErr(app.Ready(ctx))
+	// Wait for the app to be ready again
+	readyCtx, cancel = context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	// Retry
 	res, err = app.Get("/?name=Mark")
 	is.NoErr(err)

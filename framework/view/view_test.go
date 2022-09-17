@@ -51,7 +51,9 @@ func TestHello(t *testing.T) {
 	is.NoErr(os.MkdirAll(filepath.Dir(indexFile), 0755))
 	is.NoErr(os.WriteFile(indexFile, []byte(`<h1>hi</h1>`), 0644))
 	// Wait for the app to be ready again
-	app.Ready(ctx)
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	// Check that we received a hot reload event
 	event, err := hot.Next(ctx)
 	is.NoErr(err)
@@ -70,7 +72,9 @@ func TestHello(t *testing.T) {
 	is.NoErr(os.MkdirAll(filepath.Dir(indexFile), 0755))
 	is.NoErr(os.WriteFile(indexFile, []byte(`<h1>hola</h1>`), 0644))
 	// Wait for the app to be ready again
-	app.Ready(ctx)
+	readyCtx, cancel = context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	// Check that we received a hot reload event
 	event, err = hot.Next(ctx)
 	is.NoErr(err)
@@ -121,8 +125,10 @@ func TestHelloEmbed(t *testing.T) {
 	indexFile := filepath.Join(dir, "view/index.svelte")
 	is.NoErr(os.MkdirAll(filepath.Dir(indexFile), 0755))
 	is.NoErr(os.WriteFile(indexFile, []byte(`<h1>hi</h1>`), 0644))
-	// Wait for the the app to be ready again
-	is.NoErr(app.Ready(ctx))
+	// Wait for the app to be ready again
+	readyCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	// Ensure that we got a hot reload event
 	event, err := hot.Next(ctx)
 	is.NoErr(err)
@@ -310,9 +316,9 @@ func TestRenameView(t *testing.T) {
 		filepath.Join(dir, "view/_show.svele"),
 	))
 	// Wait for the app to be ready again
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
-	defer cancel()
-	app.Ready(ctx)
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	// Check that we received a hot reload event
 	event, err := hot.Next(ctx)
 	is.NoErr(err)
@@ -365,7 +371,9 @@ func TestAddView(t *testing.T) {
 		<h1>{id}</h1>
 	`)), 0644))
 	// Wait for the app to be ready again
-	app.Ready(ctx)
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	// Check that we received a hot reload event
 	event, err := hot.Next(ctx)
 	is.NoErr(err)
