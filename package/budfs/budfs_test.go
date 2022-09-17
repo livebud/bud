@@ -1492,3 +1492,21 @@ func TestChangingMountDir(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(string(code), "b", "wrong b.txt code")
 }
+
+func TestExcludeBud(t *testing.T) {
+	is := is.New(t)
+	log := testlog.New()
+	fsys := virtual.Map{
+		"bud/a.txt": &virtual.File{Data: []byte("a")},
+	}
+	bfs := budfs.New(fsys, log)
+	bfs.GenerateFile("bud/b.txt", func(fsys budfs.FS, file *budfs.File) error {
+		file.Data = []byte("b")
+		return nil
+	})
+	is.NoErr(fstest.TestFS(bfs, "bud/b.txt"))
+	des, err := fs.ReadDir(bfs, "bud")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
+	is.Equal(des[0].Name(), "b.txt")
+}
