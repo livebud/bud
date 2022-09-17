@@ -126,8 +126,8 @@ func TestHelloEmbed(t *testing.T) {
 	is.NoErr(os.MkdirAll(filepath.Dir(indexFile), 0755))
 	is.NoErr(os.WriteFile(indexFile, []byte(`<h1>hi</h1>`), 0644))
 	// Wait for the app to be ready again
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
-	is.NoErr(app.Ready(ctx))
+	readyCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	is.NoErr(app.Ready(readyCtx))
 	cancel()
 	// Ensure that we got a hot reload event
 	event, err := hot.Next(ctx)
