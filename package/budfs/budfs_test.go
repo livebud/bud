@@ -1510,3 +1510,22 @@ func TestExcludeBud(t *testing.T) {
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "b.txt")
 }
+
+func TestCyclesOk(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Map{}
+	log := testlog.New()
+	bfs := budfs.New(fsys, log)
+	bfs.GenerateFile("a.txt", func(fsys budfs.FS, file *budfs.File) error {
+		fsys.Link("a.txt")
+		file.Data = []byte("a")
+		return nil
+	})
+	code, err := fs.ReadFile(bfs, "a.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "a")
+	bfs.Change("a.txt")
+	code, err = fs.ReadFile(bfs, "a.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "a")
+}
