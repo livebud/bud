@@ -40,6 +40,7 @@ type loader struct {
 
 // Load the command state
 func (l *loader) Load(fsys fs.FS) (state *State, err error) {
+	defer l.Recover2(&err, "transform")
 	// TODO: for cases like this, we just want to watch, we don't need to
 	// return the files.
 	if files, err := fs.Glob(fsys, "transform/**.go"); err != nil {
@@ -148,7 +149,7 @@ func (l *loader) loadProvider(transformers []*Transformer) *di.Provider {
 		},
 	})
 	if err != nil {
-		l.Bail(err)
+		l.Bail(fmt.Errorf("transform2: error injecting. %w", err))
 	}
 	// Add generated imports
 	for _, imp := range provider.Imports {

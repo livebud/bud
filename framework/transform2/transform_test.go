@@ -167,10 +167,20 @@ func TestMdToSsrJsAndDomJs(t *testing.T) {
 		package markdoc
 		import "github.com/livebud/bud/framework/transform2/transformrt"
 		import "bytes"
-		type Transform struct {}
-		func (t *Transform) MdToSvelte(file *transformrt.File) error {
-			file.Data = bytes.TrimPrefix(file.Data, []byte("# "))
-			file.Data = []byte("<h1 class='bg-red-100'>" + string(file.Data) + "</h1>")
+		type Markdoc struct {}
+		func (m *Markdoc) Compile(data []byte) ([]byte, error) {
+			data = bytes.TrimPrefix(data, []byte("# "))
+			data = []byte("<h1 class='bg-red-100'>" + string(data) + "</h1>")
+			return data, nil
+		}
+		type Transform struct {
+			Markdoc *Markdoc
+		}
+		func (t *Transform) MdToSvelte(file *transformrt.File) (err error) {
+			file.Data, err = t.Markdoc.Compile(file.Data)
+			if err != nil {
+				return err
+			}
 			return nil
 		}
 	`
