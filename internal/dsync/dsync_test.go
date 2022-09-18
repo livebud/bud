@@ -9,7 +9,7 @@ import (
 
 	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/is"
-	"github.com/livebud/bud/package/budfs/genfs"
+	"github.com/livebud/bud/package/budfs/treefs"
 	"github.com/livebud/bud/package/vfs"
 )
 
@@ -184,10 +184,10 @@ func TestSkipNotExist(t *testing.T) {
 	vfs.Now = func() time.Time { return after }
 
 	// starting points
-	sourceFS := genfs.New()
-	sourceFS.GenerateFile("bud/generate/main.go", func(file *genfs.File) error {
-		return fs.ErrNotExist
-	})
+	sourceFS := treefs.New(".")
+	sourceFS.FileGenerator("bud/generate/main.go", treefs.Generate(func(target string) (fs.File, error) {
+		return nil, fs.ErrNotExist
+	}))
 	targetFS := vfs.Memory{}
 
 	// sync
@@ -203,16 +203,17 @@ func TestErrorGenerator(t *testing.T) {
 	vfs.Now = func() time.Time { return after }
 
 	// starting points
-	sourceFS := genfs.New()
-	sourceFS.GenerateFile("bud/generate/main.go", func(file *genfs.File) error {
-		return errors.New("uh oh")
-	})
+	sourceFS := treefs.New(".")
+	sourceFS.FileGenerator("bud/generate/main.go", treefs.Generate(func(target string) (fs.File, error) {
+		return nil, errors.New("uh oh")
+	}))
 	targetFS := vfs.Memory{}
 
 	// sync
 	err := dsync.To(sourceFS, targetFS, ".")
 	is.True(err != nil)
-	is.Equal(err.Error(), `genfs: error generating "bud/generate/main.go". uh oh`)
+	is.Equal(err.Error(), `uh oh`)
+	is.True(!errors.Is(err, fs.ErrNotExist))
 	is.Equal(len(targetFS), 0)
 }
 

@@ -1,6 +1,7 @@
 package gomod
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -10,24 +11,21 @@ import (
 	"github.com/cespare/xxhash"
 	"github.com/livebud/bud/internal/gois"
 	"github.com/livebud/bud/internal/goroot"
-	"github.com/livebud/bud/package/vfs"
+	"github.com/livebud/bud/package/virtual"
 )
 
 type Module struct {
 	opt  *option
 	file *File
 	dir  string
+	fsys virtual.FS
 }
+
+var _ virtual.FS = (*Module)(nil)
 
 // Directory returns the module directory (e.g. /Users/$USER/...)
 func (m *Module) Directory(subpaths ...string) string {
 	return filepath.Join(append([]string{m.dir}, subpaths...)...)
-}
-
-// DirFS returns an OS filesystem you can read and write from.
-// TODO: remove vfs.ReadWritable
-func (m *Module) DirFS(subpaths ...string) vfs.ReadWritable {
-	return vfs.OS(m.Directory(subpaths...))
 }
 
 // ModCache returns the module cache directory
@@ -58,6 +56,23 @@ func (m *Module) FindIn(fsys fs.FS, importPath string) (*Module, error) {
 		return nil, err
 	}
 	return find(m.opt, dir)
+}
+
+func (m *Module) FindBy(match func(req *Require) bool) (modules []*Module, err error) {
+	for _, req := range m.file.Requires() {
+		if match(req) {
+			module, err := m.Find(req.Mod.Path)
+			if err != nil {
+				// Ignore imports that don't have a go.mod (e.g. legacy modules)
+				if errors.Is(err, fs.ErrNotExist) {
+					continue
+				}
+				return nil, err
+			}
+			modules = append(modules, module)
+		}
+	}
+	return modules, nil
 }
 
 // Open a file within the module
@@ -164,6 +179,26 @@ func (m *Module) Hash() []byte {
 	h := xxhash.New()
 	h.Write(code)
 	return h.Sum(nil)
+}
+
+// MkdirAll creates dir within the module dir. Used to implement virtual.FS
+func (m *Module) MkdirAll(path string, perm fs.FileMode) error {
+	return m.fsys.MkdirAll(path, perm)
+}
+
+// WriteFile writes a file within the module dir. Used to implement virtual.FS.
+func (m *Module) WriteFile(name string, data []byte, perm fs.FileMode) error {
+	return m.fsys.WriteFile(name, data, perm)
+}
+
+// RemoveAll removes a file within the module dir. Used to implement virtual.FS.
+func (m *Module) RemoveAll(path string) error {
+	return m.fsys.RemoveAll(path)
+}
+
+// RemoveAll removes a file within the module dir. Used to implement virtual.FS.
+func (m *Module) Sub(dir string) (virtual.FS, error) {
+	return m.fsys.Sub(dir)
 }
 
 // Resolve allows `path` to be replaced by an absolute path in `rest`

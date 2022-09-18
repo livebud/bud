@@ -95,10 +95,17 @@ func Watch(ctx context.Context, dir string, fn func(events []Event) error) error
 	eventSet := newEventSet()
 	debounce := debounce.New(debounceDelay)
 	trigger := func(event Event) {
+		relPath, err := filepath.Rel(dir, event.Path)
+		if err != nil {
+			errorCh <- err
+			return
+		}
+		event.Path = relPath
 		eventSet.Add(event)
 		debounce(func() {
 			if err := fn(eventSet.Flush()); err != nil {
 				errorCh <- err
+				return
 			}
 		})
 	}
@@ -255,7 +262,6 @@ func Watch(ctx context.Context, dir string, fn func(events []Event) error) error
 				if evt.Name == "" {
 					continue
 				}
-
 				// Switch over the operations
 				switch op := evt.Op; {
 

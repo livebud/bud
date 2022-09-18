@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/lithammer/dedent"
 	"github.com/livebud/bud/internal/cli/testcli"
@@ -50,7 +51,9 @@ func TestHello(t *testing.T) {
 	is.NoErr(os.MkdirAll(filepath.Dir(indexFile), 0755))
 	is.NoErr(os.WriteFile(indexFile, []byte(`<h1>hi</h1>`), 0644))
 	// Wait for the app to be ready again
-	app.Ready(ctx)
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	// Check that we received a hot reload event
 	event, err := hot.Next(ctx)
 	is.NoErr(err)
@@ -64,6 +67,28 @@ func TestHello(t *testing.T) {
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), "<h1>hi</h1>")
+	// Change svelte file
+	indexFile = filepath.Join(dir, "view/index.svelte")
+	is.NoErr(os.MkdirAll(filepath.Dir(indexFile), 0755))
+	is.NoErr(os.WriteFile(indexFile, []byte(`<h1>hola</h1>`), 0644))
+	// Wait for the app to be ready again
+	readyCtx, cancel = context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
+	// Check that we received a hot reload event
+	event, err = hot.Next(ctx)
+	is.NoErr(err)
+	is.In(string(event.Data), `{"scripts":["/bud/view/index.svelte?ts=`)
+	// Should change
+	res, err = app.Get("/")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Transfer-Encoding: chunked
+		Content-Type: text/html
+	`))
+	is.In(res.Body().String(), "<h1>hola</h1>")
+	// Change svelte file one more time
 	is.NoErr(app.Close())
 }
 
@@ -100,8 +125,10 @@ func TestHelloEmbed(t *testing.T) {
 	indexFile := filepath.Join(dir, "view/index.svelte")
 	is.NoErr(os.MkdirAll(filepath.Dir(indexFile), 0755))
 	is.NoErr(os.WriteFile(indexFile, []byte(`<h1>hi</h1>`), 0644))
-	// Wait for the the app to be ready again
-	is.NoErr(app.Ready(ctx))
+	// Wait for the app to be ready again
+	readyCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	// Ensure that we got a hot reload event
 	event, err := hot.Next(ctx)
 	is.NoErr(err)
@@ -289,7 +316,9 @@ func TestRenameView(t *testing.T) {
 		filepath.Join(dir, "view/_show.svele"),
 	))
 	// Wait for the app to be ready again
-	app.Ready(ctx)
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	// Check that we received a hot reload event
 	event, err := hot.Next(ctx)
 	is.NoErr(err)
@@ -342,7 +371,9 @@ func TestAddView(t *testing.T) {
 		<h1>{id}</h1>
 	`)), 0644))
 	// Wait for the app to be ready again
-	app.Ready(ctx)
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	// Check that we received a hot reload event
 	event, err := hot.Next(ctx)
 	is.NoErr(err)
@@ -389,5 +420,43 @@ func TestSvelteImportFromNodeModule(t *testing.T) {
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), "<time datetime=\"2022-07-19 10:19:00\">Jul 19, 2022</time>")
+	is.NoErr(app.Close())
+}
+
+func TestSvelteImportFromOtherDir(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.NodeModules["svelte"] = versions.Svelte
+	td.NodeModules["svelte-time"] = "*"
+	td.NodeModules["livebud"] = "*"
+	td.Files["controller/controller.go"] = `
+		package controller
+		type Controller struct {}
+		func (c *Controller) Index() string { return "" }
+	`
+	td.Files["ui/Time.svelte"] = `
+		<h1>The Time</h1>
+	`
+	td.Files["view/index.svelte"] = `
+	 	<script>
+			import Time from "../ui/Time.svelte"
+		</script>
+		<Time/>
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	res, err := app.Get("/")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Transfer-Encoding: chunked
+		Content-Type: text/html
+	`))
+	is.In(res.Body().String(), "<h1>The Time</h1>")
 	is.NoErr(app.Close())
 }

@@ -422,3 +422,81 @@ func TestFailMessage(t *testing.T) {
 		t.Fatalf("expected %q, got %q", expect, out)
 	}
 }
+
+func TestNotInOk(t *testing.T) {
+	m := &mockT{}
+	is := New(m)
+	out := new(bytes.Buffer)
+	is.writer = out
+	is.colorful = true
+	is.NotIn("hello", "hi")
+	if m.failed {
+		t.Fatalf(`expected no failure`)
+	}
+	if out.String() != "" {
+		t.Fatalf("expected no buffer")
+	}
+}
+
+func TestNotInNotList(t *testing.T) {
+	m := &mockT{}
+	is := New(m)
+	out := new(bytes.Buffer)
+	is.writer = out
+	is.colorful = false
+	is.NotIn(3, 3)
+	if !m.failed {
+		t.Fatalf(`expected is.NotIn to fail`)
+	}
+	expect := "is_test.go:447: int(3) is not a list\n"
+	if out.String() != expect {
+		t.Fatalf("expected %q, got %q", expect, out)
+	}
+}
+
+func TestNotIn(t *testing.T) {
+	m := &mockT{}
+	is := New(m)
+	out := new(bytes.Buffer)
+	is.writer = out
+	is.colorful = false
+	is.NotIn("hello", "lo")
+	if !m.failed {
+		t.Fatalf(`expected is.NotIn to fail`)
+	}
+	expect := "is_test.go:463: lo is in hello\n"
+	if out.String() != expect {
+		t.Fatalf("expected %q, got %q", expect, out)
+	}
+}
+
+func TestNotInSliceOk(t *testing.T) {
+	m := &mockT{}
+	is := New(m)
+	out := new(bytes.Buffer)
+	is.writer = out
+	is.colorful = false
+	is.NotIn([]string{"a", "b", "c"}, "d")
+	if m.failed {
+		t.Fatalf(`expected no failure`)
+	}
+	if out.String() != "" {
+		t.Fatalf("expected no buffer")
+	}
+}
+
+func TestNotInSlice(t *testing.T) {
+	m := &mockT{}
+	is := New(m)
+	out := new(bytes.Buffer)
+	is.writer = out
+	is.colorful = false
+	is.NotIn([]string{"a", "b", "c"}, "a")
+	if !m.failed {
+		t.Fatalf(`expected is.NotIn to fail`)
+	}
+	expect := "is_test.go:494: a is in [a b c]\n"
+	if out.String() != expect {
+		t.Fatalf("expected %q, got %q", expect, out)
+	}
+}

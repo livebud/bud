@@ -1,5 +1,6 @@
 BUD_VERSION := $(shell cat version.txt)
 
+default: install
 precommit: test.dev
 
 ##

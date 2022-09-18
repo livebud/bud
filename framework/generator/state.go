@@ -1,13 +1,17 @@
 package generator
 
-import "github.com/livebud/bud/internal/imports"
+import (
+	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/di"
+)
 
 type State struct {
 	Imports    []*imports.Import
-	Generators []*Gen
+	Generators []*UserGenerator
+	Provider   *di.Provider
 }
 
-type Gen struct {
+type UserGenerator struct {
 	Import *imports.Import
 	Path   string
 	Pascal string

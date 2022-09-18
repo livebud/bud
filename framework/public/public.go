@@ -1,11 +1,11 @@
 package public
 
 import (
-	"context"
 	_ "embed"
 
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/package/overlay"
+	"github.com/livebud/bud/package/budfs"
+	"github.com/livebud/bud/package/gomod"
 
 	"github.com/livebud/bud/internal/gotemplate"
 )
@@ -21,18 +21,19 @@ func Generate(state *State) ([]byte, error) {
 }
 
 // New public generator
-func New(flag *framework.Flag) *Generator {
+func New(flag *framework.Flag, module *gomod.Module) *Generator {
 	return &Generator{
-		flag: flag,
+		flag:   flag,
+		module: module,
 	}
 }
 
 type Generator struct {
-	flag *framework.Flag
+	flag   *framework.Flag
+	module *gomod.Module
 }
 
-// Generate the public file
-func (g *Generator) GenerateFile(ctx context.Context, fsys overlay.F, file *overlay.File) error {
+func (g *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
 	state, err := Load(fsys, g.flag)
 	if err != nil {
 		return err

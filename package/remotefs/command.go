@@ -73,5 +73,8 @@ func (p *Process) ReadDir(name string) (des []fs.DirEntry, err error) {
 }
 
 func (p *Process) Close() error {
-	return p.closer.Close()
+	if err := p.closer.Close(); err != nil {
+		return err
+	}
+	return p.process.Wait()
 }

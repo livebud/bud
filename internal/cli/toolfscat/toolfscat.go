@@ -13,9 +13,14 @@ import (
 
 func New(bud *bud.Command, in *bud.Input) *Command {
 	return &Command{
-		bud:  bud,
-		in:   in,
-		Flag: new(framework.Flag),
+		bud: bud,
+		in:  in,
+		Flag: &framework.Flag{
+			Env:    in.Env,
+			Stderr: in.Stderr,
+			Stdin:  in.Stdin,
+			Stdout: in.Stdout,
+		},
 	}
 }
 
@@ -35,12 +40,12 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	fsys, close, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
+	bfs, err := bud.FileSystem(ctx, log, module, c.Flag)
 	if err != nil {
 		return err
 	}
-	defer close()
-	code, err := fs.ReadFile(fsys, path.Clean(c.Path))
+	defer bfs.Close()
+	code, err := fs.ReadFile(bfs, path.Clean(c.Path))
 	if err != nil {
 		return err
 	}

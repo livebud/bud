@@ -2,14 +2,20 @@ package socket
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
+	"strconv"
+	"syscall"
 	"time"
 
 	"github.com/livebud/bud/internal/urlx"
 )
+
+// ErrAddrInUse occurs when a port is already in use
+var ErrAddrInUse = syscall.EADDRINUSE
 
 type Listener interface {
 	net.Listener
@@ -68,6 +74,41 @@ func Listen(path string) (Listener, error) {
 		return nil, err
 	}
 	return &listener{tcp}, nil
+}
+
+// ListenUp is similar to listen, but will increment the port number until it
+// finds a free one or reaches the maximum number of attempts
+func ListenUp(path string, attempts int) (Listener, error) {
+	ln, err := Listen(path)
+	if err != nil {
+		if !errors.Is(err, ErrAddrInUse) {
+			return nil, err
+		}
+		if attempts--; attempts >= 0 {
+			newPath, err := incrementPort(path)
+			if err != nil {
+				return nil, err
+			}
+			return ListenUp(newPath, attempts-1)
+		}
+		return nil, err
+	}
+	return ln, nil
+}
+
+// Takes a address and increments the port by 1
+func incrementPort(path string) (string, error) {
+	url, err := urlx.Parse(path)
+	if err != nil {
+		return "", err
+	}
+	port, err := strconv.Atoi(url.Port())
+	if err != nil {
+		return "", err
+	}
+	port++
+	url.Host = url.Hostname() + ":" + strconv.Itoa(port)
+	return url.String(), nil
 }
 
 // Dial creates a connection to an address

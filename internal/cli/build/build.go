@@ -12,9 +12,14 @@ import (
 // New command for bud build
 func New(bud *bud.Command, in *bud.Input) *Command {
 	return &Command{
-		bud:  bud,
-		in:   in,
-		Flag: new(framework.Flag),
+		bud: bud,
+		in:  in,
+		Flag: &framework.Flag{
+			Env:    in.Env,
+			Stderr: in.Stderr,
+			Stdin:  in.Stdin,
+			Stdout: in.Stdout,
+		},
 	}
 }
 
@@ -41,12 +46,13 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	genfs, close, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
+	bfs, err := bud.FileSystem(ctx, log, module, c.Flag)
 	if err != nil {
 		return err
 	}
-	defer close()
-	if err := genfs.Sync("bud/internal"); err != nil {
+	defer bfs.Close()
+	// Generate the application
+	if err := bfs.Sync(module, "bud/internal"); err != nil {
 		return err
 	}
 	builder := gobuild.New(module)

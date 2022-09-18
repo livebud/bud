@@ -4,12 +4,16 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/livebud/bud/internal/urlx"
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/socket"
@@ -122,4 +126,47 @@ func TestUDSCleanup(t *testing.T) {
 	stat, err := os.Stat("test.sock")
 	is.True(errors.Is(err, os.ErrNotExist))
 	is.Equal(stat, nil)
+}
+
+func TestListenUp(t *testing.T) {
+	is := is.New(t)
+	ln0, err := socket.Listen(":0")
+	is.NoErr(err)
+	defer ln0.Close()
+	ln1, err := socket.ListenUp(ln0.Addr().String(), 5)
+	is.NoErr(err)
+	defer ln1.Close()
+	priorURL, err := urlx.Parse(ln0.Addr().String())
+	is.NoErr(err)
+	priorPort, err := strconv.Atoi(priorURL.Port())
+	is.NoErr(err)
+	url, err := urlx.Parse(ln1.Addr().String())
+	is.NoErr(err)
+	port, err := strconv.Atoi(url.Port())
+	is.NoErr(err)
+	is.Equal(port, priorPort+1)
+}
+
+func TestListenMaxAttemptsReached(t *testing.T) {
+	is := is.New(t)
+	ln0, err := socket.Listen(":0")
+	is.NoErr(err)
+	defer ln0.Close()
+	// This one should work
+	ln1, err := socket.ListenUp(ln0.Addr().String(), 1)
+	is.NoErr(err)
+	defer ln1.Close()
+	// This one should fail because we're using ln0 as the base
+	ln2, err := socket.ListenUp(ln0.Addr().String(), 1)
+	is.True(errors.Is(err, socket.ErrAddrInUse))
+	is.Equal(ln2, nil)
+}
+
+func TestListenPortTooHigh(t *testing.T) {
+	is := is.New(t)
+	ln0, err := socket.Listen(":65536")
+	ae, ok := err.(*net.AddrError)
+	is.True(ok)
+	is.Equal(ae.Err, "invalid port")
+	is.Equal(ln0, nil)
 }

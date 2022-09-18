@@ -138,7 +138,7 @@ func TestErrorPropagation(t *testing.T) {
 	file, err := fsys.Open("a.txt")
 	is.True(file == nil)
 	expect := strings.Join([]string{
-		`merged: open "a.txt"`,
+		`mergefs: open "a.txt"`,
 		`open "a.txt": afs: file does not exist`,
 		`open "a.txt": bfs: file does not exist`,
 		`open "a.txt": cfs: file does not exist`,

@@ -19,10 +19,11 @@ import (
 	"github.com/livebud/bud/internal/prompter"
 	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/internal/versions"
+	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/budhttp/budsvr"
+	"github.com/livebud/bud/package/gomod"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log"
-	"github.com/livebud/bud/package/overlay"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/package/watcher"
 )
@@ -30,9 +31,14 @@ import (
 // New command for bud run.
 func New(bud *bud.Command, in *bud.Input) *Command {
 	return &Command{
-		bud:  bud,
-		in:   in,
-		Flag: new(framework.Flag),
+		bud: bud,
+		in:  in,
+		Flag: &framework.Flag{
+			Env:    in.Env,
+			Stderr: in.Stderr,
+			Stdin:  in.Stdin,
+			Stdout: in.Stdout,
+		},
 	}
 }
 
@@ -70,7 +76,8 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	// Listening on the web listener as soon as possible
 	webln := c.in.WebLn
 	if webln == nil {
-		webln, err = socket.Listen(c.Listen)
+		// Listen and increment if the port is already in use up to 10 times
+		webln, err = socket.ListenUp(c.Listen, 10)
 		if err != nil {
 			return err
 		}
@@ -90,21 +97,11 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		log.Debug("run: bud server is listening", "url", "http://"+budln.Addr().String())
 	}
 	// Load the generator filesystem
-	genfs, close, err := bud.FileSystem(ctx, log, module, c.Flag, c.in)
+	bfs, err := bud.FileSystem(ctx, log, module, c.Flag)
 	if err != nil {
 		return err
 	}
-	defer close()
-	// Load V8
-	vm, err := v8.Load()
-	if err != nil {
-		return err
-	}
-	// Load the file server
-	servefs, err := bud.FileServer(log, module, vm, c.Flag)
-	if err != nil {
-		return err
-	}
+	defer bfs.Close()
 	// Create a bus if we don't have one yet
 	bus := c.in.Bus
 	if bus == nil {
@@ -114,7 +111,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	budServer := &budServer{
 		budln: budln,
 		bus:   bus,
-		fsys:  servefs,
+		fsys:  bfs,
 		log:   log,
 	}
 	// Setup the starter command
@@ -123,7 +120,8 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		Stdout: c.in.Stdout,
 		Stderr: c.in.Stderr,
 		Dir:    module.Directory(),
-		Env: append(c.in.Env,
+		Env: append(
+			append([]string{}, c.in.Env...),
 			"BUD_LISTEN="+budln.Addr().String(),
 		),
 	}
@@ -140,8 +138,9 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		builder:  gobuild.New(module),
 		prompter: &prompter,
 		bus:      bus,
-		genfs:    genfs,
+		bfs:      bfs,
 		log:      log,
+		module:   module,
 		starter:  starter,
 	}
 	// Start the servers
@@ -182,15 +181,16 @@ type appServer struct {
 	builder  *gobuild.Builder
 	prompter *prompter.Prompter
 	bus      pubsub.Client
-	genfs    *overlay.FileSystem
+	bfs      *budfs.FileSystem
 	log      log.Interface
+	module   *gomod.Module
 	starter  *exe.Command
 }
 
 // Run the app server
 func (a *appServer) Run(ctx context.Context) error {
 	// Generate the app
-	if err := a.genfs.Sync("bud/internal"); err != nil {
+	if err := a.bfs.Sync(a.module, "bud/internal"); err != nil {
 		a.bus.Publish("app:error", []byte(err.Error()))
 		a.log.Debug("run: published event", "event", "app:error")
 		return err
@@ -210,8 +210,16 @@ func (a *appServer) Run(ctx context.Context) error {
 	}
 	// Watch for changes
 	return watcher.Watch(ctx, a.dir, catchError(a.prompter, func(events []watcher.Event) error {
-		a.log.Debug("run: file changes", "paths", events)
+		// Trigger reloading
 		a.prompter.Reloading(events)
+		// Inform the bud filesystem of the changes
+		changes := make([]string, len(events))
+		for i, event := range events {
+			a.log.Debug("run: file changed", "path", event.Path)
+			changes[i] = event.Path
+		}
+		a.bfs.Change(changes...)
+		// Check if we can incrementally reload
 		if canIncrementallyReload(events) {
 			a.log.Debug("run: incrementally reloading")
 			// Publish the frontend:update event
@@ -231,7 +239,7 @@ func (a *appServer) Run(ctx context.Context) error {
 		a.bus.Publish("backend:update", nil)
 		a.log.Debug("run: published event", "event", "backend:update")
 		// Generate the app
-		if err := a.genfs.Sync("bud/internal"); err != nil {
+		if err := a.bfs.Sync(a.module, "bud/internal"); err != nil {
 			return err
 		}
 		// Build the app

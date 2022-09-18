@@ -3,6 +3,7 @@ package gobuild
 import (
 	"context"
 	"errors"
+	"io"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -14,10 +15,21 @@ import (
 )
 
 func New(module *gomod.Module) *Builder {
-	return &Builder{module, module.Directory("bud", "cache")}
+	return &Builder{
+		os.Environ(),
+		os.Stderr,
+		os.Stdin,
+		os.Stdout,
+		module,
+		module.Directory("bud", "cache"),
+	}
 }
 
 type Builder struct {
+	Env      []string
+	Stderr   io.Writer
+	Stdin    io.Reader
+	Stdout   io.Writer
 	module   *gomod.Module
 	cacheDir string
 }
@@ -51,12 +63,12 @@ func (b *Builder) build(ctx context.Context, mainPath string, outPath string, fl
 	}, flags...)
 	args = append(args, mainPath)
 	cmd := exec.CommandContext(ctx, "go", args...)
-	cmd.Env = append(os.Environ(),
+	cmd.Env = append(b.Env,
 		"GOMODCACHE="+b.module.ModCache(),
 	)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
+	cmd.Stdout = b.Stdout
+	cmd.Stderr = b.Stderr
+	cmd.Stdin = b.Stdin
 	cmd.Dir = b.module.Directory()
 	err := cmd.Run()
 	if err != nil {

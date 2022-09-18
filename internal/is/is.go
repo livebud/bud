@@ -115,10 +115,10 @@ func (is *I) In(list interface{}, item interface{}, args ...interface{}) {
 
 // NotIn asserts that item is not contained within list
 func (is *I) NotIn(list interface{}, item interface{}, args ...interface{}) {
-	panic("TODO: implement")
-}
-
-// ErrIs asserts that err is the same type of error as target
-func (is *I) ErrIs(err, target error, args ...interface{}) {
-	panic("TODO: implement")
+	ok, found := containsElement(list, item)
+	if !ok {
+		is.logf("%s is not a list%s", is.valWithType(list), is.formatArgs(args))
+	} else if found {
+		is.logf("%v is in %+v%s", item, list, is.formatArgs(args))
+	}
 }

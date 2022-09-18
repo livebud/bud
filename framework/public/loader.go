@@ -33,20 +33,20 @@ type loader struct {
 // Load the command state
 func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
-	state = new(State)
-	state.Flag = l.flag
-	exist, err := vfs.SomeExist(l.fsys, "public", "view")
+	files, err := fs.Glob(l.fsys, "{public/**,view/**}")
 	if err != nil {
 		return nil, err
-	} else if len(exist) == 0 {
+	} else if len(files) == 0 {
 		return nil, fs.ErrNotExist
 	}
+	state = new(State)
+	state.Flag = l.flag
 	// Default imports
-	l.imports.AddStd("errors", "io", "io/fs", "net/http", "path", "time")
+	l.imports.AddNamed("virtual", "github.com/livebud/bud/package/virtual")
 	l.imports.AddNamed("middleware", "github.com/livebud/bud/package/middleware")
-	l.imports.AddNamed("overlay", "github.com/livebud/bud/package/overlay")
+	l.imports.AddNamed("publicrt", "github.com/livebud/bud/framework/public/publicrt")
 	// Load embeds
-	if exist["public"] && l.flag.Embed {
+	if l.flag.Embed {
 		state.Embeds = l.loadEmbedsFrom("public", ".")
 	}
 	// Load default public files. Out of convenience, these defaults are embedded
@@ -74,15 +74,14 @@ func (l *loader) loadEmbedsFrom(root, dir string) (files []*embed.File) {
 			continue
 		}
 		fullPath := path.Join(root, filePath)
-		file := &embed.File{
-			Path: fullPath,
-		}
 		data, err := fs.ReadFile(l.fsys, fullPath)
 		if err != nil {
 			l.Bail(err)
 		}
-		file.Data = data
-		files = append(files, file)
+		files = append(files, &embed.File{
+			Path: fullPath,
+			Data: data,
+		})
 	}
 	return files
 }

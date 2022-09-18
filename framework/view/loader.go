@@ -14,12 +14,13 @@ import (
 	"github.com/livebud/bud/internal/embed"
 	"github.com/livebud/bud/internal/entrypoint"
 	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/gomod"
 )
 
 func Load(
 	ctx context.Context,
-	fsys fs.FS,
+	fsys budfs.FS,
 	module *gomod.Module,
 	transform *transformrt.Map,
 	flag *framework.Flag,
@@ -34,7 +35,7 @@ func Load(
 }
 
 type loader struct {
-	fsys      fs.FS
+	fsys      budfs.FS
 	module    *gomod.Module
 	transform *transformrt.Map
 	flag      *framework.Flag
@@ -80,8 +81,8 @@ func (l *loader) Load(ctx context.Context) (state *State, err error) {
 	}
 	// fmt.Println(l.Flag.Embed, l.Transform.SSR, views)
 	if l.flag.Embed {
-		l.imports.AddNamed("overlay", "github.com/livebud/bud/package/overlay")
-		l.imports.AddNamed("mod", "github.com/livebud/bud/package/gomod")
+		l.imports.AddNamed("virtual", "github.com/livebud/bud/package/virtual")
+		l.imports.AddNamed("gomod", "github.com/livebud/bud/package/gomod")
 		l.imports.AddNamed("js", "github.com/livebud/bud/package/js")
 	} else {
 		l.imports.AddNamed("budhttp", "github.com/livebud/bud/package/budhttp")

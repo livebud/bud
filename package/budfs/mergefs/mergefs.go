@@ -12,8 +12,8 @@ import (
 	"github.com/livebud/bud/internal/errs"
 )
 
-// Merge the filesystems together
-// TODO: give the filesystems names
+// Merge the filesystems together. When there are conflicts, the earlier
+// filesystem has priority.
 func Merge(fileSystems ...fs.FS) *FS {
 	return &FS{fileSystems}
 }
@@ -70,7 +70,10 @@ type notExists struct {
 
 // Error implements error and joins all the errors together
 func (n *notExists) Error() string {
-	return fmt.Errorf("merged: open %q. %w", n.path, errs.Join(n.errors...)).Error()
+	if len(n.errors) == 0 {
+		return fmt.Sprintf("mergefs: open %q. %s", n.path, fs.ErrNotExist)
+	}
+	return fmt.Sprintf("mergefs: open %q. %s", n.path, errs.Join(n.errors...))
 }
 
 // This type of error should be an fs.ErrNotExist because all underlying errors
@@ -104,7 +107,7 @@ func (f *FS) mergeDir(path string, dirs []dir) (fs.File, error) {
 		defer dir.Close()
 		d, ok := dir.File.(fs.ReadDirFile)
 		if !ok {
-			return nil, fmt.Errorf("merged: directories doesn't implement ReadDirFile")
+			return nil, fmt.Errorf("mergefs: directories doesn't implement ReadDirFile")
 		}
 		// Read all the dir entries
 		des, err := d.ReadDir(-1)
