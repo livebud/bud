@@ -218,11 +218,4 @@ func TestDefaults(t *testing.T) {
 	is.Equal(200, res.Status())
 	is.Equal(len(res.Body().Bytes()), len(embedded.Favicon()))
 	is.Equal(res.Body().Bytes(), embedded.Favicon())
-
-	// default.css load as empty if not exist
-	res, err = app.Get("/default.css")
-	is.NoErr(err)
-	is.Equal(200, res.Status())
-	is.Equal(res.Body().Bytes(), embedded.EmptyCss())
-	is.In(res.Header("Content-Type"), "css")
 }
