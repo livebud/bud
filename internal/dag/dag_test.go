@@ -1,7 +1,6 @@
 package dag_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/livebud/bud/internal/dag"
@@ -21,9 +20,7 @@ func TestRemove(t *testing.T) {
 	graph.Link("duo/view/_ssr.js", "node_modules/react-dom/cjs/react-dom-server.browser.development.js")
 	graph.Link("duo/main.go", "duo/program/program.go")
 	graph.Link("duo/program/program.go", "duo/web/web.go")
-	fmt.Println(graph.String())
 	graph.Remove(graph.Parents("modules/uid/index.ts")...)
-	fmt.Println(graph.String())
 }
 
 func TestShortestPath(t *testing.T) {
@@ -70,6 +67,7 @@ func TestShortestPathNone(t *testing.T) {
 	is.Equal(err.Error(), `dag: no path between ".svelte" and ".jsx"`)
 	is.Equal(nodes, nil)
 }
+
 func TestShortestPathOf(t *testing.T) {
 	is := is.New(t)
 	graph := dag.New()

@@ -1,0 +1,8 @@
+{
+  "name": "docs",
+  "private": true,
+  "dependencies": {
+    "livebud": "latest",
+    "svelte": "3.47.0"
+  }
+}

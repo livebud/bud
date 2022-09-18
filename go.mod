@@ -34,6 +34,7 @@ require (
 
 require (
 	github.com/BurntSushi/toml v0.4.1 // indirect
+	github.com/albertorestifo/dijkstra v0.0.0-20160910063646-aba76f725f72 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/gedex/inflector v0.0.0-20170307190818-16278e9db813 // indirect
 	github.com/kr/pretty v0.3.0 // indirect

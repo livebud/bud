@@ -1,0 +1,93 @@
+package main
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+// main entrypoint
+func main() {
+	ctx := context.Background()
+	if err := run(ctx); err != nil {
+		if errors.Is(err, context.Canceled) {
+			return
+		}
+		console.Error(err.Error())
+		os.Exit(1)
+	}
+}
+
+func run(ctx context.Context) error {
+	cli := commander.New("transform")
+	cli.Run(transform)
+	return cli.Parse(ctx, os.Args[1:])
+}
+
+func logger() (log.Interface, error) {
+	{{/* TODO: configurable log level */}}
+	handler, err := filter.Load(console.New(os.Stderr), "info")
+	if err != nil {
+		return nil, err
+	}
+	return log.New(handler), nil
+}
+
+func transform(ctx context.Context) error {
+	log, err := logger()
+	if err != nil {
+		return err
+	}
+	module, err := gomod.Find(".")
+	if err != nil {
+		return err
+	}
+	// Load the transforms
+	transformers, err := {{ $.Provider.Name }}(
+		{{- if $.Provider.Variable "context.Context" }}ctx,{{ end }}
+		{{- if $.Provider.Variable "github.com/livebud/bud/package/gomod.*Module" }}module,{{ end }}
+		{{- if $.Provider.Variable "github.com/livebud/bud/package/log.Interface" }}log,{{ end }}
+	)
+	if err != nil {
+		return err
+	}
+	// Load the transformer
+	transformer := transformrt.Load(
+		log,
+		{{- range $transformer := $.Transformers }}
+		{{- range $transform := $transformer.Transforms }}
+		&transformrt.Transform{
+			Import: "{{ $transformer.Import.Path }}",
+			From: "{{ $transform.From }}",
+			To: "{{ $transform.To }}",
+			Func: transformers.{{ $transformer.Pascal }}.{{ $transform.Name }},
+		},
+		{{- end }}
+		{{- end }}
+	)
+	bfs := budfs.New(module, log)
+	bfs.ServeFile("bud/transform", func(fsys budfs.FS, file *budfs.File) error {
+		code, err := transformer.Transform(fsys, file.Relative())
+		if err != nil {
+			return err
+		}
+		file.Data = code
+		return nil
+	})
+	log.Debug("framework/transform: serving remote 'bud/transform' directory")
+	return remotefs.ServeFrom(ctx, bfs, "")
+}
+
+{{/* Provider that creates a function for initializing Transformer */}}
+{{ $.Provider.Function }}
+
+{{/* Transformer needs to be synced with *di.Provider */}}
+// Transformers is a struct of transforms
+type Transformers struct {
+	{{- range $transformer := $.Transformers }}
+	{{ $transformer.Pascal }} *{{ $transformer.Import.Name }}.Transform
+	{{- end }}
+}

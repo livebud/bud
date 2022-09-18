@@ -18,6 +18,7 @@ import (
 	"github.com/livebud/bud/framework/generator"
 	"github.com/livebud/bud/framework/public"
 	"github.com/livebud/bud/framework/transform/transformrt"
+	transform "github.com/livebud/bud/framework/transform2"
 	"github.com/livebud/bud/framework/view"
 	"github.com/livebud/bud/framework/view/dom"
 	"github.com/livebud/bud/framework/view/ssr"
@@ -144,6 +145,7 @@ func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, fl
 	bfs.FileServer("bud/view", dom.New(module, transforms.DOM))
 	bfs.FileServer("bud/node_modules", dom.NodeModules(module))
 	bfs.DirGenerator("bud/internal/generator", generator.New(flag, injector, log, module, parser))
+	bfs.FileServer("bud/transform", transform.New(flag, injector, log, module, parser))
 	return bfs, nil
 }
 

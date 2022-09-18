@@ -118,6 +118,7 @@ func (c *Compiler) Compile(ctx context.Context, fsys fs.FS) ([]esbuild.OutputFil
 		MinifyWhitespace:  true,
 		Plugins: append([]esbuild.Plugin{
 			domPlugin(fsys, c.module),
+			mdPlugin(),
 		}, c.transformer.Plugins()...),
 		Write: false,
 	})
@@ -180,6 +181,7 @@ func (c *Compiler) GenerateFile(fsys budfs.FS, file *budfs.File) error {
 		Plugins: append([]esbuild.Plugin{
 			domPlugin(fsys, c.module),
 			domExternalizePlugin(),
+			mdPlugin(),
 		}, c.transformer.Plugins()...),
 	})
 	if len(result.Errors) > 0 {
@@ -366,4 +368,25 @@ func toIdentifier(importPath string) string {
 
 func importStatement(identifier, name string) string {
 	return fmt.Sprintf(`import %s from "/bud/node_modules/%s"`+"\n", identifier, name)
+}
+
+// makeshift markdown plugin
+func mdPlugin() esbuild.Plugin {
+	return esbuild.Plugin{
+		Name: "md",
+		Setup: func(epb esbuild.PluginBuild) {
+			epb.OnResolve(esbuild.OnResolveOptions{Filter: `.md$`}, func(args esbuild.OnResolveArgs) (result esbuild.OnResolveResult, err error) {
+				result.Path = args.Path
+				result.Namespace = "md"
+				return result, nil
+			})
+			epb.OnLoad(esbuild.OnLoadOptions{Filter: `.*`, Namespace: "md"}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
+				fmt.Println("loading result", args.Path)
+				code := `<h2>hello from markdown land</h2>`
+				result.Contents = &code
+				result.Loader = esbuild.LoaderText
+				return result, nil
+			})
+		},
+	}
 }

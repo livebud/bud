@@ -73,6 +73,7 @@ func (c *Compiler) Compile(ctx context.Context, fsys budfs.FS) ([]byte, error) {
 			jsxTransformPlugin(fsys, dir),
 			sveltePlugin(fsys, dir),
 			svelteRuntimePlugin(fsys, dir),
+			mdPlugin(fsys, c.module),
 		}, c.transformer.Plugins()...),
 	})
 	if len(result.Errors) > 0 {
@@ -296,6 +297,42 @@ func svelteRuntimePlugin(osfs fs.FS, dir string) esbuild.Plugin {
 				result.ResolveDir = dir
 				result.Contents = &svelteRuntime
 				result.Loader = esbuild.LoaderTS
+				return result, nil
+			})
+		},
+	}
+}
+
+// makeshift markdown plugin
+func mdPlugin(bfs budfs.FS, module *gomod.Module) esbuild.Plugin {
+	return esbuild.Plugin{
+		Name: "transform",
+		Setup: func(epb esbuild.PluginBuild) {
+			epb.OnResolve(esbuild.OnResolveOptions{Filter: `.*$`}, func(args esbuild.OnResolveArgs) (result esbuild.OnResolveResult, err error) {
+				fmt.Println("resolving", args.Path)
+				// TODO: figure out how to know available transforms
+				if filepath.Ext(args.Path) == ".md" {
+					abs := filepath.Join(args.ResolveDir, args.Path)
+					rel, err := filepath.Rel(module.Directory(), abs)
+					if err != nil {
+						return result, err
+					}
+					result.Path = filepath.Clean(rel)
+					result.Namespace = "md"
+				}
+				return result, nil
+			})
+			epb.OnLoad(esbuild.OnLoadOptions{Filter: `.*`, Namespace: "md"}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
+				transformPath := "bud/transform/" + args.Path + ".js"
+				fmt.Println("reading", transformPath)
+				code, err := fs.ReadFile(bfs, transformPath)
+				if err != nil {
+					return result, err
+				}
+				contents := string(code)
+				fmt.Println("got result", contents)
+				result.Contents = &contents
+				result.Loader = esbuild.LoaderText
 				return result, nil
 			})
 		},

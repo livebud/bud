@@ -9,41 +9,39 @@ import (
 	"time"
 
 	"github.com/livebud/bud/package/budhttp"
-	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/middleware"
-	"github.com/livebud/bud/package/pluginmod"
 
 	"github.com/livebud/bud/package/budfs/mergefs"
 )
 
-// Load the app and plugins into a single filesystem
-func LoadFS(module *gomod.Module) (fsys fs.FS, err error) {
-	publics, err := pluginmod.Glob(module, "public")
-	if err != nil {
-		return nil, err
-	}
-	// We'll still want to render public for the default favicon if
-	// we have views.
-	// TODO: this will go away when we scaffold a default favicon and then remove
-	// auto-generating a default favicon when no favicon exists.
-	if len(publics) == 0 {
-		views, err := pluginmod.Glob(module, "view")
-		if err != nil {
-			return nil, err
-		}
-		if len(views) == 0 {
-			return nil, fs.ErrNotExist
-		}
-	}
-	// Merge the public modules into a single fs
-	fileSystems := make([]fs.FS, len(publics))
-	for i, public := range publics {
-		fileSystems[i] = public
-	}
-	fsys = mergefs.Merge(fileSystems...)
-	// Scope to the public/ directory
-	return fs.Sub(fsys, "public")
-}
+// // Load the app and plugins into a single filesystem
+// func LoadFS(module *gomod.Module) (fsys fs.FS, err error) {
+// 	publics, err := pluginmod.Glob(module, "public")
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	// We'll still want to render public for the default favicon if
+// 	// we have views.
+// 	// TODO: this will go away when we scaffold a default favicon and then remove
+// 	// auto-generating a default favicon when no favicon exists.
+// 	if len(publics) == 0 {
+// 		views, err := pluginmod.Glob(module, "view")
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		if len(views) == 0 {
+// 			return nil, fs.ErrNotExist
+// 		}
+// 	}
+// 	// Merge the public modules into a single fs
+// 	fileSystems := make([]fs.FS, len(publics))
+// 	for i, public := range publics {
+// 		fileSystems[i] = public
+// 	}
+// 	fsys = mergefs.Merge(fileSystems...)
+// 	// Scope to the public/ directory
+// 	return fs.Sub(fsys, "public")
+// }
 
 type Server interface {
 	Serve(fsys fs.FS) middleware.Middleware
