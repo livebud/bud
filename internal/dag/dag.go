@@ -37,9 +37,9 @@ func (g *Graph) Set(path string) {
 }
 
 func (g *Graph) Link(from, to string) {
-	if from == to {
-		return
-	}
+	// if from == to {
+	// 	return
+	// }
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	// Create nodes if we haven't yet
