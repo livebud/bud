@@ -63,6 +63,81 @@ func TestSvelteHello(t *testing.T) {
 	is.True(strings.Contains(res.Body, `<h1>hi world</h1>`))
 }
 
+func TestSvelteRemoveDefaultCss(t *testing.T) {
+	is := is.New(t)
+	log := testlog.New()
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["view/index.svelte"] = `<h1>hi world</h1>`
+	td.NodeModules["svelte"] = versions.Svelte
+	is.NoErr(td.Write(ctx))
+	vm, err := v8.Load()
+	is.NoErr(err)
+	svelteCompiler, err := svelte.Load(vm)
+	is.NoErr(err)
+	transformer := transformrt.MustLoad(svelte.NewTransformable(svelteCompiler))
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	bfs := budfs.New(module, log)
+	is.NoErr(err)
+	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
+	// Read the wrapped version of index.svelte with node_modules rewritten
+	code, err := fs.ReadFile(bfs, "bud/view/_ssr.js")
+	is.NoErr(err)
+	is.True(strings.Contains(string(code), `create_ssr_component(`))
+	is.True(strings.Contains(string(code), `<h1>hi world</h1>`))
+	is.True(strings.Contains(string(code), `views["/"] = `))
+	result, err := vm.Eval("render.js", string(code)+`; bud.render("/", {})`)
+	is.NoErr(err)
+	var res ssr.Response
+	err = json.Unmarshal([]byte(result), &res)
+	is.NoErr(err)
+	is.Equal(res.Status, 200)
+	is.Equal(len(res.Headers), 1)
+	is.Equal(res.Headers["Content-Type"], "text/html")
+	// svelte must not linked to default.css when removed
+	is.True(!strings.Contains(res.Body, `<link rel="stylesheet" href="default.css">`))
+	is.True(strings.Contains(res.Body, `<!-- default css -->`))
+}
+
+func TestSvelteDefaultCss(t *testing.T) {
+	is := is.New(t)
+	log := testlog.New()
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["view/index.svelte"] = `<h1>hi world</h1>`
+	td.Files["public/default.css"] = `.body{}`
+	td.NodeModules["svelte"] = versions.Svelte
+	is.NoErr(td.Write(ctx))
+	vm, err := v8.Load()
+	is.NoErr(err)
+	svelteCompiler, err := svelte.Load(vm)
+	is.NoErr(err)
+	transformer := transformrt.MustLoad(svelte.NewTransformable(svelteCompiler))
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	bfs := budfs.New(module, log)
+	is.NoErr(err)
+	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer.SSR))
+	// Read the wrapped version of index.svelte with node_modules rewritten
+	code, err := fs.ReadFile(bfs, "bud/view/_ssr.js")
+	is.NoErr(err)
+	is.True(strings.Contains(string(code), `create_ssr_component(`))
+	is.True(strings.Contains(string(code), `<h1>hi world</h1>`))
+	is.True(strings.Contains(string(code), `views["/"] = `))
+	result, err := vm.Eval("render.js", string(code)+`; bud.render("/", {})`)
+	is.NoErr(err)
+	var res ssr.Response
+	err = json.Unmarshal([]byte(result), &res)
+	is.NoErr(err)
+	is.Equal(res.Status, 200)
+	is.Equal(len(res.Headers), 1)
+	is.Equal(res.Headers["Content-Type"], "text/html")
+	is.True(strings.Contains(res.Body, `<link rel="stylesheet" href="default.css">`))
+}
+
 func TestSvelteAwait(t *testing.T) {
 	is := is.New(t)
 	log := testlog.New()

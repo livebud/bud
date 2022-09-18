@@ -20,6 +20,7 @@ import (
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/vfs"
 )
 
 // Response from evaluating SSR files
@@ -49,6 +50,11 @@ type Compiler struct {
 
 func (c *Compiler) Compile(ctx context.Context, fsys budfs.FS) ([]byte, error) {
 	dir := c.module.Directory()
+
+	if existCss := vfs.Exist(fsys, "public/default.css"); nil == existCss {
+		svelteRuntime = strings.Replace(svelteRuntime, `<!-- default css -->`, `<link rel="stylesheet" href="default.css">`, 1)
+	}
+
 	result := esbuild.Build(esbuild.BuildOptions{
 		EntryPointsAdvanced: []esbuild.EntryPoint{
 			{

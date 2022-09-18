@@ -19,8 +19,3 @@ func Favicon() []byte {
 func NormalizeCss() []byte {
 	return normalize
 }
-
-// EmptyCss reset the default css data
-func EmptyCss() []byte {
-	return []byte("/* No Default CSS Loaded */")
-}

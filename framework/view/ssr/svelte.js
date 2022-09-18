@@ -326,8 +326,8 @@ var defaultLayout = {
         <!doctype html>
         <html>
           <head>
-            <meta charset="utf-8"/>
-            <link rel="stylesheet" href="default.css" />
+            <meta charset="utf-8" />
+            <!-- default css -->
             ${slots.head(props)}
           </head>
           <body>${slots.default(props)}</body>
