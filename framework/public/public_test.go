@@ -57,15 +57,12 @@ var gif = []byte{
 	0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x3b,
 }
 
-var defaultCss = embedded.NormalizeCss()
-
 func TestPublic(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)
 	td.BFiles["public/favicon.ico"] = favicon
-	td.BFiles["public/default.css"] = defaultCss
 	ga := `function ga(track){}`
 	td.Files["public/ga.js"] = ga
 	css := `* { box-sizing: border-box; }`
@@ -90,20 +87,19 @@ func TestPublic(t *testing.T) {
 	is.Equal(200, res.Status())
 	is.Equal(res.Body().String(), ga)
 	is.In(res.Header("Content-Type"), "/javascript")
-	// check gif file
+	// /normalize/normalize.css
+	res, err = app.Get("/normalize/normalize.css")
+	is.NoErr(err)
+	is.Equal(200, res.Status())
+	is.Equal(res.Body().String(), css)
+	is.In(res.Header("Content-Type"), "css")
+	// /normalize/normalize.css
 	res, err = app.Get("/lol.gif")
 	is.NoErr(err)
 	is.Equal(200, res.Status())
 	is.Equal(res.Body().Bytes(), gif)
 	is.In(res.Header("Content-Type"), "image/")
 	is.In(res.Header("Content-Type"), "gif")
-
-	// default.css has in public folder
-	res, err = app.Get("/default.css")
-	is.NoErr(err)
-	is.Equal(200, res.Status())
-	is.Equal(res.Body().Bytes(), defaultCss)
-	is.In(res.Header("Content-Type"), "css")
 }
 
 func TestPlugin(t *testing.T) {
@@ -130,7 +126,6 @@ func TestGetChangeGet(t *testing.T) {
 	dir := t.TempDir()
 	td := testdir.New(dir)
 	td.BFiles["public/favicon.ico"] = favicon
-	td.BFiles["public/default.css"] = defaultCss
 	is.NoErr(td.Write(ctx))
 	cli := testcli.New(dir)
 	app, err := cli.Start(ctx, "run")
@@ -150,20 +145,8 @@ func TestGetChangeGet(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(200, res.Status())
 	is.Equal(res.Body().Bytes(), favicon2)
-
-	res, err = app.Get("/default.css")
-	is.NoErr(err)
-	is.Equal(200, res.Status())
-	is.Equal(res.Body().Bytes(), defaultCss)
-
-	// default.css changed
-	defaultCss2 := []byte("/* changed default.css */")
-	td.BFiles["public/default.css"] = defaultCss2
-	is.NoErr(td.Write(ctx))
-	res, err = app.Get("/default.css")
-	is.NoErr(err)
-	is.Equal(200, res.Status())
-	is.Equal(res.Body().Bytes(), defaultCss2)
+	// is.Equal(result.Stdout(), "")
+	// is.Equal(result.Stderr(), "")
 }
 
 func TestEmbedFavicon(t *testing.T) {
@@ -218,4 +201,5 @@ func TestDefaults(t *testing.T) {
 	is.Equal(200, res.Status())
 	is.Equal(len(res.Body().Bytes()), len(embedded.Favicon()))
 	is.Equal(res.Body().Bytes(), embedded.Favicon())
+	is.NoErr(app.Close())
 }
