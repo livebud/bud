@@ -49,7 +49,6 @@ func (c *CLI) Run(ctx context.Context, args ...string) error {
 		cmd := create.New(cmd, c.in)
 		cli := cli.Command("create", "create a new app")
 		cli.Arg("dir").String(&cmd.Dir)
-		cli.Flag("css", "add a css").String(&cmd.Css).Default("normalize")
 		cli.Flag("dev", "link to the development version").Short('D').Bool(&cmd.Dev).Default(versions.Bud == "latest")
 		cli.Flag("log", "filter logs with this pattern").Short('L').String(&cmd.Log).Default("info")
 		cli.Flag("module", "module path for go.mod").String(&cmd.Module).Optional()

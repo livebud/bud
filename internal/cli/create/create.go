@@ -23,7 +23,6 @@ func New(bud *bud.Command, in *bud.Input) *Command {
 type Command struct {
 	Log    string
 	Dir    string
-	Css    string
 	Module string
 	Dev    bool
 
