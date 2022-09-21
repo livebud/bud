@@ -3,7 +3,6 @@ package toolfstree
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"os"
 	"path"
 
@@ -46,14 +45,10 @@ func (c *Command) Run(ctx context.Context) error {
 		return err
 	}
 	defer bfs.Close()
-	subfs, err := fs.Sub(bfs, dir)
+	tree, err := printfs.Print(bfs, dir)
 	if err != nil {
 		return err
 	}
-	tree, err := printfs.Walk(subfs)
-	if err != nil {
-		return err
-	}
-	fmt.Fprintln(os.Stdout, tree.String())
+	fmt.Fprintln(os.Stdout, tree)
 	return nil
 }
