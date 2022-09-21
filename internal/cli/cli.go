@@ -15,6 +15,7 @@ import (
 	"github.com/livebud/bud/internal/cli/tooldi"
 	"github.com/livebud/bud/internal/cli/toolfscat"
 	"github.com/livebud/bud/internal/cli/toolfsls"
+	"github.com/livebud/bud/internal/cli/toolfstree"
 	"github.com/livebud/bud/internal/cli/toolfstxtar"
 	"github.com/livebud/bud/internal/cli/toolv8"
 	"github.com/livebud/bud/internal/cli/version"
@@ -131,6 +132,16 @@ func (c *CLI) Run(ctx context.Context, args ...string) error {
 				cli.Flag("hot", "hot reloading").Bool(&cmd.Flag.Hot).Default(true)
 				cli.Flag("minify", "minify assets").Bool(&cmd.Flag.Minify).Default(false)
 				cli.Arg("path").String(&cmd.Path)
+				cli.Run(cmd.Run)
+			}
+
+			{ // $ bud tool fs tree [dir]
+				cmd := toolfstree.New(cmd, c.in)
+				cli := cli.Command("tree", "list the file tree")
+				cli.Flag("embed", "embed assets").Bool(&cmd.Flag.Embed).Default(false)
+				cli.Flag("hot", "hot reloading").Bool(&cmd.Flag.Hot).Default(true)
+				cli.Flag("minify", "minify assets").Bool(&cmd.Flag.Minify).Default(false)
+				cli.Arg("dir").String(&cmd.Dir).Default(".")
 				cli.Run(cmd.Run)
 			}
 
