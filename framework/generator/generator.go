@@ -27,11 +27,12 @@ func Generate(state *State) ([]byte, error) {
 	return generator.Generate(state)
 }
 
-func New(flag *framework.Flag, injector *di.Injector, log log.Interface, module *gomod.Module, parser *parser.Parser) *Generator {
-	return &Generator{flag, injector, log, module, parser, nil}
+func New(bfs *budfs.FileSystem, flag *framework.Flag, injector *di.Injector, log log.Interface, module *gomod.Module, parser *parser.Parser) *Generator {
+	return &Generator{bfs, flag, injector, log, module, parser, nil}
 }
 
 type Generator struct {
+	bfs      *budfs.FileSystem
 	flag     *framework.Flag
 	injector *di.Injector
 	log      log.Interface

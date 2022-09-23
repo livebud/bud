@@ -1006,6 +1006,19 @@ func TestReadRootNotExists(t *testing.T) {
 	is.Equal(reads, 1)
 }
 
+func TestReadRootNotExists(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Map{}
+	log := testlog.New()
+	bfs := budfs.New(fsys, log)
+	bfs.GenerateFile("controller.go", func(fsys budfs.FS, file *budfs.File) error {
+		return fs.ErrNotExist
+	})
+	des, err := fs.ReadDir(bfs, ".")
+	is.NoErr(err)
+	is.Equal(len(des), 0)
+}
+
 func TestServeFile(t *testing.T) {
 	is := is.New(t)
 	fsys := virtual.Map{}
@@ -1016,7 +1029,7 @@ func TestServeFile(t *testing.T) {
 		return nil
 	})
 	des, err := fs.ReadDir(bfs, "duo/view")
-	is.True(errors.Is(err, fs.ErrNotExist))
+	is.NoErr(err)
 	is.Equal(len(des), 0)
 
 	// _index.svelte

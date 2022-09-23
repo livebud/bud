@@ -15,4 +15,5 @@ type UserGenerator struct {
 	Import *imports.Import
 	Path   string
 	Pascal string
+	Method string // GenerateDir or ServeFile
 }

@@ -78,12 +78,19 @@ func (l *loader) loadGenerators(bfs budfs.FS) (generators []*UserGenerator) {
 			l.Bail(err)
 		}
 		// Ensure the package has a generator
-		// TODO: ensure the package has a GenerateDir function that
-		// matches the accepted signature
-		if s := pkg.Struct("Generator"); s == nil {
+		stct := pkg.Struct("Generator")
+		if stct == nil {
 			l.Bail(fmt.Errorf("no Generator struct in %q", importPath))
-		} else if s.Method("GenerateDir") == nil {
-			l.Bail(fmt.Errorf("no (*Generator).GenerateDir(...) method in %q", importPath))
+		}
+		method := ""
+		// TODO: ensure signatures match too
+		if stct.Method("GenerateDir") != nil {
+			method = "GenerateDir"
+		} else if stct.Method("GenerateFile") != nil {
+			method = "GenerateFile"
+		} else {
+			// Skip the generator
+			continue
 		}
 		imp := &imports.Import{
 			Name: l.imports.Add(importPath),
@@ -92,6 +99,7 @@ func (l *loader) loadGenerators(bfs budfs.FS) (generators []*UserGenerator) {
 		rootlessGenerator := strings.TrimPrefix(generatorDir, "generator/")
 		generators = append(generators, &UserGenerator{
 			Import: imp,
+			Method: method,
 			Path:   rootlessGenerator,
 			Pascal: gotext.Pascal(rootlessGenerator),
 		})

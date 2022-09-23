@@ -280,13 +280,13 @@ func (g *fileServer) Generate(target string) (fs.File, error) {
 	if entry, ok := g.fsys.cache.Get(target); ok {
 		return virtual.New(entry), nil
 	}
+	// Always return an empty directory if we request the root
 	rel := relativePath(g.node.Path(), target)
 	if rel == "." {
-		return nil, &fs.PathError{
-			Op:   "open",
-			Path: g.node.Path(),
-			Err:  fs.ErrNotExist,
-		}
+		return virtual.New(&virtual.Dir{
+			Path: g.path,
+			Mode: fs.ModeDir,
+		}), nil
 	}
 	fctx := &fileSystem{context.TODO(), g.fsys, g.fsys.lmap.Scope(target)}
 	// File differs slightly than others because g.node.Path() is the directory

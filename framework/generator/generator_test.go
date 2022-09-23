@@ -2,21 +2,50 @@ package generator_test
 
 import (
 	"context"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/livebud/bud/package/log/testlog"
+
+	"github.com/livebud/bud/framework/generator"
+
 	"github.com/lithammer/dedent"
+	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/cli/testcli"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
+	"github.com/livebud/bud/package/budfs"
+	"github.com/livebud/bud/package/di"
+	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/log"
+	"github.com/livebud/bud/package/parser"
 )
+
+func loadBFS(log log.Interface, module *gomod.Module) *budfs.FileSystem {
+	bfs := budfs.New(module, log)
+	flag := &framework.Flag{
+		Embed:  false,
+		Minify: false,
+		Hot:    true,
+		Stdin:  os.Stdin,
+		Stdout: os.Stdout,
+		Stderr: os.Stderr,
+		Env:    os.Environ(),
+	}
+	parser := parser.New(bfs, module)
+	injector := di.New(bfs, log, module, parser)
+	bfs.DirGenerator("bud/internal/generator", generator.New(bfs, flag, injector, log, module, parser))
+	return bfs
+}
 
 func TestGenerators(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
+	log := testlog.New()
 	td := testdir.New(dir)
 	td.Files["generator/tailwind/tailwind.go"] = `
 		package tailwind
@@ -89,31 +118,44 @@ func TestGenerators(t *testing.T) {
 			return nil
 		}
 	`
+	td.Files["generator/transform/transform.go"] = `
+		package transform
+		import (
+			"github.com/livebud/bud/package/budfs"
+		)
+		type Generator struct {
+		}
+		func (g *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
+			file.Data = []byte("transforming: " + file.Relative())
+			return nil
+		}
+	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
-	_, err := cli.Run(ctx, "build", "--embed=false")
+	module, err := gomod.Find(dir)
 	is.NoErr(err)
-	is.NoErr(td.Exists("bud/tmp/generate/main.go"))
-	is.NoErr(td.Exists("bud/internal/generator/tailwind/tailwind.css"))
-	is.NoErr(td.Exists("bud/internal/generator/tailwind/preflight.css"))
-	is.NoErr(td.Exists("bud/internal/generator/markdoc/view/index.md"))
-	is.NoErr(td.Exists("bud/internal/generator/markdoc/view/about/index.md"))
-	is.NoErr(td.Exists("bud/internal/generator/web/viewer/viewer.go"))
-	data, err := os.ReadFile(td.Path("bud/internal/generator/tailwind/tailwind.css"))
+	bfs := loadBFS(log, module)
+	defer bfs.Close()
+	data, err := fs.ReadFile(bfs, "bud/internal/generator/tailwind/tailwind.css")
 	is.NoErr(err)
 	is.Equal(string(data), "/** tailwind **/")
-	data, err = os.ReadFile(td.Path("bud/internal/generator/tailwind/preflight.css"))
+	data, err = fs.ReadFile(bfs, "bud/internal/generator/tailwind/preflight.css")
 	is.NoErr(err)
 	is.Equal(string(data), "/** preflight **/")
-	data, err = os.ReadFile(td.Path("bud/internal/generator/markdoc/view/index.md"))
+	data, err = fs.ReadFile(bfs, "bud/internal/generator/markdoc/view/index.md")
 	is.NoErr(err)
 	is.Equal(string(data), "# Index # Index")
-	data, err = os.ReadFile(td.Path("bud/internal/generator/markdoc/view/about/index.md"))
+	data, err = fs.ReadFile(bfs, "bud/internal/generator/markdoc/view/about/index.md")
 	is.NoErr(err)
 	is.Equal(string(data), "# About # About")
-	data, err = os.ReadFile(td.Path("bud/internal/generator/web/viewer/viewer.go"))
+	data, err = fs.ReadFile(bfs, "bud/internal/generator/web/viewer/viewer.go")
 	is.NoErr(err)
 	is.Equal(string(data), "package viewer")
+	data, err = fs.ReadFile(bfs, "bud/internal/generator/transform/index.svelte")
+	is.NoErr(err)
+	is.Equal(string(data), "transforming: index.svelte")
+	data, err = fs.ReadFile(bfs, "bud/internal/generator/transform/.ssr.js/index.svelte")
+	is.NoErr(err)
+	is.Equal(string(data), "transforming: .ssr.js/index.svelte")
 }
 
 func TestMissingGenerator(t *testing.T) {
@@ -129,23 +171,6 @@ func TestMissingGenerator(t *testing.T) {
 	_, err := cli.Run(ctx, "build", "--embed=false")
 	is.True(err != nil)
 	is.In(err.Error(), `generator: no Generator struct in "app.com/generator/web/transform"`)
-}
-
-func TestMissingGenerateDirMethod(t *testing.T) {
-	is := is.New(t)
-	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.Files["generator/web/transform/transform.go"] = `
-		package transform
-		type Generator struct {}
-		func (g *Generator) Generate() error { return nil }
-	`
-	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
-	_, err := cli.Run(ctx, "build", "--embed=false")
-	is.True(err != nil)
-	is.In(err.Error(), `generator: no (*Generator).GenerateDir(...) method in "app.com/generator/web/transform"`)
 }
 
 func TestSyntaxError(t *testing.T) {
