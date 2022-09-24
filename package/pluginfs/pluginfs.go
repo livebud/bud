@@ -27,7 +27,7 @@ func Load(module *gomod.Module) (fs.FS, error) {
 	if err != nil {
 		return nil, err
 	}
-	merged := mergefs.Merge(append([]fs.FS{module}, plugins...)...)
+	merged := append(mergefs.FS{module}, plugins...)
 	return &FS{
 		merged: merged,
 	}, nil

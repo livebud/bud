@@ -964,6 +964,34 @@ func TestMount(t *testing.T) {
 	is.Equal(string(code), "c3")
 }
 
+func TestMount(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Map{
+		"a.txt": &virtual.File{Data: []byte("a3")},
+		"b.txt": &virtual.File{Data: []byte("b3")},
+		"c.txt": &virtual.File{Data: []byte("c3")},
+	}
+	log := testlog.New()
+	bfs := budfs.New(fsys, log)
+	bfs.Mount(virtual.Map{
+		"a.txt": &virtual.File{Data: []byte("a2")},
+		"b.txt": &virtual.File{Data: []byte("b2")},
+	})
+	bfs.GenerateFile("a.txt", func(fsys budfs.FS, file *budfs.File) error {
+		file.Data = []byte("a1")
+		return nil
+	})
+	code, err := fs.ReadFile(bfs, "a.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "a1")
+	code, err = fs.ReadFile(bfs, "b.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "b2")
+	code, err = fs.ReadFile(bfs, "c.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "c3")
+}
+
 func TestReadDirNotExists(t *testing.T) {
 	is := is.New(t)
 	fsys := virtual.Map{}

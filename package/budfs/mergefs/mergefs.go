@@ -14,16 +14,10 @@ import (
 
 // Merge the filesystems together. When there are conflicts, the earlier
 // filesystem has priority.
-func Merge(fileSystems ...fs.FS) *FS {
-	return &FS{fileSystems}
-}
-
-type FS struct {
-	fileSystems []fs.FS
-}
+type FS []fs.FS
 
 // Open finds the first path in fileSystems
-func (f *FS) Open(path string) (fs.File, error) {
+func (fileSystems FS) Open(path string) (fs.File, error) {
 	if !fs.ValidPath(path) {
 		return nil, &fs.PathError{
 			Op:   "open",
@@ -33,7 +27,7 @@ func (f *FS) Open(path string) (fs.File, error) {
 	}
 	var dirs []dir
 	notExists := &notExists{path: path}
-	for _, fsys := range f.fileSystems {
+	for _, fsys := range fileSystems {
 		file, err := fsys.Open(path)
 		if err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
@@ -58,7 +52,7 @@ func (f *FS) Open(path string) (fs.File, error) {
 	if len(dirs) == 0 {
 		return nil, notExists
 	}
-	return f.mergeDir(path, dirs)
+	return mergeDirectory(path, dirs)
 }
 
 // notExistsError is a collection of all errors while attempting to open a file
@@ -91,7 +85,7 @@ type dir struct {
 // of both files a and b. Both a and b must be directories at the same
 // specified path in m.A and m.B, respectively. Closes files a and b before
 // returning, since they aren't needed by the MergedDirectory pseudo-file.
-func (f *FS) mergeDir(path string, dirs []dir) (fs.File, error) {
+func mergeDirectory(path string, dirs []dir) (fs.File, error) {
 	// Initialize merged
 	merged := &mergeDir{
 		name:    baseName(path),

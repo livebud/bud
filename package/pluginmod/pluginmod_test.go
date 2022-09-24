@@ -60,11 +60,10 @@ func TestAppFirst(t *testing.T) {
 	is.Equal(plugins[2].Import(), "github.com/livebud/bud-test-plugin")
 
 	// Try merging
-	fileSystems := make([]fs.FS, len(plugins))
+	fsys := make(mergefs.FS, len(plugins))
 	for i, plugin := range plugins {
-		fileSystems[i] = plugin
+		fsys[i] = plugin
 	}
-	fsys := mergefs.Merge(fileSystems...)
 	publicfs, err := fs.Sub(fsys, "public")
 	is.NoErr(err)
 	code, err := fs.ReadFile(publicfs, "favicon.ico")

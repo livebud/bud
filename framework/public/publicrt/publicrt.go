@@ -27,7 +27,7 @@ type LiveServer struct {
 }
 
 func (l *LiveServer) Serve(fsys fs.FS) middleware.Middleware {
-	fsys = mergefs.Merge(l.fsys, fsys)
+	fsys = mergefs.FS{l.fsys, fsys}
 	return serve(fsys, serveContent)
 }
 

@@ -197,7 +197,7 @@ func TestGenerate(t *testing.T) {
 	td.Modules["github.com/livebud/bud-test-plugin"] = `v0.0.8`
 	is.NoErr(td.Write(ctx))
 	tree := treefs.New(".")
-	merged := mergefs.Merge(os.DirFS(dir), tree)
+	merged := mergefs.FS{os.DirFS(dir), tree}
 	tree.FileGenerator("hello/hello.go", treefs.Generate(func(target string) (fs.File, error) {
 		data := []byte(`
 			package hello

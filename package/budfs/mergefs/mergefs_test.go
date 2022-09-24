@@ -22,7 +22,7 @@ func TestMerge(t *testing.T) {
 	c := fstest.MapFS{
 		"c.txt": &fstest.MapFile{Data: []byte("c")},
 	}
-	fsys := mergefs.Merge(a, b, c)
+	fsys := mergefs.FS{a, b, c}
 	des, err := fs.ReadDir(fsys, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 3)
@@ -42,7 +42,7 @@ func TestReadDirFile(t *testing.T) {
 	c := fstest.MapFS{
 		"c.txt": &fstest.MapFile{Data: []byte("c")},
 	}
-	fsys := mergefs.Merge(a, b, c)
+	fsys := mergefs.FS{a, b, c}
 	file, err := fsys.Open(".")
 	is.NoErr(err)
 	dir, ok := file.(fs.ReadDirFile)
@@ -66,7 +66,7 @@ func TestInnerMerge(t *testing.T) {
 	c := fstest.MapFS{
 		"d/c.txt": &fstest.MapFile{Data: []byte("c")},
 	}
-	fsys := mergefs.Merge(a, b, c)
+	fsys := mergefs.FS{a, b, c}
 	des, err := fs.ReadDir(fsys, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 2)
@@ -87,7 +87,7 @@ func TestOverride(t *testing.T) {
 	b := fstest.MapFS{
 		"a.txt": &fstest.MapFile{Data: []byte("b")},
 	}
-	fsys := mergefs.Merge(a, b)
+	fsys := mergefs.FS{a, b}
 	des, err := fs.ReadDir(fsys, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
@@ -117,7 +117,7 @@ func TestFS(t *testing.T) {
 	d2 := fstest.MapFS{
 		"d/c.txt": &fstest.MapFile{Data: []byte("c")},
 	}
-	fsys := mergefs.Merge(a, a2, b, c, d, d2)
+	fsys := mergefs.FS{a, a2, b, c, d, d2}
 	// Sanity check
 	err := fstest.TestFS(fsys, "a.txt", "b.txt", "c.txt", "d/b.txt", "d/c.txt")
 	is.NoErr(err)
@@ -134,7 +134,7 @@ func TestErrorPropagation(t *testing.T) {
 	afs := &errFS{fmt.Errorf("afs: %w", fs.ErrNotExist)}
 	bfs := &errFS{fmt.Errorf("bfs: %w", fs.ErrNotExist)}
 	cfs := &errFS{fmt.Errorf("cfs: %w", fs.ErrNotExist)}
-	fsys := mergefs.Merge(afs, bfs, cfs)
+	fsys := mergefs.FS{afs, bfs, cfs}
 	file, err := fsys.Open("a.txt")
 	is.True(file == nil)
 	expect := strings.Join([]string{
