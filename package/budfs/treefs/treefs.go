@@ -1,6 +1,7 @@
 package treefs
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"sort"
@@ -308,9 +309,17 @@ func (n *Node) open(target string) (fs.File, error) {
 	rel := relativePath(n.Path(), target)
 	if rel == "." {
 		children := n.Children()
-		entries := make([]fs.DirEntry, len(children))
-		for i, child := range children {
-			entries[i] = child.dirEntry()
+		var entries []fs.DirEntry
+		for _, child := range children {
+			de := &dirEntry{child}
+			// Stat to ensure the file exists before adding it as a directory entry
+			if _, err := de.Info(); err != nil {
+				if errors.Is(err, fs.ErrNotExist) {
+					continue
+				}
+				return nil, err
+			}
+			entries = append(entries, de)
 		}
 		return virtual.New(&virtual.Dir{
 			Path:    n.Path(),

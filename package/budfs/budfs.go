@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/livebud/bud/package/budfs/linkmap"
 
@@ -32,24 +33,27 @@ func New(fsys fs.FS, log log.Interface) *FileSystem {
 	})
 	cache := vcache.New()
 	node := treefs.New(".")
-	merged := mergefs.Merge(node, fsys)
+	mountfs := &mountFS{}
+	merged := mergefs.Merge(node, mountfs, fsys)
 	return &FileSystem{
-		cache:  cache,
-		closer: new(once.Closer),
-		fsys:   merged,
-		node:   node,
-		log:    log,
-		lmap:   linkmap.New(log),
+		cache,
+		new(once.Closer),
+		mountfs,
+		merged,
+		node,
+		linkmap.New(log),
+		log,
 	}
 }
 
 type FileSystem struct {
-	cache  vcache.Cache
-	closer *once.Closer
-	fsys   fs.FS
-	node   *treefs.Node
-	lmap   *linkmap.Map
-	log    log.Interface
+	cache   vcache.Cache
+	closer  *once.Closer
+	mountfs *mountFS
+	fsys    fs.FS
+	node    *treefs.Node
+	lmap    *linkmap.Map
+	log     log.Interface
 }
 
 type File struct {
@@ -308,6 +312,34 @@ func (f *FileSystem) ServeFile(dir string, fn func(fsys FS, file *File) error) {
 
 func (f *FileSystem) FileServer(dir string, generator FileGenerator) {
 	f.ServeFile(dir, generator.GenerateFile)
+}
+
+type mountFS struct {
+	mu   sync.RWMutex
+	fsys fs.FS
+}
+
+func (m *mountFS) Set(fsys fs.FS) {
+	m.mu.Lock()
+	m.fsys = fsys
+	m.mu.Unlock()
+}
+
+func (m *mountFS) Open(name string) (fs.File, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if m.fsys == nil {
+		return nil, fmt.Errorf("budfs: open from mount %q. no filesystem mounted. %w", name, fs.ErrNotExist)
+	}
+	file, err := m.fsys.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	return file, nil
+}
+
+func (f *FileSystem) Mount(fsys fs.FS) {
+	f.mountfs.Set(fsys)
 }
 
 // Sync the overlay to the filesystem
