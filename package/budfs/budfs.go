@@ -34,7 +34,7 @@ func New(fsys fs.FS, log log.Interface) *FileSystem {
 	cache := vcache.New()
 	node := treefs.New(".")
 	mountfs := &mountFS{}
-	merged := mergefs.Merge(node, mountfs, fsys)
+	merged := mergefs.FS{node, mountfs, fsys}
 	return &FileSystem{
 		cache,
 		new(once.Closer),
