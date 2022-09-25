@@ -380,11 +380,11 @@ var _ FS = (*fileSystem)(nil)
 
 // Open implements fs.FS
 func (f *fileSystem) Open(name string) (fs.File, error) {
+	f.link.Link("open", name)
 	file, err := f.fsys.Open(name)
 	if err != nil {
 		return nil, err
 	}
-	f.link.Link("open", name)
 	return file, nil
 }
 
@@ -452,13 +452,13 @@ func (f *fileSystem) Glob(pattern string) (matches []string, err error) {
 
 // ReadDir implements fs.ReadDirFS
 func (f *fileSystem) ReadDir(name string) ([]fs.DirEntry, error) {
+	f.link.Select("readdir", func(path string) bool {
+		return path == name || filepath.Dir(path) == name
+	})
 	des, err := fs.ReadDir(f.fsys, name)
 	if err != nil {
 		return nil, err
 	}
-	f.link.Select("readdir", func(path string) bool {
-		return path == name || filepath.Dir(path) == name
-	})
 	return des, nil
 }
 

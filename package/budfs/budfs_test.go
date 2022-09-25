@@ -1578,10 +1578,7 @@ func TestCyclesOk(t *testing.T) {
 
 func TestWatchGlob(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{
-		"a.txt": &virtual.File{Data: []byte("a")},
-		"b.txt": &virtual.File{Data: []byte("b")},
-	}
+	fsys := virtual.Map{}
 	log := testlog.New()
 	bfs := budfs.New(fsys, log)
 	count := map[string]int{}
@@ -1632,6 +1629,80 @@ func TestWatchGlob(t *testing.T) {
 	code, err = fs.ReadFile(bfs, "bud/c.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "c3a2b2")
+}
+
+func TestWatchFileAppearing(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Map{}
+	log := testlog.New()
+	bfs := budfs.New(fsys, log)
+	count := map[string]int{}
+	bfs.GenerateFile("b.txt", func(fsys budfs.FS, file *budfs.File) error {
+		data := "b" + strconv.Itoa(count["b.txt"])
+		code, err := fs.ReadFile(fsys, "a.txt")
+		if err == nil {
+			data += string(code)
+		} else if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+		file.Data = []byte(data)
+		count["b.txt"]++
+		return nil
+	})
+	code, err := fs.ReadFile(bfs, "b.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "b0")
+	code, err = fs.ReadFile(bfs, "b.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "b0")
+	fsys["a.txt"] = &virtual.File{Data: []byte("a")}
+	code, err = fs.ReadFile(bfs, "b.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "b0")
+	bfs.Change("a.txt")
+	code, err = fs.ReadFile(bfs, "b.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "b1a")
+	code, err = fs.ReadFile(bfs, "b.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "b1a")
+}
+
+func TestWatchDirAppearing(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Map{}
+	log := testlog.New()
+	bfs := budfs.New(fsys, log)
+	count := map[string]int{}
+	bfs.GenerateFile("b.txt", func(fsys budfs.FS, file *budfs.File) error {
+		data := "b" + strconv.Itoa(count["b.txt"])
+		des, err := fs.ReadDir(fsys, "a")
+		if err == nil {
+			data += strconv.Itoa(len(des))
+		} else if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+		file.Data = []byte(data)
+		count["b.txt"]++
+		return nil
+	})
+	code, err := fs.ReadFile(bfs, "b.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "b0")
+	code, err = fs.ReadFile(bfs, "b.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "b0")
+	is.NoErr(fsys.MkdirAll("a", 0755))
+	code, err = fs.ReadFile(bfs, "b.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "b0")
+	bfs.Change("a")
+	code, err = fs.ReadFile(bfs, "b.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "b10")
+	code, err = fs.ReadFile(bfs, "b.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "b10")
 }
 
 func TestServiceServe(t *testing.T) {
