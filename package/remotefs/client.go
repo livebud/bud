@@ -71,5 +71,6 @@ func (c *Client) Close() error {
 // isNotExist is needed because the error has been serialized and passed between
 // processes so errors.Is(err, fs.ErrNotExist) no longer is true.
 func isNotExist(err error) bool {
-	return strings.HasSuffix(err.Error(), fs.ErrNotExist.Error())
+	return strings.HasSuffix(err.Error(), fs.ErrNotExist.Error()) ||
+		strings.HasSuffix(err.Error(), "no such file or directory")
 }

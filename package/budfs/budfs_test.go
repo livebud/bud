@@ -558,7 +558,8 @@ func TestGenerateFileError(t *testing.T) {
 	})
 	code, err := fs.ReadFile(bfs, "bud/main.go")
 	is.True(err != nil)
-	is.Equal(err.Error(), `budfs: open "bud/main.go". mergefs: open "bud/main.go". file does not exist. file does not exist`)
+	is.In(err.Error(), `budfs: open "bud/main.go"`)
+	is.In(err.Error(), `file does not exist`)
 	is.True(errors.Is(err, fs.ErrNotExist))
 	is.Equal(code, nil)
 }
@@ -882,7 +883,7 @@ func TestGoModGoModEmbed(t *testing.T) {
 	is.Equal(stat.Name(), "go.mod")
 }
 
-func TestMount(t *testing.T) {
+func TestDirMount(t *testing.T) {
 	is := is.New(t)
 	fsys := virtual.Map{}
 	log := testlog.New()
@@ -894,7 +895,10 @@ func TestMount(t *testing.T) {
 			"service.json":         &virtual.File{Data: []byte(`{"name":"service"}`)},
 		})
 	})
-	err := fstest.TestFS(bfs,
+	des, err := fs.ReadDir(bfs, "bud/generator")
+	is.NoErr(err)
+	is.Equal(len(des), 3)
+	err = fstest.TestFS(bfs,
 		"bud/generator/tailwind/tailwind.go",
 		"bud/generator/html/html.go",
 		"bud/generator/service.json",
@@ -904,7 +908,7 @@ func TestMount(t *testing.T) {
 
 // Mounts have priority over generators. It probably should be the other way
 // around, but it's not trivial to change so we'll avoid this situation for now.
-func TestMountPriority(t *testing.T) {
+func TestDirMountPriority(t *testing.T) {
 	is := is.New(t)
 	fsys := virtual.Map{}
 	log := testlog.New()
@@ -931,6 +935,34 @@ func TestMountPriority(t *testing.T) {
 	is.Equal(string(code), `{"name":"mount service"}`)
 }
 
+func TestMount(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Map{
+		"a.txt": &virtual.File{Data: []byte("a3")},
+		"b.txt": &virtual.File{Data: []byte("b3")},
+		"c.txt": &virtual.File{Data: []byte("c3")},
+	}
+	log := testlog.New()
+	bfs := budfs.New(fsys, log)
+	bfs.Mount(virtual.Map{
+		"a.txt": &virtual.File{Data: []byte("a2")},
+		"b.txt": &virtual.File{Data: []byte("b2")},
+	})
+	bfs.GenerateFile("a.txt", func(fsys budfs.FS, file *budfs.File) error {
+		file.Data = []byte("a1")
+		return nil
+	})
+	code, err := fs.ReadFile(bfs, "a.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "a1")
+	code, err = fs.ReadFile(bfs, "b.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "b2")
+	code, err = fs.ReadFile(bfs, "c.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "c3")
+}
+
 func TestReadDirNotExists(t *testing.T) {
 	is := is.New(t)
 	fsys := virtual.Map{}
@@ -940,6 +972,19 @@ func TestReadDirNotExists(t *testing.T) {
 		return fs.ErrNotExist
 	})
 	des, err := fs.ReadDir(bfs, "bud/controller")
+	is.NoErr(err)
+	is.Equal(len(des), 0)
+}
+
+func TestReadRootNotExists(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Map{}
+	log := testlog.New()
+	bfs := budfs.New(fsys, log)
+	bfs.GenerateFile("controller.go", func(fsys budfs.FS, file *budfs.File) error {
+		return fs.ErrNotExist
+	})
+	des, err := fs.ReadDir(bfs, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 0)
 }
@@ -1528,4 +1573,61 @@ func TestCyclesOk(t *testing.T) {
 	code, err = fs.ReadFile(bfs, "a.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "a")
+}
+
+func TestServiceServe(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Map{}
+	log := testlog.New()
+	bfs := budfs.New(fsys, log)
+	bfs.GenerateFile("bud/command/generate/main.go", func(fsys budfs.FS, file *budfs.File) error {
+		file.Data = []byte(`
+			package main
+			func main() {}
+		`)
+		// Services are allowed to be within a directory
+		bfs.ServeFile("bud/service/transform", func(fsys budfs.FS, file *budfs.File) error {
+			file.Data = []byte(`transforming: ` + file.Relative())
+			return nil
+		})
+		return nil
+	})
+	bfs.GenerateDir("bud/service", func(fsys budfs.FS, dir *budfs.Dir) error {
+		if _, err := fs.Stat(fsys, "bud/command/generate/main.go"); err != nil {
+			return err
+		}
+		return nil
+	})
+	code, err := fs.ReadFile(bfs, "bud/service/transform/ssr-js/view/index.svelte")
+	is.NoErr(err)
+	is.Equal(string(code), "transforming: ssr-js/view/index.svelte")
+}
+
+func TestServiceMount(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Map{}
+	log := testlog.New()
+	mountfs := budfs.New(fsys, log)
+	mountfs.ServeFile("bud/service/transform", func(fsys budfs.FS, file *budfs.File) error {
+		file.Data = []byte(`transforming: ` + file.Relative())
+		return nil
+	})
+	bfs := budfs.New(fsys, log)
+	bfs.GenerateFile("bud/command/generate/main.go", func(fsys budfs.FS, file *budfs.File) error {
+		file.Data = []byte(`
+			package main
+			func main() {}
+		`)
+		bfs.Mount(mountfs)
+		return nil
+	})
+	bfs.GenerateDir("bud/service", func(fsys budfs.FS, dir *budfs.Dir) error {
+		if _, err := fs.Stat(fsys, "bud/command/generate/main.go"); err != nil {
+			return err
+		}
+		return nil
+	})
+	code, err := fs.ReadFile(bfs, "bud/service/transform/ssr-js/view/index.svelte")
+	is.NoErr(err)
+	is.Equal(string(code), "transforming: ssr-js/view/index.svelte")
 }

@@ -117,6 +117,23 @@ func TestNotExist(t *testing.T) {
 	is.Equal(data, nil)
 }
 
+func TestOSNotExist(t *testing.T) {
+	is := is.New(t)
+	dir := t.TempDir()
+	ctx := context.Background()
+	server, err := listen(t)
+	is.NoErr(err)
+	defer server.Close()
+	client, err := remotefs.Dial(ctx, server.Addr().String())
+	is.NoErr(err)
+	fsys := os.DirFS(dir)
+	go remotefs.Serve(fsys, server)
+	data, err := fs.ReadFile(client, "client.go")
+	is.True(err != nil)
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.Equal(data, nil)
+}
+
 func TestCommand(t *testing.T) {
 	is := is.New(t)
 	parent := func(t testing.TB, cmd *exec.Cmd) {
