@@ -83,7 +83,7 @@ type FS interface {
 	fs.FS
 	fs.ReadDirFS
 	fs.GlobFS
-	Link(to string)
+	Watch(paths ...string) error
 	Context() context.Context
 	Defer(func() error)
 }
@@ -380,16 +380,33 @@ var _ FS = (*fileSystem)(nil)
 
 // Open implements fs.FS
 func (f *fileSystem) Open(name string) (fs.File, error) {
+	f.link.Link("open", name)
 	file, err := f.fsys.Open(name)
 	if err != nil {
 		return nil, err
 	}
-	f.link.Link("open", name)
 	return file, nil
 }
 
-func (f *fileSystem) Link(to string) {
-	f.link.Link("link", to)
+// Watch the paths for changes
+func (f *fileSystem) Watch(paths ...string) error {
+	for _, path := range paths {
+		// Not a glob
+		if glob.Base(path) == path {
+			f.link.Link("watch", path)
+			continue
+		}
+		// Compile the pattern into a glob matcher
+		matcher, err := glob.Compile(path)
+		if err != nil {
+			return err
+		}
+		// Watch for changes to the pattern
+		f.link.Select("watch", func(path string) bool {
+			return matcher.Match(path)
+		})
+	}
+	return nil
 }
 
 func (f *fileSystem) Context() context.Context {
@@ -435,13 +452,13 @@ func (f *fileSystem) Glob(pattern string) (matches []string, err error) {
 
 // ReadDir implements fs.ReadDirFS
 func (f *fileSystem) ReadDir(name string) ([]fs.DirEntry, error) {
+	f.link.Select("readdir", func(path string) bool {
+		return path == name || filepath.Dir(path) == name
+	})
 	des, err := fs.ReadDir(f.fsys, name)
 	if err != nil {
 		return nil, err
 	}
-	f.link.Select("readdir", func(path string) bool {
-		return path == name || filepath.Dir(path) == name
-	})
 	return des, nil
 }
 

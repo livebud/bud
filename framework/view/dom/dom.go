@@ -65,8 +65,9 @@ func NodeModules(module *gomod.Module) budfs.FileGenerator {
 		if err != nil {
 			return err
 		}
-		for _, dep := range metafile.Dependencies() {
-			fsys.Link(dep)
+		// Watch the dependencies for changes
+		if err := fsys.Watch(metafile.Dependencies()...); err != nil {
+			return err
 		}
 		return nil
 	})
@@ -201,8 +202,9 @@ func (c *Compiler) GenerateFile(fsys budfs.FS, file *budfs.File) error {
 	if err != nil {
 		return err
 	}
-	for _, dep := range metafile.Dependencies() {
-		fsys.Link(dep)
+	// Watch the dependencies for changes
+	if err := fsys.Watch(metafile.Dependencies()...); err != nil {
+		return err
 	}
 	return nil
 }
