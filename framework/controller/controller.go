@@ -5,6 +5,7 @@ import (
 	// Embed templates
 
 	_ "embed"
+	"fmt"
 
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/package/budfs"
@@ -38,7 +39,7 @@ type Generator struct {
 func (g *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
 	state, err := Load(fsys, g.injector, g.module, g.parser)
 	if err != nil {
-		return err
+		return fmt.Errorf("framework/controller: unable to load. %w", err)
 	}
 	code, err := Generate(state)
 	if err != nil {

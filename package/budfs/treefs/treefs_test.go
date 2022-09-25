@@ -277,3 +277,18 @@ func TestClear(t *testing.T) {
 `
 	is.Equal(n.Print(), expect)
 }
+
+func TestReadDir(t *testing.T) {
+	is := is.New(t)
+	n := treefs.New(".")
+	count := 0
+	n.FileGenerator("controller/controller.go", treefs.Generate(func(target string) (fs.File, error) {
+		count++
+		return nil, fs.ErrNotExist
+	}))
+	des, err := fs.ReadDir(n, "controller")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
+	is.Equal(des[0].Name(), "controller.go")
+	is.Equal(count, 0)
+}

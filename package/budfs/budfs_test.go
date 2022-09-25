@@ -969,12 +969,20 @@ func TestReadDirNotExists(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	bfs := budfs.New(fsys, log)
+	reads := 0
 	bfs.GenerateFile("bud/controller/controller.go", func(fsys budfs.FS, file *budfs.File) error {
+		reads++
 		return fs.ErrNotExist
 	})
+	// Generators aren't called on dirs, so the value is wrong until read or stat.
 	des, err := fs.ReadDir(bfs, "bud/controller")
 	is.NoErr(err)
-	is.Equal(len(des), 0)
+	is.Equal(len(des), 1)
+	is.Equal(reads, 0)
+	code, err := fs.ReadFile(bfs, "bud/controller/controller.go")
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.Equal(code, nil)
+	is.Equal(reads, 1)
 }
 
 func TestReadRootNotExists(t *testing.T) {
@@ -982,12 +990,20 @@ func TestReadRootNotExists(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	bfs := budfs.New(fsys, log)
+	reads := 0
 	bfs.GenerateFile("controller.go", func(fsys budfs.FS, file *budfs.File) error {
+		reads++
 		return fs.ErrNotExist
 	})
+	// Generators aren't called on dirs, so the value is wrong until read or stat.
 	des, err := fs.ReadDir(bfs, ".")
 	is.NoErr(err)
-	is.Equal(len(des), 0)
+	is.Equal(len(des), 1)
+	is.Equal(reads, 0)
+	code, err := fs.ReadFile(bfs, "controller.go")
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.Equal(code, nil)
+	is.Equal(reads, 1)
 }
 
 func TestServeFile(t *testing.T) {
