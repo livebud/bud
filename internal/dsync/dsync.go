@@ -164,6 +164,10 @@ func createOps(opt *option, sfs fs.FS, dir string, des []fs.DirEntry) (ops []Op,
 		}
 		des, err := fs.ReadDir(sfs, path)
 		if err != nil {
+			// Ignore ReadDir that fail when the path doesn't exist
+			if errors.Is(err, fs.ErrNotExist) {
+				continue
+			}
 			return nil, err
 		}
 		createOps, err := createOps(opt, sfs, path, des)

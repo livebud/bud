@@ -74,32 +74,40 @@ func (f *cachedfs) toEntry(fullpath string, file fs.File) (virtual.Entry, error)
 		return nil, err
 	}
 	for _, de := range des {
-		stat, err := f.toEntryInfo(fullpath, de)
-		if err != nil {
-			return nil, err
-		}
-		vdir.Entries = append(vdir.Entries, &virtual.DirEntry{
-			Path:    de.Name(),
-			ModTime: stat.ModTime(),
-			Mode:    stat.Mode(),
-			Size:    stat.Size(),
-		})
+		entryPath := path.Join(fullpath, de.Name())
+		vdir.Entries = append(vdir.Entries, &dirEntry{f, entryPath, de})
 	}
 	return vdir, nil
 }
 
-func (f *cachedfs) toEntryInfo(fullpath string, de fs.DirEntry) (fs.FileInfo, error) {
-	entryPath := path.Join(fullpath, de.Name())
-	f.log.Debug("vcache: entry info", "name", entryPath)
-	entry, ok := f.cache.Get(entryPath)
-	if ok {
-		f.log.Debug("vcache: cache hit", "name", entryPath)
-		return virtual.New(entry).Stat()
-	}
-	f.log.Debug("vcache: cache miss", "name", entryPath)
-	return de.Info()
+// cached fs.DirEntry
+type dirEntry struct {
+	f         *cachedfs
+	entryPath string
+	de        fs.DirEntry
 }
 
-// func (f *cachedfs) trackFile(file fs.File) fs.File {
+var _ fs.DirEntry = (*dirEntry)(nil)
 
-// }
+func (e *dirEntry) Name() string {
+	return e.de.Name()
+}
+
+func (e *dirEntry) IsDir() bool {
+	return e.de.IsDir()
+}
+
+func (e *dirEntry) Type() fs.FileMode {
+	return e.de.Type()
+}
+
+func (e *dirEntry) Info() (fs.FileInfo, error) {
+	e.f.log.Debug("vcache: entry info", "name", e.entryPath)
+	entry, ok := e.f.cache.Get(e.entryPath)
+	if ok {
+		e.f.log.Debug("vcache: cache hit", "name", e.entryPath)
+		return virtual.New(entry).Stat()
+	}
+	e.f.log.Debug("vcache: cache miss", "name", e.entryPath)
+	return e.de.Info()
+}
