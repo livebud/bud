@@ -41,7 +41,6 @@ func TestHello(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), "<h1>hello</h1>")
@@ -63,7 +62,6 @@ func TestHello(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), "<h1>hi</h1>")
@@ -84,7 +82,6 @@ func TestHello(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), "<h1>hola</h1>")
@@ -117,7 +114,6 @@ func TestHelloEmbed(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), "<h1>hello</h1>")
@@ -138,7 +134,6 @@ func TestHelloEmbed(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), "<h1>hello</h1>")
@@ -189,7 +184,6 @@ func TestChunks(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), "<h1>index</h1>")
@@ -207,7 +201,6 @@ func TestChunks(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), "<h1>show</h1>")
@@ -261,7 +254,6 @@ func TestConsoleLog(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), "<h1>hello</h1>")
@@ -306,7 +298,6 @@ func TestRenameView(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), "<h1>10</h1>")
@@ -383,7 +374,6 @@ func TestAddView(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), "<h1>10</h1>")
@@ -416,7 +406,6 @@ func TestSvelteImportFromNodeModule(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), "<time datetime=\"2022-07-19 10:19:00\">Jul 19, 2022</time>")
@@ -454,7 +443,6 @@ func TestSvelteImportFromOtherDir(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), "<h1>The Time</h1>")

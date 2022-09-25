@@ -9,6 +9,7 @@ import (
 
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/cli/bud"
+	"github.com/livebud/bud/internal/embedded"
 	"github.com/livebud/bud/internal/scaffold"
 	"github.com/livebud/bud/internal/versions"
 	mod "github.com/livebud/bud/package/gomod"
@@ -159,6 +160,7 @@ func (c *Command) Scaffold(state *State) error {
 	if err := scaffold.Scaffold(scaffold.OSFS(c.absDir),
 		scaffold.Template("go.mod", gomod, state.Module),
 		scaffold.Template(".gitignore", gitignore, nil),
+		scaffold.Template("public/default.css", string(embedded.NormalizeCss()), nil),
 		scaffold.JSON("package.json", state.Package),
 	); err != nil {
 		return err

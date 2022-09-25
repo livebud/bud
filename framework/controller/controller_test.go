@@ -1286,7 +1286,6 @@ func TestViewUnnamed(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	el, err := res.Query("#bud_target")
@@ -1308,7 +1307,6 @@ func TestViewUnnamed(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	el, err = res.Query("#bud_target")
@@ -1330,7 +1328,6 @@ func TestViewUnnamed(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	el, err = res.Query("#bud_target")
@@ -1352,7 +1349,6 @@ func TestViewUnnamed(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	el, err = res.Query("#bud_target")
@@ -1435,7 +1431,6 @@ func TestViewNestedUnnamed(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	el, err := res.Query("#bud_target")
@@ -1457,7 +1452,6 @@ func TestViewNestedUnnamed(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	el, err = res.Query("#bud_target")
@@ -1479,7 +1473,6 @@ func TestViewNestedUnnamed(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	el, err = res.Query("#bud_target")
@@ -1501,7 +1494,6 @@ func TestViewNestedUnnamed(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	el, err = res.Query("#bud_target")
@@ -1587,7 +1579,6 @@ func TestViewDeepUnnamed(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	el, err := res.Query("#bud_target")
@@ -1609,7 +1600,6 @@ func TestViewDeepUnnamed(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	el, err = res.Query("#bud_target")
@@ -1631,7 +1621,6 @@ func TestViewDeepUnnamed(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	el, err = res.Query("#bud_target")
@@ -1653,7 +1642,6 @@ func TestViewDeepUnnamed(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	el, err = res.Query("#bud_target")
@@ -1774,7 +1762,6 @@ func TestEmptyActionWithView(t *testing.T) {
 	// HTML response
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), `<h1>hello</h1>`)
@@ -2834,7 +2821,6 @@ func TestCreateRouteAndControllerAndView(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	sel, err := res.Query("#bud_target")
@@ -2875,7 +2861,6 @@ func TestCreateRouteAndControllerAndView(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	sel, err = res.Query("#bud_target")
@@ -2918,7 +2903,6 @@ func TestDeleteRouteAndControllerAndView(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	sel, err := res.Query("#bud_target")
@@ -2931,7 +2915,6 @@ func TestDeleteRouteAndControllerAndView(t *testing.T) {
 	is.NoErr(err)
 	is.NoErr(res.DiffHeaders(`
 		HTTP/1.1 200 OK
-		Transfer-Encoding: chunked
 		Content-Type: text/html
 	`))
 	sel, err = res.Query("#bud_target")

@@ -39,6 +39,7 @@ func TestCreateOutsideGoPath(t *testing.T) {
 	is.NoErr(td.Exists("go.sum"))
 	is.NoErr(td.Exists("package.json"))
 	is.NoErr(td.Exists("package-lock.json"))
+	is.NoErr(td.Exists("public/default.css"))
 }
 
 func TestCreateOutsideGoPathModulePath(t *testing.T) {
@@ -57,6 +58,7 @@ func TestCreateOutsideGoPathModulePath(t *testing.T) {
 	is.NoErr(td.Exists("go.sum"))
 	is.NoErr(td.Exists("package.json"))
 	is.NoErr(td.Exists("package-lock.json"))
+	is.NoErr(td.Exists("public/default.css"))
 }
 
 func TestAutoQuote(t *testing.T) {
