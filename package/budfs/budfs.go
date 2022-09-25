@@ -83,7 +83,7 @@ type FS interface {
 	fs.FS
 	fs.ReadDirFS
 	fs.GlobFS
-	Link(to string)
+	Watch(paths ...string) error
 	Context() context.Context
 	Defer(func() error)
 }
@@ -388,8 +388,25 @@ func (f *fileSystem) Open(name string) (fs.File, error) {
 	return file, nil
 }
 
-func (f *fileSystem) Link(to string) {
-	f.link.Link("link", to)
+// Watch the paths for changes
+func (f *fileSystem) Watch(paths ...string) error {
+	for _, path := range paths {
+		// Not a glob
+		if glob.Base(path) == path {
+			f.link.Link("watch", path)
+			continue
+		}
+		// Compile the pattern into a glob matcher
+		matcher, err := glob.Compile(path)
+		if err != nil {
+			return err
+		}
+		// Watch for changes to the pattern
+		f.link.Select("watch", func(path string) bool {
+			return matcher.Match(path)
+		})
+	}
+	return nil
 }
 
 func (f *fileSystem) Context() context.Context {

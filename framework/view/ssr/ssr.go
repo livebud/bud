@@ -91,8 +91,9 @@ func (c *Compiler) Compile(ctx context.Context, fsys budfs.FS) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, dep := range metafile.Dependencies() {
-		fsys.Link(dep)
+	// Watch the dependencies for changes
+	if err := fsys.Watch(metafile.Dependencies()...); err != nil {
+		return nil, err
 	}
 	return result.OutputFiles[0].Contents, nil
 }

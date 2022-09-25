@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"testing/fstest"
@@ -1562,7 +1563,7 @@ func TestCyclesOk(t *testing.T) {
 	log := testlog.New()
 	bfs := budfs.New(fsys, log)
 	bfs.GenerateFile("a.txt", func(fsys budfs.FS, file *budfs.File) error {
-		fsys.Link("a.txt")
+		is.NoErr(fsys.Watch("a.txt"))
 		file.Data = []byte("a")
 		return nil
 	})
@@ -1573,6 +1574,64 @@ func TestCyclesOk(t *testing.T) {
 	code, err = fs.ReadFile(bfs, "a.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "a")
+}
+
+func TestWatchGlob(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Map{
+		"a.txt": &virtual.File{Data: []byte("a")},
+		"b.txt": &virtual.File{Data: []byte("b")},
+	}
+	log := testlog.New()
+	bfs := budfs.New(fsys, log)
+	count := map[string]int{}
+	bfs.GenerateFile("a.txt", func(fsys budfs.FS, file *budfs.File) error {
+		file.Data = []byte("a" + strconv.Itoa(count["a.txt"]))
+		count["a.txt"]++
+		return nil
+	})
+	bfs.GenerateFile("b.txt", func(fsys budfs.FS, file *budfs.File) error {
+		file.Data = []byte("b" + strconv.Itoa(count["b.txt"]))
+		count["b.txt"]++
+		return nil
+	})
+	bfs.GenerateFile("bud/c.txt", func(fsys budfs.FS, file *budfs.File) error {
+		is.NoErr(fsys.Watch("*.txt"))
+		a, err := fs.ReadFile(fsys, "a.txt")
+		is.NoErr(err)
+		b, err := fs.ReadFile(fsys, "b.txt")
+		is.NoErr(err)
+		file.Data = []byte("c" + strconv.Itoa(count["bud/c.txt"]) + string(a) + string(b))
+		count["bud/c.txt"]++
+		return nil
+	})
+	code, err := fs.ReadFile(bfs, "bud/c.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "c0a0b0")
+	code, err = fs.ReadFile(bfs, "bud/c.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "c0a0b0")
+	bfs.Change("a.txt")
+	code, err = fs.ReadFile(bfs, "bud/c.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "c1a1b0")
+	code, err = fs.ReadFile(bfs, "bud/c.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "c1a1b0")
+	bfs.Change("b.txt")
+	code, err = fs.ReadFile(bfs, "bud/c.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "c2a1b1")
+	code, err = fs.ReadFile(bfs, "bud/c.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "c2a1b1")
+	bfs.Change("b.txt", "a.txt")
+	code, err = fs.ReadFile(bfs, "bud/c.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "c3a2b2")
+	code, err = fs.ReadFile(bfs, "bud/c.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "c3a2b2")
 }
 
 func TestServiceServe(t *testing.T) {
