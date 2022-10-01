@@ -143,7 +143,7 @@ func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, fl
 	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
 	bfs.FileServer("bud/view", dom.New(module, transforms.DOM))
 	bfs.FileServer("bud/node_modules", dom.NodeModules(module))
-	bfs.DirGenerator("bud/internal/generator", generator.New(flag, injector, log, module, parser))
+	bfs.DirGenerator("bud/internal/generator", generator.New(bfs, flag, injector, log, module, parser))
 	return bfs, nil
 }
 

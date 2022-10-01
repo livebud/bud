@@ -3,7 +3,6 @@ package generator
 import (
 	_ "embed"
 	"fmt"
-	"io/fs"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/gobuild"
@@ -27,11 +26,12 @@ func Generate(state *State) ([]byte, error) {
 	return generator.Generate(state)
 }
 
-func New(flag *framework.Flag, injector *di.Injector, log log.Interface, module *gomod.Module, parser *parser.Parser) *Generator {
-	return &Generator{flag, injector, log, module, parser, nil}
+func New(bfs *budfs.FileSystem, flag *framework.Flag, injector *di.Injector, log log.Interface, module *gomod.Module, parser *parser.Parser) *Generator {
+	return &Generator{bfs, flag, injector, log, module, parser, nil}
 }
 
 type Generator struct {
+	bfs      *budfs.FileSystem
 	flag     *framework.Flag
 	injector *di.Injector
 	log      log.Interface
@@ -99,11 +99,9 @@ func (g *Generator) GenerateDir(fsys budfs.FS, dir *budfs.Dir) error {
 		g.log.Debug("framework/generator: shutting down the remotefs")
 		return g.process.Close()
 	})
-	// Avoid mounting the whole directory which includes go.mod and the bud dir.
-	subfs, err := fs.Sub(g.process, "bud/internal/generator")
-	if err != nil {
-		return err
-	}
-	g.log.Debug("framework/generator: mounting the running remote filesystem at bud/internal/generator")
-	return dir.Mount(subfs)
+
+	// Mount the remote filesystem
+	g.log.Debug("framework/generator: mounting the running remote filesystem")
+	g.bfs.Mount(g.process)
+	return nil
 }
