@@ -1016,7 +1016,7 @@ func TestServeFile(t *testing.T) {
 		return nil
 	})
 	des, err := fs.ReadDir(bfs, "duo/view")
-	is.True(errors.Is(err, fs.ErrNotExist))
+	is.NoErr(err)
 	is.Equal(len(des), 0)
 
 	// _index.svelte
@@ -1795,4 +1795,25 @@ func TestFileSystemDir(t *testing.T) {
 	code, err = fs.ReadFile(bfs, "b/b.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "b")
+}
+
+func TestFileServerDir(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Map{}
+	log := testlog.New()
+	bfs := budfs.New(fsys, log)
+	dir := bfs.Dir()
+	is.Equal(dir.Target(), ".")
+	is.Equal(dir.Path(), ".")
+	is.Equal(dir.Mode(), fs.ModeDir)
+	dir.ServeFile("transform", func(fsys budfs.FS, file *budfs.File) error {
+		file.Data = []byte(`transforming: ` + file.Relative())
+		return nil
+	})
+	code, err := fs.ReadFile(bfs, "transform/a.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "transforming: a.txt")
+	code, err = fs.ReadFile(bfs, "transform/b/b.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "transforming: b/b.txt")
 }

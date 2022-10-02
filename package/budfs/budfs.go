@@ -128,6 +128,15 @@ func (d *Dir) DirGenerator(dir string, generator DirGenerator) {
 	d.GenerateDir(dir, generator.GenerateDir)
 }
 
+func (d *Dir) ServeFile(dir string, fn func(fsys FS, file *File) error) {
+	fileg := &fileServer{d.fsys, fn, nil, dir}
+	fileg.node = d.node.DirGenerator(dir, fileg)
+}
+
+func (d *Dir) FileServer(dir string, generator FileGenerator) {
+	d.ServeFile(dir, generator.GenerateFile)
+}
+
 type mountGenerator struct {
 	dir  string
 	fsys fs.FS
@@ -284,13 +293,13 @@ func (g *fileServer) Generate(target string) (fs.File, error) {
 	if entry, ok := g.fsys.cache.Get(target); ok {
 		return virtual.New(entry), nil
 	}
+	// Always return an empty directory if we request the root
 	rel := relativePath(g.node.Path(), target)
 	if rel == "." {
-		return nil, &fs.PathError{
-			Op:   "open",
-			Path: g.node.Path(),
-			Err:  fs.ErrNotExist,
-		}
+		return virtual.New(&virtual.Dir{
+			Path: g.path,
+			Mode: fs.ModeDir,
+		}), nil
 	}
 	fctx := &fileSystem{context.TODO(), g.fsys, g.fsys.lmap.Scope(target)}
 	// File differs slightly than others because g.node.Path() is the directory
@@ -347,12 +356,12 @@ func (f *FileSystem) Mount(fsys fs.FS) {
 }
 
 // Sync the overlay to the filesystem
-func (f *FileSystem) Sync(writable virtual.FS, to string) error {
+func (f *FileSystem) Sync(writable virtual.FS, to string, options ...dsync.Option) error {
 	// Temporarily replace the underlying fs.FS with a cached fs.FS
 	cache := vcache.New()
 	fsys := f.fsys
 	f.fsys = vcache.Wrap(cache, fsys, f.log)
-	err := dsync.To(f.fsys, writable, to)
+	err := dsync.To(f.fsys, writable, to, options...)
 	f.fsys = fsys
 	return err
 }
