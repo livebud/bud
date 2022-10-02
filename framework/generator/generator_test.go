@@ -96,7 +96,6 @@ func TestGenerators(t *testing.T) {
 	_, err := cli.Run(ctx, "build", "--embed=false")
 	is.NoErr(err)
 	is.NoErr(td.Exists("bud/command/generate/main.go"))
-	is.NoErr(td.Exists("bud/command/generate/main"))
 	is.NoErr(td.Exists("bud/internal/generator/tailwind/tailwind.css"))
 	is.NoErr(td.Exists("bud/internal/generator/tailwind/preflight.css"))
 	is.NoErr(td.Exists("bud/internal/generator/markdoc/view/index.md"))

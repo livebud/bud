@@ -3,7 +3,6 @@ package generator
 import (
 	_ "embed"
 	"fmt"
-	"os"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/gobuild"
@@ -74,14 +73,6 @@ func (g *Generator) GenerateDir(fsys budfs.FS, dir *budfs.Dir) error {
 	if err := builder.Build(fsys.Context(), "bud/command/generate/main.go", "bud/command/generate/main"); err != nil {
 		return fmt.Errorf("framework/generator: unable to build 'bud/command/generate/main'. %s", err)
 	}
-	// Add the binary code to the filesystem.
-	binCode, err := os.ReadFile(g.module.Directory("bud/command/generate/main"))
-	if err != nil {
-		return err
-	}
-	dir.FileGenerator("main", &budfs.EmbedFile{
-		Data: binCode,
-	})
 
 	if g.process != nil {
 		g.log.Debug("framework/generator: closing existing process")
