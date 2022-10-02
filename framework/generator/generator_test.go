@@ -96,6 +96,7 @@ func TestGenerators(t *testing.T) {
 	_, err := cli.Run(ctx, "build", "--embed=false")
 	is.NoErr(err)
 	is.NoErr(td.Exists("bud/command/generate/main.go"))
+	is.NoErr(td.Exists("bud/generate"))
 	is.NoErr(td.Exists("bud/internal/generator/tailwind/tailwind.css"))
 	is.NoErr(td.Exists("bud/internal/generator/tailwind/preflight.css"))
 	is.NoErr(td.Exists("bud/internal/generator/markdoc/view/index.md"))
@@ -171,7 +172,8 @@ func TestSyntaxError(t *testing.T) {
 	res, err := cli.Run(ctx, "build", "--embed=false")
 	is.True(err != nil)
 	is.In(err.Error(), `exit status 2`)
-	is.In(res.Stderr(), `"ok" (untyped string constant) is not used`)
+	is.In(res.Stderr(), `"ok"`)
+	is.In(res.Stderr(), `not used`)
 }
 
 func TestUpdateGenerator(t *testing.T) {

@@ -70,8 +70,8 @@ func (g *Generator) GenerateDir(fsys budfs.FS, dir *budfs.Dir) error {
 	builder.Env = append([]string{}, g.flag.Env...)
 	builder.Stderr = g.flag.Stderr
 	builder.Stdout = g.flag.Stdout
-	if err := builder.Build(fsys.Context(), "bud/command/generate/main.go", "bud/command/generate/main"); err != nil {
-		return fmt.Errorf("framework/generator: unable to build 'bud/command/generate/main'. %s", err)
+	if err := builder.Build(fsys.Context(), "bud/command/generate/main.go", "bud/generate"); err != nil {
+		return fmt.Errorf("framework/generator: unable to build 'bud/generate'. %s", err)
 	}
 
 	if g.process != nil {
@@ -82,14 +82,14 @@ func (g *Generator) GenerateDir(fsys budfs.FS, dir *budfs.Dir) error {
 		g.process = nil
 	}
 
-	g.log.Debug("framework/generator: start bud/command/generate/main that will serve the remote filesystem")
+	g.log.Debug("framework/generator: start bud/generate that will serve the remote filesystem")
 	cmd := &remotefs.Command{
 		Dir:    g.module.Directory(),
 		Env:    append([]string{}, g.flag.Env...),
 		Stderr: g.flag.Stderr,
 		Stdout: g.flag.Stdout,
 	}
-	g.process, err = cmd.Start(fsys.Context(), g.module.Directory("bud/command/generate/main"))
+	g.process, err = cmd.Start(fsys.Context(), g.module.Directory("bud/generate"))
 	if err != nil {
 		return err
 	}
