@@ -53,7 +53,7 @@ func (c *Command) Run(ctx context.Context) error {
 	}
 	defer bfs.Close()
 	// Generate the application
-	if err := bfs.Sync("bud/internal"); err != nil {
+	if err := bfs.Sync(); err != nil {
 		return err
 	}
 	builder := gobuild.New(module)

@@ -25,11 +25,11 @@ func TestGenerators(t *testing.T) {
 		)
 		type Generator struct {}
 		func (g *Generator) Register(dir *budfs.Dir) {
-			dir.GenerateFile("bud/internal/generator/tailwind/tailwind.css", func(fsys budfs.FS, file *budfs.File) error {
+			dir.GenerateFile("bud/internal/tailwind/tailwind.css", func(fsys budfs.FS, file *budfs.File) error {
 				file.Data = []byte("/** tailwind **/")
 				return nil
 			})
-			dir.GenerateFile("bud/internal/generator/tailwind/preflight.css", func(fsys budfs.FS, file *budfs.File) error {
+			dir.GenerateFile("bud/internal/tailwind/preflight.css", func(fsys budfs.FS, file *budfs.File) error {
 				file.Data = []byte("/** preflight **/")
 				return nil
 			})
@@ -51,21 +51,32 @@ func TestGenerators(t *testing.T) {
 			"app.com/internal/markdoc"
 			"github.com/livebud/bud/package/budfs"
 			"io/fs"
-			"path/filepath"
 		)
 		type Generator struct {
 			Markdoc *markdoc.Compiler
 		}
 		func (g *Generator) Register(dir *budfs.Dir) {
-			dir.GenerateFile("bud/internal/generator/markdoc/view/index.md", g.compile)
-			dir.GenerateFile("bud/internal/generator/markdoc/view/about/index.md", g.compile)
+			dir.ServeFile("bud/service/markdoc", g.compile)
+			dir.GenerateFile("bud/internal/markdoc/markdoc.go", g.generate)
 		}
-		func (g *Generator) compile(fsys budfs.FS, file *budfs.File) error {
-			relPath, err := filepath.Rel("bud/internal/generator/markdoc", file.Path())
+		func (g *Generator) generate(fsys budfs.FS, file *budfs.File) error {
+			paths, err := fs.Glob(fsys, "view/**.md")
 			if err != nil {
 				return err
 			}
-			data, err := fs.ReadFile(fsys, relPath)
+			out := "package markdoc "
+			for _, path := range paths {
+				data, err := fs.ReadFile(fsys, "bud/service/markdoc/"+path)
+				if err != nil {
+					return err
+				}
+				out += string(data) + " "
+			}
+			file.Data = []byte(out)
+			return nil
+		}
+		func (g *Generator) compile(fsys budfs.FS, file *budfs.File) error {
+			data, err := fs.ReadFile(fsys, file.Relative())
 			if err != nil {
 				return err
 			}
@@ -85,7 +96,7 @@ func TestGenerators(t *testing.T) {
 		type Generator struct {
 		}
 		func (g *Generator) Register(dir *budfs.Dir) {
-			dir.GenerateFile("bud/internal/generator/web/viewer/viewer.go", func(fsys budfs.FS, file *budfs.File) error {
+			dir.GenerateFile("bud/package/web/viewer/viewer.go", func(fsys budfs.FS, file *budfs.File) error {
 				file.Data = []byte("package viewer")
 				return nil
 			})
@@ -95,26 +106,22 @@ func TestGenerators(t *testing.T) {
 	cli := testcli.New(dir)
 	_, err := cli.Run(ctx, "build", "--embed=false")
 	is.NoErr(err)
-	is.NoErr(td.Exists("bud/command/generate/main.go"))
-	is.NoErr(td.Exists("bud/generate"))
-	is.NoErr(td.Exists("bud/internal/generator/tailwind/tailwind.css"))
-	is.NoErr(td.Exists("bud/internal/generator/tailwind/preflight.css"))
-	is.NoErr(td.Exists("bud/internal/generator/markdoc/view/index.md"))
-	is.NoErr(td.Exists("bud/internal/generator/markdoc/view/about/index.md"))
-	is.NoErr(td.Exists("bud/internal/generator/web/viewer/viewer.go"))
-	data, err := os.ReadFile(td.Path("bud/internal/generator/tailwind/tailwind.css"))
+	is.NoErr(td.Exists("bud/command/.generate/main.go"))
+	is.NoErr(td.Exists("bud/.generate"))
+	is.NoErr(td.Exists("bud/internal/tailwind/tailwind.css"))
+	is.NoErr(td.Exists("bud/internal/tailwind/preflight.css"))
+	is.NoErr(td.Exists("bud/internal/markdoc/markdoc.go"))
+	is.NoErr(td.Exists("bud/package/web/viewer/viewer.go"))
+	data, err := os.ReadFile(td.Path("bud/internal/tailwind/tailwind.css"))
 	is.NoErr(err)
 	is.Equal(string(data), "/** tailwind **/")
-	data, err = os.ReadFile(td.Path("bud/internal/generator/tailwind/preflight.css"))
+	data, err = os.ReadFile(td.Path("bud/internal/tailwind/preflight.css"))
 	is.NoErr(err)
 	is.Equal(string(data), "/** preflight **/")
-	data, err = os.ReadFile(td.Path("bud/internal/generator/markdoc/view/index.md"))
+	data, err = os.ReadFile(td.Path("bud/internal/markdoc/markdoc.go"))
 	is.NoErr(err)
-	is.Equal(string(data), "# Index # Index")
-	data, err = os.ReadFile(td.Path("bud/internal/generator/markdoc/view/about/index.md"))
-	is.NoErr(err)
-	is.Equal(string(data), "# About # About")
-	data, err = os.ReadFile(td.Path("bud/internal/generator/web/viewer/viewer.go"))
+	is.Equal(string(data), "package markdoc # About # About # Index # Index ")
+	data, err = os.ReadFile(td.Path("bud/package/web/viewer/viewer.go"))
 	is.NoErr(err)
 	is.Equal(string(data), "package viewer")
 }

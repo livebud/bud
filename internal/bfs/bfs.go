@@ -3,6 +3,9 @@ package bfs
 import (
 	"errors"
 	"io/fs"
+	"path/filepath"
+
+	"github.com/livebud/bud/internal/dsync"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/app"
@@ -47,7 +50,7 @@ func Load(flag *framework.Flag, log log.Interface, module *gomod.Module) (*FS, e
 	fsys.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
 	fsys.FileServer("bud/view", dom.New(module, transforms.DOM))
 	fsys.FileServer("bud/node_modules", dom.NodeModules(module))
-	fsys.DirGenerator("bud/command/generate", generator.New(fsys, flag, injector, log, module, parser))
+	fsys.DirGenerator("bud/command/.generate", generator.New(fsys, flag, injector, log, module, parser))
 	return &FS{fsys, module}, nil
 }
 
@@ -60,15 +63,30 @@ func (f *FS) Open(name string) (fs.File, error) {
 	return f.fsys.Open(name)
 }
 
-func (f *FS) Sync(to string) error {
-	if err := f.fsys.Sync(f.module, "bud/command/generate"); err != nil {
+// Skipper prevents certain files from being deleted during sync
+var skipHidden = dsync.WithSkip(func(name string, isDir bool) bool {
+	base := filepath.Base(name)
+	return base[0] == '_' || base[0] == '.'
+})
+
+// Directories to sync
+var syncDirs = [...]string{
+	"bud/command",
+	"bud/internal",
+	"bud/package",
+}
+
+func (f *FS) Sync() error {
+	if err := f.fsys.Sync(f.module, "bud/command/.generate"); err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
 	}
-	if err := f.fsys.Sync(f.module, to); err != nil {
-		if !errors.Is(err, fs.ErrNotExist) {
-			return err
+	for _, to := range syncDirs {
+		if err := f.fsys.Sync(f.module, to, skipHidden); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				return err
+			}
 		}
 	}
 	return nil

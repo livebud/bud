@@ -20,5 +20,5 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return os.RemoveAll(module.Directory("bud", "cache"))
+	return os.RemoveAll(module.Directory("bud", ".cache"))
 }

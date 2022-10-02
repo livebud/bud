@@ -70,8 +70,8 @@ func Dir(sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string, options ...O
 }
 
 // To syncs the "to" directory from the source to target filesystem
-func To(sfs fs.FS, tfs vfs.ReadWritable, to string) error {
-	return Dir(sfs, to, tfs, to)
+func To(sfs fs.FS, tfs vfs.ReadWritable, to string, options ...Option) error {
+	return Dir(sfs, to, tfs, to, options...)
 }
 
 type OpType uint8

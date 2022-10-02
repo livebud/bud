@@ -21,7 +21,7 @@ func New(module *gomod.Module) *Builder {
 		os.Stdin,
 		os.Stdout,
 		module,
-		module.Directory("bud", "cache"),
+		module.Directory("bud", ".cache"),
 	}
 }
 
