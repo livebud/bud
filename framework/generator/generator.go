@@ -42,8 +42,8 @@ type Generator struct {
 	process *remotefs.Process
 }
 
-// GenerateDir connects to the remotefs and mounts the remote directory.
-func (g *Generator) GenerateDir(fsys budfs.FS, dir *budfs.Dir) error {
+// GenerateFile connects to the remotefs and mounts the remote directory.
+func (g *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
 	g.log.Debug("framework/generator: generating the main.go service containing the generators")
 	state, err := Load(fsys, g.injector, g.log, g.module, g.parser)
 	if err != nil {
@@ -53,9 +53,7 @@ func (g *Generator) GenerateDir(fsys budfs.FS, dir *budfs.Dir) error {
 	if err != nil {
 		return err
 	}
-	dir.FileGenerator("main.go", &budfs.EmbedFile{
-		Data: code,
-	})
+	file.Data = code
 
 	g.log.Debug("framework/generator: write the generator main.go file to bud/command/.generate/main.go")
 	if err := g.module.MkdirAll("bud/command/.generate", 0755); err != nil {

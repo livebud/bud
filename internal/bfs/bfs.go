@@ -50,7 +50,7 @@ func Load(flag *framework.Flag, log log.Interface, module *gomod.Module) (*FS, e
 	fsys.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
 	fsys.FileServer("bud/view", dom.New(module, transforms.DOM))
 	fsys.FileServer("bud/node_modules", dom.NodeModules(module))
-	fsys.DirGenerator("bud/command/.generate", generator.New(fsys, flag, injector, log, module, parser))
+	fsys.FileGenerator("bud/command/.generate/main.go", generator.New(fsys, flag, injector, log, module, parser))
 	return &FS{fsys, module}, nil
 }
 

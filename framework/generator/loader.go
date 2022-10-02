@@ -40,13 +40,6 @@ type loader struct {
 func (l *loader) Load(bfs budfs.FS) (state *State, err error) {
 	defer l.Recover2(&err, "generator")
 	state = new(State)
-	// TODO: replace with a watch function, this is currently wasteful if we're
-	// not going to use the results
-	if files, err := fs.Glob(bfs, "generator/**.go"); err != nil {
-		return nil, err
-	} else if len(files) == 0 {
-		return nil, fs.ErrNotExist
-	}
 	state.Generators = l.loadGenerators(bfs)
 	if len(state.Generators) == 0 {
 		return nil, fs.ErrNotExist
