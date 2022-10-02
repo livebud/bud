@@ -73,8 +73,7 @@ var skipHidden = dsync.WithSkip(func(name string, isDir bool) bool {
 var syncDirs = [...]string{
 	"bud/command",
 	"bud/internal",
-	"bud/runtime",
-	"bud/service",
+	"bud/package",
 }
 
 func (f *FS) Sync() error {
