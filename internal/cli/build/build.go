@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/livebud/bud/framework"
+	"github.com/livebud/bud/internal/bfs"
 	"github.com/livebud/bud/internal/cli/bud"
 	"github.com/livebud/bud/internal/gobuild"
 	"github.com/livebud/bud/internal/versions"
@@ -46,13 +47,13 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	bfs, err := bud.FileSystem(ctx, log, module, c.Flag)
+	bfs, err := bfs.Load(c.Flag, log, module)
 	if err != nil {
 		return err
 	}
 	defer bfs.Close()
 	// Generate the application
-	if err := bfs.Sync(module, "bud/internal"); err != nil {
+	if err := bfs.Sync("bud/internal"); err != nil {
 		return err
 	}
 	builder := gobuild.New(module)

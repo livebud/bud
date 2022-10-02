@@ -54,10 +54,12 @@ func generate(ctx context.Context) error {
 		return err
 	}
 	bfs := budfs.New(module, log)
+	dir := bfs.Dir()
 	{{- range $generator := $.Generators }}
-	bfs.DirGenerator("bud/internal/generator/{{ $generator.Path }}", generators.{{ $generator.Pascal }})
+	log.Debug("framework/generator: registering {{ $generator.Path }}")
+	generators.{{ $generator.Pascal }}.Register(dir)
 	{{- end }}
-	log.Debug("framework/generator: serving remote 'bud/internal/generator' directory")
+	log.Debug("framework/generator: serving remote directory")
 	return remotefs.ServeFrom(ctx, bfs, "")
 }
 

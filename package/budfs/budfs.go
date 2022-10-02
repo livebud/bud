@@ -199,6 +199,10 @@ func (f *FileSystem) Close() error {
 	return f.closer.Close()
 }
 
+func (f *FileSystem) Dir() *Dir {
+	return &Dir{fsys: f, node: f.node, target: "."}
+}
+
 type fileGenerator struct {
 	fsys *FileSystem
 	fn   func(fsys FS, file *File) error

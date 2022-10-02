@@ -5,6 +5,7 @@ import (
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/web/webrt"
+	"github.com/livebud/bud/internal/bfs"
 	"github.com/livebud/bud/internal/cli/bud"
 	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/package/budhttp/budsvr"
@@ -45,12 +46,12 @@ func (c *Command) Run(ctx context.Context) error {
 		return err
 	}
 	// Load the file server
-	servefs, err := bud.FileSystem(ctx, log, module, c.Flag)
+	bfs, err := bfs.Load(c.Flag, log, module)
 	if err != nil {
 		return err
 	}
 	bus := pubsub.New()
-	server := budsvr.New(servefs, bus, log, vm)
+	server := budsvr.New(bfs, bus, log, vm)
 	budln, err := socket.Listen(":35729")
 	if err != nil {
 		return err

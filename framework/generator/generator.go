@@ -45,7 +45,7 @@ type Generator struct {
 // GenerateDir connects to the remotefs and mounts the remote directory.
 func (g *Generator) GenerateDir(fsys budfs.FS, dir *budfs.Dir) error {
 	g.log.Debug("framework/generator: generating the main.go service containing the generators")
-	state, err := Load(fsys, g.injector, g.module, g.parser)
+	state, err := Load(fsys, g.injector, g.log, g.module, g.parser)
 	if err != nil {
 		return fmt.Errorf("framework/generator: unable to load. %w", err)
 	}
@@ -53,22 +53,25 @@ func (g *Generator) GenerateDir(fsys budfs.FS, dir *budfs.Dir) error {
 	if err != nil {
 		return err
 	}
+	dir.FileGenerator("main.go", &budfs.EmbedFile{
+		Data: code,
+	})
 
-	g.log.Debug("framework/generator: write the generator main.go file to bud/tmp/generate/main.go")
-	if err := g.module.MkdirAll("bud/tmp/generate", 0755); err != nil {
+	g.log.Debug("framework/generator: write the generator main.go file to bud/command/generate/main.go")
+	if err := g.module.MkdirAll("bud/command/generate", 0755); err != nil {
 		return err
 	}
-	if err := g.module.WriteFile("bud/tmp/generate/main.go", []byte(code), 0644); err != nil {
+	if err := g.module.WriteFile("bud/command/generate/main.go", []byte(code), 0644); err != nil {
 		return err
 	}
 
-	g.log.Debug("framework/generator: build the main.go file to bud/tmp/generate/main")
+	g.log.Debug("framework/generator: build the main.go file to bud/command/generate/main")
 	builder := gobuild.New(g.module)
 	builder.Env = append([]string{}, g.flag.Env...)
 	builder.Stderr = g.flag.Stderr
 	builder.Stdout = g.flag.Stdout
-	if err := builder.Build(fsys.Context(), "bud/tmp/generate/main.go", "bud/tmp/generate/main"); err != nil {
-		return fmt.Errorf("framework/generator: unable to build 'bud/tmp/generate/main'. %s", err)
+	if err := builder.Build(fsys.Context(), "bud/command/generate/main.go", "bud/generate"); err != nil {
+		return fmt.Errorf("framework/generator: unable to build 'bud/generate'. %s", err)
 	}
 
 	if g.process != nil {
@@ -79,14 +82,14 @@ func (g *Generator) GenerateDir(fsys budfs.FS, dir *budfs.Dir) error {
 		g.process = nil
 	}
 
-	g.log.Debug("framework/generator: start bud/tmp/generate/main that will serve the remote filesystem")
+	g.log.Debug("framework/generator: start bud/generate that will serve the remote filesystem")
 	cmd := &remotefs.Command{
 		Dir:    g.module.Directory(),
 		Env:    append([]string{}, g.flag.Env...),
 		Stderr: g.flag.Stderr,
 		Stdout: g.flag.Stdout,
 	}
-	g.process, err = cmd.Start(fsys.Context(), g.module.Directory("bud/tmp/generate/main"))
+	g.process, err = cmd.Start(fsys.Context(), g.module.Directory("bud/generate"))
 	if err != nil {
 		return err
 	}
@@ -103,5 +106,6 @@ func (g *Generator) GenerateDir(fsys budfs.FS, dir *budfs.Dir) error {
 	// Mount the remote filesystem
 	g.log.Debug("framework/generator: mounting the running remote filesystem")
 	g.bfs.Mount(g.process)
+
 	return nil
 }

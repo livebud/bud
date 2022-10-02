@@ -12,6 +12,7 @@ import (
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/web/webrt"
+	"github.com/livebud/bud/internal/bfs"
 	"github.com/livebud/bud/internal/cli/bud"
 	"github.com/livebud/bud/internal/exe"
 	"github.com/livebud/bud/internal/extrafile"
@@ -19,7 +20,6 @@ import (
 	"github.com/livebud/bud/internal/prompter"
 	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/internal/versions"
-	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/budhttp/budsvr"
 	"github.com/livebud/bud/package/gomod"
 	v8 "github.com/livebud/bud/package/js/v8"
@@ -97,7 +97,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		log.Debug("run: bud server is listening", "url", "http://"+budln.Addr().String())
 	}
 	// Load the generator filesystem
-	bfs, err := bud.FileSystem(ctx, log, module, c.Flag)
+	bfs, err := bfs.Load(c.Flag, log, module)
 	if err != nil {
 		return err
 	}
@@ -181,7 +181,7 @@ type appServer struct {
 	builder  *gobuild.Builder
 	prompter *prompter.Prompter
 	bus      pubsub.Client
-	bfs      *budfs.FileSystem
+	bfs      *bfs.FS
 	log      log.Interface
 	module   *gomod.Module
 	starter  *exe.Command
@@ -190,7 +190,7 @@ type appServer struct {
 // Run the app server
 func (a *appServer) Run(ctx context.Context) error {
 	// Generate the app
-	if err := a.bfs.Sync(a.module, "bud/internal"); err != nil {
+	if err := a.bfs.Sync("bud/internal"); err != nil {
 		a.bus.Publish("app:error", []byte(err.Error()))
 		a.log.Debug("run: published event", "event", "app:error")
 		return err
@@ -239,7 +239,7 @@ func (a *appServer) Run(ctx context.Context) error {
 		a.bus.Publish("backend:update", nil)
 		a.log.Debug("run: published event", "event", "backend:update")
 		// Generate the app
-		if err := a.bfs.Sync(a.module, "bud/internal"); err != nil {
+		if err := a.bfs.Sync("bud/internal"); err != nil {
 			return err
 		}
 		// Build the app

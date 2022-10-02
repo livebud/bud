@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/livebud/bud/internal/bfs"
 	"github.com/livebud/bud/internal/printfs"
 
 	"github.com/livebud/bud/framework"
@@ -40,7 +41,7 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	bfs, err := bud.FileSystem(ctx, log, module, c.Flag)
+	bfs, err := bfs.Load(c.Flag, log, module)
 	if err != nil {
 		return err
 	}
