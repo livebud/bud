@@ -1,13 +1,15 @@
 package generator
 
 import (
-	"fmt"
 	"io/fs"
+	"path/filepath"
 	"strings"
+
+	"github.com/livebud/bud/package/finder"
+	"github.com/livebud/bud/package/log"
 
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/imports"
-	"github.com/livebud/bud/internal/scan"
 	"github.com/livebud/bud/internal/valid"
 	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/di"
@@ -16,9 +18,10 @@ import (
 	"github.com/matthewmueller/gotext"
 )
 
-func Load(fsys budfs.FS, injector *di.Injector, module *gomod.Module, parser *parser.Parser) (*State, error) {
+func Load(fsys budfs.FS, injector *di.Injector, log log.Interface, module *gomod.Module, parser *parser.Parser) (*State, error) {
 	return (&loader{
 		injector: injector,
+		log:      log,
 		module:   module,
 		parser:   parser,
 		imports:  imports.New(),
@@ -27,6 +30,7 @@ func Load(fsys budfs.FS, injector *di.Injector, module *gomod.Module, parser *pa
 
 type loader struct {
 	injector *di.Injector
+	log      log.Interface
 	module   *gomod.Module
 	parser   *parser.Parser
 	imports  *imports.Set
@@ -61,12 +65,11 @@ func (l *loader) Load(bfs budfs.FS) (state *State, err error) {
 }
 
 func (l *loader) loadGenerators(bfs budfs.FS) (generators []*UserGenerator) {
-	generatorDirs, err := scan.List(bfs, "generator", func(de fs.DirEntry) bool {
-		if de.IsDir() {
-			return valid.Dir(de.Name())
-		} else {
-			return valid.GoFile(de.Name())
+	generatorDirs, err := finder.Find(bfs, "generator/**.go", func(path string, isDir bool) (entries []string) {
+		if !isDir && valid.GoFile(path) {
+			entries = append(entries, filepath.Dir(path))
 		}
+		return entries
 	})
 	if err != nil {
 		l.Bail(err)
@@ -77,13 +80,14 @@ func (l *loader) loadGenerators(bfs budfs.FS) (generators []*UserGenerator) {
 		if err != nil {
 			l.Bail(err)
 		}
-		// Ensure the package has a generator
-		// TODO: ensure the package has a GenerateDir function that
+		// Ensure the package has a Generator and a Register command
 		// matches the accepted signature
 		if s := pkg.Struct("Generator"); s == nil {
-			l.Bail(fmt.Errorf("no Generator struct in %q", importPath))
-		} else if s.Method("GenerateDir") == nil {
-			l.Bail(fmt.Errorf("no (*Generator).GenerateDir(...) method in %q", importPath))
+			l.log.Debug("framework/generator: skipping package because there's no Generator struct")
+			continue
+		} else if s.Method("Register") == nil {
+			l.log.Debug("framework/generator: skipping package because Generator has no Register function")
+			continue
 		}
 		imp := &imports.Import{
 			Name: l.imports.Add(importPath),
@@ -96,6 +100,7 @@ func (l *loader) loadGenerators(bfs budfs.FS) (generators []*UserGenerator) {
 			Pascal: gotext.Pascal(rootlessGenerator),
 		})
 	}
+	// Final check in case we didn't find any valid generators
 	return generators
 }
 
@@ -110,7 +115,7 @@ func (l *loader) loadProvider(generators []*UserGenerator) *di.Provider {
 	}
 	provider, err := l.injector.Wire(&di.Function{
 		Name:    "loadGenerators",
-		Target:  l.module.Import("bud/internal/generator"),
+		Target:  l.module.Import("bud/command/generate"),
 		Imports: l.imports,
 		Params: []*di.Param{
 			{Import: "github.com/livebud/bud/package/log", Type: "Interface"},
@@ -119,7 +124,7 @@ func (l *loader) loadProvider(generators []*UserGenerator) *di.Provider {
 		},
 		Results: []di.Dependency{
 			&di.Struct{
-				Import: l.module.Import("bud/internal/generator"),
+				Import: l.module.Import("bud/command/generate"),
 				Type:   "*Generator",
 				Fields: structFields,
 			},

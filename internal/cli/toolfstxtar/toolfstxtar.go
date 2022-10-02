@@ -10,6 +10,7 @@ import (
 	"golang.org/x/tools/txtar"
 
 	"github.com/livebud/bud/framework"
+	"github.com/livebud/bud/internal/bfs"
 	"github.com/livebud/bud/internal/cli/bud"
 )
 
@@ -43,7 +44,7 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	bfs, err := bud.FileSystem(ctx, log, module, c.Flag)
+	bfs, err := bfs.Load(c.Flag, log, module)
 	if err != nil {
 		return err
 	}

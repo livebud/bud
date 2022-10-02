@@ -1777,3 +1777,22 @@ func TestServiceMount(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(string(code), "transforming: ssr-js/view/index.svelte")
 }
+
+func TestFileSystemDir(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Map{}
+	log := testlog.New()
+	bfs := budfs.New(fsys, log)
+	dir := bfs.Dir()
+	is.Equal(dir.Target(), ".")
+	is.Equal(dir.Path(), ".")
+	is.Equal(dir.Mode(), fs.ModeDir)
+	dir.FileGenerator("a.txt", &budfs.EmbedFile{Data: []byte("a")})
+	dir.FileGenerator("b/b.txt", &budfs.EmbedFile{Data: []byte("b")})
+	code, err := fs.ReadFile(bfs, "a.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "a")
+	code, err = fs.ReadFile(bfs, "b/b.txt")
+	is.NoErr(err)
+	is.Equal(string(code), "b")
+}

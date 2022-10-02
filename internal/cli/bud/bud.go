@@ -12,27 +12,12 @@ import (
 	"github.com/livebud/bud/internal/pubsub"
 	"golang.org/x/mod/semver"
 
-	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/framework/app"
-	"github.com/livebud/bud/framework/controller"
-	"github.com/livebud/bud/framework/generator"
-	"github.com/livebud/bud/framework/public"
-	"github.com/livebud/bud/framework/transform/transformrt"
-	"github.com/livebud/bud/framework/view"
-	"github.com/livebud/bud/framework/view/dom"
-	"github.com/livebud/bud/framework/view/ssr"
-	"github.com/livebud/bud/framework/web"
-	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/commander"
-	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
-	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/log/console"
 	"github.com/livebud/bud/package/log/filter"
-	"github.com/livebud/bud/package/parser"
 	"github.com/livebud/bud/package/socket"
-	"github.com/livebud/bud/package/svelte"
 )
 
 // Input contains the configuration that gets passed into the commands
@@ -117,34 +102,6 @@ func Log(stderr io.Writer, logFilter string) (log.Interface, error) {
 		return nil, err
 	}
 	return log.New(handler), nil
-}
-
-func FileSystem(ctx context.Context, log log.Interface, module *gomod.Module, flag *framework.Flag) (*budfs.FileSystem, error) {
-	bfs := budfs.New(module, log)
-	parser := parser.New(bfs, module)
-	injector := di.New(bfs, log, module, parser)
-	vm, err := v8.Load()
-	if err != nil {
-		return nil, err
-	}
-	svelteCompiler, err := svelte.Load(vm)
-	if err != nil {
-		return nil, err
-	}
-	transforms, err := transformrt.Load(svelte.NewTransformable(svelteCompiler))
-	if err != nil {
-		return nil, err
-	}
-	bfs.FileGenerator("bud/internal/app/main.go", app.New(injector, module, flag))
-	bfs.FileGenerator("bud/internal/app/web/web.go", web.New(module, parser))
-	bfs.FileGenerator("bud/internal/app/controller/controller.go", controller.New(injector, module, parser))
-	bfs.FileGenerator("bud/internal/app/view/view.go", view.New(module, transforms, flag))
-	bfs.FileGenerator("bud/internal/app/public/public.go", public.New(flag, module))
-	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
-	bfs.FileServer("bud/view", dom.New(module, transforms.DOM))
-	bfs.FileServer("bud/node_modules", dom.NodeModules(module))
-	bfs.DirGenerator("bud/internal/generator", generator.New(bfs, flag, injector, log, module, parser))
-	return bfs, nil
 }
 
 // EnsureVersionAlignment ensures that the CLI and runtime versions are aligned.
