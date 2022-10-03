@@ -13,7 +13,7 @@ func TestBudRoot(t *testing.T) {
 	ignore := gitignore.FromFS(fstest.MapFS{
 		".gitignore": &fstest.MapFile{Data: []byte(`/bud`)},
 	})
-	is.True(ignore("bud/internal/app/web/web.go"))
+	is.True(ignore("bud/internal/web/web.go"))
 	is.True(!ignore("main.go"))
 }
 

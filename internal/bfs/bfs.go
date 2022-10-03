@@ -43,10 +43,10 @@ func Load(flag *framework.Flag, log log.Interface, module *gomod.Module) (*FS, e
 		return nil, err
 	}
 	fsys.FileGenerator("bud/internal/app/main.go", app.New(injector, module, flag))
-	fsys.FileGenerator("bud/internal/app/web/web.go", web.New(module, parser))
-	fsys.FileGenerator("bud/internal/app/controller/controller.go", controller.New(injector, module, parser))
-	fsys.FileGenerator("bud/internal/app/view/view.go", view.New(module, transforms, flag))
-	fsys.FileGenerator("bud/internal/app/public/public.go", public.New(flag, module))
+	fsys.FileGenerator("bud/internal/web/web.go", web.New(module, parser))
+	fsys.FileGenerator("bud/internal/web/controller/controller.go", controller.New(injector, module, parser))
+	fsys.FileGenerator("bud/internal/web/view/view.go", view.New(module, transforms, flag))
+	fsys.FileGenerator("bud/internal/web/public/public.go", public.New(flag, module))
 	fsys.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
 	fsys.FileServer("bud/view", dom.New(module, transforms.DOM))
 	fsys.FileServer("bud/node_modules", dom.NodeModules(module))

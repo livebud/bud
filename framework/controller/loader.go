@@ -262,7 +262,7 @@ func (l *loader) loadView(controllerKey, actionKey, actionRoute string) *View {
 		if base != key {
 			continue
 		}
-		l.imports.Add(l.module.Import("bud/internal/app/view"))
+		l.imports.Add(l.module.Import("bud/internal/web/view"))
 		return &View{
 			Route: actionRoute,
 		}

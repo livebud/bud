@@ -45,7 +45,7 @@ func TestHello(t *testing.T) {
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), "<h1>hello</h1>")
-	is.NoErr(td.Exists("bud/internal/app/view/view.go"))
+	is.NoErr(td.Exists("bud/internal/web/view/view.go"))
 	// Change svelte file
 	indexFile := filepath.Join(dir, "view/index.svelte")
 	is.NoErr(os.MkdirAll(filepath.Dir(indexFile), 0755))
