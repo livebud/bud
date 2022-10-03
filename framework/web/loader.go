@@ -39,9 +39,9 @@ func (l *loader) Load() (state *State, err error) {
 	state = new(State)
 	// Ensure the web files exist
 	exist, err := vfs.SomeExist(l.fsys,
-		"bud/internal/app/controller/controller.go",
-		"bud/internal/app/public/public.go",
-		"bud/internal/app/view/view.go",
+		"bud/internal/web/controller/controller.go",
+		"bud/internal/web/public/public.go",
+		"bud/internal/web/view/view.go",
 	)
 	if err != nil {
 		return nil, err
@@ -59,19 +59,19 @@ func (l *loader) Load() (state *State, err error) {
 		return state, nil
 	}
 	// Turn on parts of the web server, based on what's generated
-	if exist["bud/internal/app/public/public.go"] {
+	if exist["bud/internal/web/public/public.go"] {
 		state.HasPublic = true
-		l.imports.AddNamed("public", l.module.Import("bud/internal/app/public"))
+		l.imports.AddNamed("public", l.module.Import("bud/internal/web/public"))
 	}
-	if exist["bud/internal/app/view/view.go"] {
+	if exist["bud/internal/web/view/view.go"] {
 		state.HasView = true
-		l.imports.AddNamed("view", l.module.Import("bud/internal/app/view"))
+		l.imports.AddNamed("view", l.module.Import("bud/internal/web/view"))
 	}
 	// Load the controllers
-	if exist["bud/internal/app/controller/controller.go"] {
+	if exist["bud/internal/web/controller/controller.go"] {
 		state.Actions = l.loadControllerActions()
 		if len(state.Actions) > 0 {
-			l.imports.AddNamed("controller", l.module.Import("bud/internal/app/controller"))
+			l.imports.AddNamed("controller", l.module.Import("bud/internal/web/controller"))
 		}
 	}
 	// state.Command = l.loadRoot("command")

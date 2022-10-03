@@ -14,3 +14,12 @@ func TestMatch(t *testing.T) {
 	is.True(matcher.Match("controller/controller.go"))
 	is.True(matcher.Match("view/index.svelte"))
 }
+
+func TestDirMatch(t *testing.T) {
+	is := is.New(t)
+	matcher, err := glob.Compile("controller/*/**.go")
+	is.NoErr(err)
+	is.True(!matcher.Match("controller/controller.go"))
+	is.True(matcher.Match("controller/view/view.go"))
+	is.True(matcher.Match("controller/public/public.go"))
+}

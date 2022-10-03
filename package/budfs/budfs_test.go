@@ -1184,7 +1184,7 @@ func TestCacheGenerateFile(t *testing.T) {
 	count := map[string]int{}
 	fsys := &dirFS{count, dir}
 	bfs := budfs.New(fsys, log)
-	bfs.GenerateFile("bud/internal/app/view/view.go", func(fsys budfs.FS, file *budfs.File) error {
+	bfs.GenerateFile("bud/internal/web/view/view.go", func(fsys budfs.FS, file *budfs.File) error {
 		_, err := fs.Stat(fsys, "view/index.svelte")
 		if err != nil {
 			return err
@@ -1193,31 +1193,31 @@ func TestCacheGenerateFile(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		count["bud/internal/app/view/view.go"]++
+		count["bud/internal/web/view/view.go"]++
 		file.Data = []byte("package view")
 		return nil
 	})
-	bfs.GenerateFile("bud/internal/app/web/web.go", func(fsys budfs.FS, file *budfs.File) error {
-		_, err := fs.Stat(fsys, "bud/internal/app/view/view.go")
+	bfs.GenerateFile("bud/internal/web/web.go", func(fsys budfs.FS, file *budfs.File) error {
+		_, err := fs.Stat(fsys, "bud/internal/web/view/view.go")
 		if err != nil {
 			return err
 		}
-		count["bud/internal/app/web/web.go"]++
+		count["bud/internal/web/web.go"]++
 		file.Data = []byte("package web")
 		return nil
 	})
 
 	// Default state
-	is.Equal(count["bud/internal/app/web/web.go"], 0, "wrong web generator reads")
-	is.Equal(count["bud/internal/app/view/view.go"], 0, "wrong view generator reads")
+	is.Equal(count["bud/internal/web/web.go"], 0, "wrong web generator reads")
+	is.Equal(count["bud/internal/web/view/view.go"], 0, "wrong view generator reads")
 	is.Equal(count["view/index.svelte"], 0, "wrong index.svelte file reads")
 	is.Equal(count["view/about/index.svelte"], 0, "wrong about/index.svelte file reads")
 	// First sync
 	out := virtual.Map{}
 	err = bfs.Sync(out, "bud/internal")
 	is.NoErr(err)
-	is.Equal(count["bud/internal/app/web/web.go"], 1, "wrong web generator reads")
-	is.Equal(count["bud/internal/app/view/view.go"], 1, "wrong view generator reads")
+	is.Equal(count["bud/internal/web/web.go"], 1, "wrong web generator reads")
+	is.Equal(count["bud/internal/web/view/view.go"], 1, "wrong view generator reads")
 	is.Equal(count["view/index.svelte"], 1, "wrong index.svelte file reads")
 	is.Equal(count["view/about/index.svelte"], 1, "wrong about/index.svelte file reads")
 	// No change because we're only syncing generators and generators are cached
@@ -1225,16 +1225,16 @@ func TestCacheGenerateFile(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(count["view/index.svelte"], 1, "wrong index.svelte file reads")
 	is.Equal(count["view/about/index.svelte"], 1, "wrong about/index.svelte file reads")
-	is.Equal(count["bud/internal/app/view/view.go"], 1, "wrong view generator reads")
-	is.Equal(count["bud/internal/app/web/web.go"], 1, "wrong web generator reads")
+	is.Equal(count["bud/internal/web/view/view.go"], 1, "wrong view generator reads")
+	is.Equal(count["bud/internal/web/web.go"], 1, "wrong web generator reads")
 	// Increments real files because we're syncing everything, including the 2
 	// files directly. The generators still haven't run since the first run though.
 	err = bfs.Sync(out, ".")
 	is.NoErr(err)
 	is.Equal(count["view/index.svelte"], 2, "wrong index.svelte file reads")
 	is.Equal(count["view/about/index.svelte"], 2, "wrong about/index.svelte file reads")
-	is.Equal(count["bud/internal/app/view/view.go"], 1, "wrong view generator reads")
-	is.Equal(count["bud/internal/app/web/web.go"], 1, "wrong web generator reads")
+	is.Equal(count["bud/internal/web/view/view.go"], 1, "wrong view generator reads")
+	is.Equal(count["bud/internal/web/web.go"], 1, "wrong web generator reads")
 	// Generators gets re-run again and incremented, as well as the 2 files
 	// directly. However the files are only read once and cached, so they only
 	// increment by one, despite being read directly by the generator. Generators
@@ -1244,8 +1244,8 @@ func TestCacheGenerateFile(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(count["view/index.svelte"], 3, "wrong index.svelte file reads")
 	is.Equal(count["view/about/index.svelte"], 3, "wrong about/index.svelte file reads")
-	is.Equal(count["bud/internal/app/view/view.go"], 2, "wrong view generator reads")
-	is.Equal(count["bud/internal/app/web/web.go"], 2, "wrong web generator reads")
+	is.Equal(count["bud/internal/web/view/view.go"], 2, "wrong view generator reads")
+	is.Equal(count["bud/internal/web/web.go"], 2, "wrong web generator reads")
 }
 
 func TestCacheGenerateDir(t *testing.T) {

@@ -13,7 +13,7 @@ import (
 )
 
 func Load(fsys fs.FS, injector *di.Injector, module *gomod.Module, flag *framework.Flag) (*State, error) {
-	if err := vfs.Exist(fsys, "bud/internal/app/web/web.go"); err != nil {
+	if err := vfs.Exist(fsys, "bud/internal/web/web.go"); err != nil {
 		return nil, err
 	}
 	return (&loader{
@@ -44,7 +44,7 @@ func (l *loader) Load() (state *State, err error) {
 	l.imports.AddNamed("console", "github.com/livebud/bud/package/log/console")
 	l.imports.AddNamed("log", "github.com/livebud/bud/package/log")
 	l.imports.AddNamed("filter", "github.com/livebud/bud/package/log/filter")
-	l.imports.Add(l.module.Import("bud/internal/app/web"))
+	l.imports.Add(l.module.Import("bud/internal/web"))
 	state.Provider = l.loadProvider()
 	state.Flag = l.flag
 	state.Imports = l.imports.List()
@@ -66,7 +66,7 @@ func (l *loader) loadProvider() *di.Provider {
 			{Import: "context", Type: "Context"},
 		},
 		Results: []di.Dependency{
-			di.ToType(l.module.Import("bud/internal/app/web"), "*Server"),
+			di.ToType(l.module.Import("bud/internal/web"), "*Server"),
 			&di.Error{},
 		},
 		Aliases: di.Aliases{
