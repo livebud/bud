@@ -7,7 +7,8 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
-	"strings"
+
+	"github.com/livebud/bud/package/js"
 
 	"github.com/livebud/bud/framework/view/ssr"
 	"github.com/livebud/bud/internal/urlx"
@@ -17,9 +18,9 @@ import (
 )
 
 type Client interface {
-	Render(route string, props interface{}) (*ssr.Response, error)
 	Publish(topic string, data []byte) error
 	Open(name string) (fs.File, error)
+	js.VM
 }
 
 // Try tries loading a dev client from an environment variable or returns an
@@ -64,32 +65,24 @@ var _ Client = (*client)(nil)
 
 // Render a path with props on the dev server
 func (c *client) Render(route string, props interface{}) (*ssr.Response, error) {
-	c.log.Debug("budhttp: client rendering", "route", route)
-	body, err := json.Marshal(props)
+	script, err := fs.ReadFile(c, "bud/view/_ssr.js")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("budhttp: render %q. %w", route, err)
 	}
-	url := strings.TrimSuffix(c.baseURL+"/bud/view"+route, "/")
-	res, err := c.httpClient.Post(url, "application/json", bytes.NewReader(body))
+	propBytes, err := json.Marshal(props)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("budhttp: render %q. %w", route, err)
 	}
-	defer res.Body.Close()
-	resBody, err := io.ReadAll(res.Body)
+	expr := fmt.Sprintf(`%s; bud.render(%q, %s)`, script, route, propBytes)
+	result, err := c.Eval("_ssr.js", expr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("budhttp: render %q. %w", route, err)
 	}
-	if res.StatusCode != http.StatusOK {
-		if res.StatusCode == http.StatusNotFound {
-			return nil, fmt.Errorf("budhttp: render %q. %w", route, fs.ErrNotExist)
-		}
-		return nil, fmt.Errorf("budhttp: render returned unexpected %d. %s", res.StatusCode, resBody)
+	var response ssr.Response
+	if err := json.Unmarshal([]byte(result), &response); err != nil {
+		return nil, fmt.Errorf("budhttp: render %q. %w", route, err)
 	}
-	out := new(ssr.Response)
-	if err := json.Unmarshal(resBody, out); err != nil {
-		return nil, err
-	}
-	return out, nil
+	return &response, nil
 }
 
 func (c *client) Open(name string) (fs.File, error) {
@@ -135,4 +128,56 @@ func (c *client) Publish(topic string, data []byte) error {
 		return fmt.Errorf("budhttp: send returned unexpected %d. %s", res.StatusCode, resBody)
 	}
 	return nil
+}
+
+type Script struct {
+	Path   string
+	Script string
+}
+
+func (c *client) Script(path, script string) error {
+	body, err := json.Marshal(Script{path, script})
+	if err != nil {
+		return err
+	}
+	url := c.baseURL + "/js/script"
+	res, err := c.httpClient.Post(url, "application/json", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+	if res.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("budhttp: script returned unexpected %d. %s", res.StatusCode, resBody)
+	}
+	return nil
+}
+
+type Eval struct {
+	Path string
+	Expr string
+}
+
+func (c *client) Eval(path, expr string) (string, error) {
+	body, err := json.Marshal(Eval{path, expr})
+	if err != nil {
+		return "", err
+	}
+	url := c.baseURL + "/js/eval"
+	res, err := c.httpClient.Post(url, "application/json", bytes.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+	if res.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("budhttp: eval returned unexpected %d. %s", res.StatusCode, resBody)
+	}
+	return string(resBody), nil
 }

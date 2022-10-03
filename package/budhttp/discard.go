@@ -17,6 +17,14 @@ func (discard) Render(route string, props interface{}) (*ssr.Response, error) {
 	return nil, fmt.Errorf("budhttp: discard client does not support render")
 }
 
+func (discard) Script(path, script string) error {
+	return fmt.Errorf("budhttp: discard client does not support script")
+}
+
+func (discard) Eval(path, expression string) (string, error) {
+	return "", fmt.Errorf("budhttp: discard client does not support eval")
+}
+
 func (discard) Open(name string) (fs.File, error) {
 	return nil, fmt.Errorf("budhttp: discard client does not support open")
 }

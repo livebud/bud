@@ -37,6 +37,9 @@ func New(fsys fs.FS, bus pubsub.Client, log log.Interface, vm js.VM) *Server {
 	router.Get("/bud/hot/:page*", hot.New(log, bus))
 	// Private routes between the app and bud
 	router.Post("/bud/events", http.HandlerFunc(server.publish))
+	// Support eval
+	router.Post("/js/script", http.HandlerFunc(server.script))
+	router.Post("/js/eval", http.HandlerFunc(server.eval))
 	return server
 }
 
@@ -122,4 +125,48 @@ func (s *Server) publish(w http.ResponseWriter, r *http.Request) {
 	s.bus.Publish(event.Topic, event.Data)
 	// Return a No Content response
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) script(w http.ResponseWriter, r *http.Request) {
+	// Read the body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	// Unmarshal the request body into an event
+	var script budhttp.Script
+	if err := json.Unmarshal(body, &script); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := s.vm.Script(script.Path, script.Script); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// Return a No Content response
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *Server) eval(w http.ResponseWriter, r *http.Request) {
+	// Read the body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	// Unmarshal the request body into an event
+	var eval budhttp.Eval
+	if err := json.Unmarshal(body, &eval); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	result, err := s.vm.Eval(eval.Path, eval.Expr)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// Return the result
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(result))
 }
