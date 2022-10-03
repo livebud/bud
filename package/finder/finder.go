@@ -31,7 +31,18 @@ func Find(fsys fs.FS, pattern string, selector func(path string, isDir bool) (en
 			} else if !matcher.Match(path) {
 				return nil
 			}
-			matches = append(matches, selector(path, de.IsDir())...)
+			matched := selector(path, de.IsDir())
+			if len(matched) == 0 {
+				return nil
+			}
+			// Ensure all matches paths exist
+			if _, err := fs.Stat(fsys, path); err != nil {
+				if errors.Is(err, fs.ErrNotExist) {
+					return nil
+				}
+				return err
+			}
+			matches = append(matches, matched...)
 			return nil
 		}))
 		if err != nil {
