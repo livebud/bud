@@ -71,6 +71,7 @@ func (l *loader) loadProvider() *di.Provider {
 		},
 		Aliases: di.Aliases{
 			publicServer: di.ToType("github.com/livebud/bud/framework/public/publicrt", "*LiveServer"),
+			jsVM:         di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
 		},
 	}
 	if l.flag.Embed {

@@ -20,13 +20,13 @@ type Server interface {
 }
 
 func Proxy(client budhttp.Client, log log.Interface) *liveServer {
-	return &liveServer{client, http.FS(client), log}
+	return &liveServer{http.FS(client), log, &renderer{client, client}}
 }
 
 type liveServer struct {
-	client budhttp.Client
-	hfs    http.FileSystem
-	log    log.Interface
+	hfs      http.FileSystem
+	log      log.Interface
+	renderer *renderer
 }
 
 var _ Server = (*liveServer)(nil)
@@ -85,21 +85,19 @@ func (s *liveServer) respond(w http.ResponseWriter, path string, props interface
 	w.Write([]byte(res.Body))
 }
 
-func (s *liveServer) render(path string, props interface{}) (*ssr.Response, error) {
-	return s.client.Render(path, props)
+func (s *liveServer) render(route string, props interface{}) (*ssr.Response, error) {
+	return s.renderer.Render(route, props)
 }
 
 // Static server serves the same files every time. Used during production.
 func Static(fsys fs.FS, log log.Interface, vm js.VM, wrapProps func(path string, props interface{}) interface{}) *staticServer {
-	return &staticServer{fsys, http.FS(fsys), log, vm, wrapProps}
+	return &staticServer{http.FS(fsys), log, &renderer{fsys, vm}}
 }
 
 type staticServer struct {
-	fsys      fs.FS
-	hfs       http.FileSystem
-	log       log.Interface
-	vm        js.VM
-	wrapProps func(path string, props interface{}) interface{}
+	hfs      http.FileSystem
+	log      log.Interface
+	renderer *renderer
 }
 
 var _ Server = (*staticServer)(nil)
@@ -125,29 +123,7 @@ func (s *staticServer) respond(w http.ResponseWriter, path string, props interfa
 }
 
 func (s *staticServer) render(path string, props interface{}) (*ssr.Response, error) {
-	propBytes, err := json.Marshal(s.wrapProps(path, props))
-	if err != nil {
-		return nil, err
-	}
-	script, err := fs.ReadFile(s.fsys, "bud/view/_ssr.js")
-	if err != nil {
-		return nil, err
-	}
-	// Evaluate the server
-	expr := fmt.Sprintf(`%s; bud.render(%q, %s)`, script, path, propBytes)
-	result, err := s.vm.Eval("_ssr.js", expr)
-	if err != nil {
-		return nil, err
-	}
-	// Unmarshal the response
-	res := new(ssr.Response)
-	if err := json.Unmarshal([]byte(result), res); err != nil {
-		return nil, err
-	}
-	if res.Status < 100 || res.Status > 999 {
-		return nil, fmt.Errorf("view: invalid status code %d", res.Status)
-	}
-	return res, nil
+	return s.renderer.Render(path, props)
 }
 
 func isClient(path string) bool {
@@ -190,4 +166,35 @@ func (s *staticServer) serveHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "text/javascript")
 	}
 	http.ServeContent(w, r, r.URL.Path, stat.ModTime(), file)
+}
+
+type renderer struct {
+	fsys fs.FS
+	vm   js.VM
+}
+
+func (r *renderer) Render(route string, props interface{}) (*ssr.Response, error) {
+	propBytes, err := json.Marshal(props)
+	if err != nil {
+		return nil, err
+	}
+	script, err := fs.ReadFile(r.fsys, "bud/view/_ssr.js")
+	if err != nil {
+		return nil, err
+	}
+	// Evaluate the server
+	expr := fmt.Sprintf(`%s; bud.render(%q, %s)`, script, route, propBytes)
+	result, err := r.vm.Eval("_ssr.js", expr)
+	if err != nil {
+		return nil, err
+	}
+	// Unmarshal the response
+	res := new(ssr.Response)
+	if err := json.Unmarshal([]byte(result), res); err != nil {
+		return nil, err
+	}
+	if res.Status < 100 || res.Status > 999 {
+		return nil, fmt.Errorf("view: invalid status code %d", res.Status)
+	}
+	return res, nil
 }

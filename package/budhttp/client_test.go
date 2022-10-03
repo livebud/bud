@@ -53,85 +53,6 @@ func loadServer(bus pubsub.Client, dir string) (*httptest.Server, error) {
 	return httptest.NewServer(handler), nil
 }
 
-func TestRender(t *testing.T) {
-	ctx := context.Background()
-	is := is.New(t)
-	log := testlog.New()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.Files["view/index.svelte"] = `
-		<script>
-			export let _string = "cupcake"
-		</script>
-		<h1>Hello, {_string}!</h1>
-	`
-	td.NodeModules["svelte"] = versions.Svelte
-	is.NoErr(td.Write(ctx))
-	ps := pubsub.New()
-	server, err := loadServer(ps, dir)
-	is.NoErr(err)
-	defer server.Close()
-	client, err := budhttp.Load(log, server.URL)
-	is.NoErr(err)
-	res, err := client.Render("/", map[string]interface{}{
-		"_string": "marshmallow",
-	})
-	is.NoErr(err)
-	is.Equal(res.Status, 200)
-	is.Equal(len(res.Headers), 1)
-	is.Equal(res.Headers["Content-Type"], "text/html")
-	is.In(res.Body, `<h1>Hello, marshmallow!</h1>`)
-}
-
-func TestRenderNested(t *testing.T) {
-	ctx := context.Background()
-	is := is.New(t)
-	log := testlog.New()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.Files["view/posts/comments/edit.svelte"] = `
-		<script>
-			export let _string = "cupcake"
-		</script>
-		<h1>Hello, {_string}!</h1>
-	`
-	td.NodeModules["svelte"] = versions.Svelte
-	is.NoErr(td.Write(ctx))
-	ps := pubsub.New()
-	server, err := loadServer(ps, dir)
-	is.NoErr(err)
-	defer server.Close()
-	client, err := budhttp.Load(log, server.URL)
-	is.NoErr(err)
-	res, err := client.Render("/posts/:post_id/comments/:id/edit", map[string]interface{}{
-		"_string": "marshmallow",
-	})
-	is.NoErr(err)
-	is.Equal(res.Status, 200)
-	is.Equal(len(res.Headers), 1)
-	is.Equal(res.Headers["Content-Type"], "text/html")
-	is.In(res.Body, `<h1>Hello, marshmallow!</h1>`)
-}
-
-func TestRender404(t *testing.T) {
-	t.SkipNow()
-	ctx := context.Background()
-	is := is.New(t)
-	log := testlog.New()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	is.NoErr(td.Write(ctx))
-	ps := pubsub.New()
-	server, err := loadServer(ps, dir)
-	is.NoErr(err)
-	defer server.Close()
-	client, err := budhttp.Load(log, server.URL)
-	is.NoErr(err)
-	res, err := client.Render("/", map[string]interface{}{})
-	is.True(errors.Is(err, fs.ErrNotExist))
-	is.Equal(res, nil)
-}
-
 func TestOpen(t *testing.T) {
 	ctx := context.Background()
 	is := is.New(t)
@@ -239,4 +160,44 @@ func TestEvents(t *testing.T) {
 	default:
 		t.Fatalf("missing event")
 	}
+}
+
+func TestScript(t *testing.T) {
+	ctx := context.Background()
+	is := is.New(t)
+	log := testlog.New()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	is.NoErr(td.Write(ctx))
+	ps := pubsub.New()
+	server, err := loadServer(ps, dir)
+	is.NoErr(err)
+	defer server.Close()
+	client, err := budhttp.Load(log, server.URL)
+	is.NoErr(err)
+	err = client.Script("script.js", "function a() { return 1 }")
+	is.NoErr(err)
+	err = client.Script("script.js", "function b() { return 1")
+	is.True(err != nil)
+	is.In(err.Error(), "SyntaxError: Unexpected end of input")
+}
+
+func TestScriptEval(t *testing.T) {
+	ctx := context.Background()
+	is := is.New(t)
+	log := testlog.New()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	is.NoErr(td.Write(ctx))
+	ps := pubsub.New()
+	server, err := loadServer(ps, dir)
+	is.NoErr(err)
+	defer server.Close()
+	client, err := budhttp.Load(log, server.URL)
+	is.NoErr(err)
+	err = client.Script("script.js", "function a() { return 1 }")
+	is.NoErr(err)
+	val, err := client.Eval("script.js", "a()")
+	is.NoErr(err)
+	is.Equal(val, "1")
 }
