@@ -54,7 +54,7 @@ func (l *loader) Load() (state *State, err error) {
 func (l *loader) loadProvider() *di.Provider {
 	jsVM := di.ToType("github.com/livebud/bud/package/js", "VM")
 	// TODO: the public generator should be able to configure this
-	publicServer := di.ToType("github.com/livebud/bud/framework/public/publicrt", "Server")
+	publicFS := di.ToType("github.com/livebud/bud/framework/public/publicrt", "FS")
 	fn := &di.Function{
 		Name:    "loadWeb",
 		Imports: l.imports,
@@ -70,13 +70,13 @@ func (l *loader) loadProvider() *di.Provider {
 			&di.Error{},
 		},
 		Aliases: di.Aliases{
-			publicServer: di.ToType("github.com/livebud/bud/framework/public/publicrt", "*LiveServer"),
-			jsVM:         di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
+			publicFS: di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
+			jsVM:     di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
 		},
 	}
 	if l.flag.Embed {
 		fn.Aliases[jsVM] = di.ToType("github.com/livebud/bud/package/js/v8", "*VM")
-		fn.Aliases[publicServer] = di.ToType("github.com/livebud/bud/framework/public/publicrt", "*StaticServer")
+		fn.Aliases[publicFS] = di.ToType(l.module.Import("bud/internal/web/public"), "FS")
 	}
 	provider, err := l.injector.Wire(fn)
 	if err != nil {

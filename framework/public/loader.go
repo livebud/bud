@@ -1,16 +1,16 @@
 package public
 
 import (
-	"errors"
 	"io/fs"
 	"path"
+	"strings"
+
+	"github.com/livebud/bud/internal/valid"
 
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/package/vfs"
+	"github.com/livebud/bud/package/finder"
 
 	"github.com/livebud/bud/internal/bail"
-	"github.com/livebud/bud/internal/embed"
-	"github.com/livebud/bud/internal/embedded"
 	"github.com/livebud/bud/internal/imports"
 )
 
@@ -33,69 +33,51 @@ type loader struct {
 // Load the command state
 func (l *loader) Load() (state *State, err error) {
 	defer l.Recover(&err)
-	files, err := fs.Glob(l.fsys, "{public/**,view/**}")
+	paths, err := finder.Find(l.fsys, "public/**", func(fullpath string, isDir bool) (entries []string) {
+		if isDir {
+			return nil
+		}
+		if valid.PublicFile(path.Base(fullpath)) {
+			entries = append(entries, fullpath)
+		}
+		return entries
+	})
 	if err != nil {
 		return nil, err
-	} else if len(files) == 0 {
+	} else if len(paths) == 0 {
 		return nil, fs.ErrNotExist
 	}
 	state = new(State)
-	state.Flag = l.flag
+	// Load the files from paths
+	state.Files = l.loadFiles(paths)
 	// Default imports
 	l.imports.AddNamed("virtual", "github.com/livebud/bud/package/virtual")
-	l.imports.AddNamed("middleware", "github.com/livebud/bud/package/middleware")
 	l.imports.AddNamed("publicrt", "github.com/livebud/bud/framework/public/publicrt")
-	// Load embeds
-	if l.flag.Embed {
-		state.Embeds = l.loadEmbedsFrom("public", ".")
-	}
-	// Load default public files. Out of convenience, these defaults are embedded
-	// regardless of flag.Embed
-	state.Embeds = append(state.Embeds, l.loadDefaults()...)
+	l.imports.AddNamed("router", "github.com/livebud/bud/package/router")
+	l.imports.AddNamed("http", "net/http")
+	l.imports.AddNamed("fs", "io/fs")
 	// Add the imports
 	state.Imports = l.imports.List()
 	return state, nil
 }
 
-func (l *loader) loadEmbedsFrom(root, dir string) (files []*embed.File) {
-	fullDir := path.Join(root, dir)
-	des, err := fs.ReadDir(l.fsys, fullDir)
-	if err != nil {
-		l.Bail(err)
-	}
-	for _, de := range des {
-		name := de.Name()
-		if name[0] == '_' || name[0] == '.' {
-			continue
-		}
-		filePath := path.Join(dir, name)
-		if de.IsDir() {
-			files = append(files, l.loadEmbedsFrom(root, filePath)...)
-			continue
-		}
-		fullPath := path.Join(root, filePath)
-		data, err := fs.ReadFile(l.fsys, fullPath)
-		if err != nil {
-			l.Bail(err)
-		}
-		files = append(files, &embed.File{
-			Path: fullPath,
-			Data: data,
-		})
+func (l *loader) loadFiles(paths []string) (files []*File) {
+	for _, path := range paths {
+		files = append(files, l.loadFile(path))
 	}
 	return files
 }
 
-func (l *loader) loadDefaults() (files []*embed.File) {
-	// Add a public favicon if it doesn't exist
-	if err := vfs.Exist(l.fsys, "public/favicon.ico"); err != nil {
-		if !errors.Is(err, fs.ErrNotExist) {
+func (l *loader) loadFile(path string) *File {
+	file := new(File)
+	file.Path = path
+	file.Route = strings.TrimPrefix(path, "public")
+	if l.flag.Embed {
+		data, err := fs.ReadFile(l.fsys, path)
+		if err != nil {
 			l.Bail(err)
 		}
-		files = append(files, &embed.File{
-			Path: "public/favicon.ico",
-			Data: embedded.Favicon(),
-		})
+		file.Data = data
 	}
-	return files
+	return file
 }

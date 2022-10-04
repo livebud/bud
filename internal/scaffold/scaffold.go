@@ -70,6 +70,22 @@ func (j *jsonFile) Scaffold(fsys vfs.ReadWritable) error {
 	return fsys.WriteFile(j.path, code, 0644)
 }
 
+func File(path string, data []byte) Scaffolding {
+	return &file{path, data}
+}
+
+type file struct {
+	path string
+	data []byte
+}
+
+func (f *file) Scaffold(fsys vfs.ReadWritable) error {
+	if err := fsys.MkdirAll(filepath.Dir(f.path), 0755); err != nil {
+		return err
+	}
+	return fsys.WriteFile(f.path, f.data, 0644)
+}
+
 func Scaffold(fsys vfs.ReadWritable, scaffoldings ...Scaffolding) error {
 	// TODO: make concurrency safe then refactor to use errgroup.
 	for _, s := range scaffoldings {

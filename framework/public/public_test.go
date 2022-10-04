@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/internal/cli/testcli"
-	"github.com/livebud/bud/internal/embedded"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
 )
@@ -173,33 +172,5 @@ func TestEmbedFavicon(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(200, res.Status())
 	is.Equal(res.Body().Bytes(), favicon)
-	is.NoErr(app.Close())
-}
-
-func TestAppPluginOverlap(t *testing.T) {
-	t.SkipNow()
-}
-
-func TestPluginPluginOverlap(t *testing.T) {
-	t.SkipNow()
-}
-
-func TestDefaults(t *testing.T) {
-	is := is.New(t)
-	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.Files["view/index.svelte"] = `<h1>hello</h1>`
-	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
-	app, err := cli.Start(ctx, "run")
-	is.NoErr(err)
-	defer app.Close()
-	// default favicon
-	res, err := app.Get("/favicon.ico")
-	is.NoErr(err)
-	is.Equal(200, res.Status())
-	is.Equal(len(res.Body().Bytes()), len(embedded.Favicon()))
-	is.Equal(res.Body().Bytes(), embedded.Favicon())
 	is.NoErr(app.Close())
 }

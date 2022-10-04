@@ -61,6 +61,14 @@ func invalidGoFile(name string) bool {
 		strings.HasSuffix(name, "_test") // Test file
 }
 
+// Invalid public file
+func invalidPublicFile(name string) bool {
+	return len(name) == 0 || // Empty string
+		path.Ext(name) == "" ||
+		name[0] == '_' || // Starts with _
+		name[0] == '.' // Starts with .
+}
+
 func ControllerFile(name string) bool {
 	return !invalidGoFile(name)
 }
@@ -76,6 +84,10 @@ func CommandFile(name string) bool {
 
 func GoFile(name string) bool {
 	return !invalidGoFile(name)
+}
+
+func PublicFile(name string) bool {
+	return !invalidPublicFile(name)
 }
 
 func WalkDirFunc(fn fs.WalkDirFunc) fs.WalkDirFunc {
