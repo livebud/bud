@@ -2,7 +2,6 @@ package web
 
 import (
 	_ "embed"
-	"fmt"
 
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/package/budfs"
@@ -38,7 +37,6 @@ func (g *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(code))
 	file.Data = code
 	return nil
 }
