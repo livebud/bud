@@ -3,15 +3,19 @@ package web
 import (
 	"io/fs"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/livebud/bud/internal/scan"
+	"github.com/livebud/bud/internal/valid"
 
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/finder"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/parser"
 	"github.com/livebud/bud/package/vfs"
+	"github.com/matthewmueller/gotext"
 	"github.com/matthewmueller/text"
 )
 
@@ -46,6 +50,16 @@ func (l *loader) Load() (state *State, err error) {
 	if err != nil {
 		return nil, err
 	}
+	webDirs, err := finder.Find(l.fsys, "bud/internal/web/*/**.go", func(path string, isDir bool) (entries []string) {
+		if !isDir && valid.GoFile(path) {
+			entries = append(entries, filepath.Dir(path))
+		}
+		return entries
+	})
+	if err != nil {
+		return nil, err
+	}
+	_ = webDirs
 	// Add initial imports
 	l.imports.AddStd("net/http", "context")
 	l.imports.AddNamed("middleware", "github.com/livebud/bud/package/middleware")
@@ -60,8 +74,7 @@ func (l *loader) Load() (state *State, err error) {
 	}
 	// Turn on parts of the web server, based on what's generated
 	if exist["bud/internal/web/public/public.go"] {
-		state.HasPublic = true
-		l.imports.AddNamed("public", l.module.Import("bud/internal/web/public"))
+		state.Resources = append(state.Resources, l.loadResource("bud/internal/web/public"))
 	}
 	if exist["bud/internal/web/view/view.go"] {
 		state.HasView = true
@@ -78,6 +91,18 @@ func (l *loader) Load() (state *State, err error) {
 	// Load the imports
 	state.Imports = l.imports.List()
 	return state, nil
+}
+
+func (l *loader) loadResource(webDir string) (resource *Resource) {
+	resource = new(Resource)
+	importPath := l.module.Import(webDir)
+	resource.Import = &imports.Import{
+		Name: l.imports.Add(importPath),
+		Path: importPath,
+	}
+	packageName := path.Base(webDir)
+	resource.Camel = gotext.Camel(packageName)
+	return resource
 }
 
 func (l *loader) loadControllerActions() (actions []*Action) {
