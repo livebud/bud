@@ -114,8 +114,30 @@ func diff(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, err
 	}
-	sourceSet := set.New(sourceEntries...)
-	targetSet := set.New(targetEntries...)
+	// Create the source set from the source entries
+	sourceSet := set.NewWithSize(len(sourceEntries))
+	for _, de := range sourceEntries {
+		// Ensure all sources actually exist
+		if _, err := de.Info(); err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				continue
+			}
+			return nil, err
+		}
+		sourceSet.Add(de)
+	}
+	// Create a target set from the target entries
+	targetSet := set.NewWithSize(len(targetEntries))
+	for _, de := range targetEntries {
+		// Ensure all sources actually exist
+		if _, err := de.Info(); err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				continue
+			}
+			return nil, err
+		}
+		targetSet.Add(de)
+	}
 	creates := set.Difference(sourceSet, targetSet)
 	deletes := set.Difference(targetSet, sourceSet)
 	updates := set.Intersection(sourceSet, targetSet)
