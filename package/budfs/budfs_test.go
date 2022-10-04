@@ -1721,6 +1721,44 @@ func TestWatchDirAppearing(t *testing.T) {
 	is.Equal(string(code), "b10")
 }
 
+func TestGlobGeneratorDisappearing(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Tree{
+		"public/favicon.ico": &virtual.File{Data: []byte{0x00}},
+	}
+	log := testlog.New()
+	bfs := budfs.New(fsys, log)
+	count := map[string]int{}
+	bfs.GenerateFile("bud/public/public.go", func(fsys budfs.FS, file *budfs.File) error {
+		count["bud/public/public.go"]++
+		files, err := fs.Glob(fsys, "public/**")
+		if err != nil {
+			return err
+		} else if len(files) == 0 {
+			return fs.ErrNotExist
+		}
+		file.Data = []byte("package public")
+		return nil
+	})
+	// Test that the file is generated.
+	code, err := fs.ReadFile(bfs, "bud/public/public.go")
+	is.NoErr(err)
+	is.Equal(string(code), "package public")
+	is.Equal(count["bud/public/public.go"], 1)
+	// Test again with a cached version
+	code, err = fs.ReadFile(bfs, "bud/public/public.go")
+	is.NoErr(err)
+	is.Equal(string(code), "package public")
+	is.Equal(count["bud/public/public.go"], 1)
+	// Remove the file
+	delete(fsys, "public/favicon.ico")
+	bfs.Change("public/favicon.ico")
+	code, err = fs.ReadFile(bfs, "bud/public/public.go")
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.Equal(code, nil)
+	is.Equal(count["bud/public/public.go"], 2)
+}
+
 func TestServiceServe(t *testing.T) {
 	is := is.New(t)
 	fsys := virtual.Map{}

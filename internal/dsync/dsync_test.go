@@ -11,6 +11,7 @@ import (
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/budfs/treefs"
 	"github.com/livebud/bud/package/vfs"
+	"github.com/livebud/bud/package/virtual"
 )
 
 func TestFileSync(t *testing.T) {
@@ -337,4 +338,32 @@ func TestRel(t *testing.T) {
 	rel, err = dsync.Rel("bud", "app")("bud/a/a.go")
 	is.NoErr(err)
 	is.Equal(rel, "app/a/a.go")
+}
+
+func TestDeleteNotExist(t *testing.T) {
+	is := is.New(t)
+
+	// starting points
+	sourceFS := treefs.New(".")
+	notExist := false
+	sourceFS.FileGenerator("main.go", treefs.Generate(func(target string) (fs.File, error) {
+		if notExist {
+			return nil, fs.ErrNotExist
+		}
+		return virtual.New(&virtual.File{
+			Data: []byte("package main"),
+		}), nil
+	}))
+	targetFS := vfs.Memory{}
+
+	// sync
+	err := dsync.To(sourceFS, targetFS, ".")
+	is.NoErr(err)
+	is.Equal(len(targetFS), 1)
+
+	// set not exist and sync again
+	notExist = true
+	err = dsync.To(sourceFS, targetFS, ".")
+	is.NoErr(err)
+	is.Equal(len(targetFS), 0)
 }
