@@ -27,17 +27,6 @@ type Node struct {
 	Hoist bool
 }
 
-// type Mode uint8
-
-// const (
-// 	// External is true if the type matches an external dependency. External types
-// 	// are passed in, not instantiated.
-// 	ModeExternal = 1 << iota
-// 	// Hoistable indicates that this dependency is eligible to be hoisted up.
-// 	ModeHoistable
-// 	ModeHoisted
-// )
-
 func (n *Node) ID() string {
 	if n.Declaration != nil {
 		return n.Declaration.ID()

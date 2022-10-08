@@ -1805,7 +1805,7 @@ func TestStructMapNeedsPointer(t *testing.T) {
 	})
 }
 
-func TestFunctionMapNeedsPointer(t *testing.T) {
+func TestFunctionAliasToStruct(t *testing.T) {
 	runTest(t, Test{
 		Function: &di.Function{
 			Name:   "Load",
@@ -1855,6 +1855,88 @@ func TestFunctionMapNeedsPointer(t *testing.T) {
 				type V8 struct {}
 
 				func (v *V8) Eval(input string) (string, error) {
+					return "", nil
+				}
+			`,
+		},
+	})
+}
+
+func TestFunctionInterfaceParam(t *testing.T) {
+	runTest(t, Test{
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []*di.Param{
+				&di.Param{
+					Import: "app.com/js/v8",
+					Type:   "V8",
+				},
+			},
+			Results: []di.Dependency{
+				di.ToType("app.com/web", "*Web"),
+			},
+			Aliases: di.Aliases{
+				di.ToType("app.com/js", "VM"): di.ToType("app.com/js/v8", "V8"),
+			},
+		},
+		Expect: `
+			&web.Web{VM: &v8.v8{}}
+		`,
+		Files: map[string]string{
+			"go.mod": goMod,
+			"main.go": `package main
+
+				import (
+					"os"
+					"fmt"
+					"github.com/hexops/valast"
+					"app.com/gen/web"
+					"app.com/js/v8"
+				)
+
+				func main() {
+					v8 := v8.New()
+					actual := web.Load(v8)
+					fmt.Fprintf(os.Stdout, "%s\n", valast.String(actual))
+				}
+			`,
+			"web/web.go": `
+				package web
+
+				import (
+					"app.com/js"
+				)
+
+				func New(vm js.VM) *Web {
+					return &Web{vm}
+				}
+
+				type Web struct {
+					VM js.VM
+				}
+			`,
+			"js/js.go": `
+				package js
+
+				type VM interface {
+					Eval(input string) (string, error)
+				}
+			`,
+			"js/v8/v8.go": `
+				package v8
+
+				func New() V8 {
+					return &v8{}
+				}
+
+				type V8 interface {
+					Eval(input string) (string, error)
+				}
+
+				type v8 struct {}
+
+				func (v *v8) Eval(input string) (string, error) {
 					return "", nil
 				}
 			`,
