@@ -88,7 +88,34 @@ func TestHello(t *testing.T) {
 		Content-Type: text/html
 	`))
 	is.In(res.Body().String(), "<h1>hola</h1>")
-	// Change svelte file one more time
+	// Try the entrypoint
+	res, err = app.Get("/bud/view/_index.svelte.js")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+		HTTP/1.1 200 OK
+		Accept-Ranges: bytes
+		Content-Type: application/javascript
+	`))
+	is.In(res.Body().String(), "bud_target")
+	is.In(res.Body().String(), "\"hola\"")
+	// Try the AJAX endpoint
+	res, err = app.Get("/bud/view/index.svelte")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+	HTTP/1.1 200 OK
+	Accept-Ranges: bytes
+	Content-Type: application/javascript
+	`))
+	is.In(res.Body().String(), "\"hola\"")
+	// Try an external node_module
+	res, err = app.Get("/bud/node_modules/svelte/internal")
+	is.NoErr(err)
+	is.NoErr(res.DiffHeaders(`
+	HTTP/1.1 200 OK
+	Accept-Ranges: bytes
+	Content-Type: application/javascript
+	`))
+	is.In(res.Body().String(), "// node_modules/svelte/internal/index.mjs")
 	is.NoErr(app.Close())
 }
 
