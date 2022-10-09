@@ -77,8 +77,7 @@ func (l *loader) Load() (state *State, err error) {
 		state.Resources = append(state.Resources, l.loadResource("bud/internal/web/public"))
 	}
 	if exist["bud/internal/web/view/view.go"] {
-		state.HasView = true
-		l.imports.AddNamed("view", l.module.Import("bud/internal/web/view"))
+		state.Resources = append(state.Resources, l.loadResource("bud/internal/web/view"))
 	}
 	// Load the controllers
 	if exist["bud/internal/web/controller/controller.go"] {

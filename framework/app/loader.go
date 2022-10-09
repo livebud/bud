@@ -55,6 +55,7 @@ func (l *loader) loadProvider() *di.Provider {
 	jsVM := di.ToType("github.com/livebud/bud/package/js", "VM")
 	// TODO: the public generator should be able to configure this
 	publicFS := di.ToType("github.com/livebud/bud/framework/public/publicrt", "FS")
+	viewFS := di.ToType("github.com/livebud/bud/framework/view/viewrt", "FS")
 	fn := &di.Function{
 		Name:    "loadWeb",
 		Imports: l.imports,
@@ -71,18 +72,23 @@ func (l *loader) loadProvider() *di.Provider {
 		},
 		Aliases: di.Aliases{
 			publicFS: di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
+			viewFS:   di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
 			jsVM:     di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
 		},
 	}
 	if l.flag.Embed {
 		fn.Aliases[jsVM] = di.ToType("github.com/livebud/bud/package/js/v8", "*VM")
 		fn.Aliases[publicFS] = di.ToType(l.module.Import("bud/internal/web/public"), "FS")
+		fn.Aliases[viewFS] = di.ToType(l.module.Import("bud/internal/web/view"), "FS")
 	}
 	provider, err := l.injector.Wire(fn)
 	if err != nil {
-		// Intentionally don't wrap the error. The error gets swallowed up too
-		// easily
+		// Intentionally don't wrap this error, it gets swallowed up too easily
 		l.Bail(fmt.Errorf("app: unable to wire. %s", err))
+	}
+	// Add generated imports
+	for _, imp := range provider.Imports {
+		l.imports.AddNamed(imp.Name, imp.Path)
 	}
 	return provider
 }

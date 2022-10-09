@@ -2,7 +2,6 @@ package view
 
 // GENERATED. DO NOT EDIT.
 
-
 {{- if $.Imports }}
 
 import (
@@ -12,26 +11,34 @@ import (
 )
 {{- end }}
 
-{{- if not $.Flag.Embed }}
-// Load the view server. Files are linked rather than embedded.
-func Load(client budhttp.Client, log log.Interface) Server {
-	return viewrt.Proxy(client, log)
+func NewHandler(handler *viewrt.Handler) *Handler {
+	return &Handler{handler}
 }
-{{ else }}
-// New view server. Files are embedded rather than linked.
-func New(module *gomod.Module, log log.Interface, vm js.VM) Server {
-	vmap := virtual.Map{}
-	{{- range $embed := $.Embeds }}
-	vmap["{{ $embed.Path }}"] = &virtual.File{
-		Path: "{{ $embed.Path }}",
-		{{/* Using double quotes matters because $embed.Data is escaped hex */}}
-		Data: []byte("{{ $embed.Data }}"),
-	}
-	{{- end }}
-	return viewrt.Static(vmap, log, vm, func(path string, props interface{}) interface{} {
-		return props
-	})
-}
-{{- end }}
 
-type Server = viewrt.Server
+type Handler struct {
+	handler *viewrt.Handler
+}
+
+func (h *Handler) Register(r *router.Router) {
+	{{- range $route := $.Routes }}
+	r.Get(`{{ $route }}`, h.handler)
+	{{- end }}
+}
+
+func (h *Handler) Renderer(route string, props interface{}) http.Handler {
+	return h.handler.Renderer(route, props)
+}
+
+type FS = fs.FS
+
+func LoadFS() FS {
+	return virtual.Map{
+		{{- range $embed := $.Embeds }}
+		"{{ $embed.Path }}": &virtual.File{
+			Path: "{{ $embed.Path }}",
+			{{/* Using double quotes matters because $embed.Data is escaped hex */}}
+			Data: []byte("{{ $embed.Data }}"),
+		},
+		{{- end }}
+	}
+}
