@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/ajg/form v1.5.2-0.20200323032839-9aeb3cf462e1
+	github.com/albertorestifo/dijkstra v0.0.0-20160910063646-aba76f725f72
 	github.com/bep/debounce v1.2.1
 	github.com/cespare/xxhash v1.1.0
 	github.com/evanw/esbuild v0.14.11
