@@ -31,6 +31,16 @@ func (rt *Router) Add(method, route string, handler http.Handler) error {
 }
 
 func (rt *Router) add(method, route string, handler http.Handler) error {
+	if route == "/" {
+		return rt.insert(method, route, handler)
+	}
+	// Trim any trailing slash and lowercase the route
+	route = strings.TrimRight(strings.ToLower(route), "/")
+	return rt.insert(method, route, handler)
+}
+
+// Insert the route into the method's radix tree
+func (rt *Router) insert(method, route string, handler http.Handler) error {
 	if _, ok := rt.methods[method]; !ok {
 		rt.methods[method] = radix.New()
 	}
@@ -75,13 +85,8 @@ func (rt *Router) Middleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		urlPath := r.URL.Path
 		// Strip any trailing slash (e.g. /users/ => /users)
-		if hasTrailingSlash(urlPath) {
-			urlPath = strings.TrimRight(urlPath, "/")
-			http.Redirect(w, r, urlPath, http.StatusPermanentRedirect)
-			return
-		}
+		urlPath := trimTrailingSlash(r.URL.Path)
 		// Match the path
 		match, ok := tree.Match(urlPath)
 		if !ok {
@@ -101,8 +106,11 @@ func (rt *Router) Middleware(next http.Handler) http.Handler {
 	})
 }
 
-func hasTrailingSlash(path string) bool {
-	return path != "/" && strings.HasSuffix(path, "/")
+func trimTrailingSlash(path string) string {
+	if path == "/" {
+		return path
+	}
+	return strings.TrimRight(path, "/")
 }
 
 // isMethod returns true if method is a valid HTTP method

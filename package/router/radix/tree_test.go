@@ -43,6 +43,7 @@ func handler(route string) http.Handler {
 
 func ok(t testing.TB, test *test) {
 	is := is.New(t)
+	is.Helper()
 	tree := radix.New()
 	for _, insert := range test.inserts {
 		err := tree.Insert(insert.route, handler(insert.route))
@@ -80,6 +81,7 @@ func ok(t testing.TB, test *test) {
 // ok checks that all permutations of the routes are ok
 // doesn't work with routes that contain "err".
 func okp(t testing.TB, test *test) {
+	t.Helper()
 	// Short tests shouldn't permutate
 	if testing.Short() {
 		ok(t, test)
@@ -100,23 +102,23 @@ func qs(slots radix.Slots) string {
 	return strings.Join(out, "&")
 }
 
-func TestDuplicates(t *testing.T) {
+func TestDuplicatesOk(t *testing.T) {
 	ok(t, &test{
 		inserts: []*insert{
 			{route: "/hi"},
-			{route: "/hi", err: `radix: "/hi" is already in the tree`},
+			{route: "/hi"},
 		},
 	})
 	ok(t, &test{
 		inserts: []*insert{
 			{route: "/users/:id"},
-			{route: "/users/:id", err: `radix: "/users/:id" is already in the tree`},
+			{route: "/users/:id"},
 		},
 	})
 	ok(t, &test{
 		inserts: []*insert{
 			{route: "/zap/:id/edit"},
-			{route: "/zap/:id/edit", err: `radix: "/zap/:id/edit" is already in the tree`},
+			{route: "/zap/:id/edit"},
 		},
 	})
 	okp(t, &test{
@@ -326,7 +328,7 @@ func TestOptional(t *testing.T) {
 		inserts: []*insert{
 			{route: "/:id?"},
 			{route: "/:a.:b?", err: `radix: ambiguous routes "/:a.:b?" and "/:id?"`},
-			{route: "/x:id?", err: `radix: "/x:id?" is already in the tree`},
+			{route: "/x:id?"},
 			{route: "/not/:last?/path", err: `route "/not/:last?/path": optional "?" must be at the end`},
 			{route: "/slash/:last?/", err: `route "/slash/:last?/": optional "?" must be at the end`},
 		},

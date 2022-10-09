@@ -41,6 +41,7 @@ func handler(route string) http.Handler {
 
 func ok(t testing.TB, test *test) {
 	is := is.New(t)
+	is.Helper()
 	router := router.New()
 	for _, route := range test.routes {
 		if route.method == "" {
@@ -171,27 +172,38 @@ func TestTrailingSlash(t *testing.T) {
 	ok(t, &test{
 		routes: []*route{
 			{method: "GET", route: "/"},
-			{method: "GET", route: "/hi/", err: `route "/hi/": remove the slash "/" at the end`},
+			{method: "GET", route: "/hi/"},
 			{method: "GET", route: "/hi"},
 		},
 		requests: []*request{
 			{method: "GET", path: "/", status: 200},
-			{method: "GET", path: "/hi/", status: 308, location: "/hi", body: "<a href=\"/hi\">Permanent Redirect</a>.\n\n"},
-			{method: "GET", path: "/hi///", status: 308, location: "/hi", body: "<a href=\"/hi\">Permanent Redirect</a>.\n\n"},
+			{method: "GET", path: "/hi/", status: 200},
+			{method: "GET", path: "/hi///", status: 200},
 		},
 	})
 }
 func TestInsensitive(t *testing.T) {
 	ok(t, &test{
 		routes: []*route{
-			{method: "GET", route: "/HI", err: `route "/HI": uppercase letters are not allowed "H"`},
+			{method: "GET", route: "/HI"},
 			{method: "GET", route: "/hi"},
+			{method: "GET", route: "/Hi"},
+			{method: "GET", route: "/hI"},
+			{method: "GET", route: "/HI/"},
+			{method: "GET", route: "/hi/"},
+			{method: "GET", route: "/hI/"},
+			{method: "GET", route: "/Hi/"},
 		},
 		requests: []*request{
+			{method: "GET", path: "/hi", status: 200},
 			{method: "GET", path: "/HI", status: 200},
 			{method: "GET", path: "/Hi", status: 200},
 			{method: "GET", path: "/hI", status: 200},
-			{method: "GET", path: "/HI///", status: 308, location: "/HI", body: "<a href=\"/HI\">Permanent Redirect</a>.\n\n"},
+			{method: "GET", path: "/hi/", status: 200},
+			{method: "GET", path: "/HI/", status: 200},
+			{method: "GET", path: "/Hi/", status: 200},
+			{method: "GET", path: "/hI/", status: 200},
+			{method: "GET", path: "/HI///", status: 200},
 		},
 	})
 }

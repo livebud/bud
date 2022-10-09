@@ -177,14 +177,9 @@ func (t *tree) insertAt(parent *node, tokens lex.Tokens, route string, handler h
 		parent.route = ""
 		return nil
 	}
-	// This set of tokens are already in the tree
-	// E.g. We've inserted "/a", "/b", then "/". "/" will already be in the tree
-	// but not have a handler
+	// This set of tokens are already in the tree. Override any prior handler if
+	// there was one.
 	if inTreeAlready {
-		// Error out if we have a handler that's exactly the same as another route
-		if parent.handler != nil {
-			return fmt.Errorf("radix: %q is already in the tree", route)
-		}
 		parent.handler = handler
 		parent.route = route
 		return nil
