@@ -17,9 +17,9 @@ func New(
 	{{- if $.Actions }}
 	controller *controller.Controller,
 	{{- end }}
-	{{- if $.HasView }}
+	{{/* {{- if $.HasView }}
 	view view.Server,
-	{{- end }}
+	{{- end }} */}}
 	{{- if $.ShowWelcome }}
 	welcome welcome.Middleware,
 	{{- end }}
@@ -46,9 +46,9 @@ func New(
 		{{- if $.ShowWelcome }}
 		welcome,
 		{{- end }}
-		{{- if $.HasView }}
+		{{/* {{- if $.HasView }}
 		view,
-		{{- end }}
+		{{- end }} */}}
 	)
 	// 404 at the bottom of the middleware
 	handler := middleware.Middleware(http.NotFoundHandler())

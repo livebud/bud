@@ -12,6 +12,7 @@ require (
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/gitchander/permutation v0.0.0-20201214100618-1f3e7285f953
 	github.com/gobwas/glob v0.2.3
+	github.com/hexops/valast v1.4.1
 	github.com/keegancsmith/rpc v1.3.0
 	github.com/lithammer/dedent v1.1.0
 	github.com/livebud/bud-test-plugin v0.0.9
@@ -36,6 +37,7 @@ require (
 	github.com/BurntSushi/toml v0.4.1 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/gedex/inflector v0.0.0-20170307190818-16278e9db813 // indirect
+	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/livebud/bud-test-nested-plugin v0.0.5 // indirect
@@ -43,8 +45,10 @@ require (
 	github.com/pointlander/jetset v1.0.1-0.20190518214125-eee7eff80bd4 // indirect
 	github.com/rogpeppe/go-internal v1.8.1 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
+	github.com/shurcooL/go-goon v0.0.0-20170922171312-37c2f522c041 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20220218215828-6cf2b201936e // indirect
 	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f // indirect
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	mvdan.cc/gofumpt v0.2.0 // indirect
 )

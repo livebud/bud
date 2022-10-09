@@ -26,7 +26,7 @@ type {{ $.Pascal }}Controller struct {
 // {{ $.Pascal }}{{$action.Pascal}}Action struct
 type {{ $.Pascal }}{{$action.Pascal}}Action struct {
 	{{- if $action.View }}
-	View view.Server
+	View *view.Handler
 	{{- end }}
 	{{- with $provider := $action.Provider }}
 	{{- range $param := $provider.Hoisted }}
@@ -113,7 +113,7 @@ func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpRes
 	return &response.Format{
 		{{- if eq $action.Method "GET" }}
 		{{- if $action.View }}
-		HTML: {{ $action.Short }}.View.Handler("{{$action.View.Route}}", {{ $action.Results.ViewResult }}),
+		HTML: {{ $action.Short }}.View.Renderer("{{$action.View.Route}}", {{ $action.Results.ViewResult }}),
 		{{- else if $action.RespondHTML }}
 		HTML: response.HTML({{ $action.Results.Result }}),
 		{{- end }}

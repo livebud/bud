@@ -46,15 +46,14 @@ type loader struct {
 
 func (l *loader) Load(ctx context.Context) (state *State, err error) {
 	defer l.Recover2(&err, "view: unable to load")
-	state = &State{
-		Flag: l.flag,
-	}
+	state = &State{}
 	views, err := entrypoint.List(l.fsys, "view")
 	if err != nil {
 		return nil, err
 	} else if len(views) == 0 {
 		return nil, fs.ErrNotExist
 	}
+	// Load the embeds
 	if l.flag.Embed {
 		// Add SSR
 		ssrCompiler := ssr.New(l.module, l.transform.SSR)
@@ -66,28 +65,36 @@ func (l *loader) Load(ctx context.Context) (state *State, err error) {
 			Path: "bud/view/_ssr.js",
 			Data: ssrCode,
 		})
-		// Add DOM
+		// Bundle client-side files
 		domCompiler := dom.New(l.module, l.transform.DOM)
 		files, err := domCompiler.Compile(ctx, l.fsys)
 		if err != nil {
 			return nil, err
 		}
 		for _, file := range files {
+			// Lowercase the path for the router which requires lowercase routes
+			filePath := path.Join("bud/view", file.Path)
 			state.Embeds = append(state.Embeds, &embed.File{
-				Path: path.Join("bud/view", file.Path),
+				Path: filePath,
 				Data: file.Contents,
 			})
+			state.Routes = append(state.Routes, "/"+filePath)
 		}
-	}
-	// fmt.Println(l.Flag.Embed, l.Transform.SSR, views)
-	if l.flag.Embed {
-		l.imports.AddNamed("virtual", "github.com/livebud/bud/package/virtual")
-		l.imports.AddNamed("gomod", "github.com/livebud/bud/package/gomod")
-		l.imports.AddNamed("js", "github.com/livebud/bud/package/js")
 	} else {
-		l.imports.AddNamed("budhttp", "github.com/livebud/bud/package/budhttp")
+		// Load the routes as references
+		for _, view := range views {
+			// Add the entrypoint
+			state.Routes = append(state.Routes, "/"+view.Client)
+			// Add the dynamic import
+			state.Routes = append(state.Routes, "/bud/"+string(view.Page))
+		}
+		// Add node modules if we're not bundling
+		state.Routes = append(state.Routes, "/bud/node_modules/:module*")
 	}
-	l.imports.AddNamed("log", "github.com/livebud/bud/package/log")
+	// Add the imports
+	l.imports.AddStd("io/fs", "net/http")
+	l.imports.AddNamed("router", "github.com/livebud/bud/package/router")
+	l.imports.AddNamed("virtual", "github.com/livebud/bud/package/virtual")
 	l.imports.AddNamed("viewrt", "github.com/livebud/bud/framework/view/viewrt")
 	state.Imports = l.imports.List()
 	return state, nil
