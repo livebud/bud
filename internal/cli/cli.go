@@ -8,6 +8,7 @@ import (
 	"github.com/livebud/bud/internal/cli/bud"
 	"github.com/livebud/bud/internal/cli/build"
 	"github.com/livebud/bud/internal/cli/create"
+	"github.com/livebud/bud/internal/cli/generate"
 	"github.com/livebud/bud/internal/cli/newcontroller"
 	"github.com/livebud/bud/internal/cli/run"
 	"github.com/livebud/bud/internal/cli/toolbs"
@@ -63,6 +64,16 @@ func (c *CLI) Run(ctx context.Context, args ...string) error {
 		cli.Flag("hot", "hot reloading").Bool(&cmd.Flag.Hot).Default(true)
 		cli.Flag("minify", "minify assets").Bool(&cmd.Flag.Minify).Default(false)
 		cli.Flag("listen", "address to listen to").String(&cmd.Listen).Default(":3000")
+		cli.Run(cmd.Run)
+	}
+
+	{ // $ bud generate
+		cmd := generate.New(cmd, c.in)
+		cli := cli.Command("generate", "generate the code")
+		cli.Flag("embed", "embed assets").Bool(&cmd.Flag.Embed).Default(false)
+		cli.Flag("hot", "hot reloading").Bool(&cmd.Flag.Hot).Default(true)
+		cli.Flag("minify", "minify assets").Bool(&cmd.Flag.Minify).Default(false)
+		cli.Args("dirs").Strings(&cmd.Args)
 		cli.Run(cmd.Run)
 	}
 
