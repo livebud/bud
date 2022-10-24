@@ -149,7 +149,8 @@ func TestListenUp(t *testing.T) {
 
 func TestListenMaxAttemptsReached(t *testing.T) {
 	is := is.New(t)
-	ln0, err := socket.Listen(":0")
+	// Letting the OS decide leads to port conflicts when run with other tests
+	ln0, err := socket.Listen(":10000")
 	is.NoErr(err)
 	defer ln0.Close()
 	// This one should work
