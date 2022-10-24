@@ -21,6 +21,11 @@ import (
 )
 
 func find(module *gomod.Module, mainDir string) (*fileSet, error) {
+	if exists, err := exists(module, mainDir); err != nil {
+		return nil, err
+	} else if !exists {
+		return nil, fmt.Errorf("imhash: %q %w", mainDir, fs.ErrNotExist)
+	}
 	fset := newFileSet()
 	// Add the following if they exist
 	if err := addIfExist(module, fset, "go.mod", "package.json", "package-lock.json"); err != nil {

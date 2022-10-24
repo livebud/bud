@@ -53,3 +53,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	mvdan.cc/gofumpt v0.2.0 // indirect
 )
+
+replace github.com/livebud/bud => /Users/m/dev/src/github.com/livebud/bud

@@ -1,0 +1,13 @@
+github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=
+github.com/evanw/esbuild v0.14.11 h1:bw50N4v70Dqf/B6Wn+3BM6BVttz4A6tHn8m8Ydj9vxk=
+github.com/gedex/inflector v0.0.0-20170307190818-16278e9db813 h1:Uc+IZ7gYqAf/rSGFplbWBSHaGolEQlNLgMgSE3ccnIQ=
+github.com/gitchander/permutation v0.0.0-20201214100618-1f3e7285f953 h1:+rJDfq6waeB1BncyEfuFL1N3U7t3aahrAjPqcKLpMys=
+github.com/gobwas/glob v0.2.3 h1:A4xDbljILXROh+kObIiy5kIaPYD8e96x1tgBhUI5J+Y=
+github.com/livebud/bud v0.2.5 h1:JWZ6cDNkeQj/0BrXDu7DQPmCRBuDiGk+Ab/B2jMMda8=
+github.com/livebud/bud v0.2.5/go.mod h1:zVxDVjWGGaLtXZAuBGzU4VftOo9MOmvpso+hdruF3sg=
+github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac h1:SjopLdUF96kdJU8ynYmGVHoJmngpwFHRvR5p2plBXG4=
+github.com/matthewmueller/text v0.0.0-20210424201111-ec1e4af8dfe8 h1:XTmVlF7P9bpSNkLFlxpNlhig0kaVJ5mO4D3yK2CYjmM=
+github.com/xlab/treeprint v1.1.0 h1:G/1DjNkPpfZCFt9CSh6b5/nY4VimlbHF3Rh4obvtzDk=
+golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 h1:6zppjxzCulZykYSLyVDYbneBfbaBIQPYMevg0bEwv2s=
+golang.org/x/sync v0.0.0-20210220032951-036812b2e83c h1:5KslGYwFpkhGh+Q16bwMP3cOontH8FOep7tGV86Y7SQ=
+golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a h1:dGzPydgVsqGcTRVwiLJ1jVbufYwmzD3LfVPLKsKg+0k=

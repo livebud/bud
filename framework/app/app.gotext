@@ -10,7 +10,8 @@ import (
 {{- end }}
 
 func main() {
-	os.Exit(run(context.Background(), os.Args[1:]...))
+	exitCode := run(context.Background(), os.Args[1:]...)
+	os.Exit(exitCode)
 }
 
 // Run the cli
@@ -25,41 +26,8 @@ func run(ctx context.Context, args ...string) int {
 	return 0
 }
 
-// Parse the arguments
+// parse the arguments and run the program
 func parse(ctx context.Context, args ...string) error {
-	cli := commander.New("bud")
-	app := new(App)
-	cli.Flag("listen", "address to listen to").String(&app.Listen).Default(":3000")
-	cli.Flag("log", "filter logs with a pattern").Short('L').String(&app.Log).Default("info")
-	cli.Run(app.Run)
-	return cli.Parse(ctx, args)
-}
-
-// App command
-type App struct {
-	Listen string
-	Log string
-}
-
-// logger creates a structured log that supports filtering
-func (a *App) logger() (log.Interface, error) {
-	handler, err := filter.Load(console.New(os.Stderr), a.Log)
-	if err != nil {
-		return nil, err
-	}
-	return log.New(handler), nil
-}
-
-// Run your app
-func (a *App) Run(ctx context.Context) error {
-	log, err := a.logger()
-	if err != nil {
-		return err
-	}
-	budClient, err := budhttp.Try(log, os.Getenv("BUD_LISTEN"))
-	if err != nil {
-		return err
-	}
 	{{- if $.Provider.Variable "github.com/livebud/bud/package/gomod.*Module" }}
 	// Load the module dependency
 	{{- if $.Flag.Embed }}
@@ -75,22 +43,21 @@ func (a *App) Run(ctx context.Context) error {
 	{{- end }}
 	{{- end }}
 	// Load the web server
-	webServer, err := loadWeb(
+	cli, err := {{ $.Provider.Name }}(
 		{{/* Order matters. Ordered by package name (e.g. budhttp > context) */}}
-		{{- if $.Provider.Variable "github.com/livebud/bud/package/budhttp.Client" }}budClient,{{ end }}
+		{{/* {{- if $.Provider.Variable "github.com/livebud/bud/package/budhttp.Client" }}budClient,{{ end }} */}}
 		{{- if $.Provider.Variable "context.Context" }}ctx,{{ end }}
 		{{- if $.Provider.Variable "github.com/livebud/bud/package/gomod.*Module" }}module,{{ end }}
-		{{- if $.Provider.Variable "github.com/livebud/bud/package/log.Interface" }}log,{{ end }}
+		{{/* {{- if $.Provider.Variable "github.com/livebud/bud/package/log.Interface" }}log,{{ end }} */}}
 	)
 	if err != nil {
-		budClient.Publish("app:error", []byte(err.Error()))
+		{{/* budClient.Publish("app:error", []byte(err.Error())) */}}
 		return err
 	}
 	// Inform bud that we're ready
-	budClient.Publish("app:ready", nil)
-	// Start serving requests
-	log.Debug("app: listening on", "listen", a.Listen)
-	return webServer.Serve(ctx, a.Listen)
+	{{/* budClient.Publish("app:ready", nil) */}}
+	return cli.Parse(ctx, args...)
 }
 
+// {{ $.Provider.Name }} is provided with dependency injection.
 {{ $.Provider.Function }}

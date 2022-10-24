@@ -32,7 +32,7 @@ func run() error {
 	})
 	// Run the cli
 	if err := cli.Run(context.Background(), os.Args[1:]...); err != nil {
-		if errors.Is(err, context.Canceled) {
+		if errors.Is(err, context.Canceled) || isExitCode3(err) {
 			return nil
 		}
 		return err

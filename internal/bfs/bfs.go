@@ -9,6 +9,7 @@ import (
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/app"
+	"github.com/livebud/bud/framework/command"
 	"github.com/livebud/bud/framework/controller"
 	"github.com/livebud/bud/framework/generator"
 	"github.com/livebud/bud/framework/public"
@@ -43,6 +44,7 @@ func Load(flag *framework.Flag, log log.Interface, module *gomod.Module) (*FS, e
 		return nil, err
 	}
 	fsys.FileGenerator("bud/internal/app/main.go", app.New(injector, module, flag))
+	fsys.FileGenerator("bud/internal/command/command.go", command.New(module, flag))
 	fsys.FileGenerator("bud/internal/web/web.go", web.New(module, parser))
 	fsys.FileGenerator("bud/internal/web/controller/controller.go", controller.New(injector, module, parser))
 	fsys.FileGenerator("bud/internal/web/view/view.go", view.New(module, transforms, flag))

@@ -8,11 +8,15 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/livebud/bud/internal/gobuild"
+
+	"github.com/livebud/bud/framework"
+	"github.com/livebud/bud/internal/bfs"
 	"github.com/livebud/bud/internal/current"
 	"github.com/livebud/bud/internal/pubsub"
+	"github.com/livebud/bud/internal/versions"
 	"golang.org/x/mod/semver"
 
-	"github.com/livebud/bud/package/commander"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/log/console"
@@ -47,18 +51,54 @@ type Command struct {
 }
 
 // Run a custom command
-// TODO: finish supporting custom commands
-//  1. Compile
-//     a. Generate generator (later!)
-//     i. Generate bud/internal/generator
-//     ii. Build bud/generator
-//     iii. Run bud/generator
-//     b. Generate custom command
-//     i. Generate bud/internal/command/${name}/
-//     ii. Build bud/command/${name}
-//  2. Run bud/command/${name}
 func (c *Command) Run(ctx context.Context) error {
-	return commander.Usage()
+	// Find go.mod
+	module, err := Module(c.Dir)
+	if err != nil {
+		return err
+	}
+	// Ensure we have version alignment between the CLI and the runtime
+	if err := EnsureVersionAlignment(ctx, module, versions.Bud); err != nil {
+		return err
+	}
+	// Setup the logger
+	log, err := Log(c.in.Stderr, c.Log)
+	if err != nil {
+		return err
+	}
+	// TODO: this should probably be configurable
+	flag := &framework.Flag{
+		Embed:  false,
+		Minify: false,
+		Hot:    false,
+		Stdin:  c.in.Stdin,
+		Stdout: c.in.Stdout,
+		Stderr: c.in.Stderr,
+		Env:    c.in.Env,
+	}
+	// Load the filesystem
+	bfs, err := bfs.Load(flag, log, module)
+	if err != nil {
+		return err
+	}
+	defer bfs.Close()
+	// Generate the application
+	if err := bfs.Sync(); err != nil {
+		return err
+	}
+	// Build the app
+	builder := gobuild.New(module)
+	if err := builder.Build(ctx, "bud/internal/app/main.go", "bud/app"); err != nil {
+		return err
+	}
+	// Run the command
+	cmd := exec.Command("bud/app", c.Args...)
+	cmd.Dir = c.Dir
+	cmd.Stdin = c.in.Stdin
+	cmd.Stdout = c.in.Stdout
+	cmd.Stderr = c.in.Stderr
+	cmd.Env = c.in.Env
+	return cmd.Run()
 }
 
 const minGoVersion = "v1.17"

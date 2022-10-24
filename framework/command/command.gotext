@@ -1,0 +1,52 @@
+package command
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+type CLI struct {
+	{{- range $pkg := $.Packages }}
+	{{ $pkg.Pascal }} {{ $pkg.Type }}
+	{{- end }}
+}
+
+func (c *CLI) Parse(ctx context.Context, args ...string) error {
+	cli := commander.New("app")
+	{{- range $cmd := $.Commands }}
+	{{- template "command" $cmd }}
+	{{- end }}
+	{{/* {{- range $cmd := $.Commands }}
+	{{ template "command" $cmd }}
+	{{- end }} */}}
+	return cli.Parse(ctx, args)
+}
+
+{{- define "command" }}
+	{ // {{ $.FullName }}
+		{{- if $.Input }}
+		cmd := new({{ $.Input }})
+		{{- end }}
+		cli := cli.Command(`{{ $.Name }}`, `{{ $.Desc }}`)
+		{{- range $flag := .Flags }}
+		cli.Flag(`{{ $flag.Name }}`, `{{ $flag.Desc }}`).{{- $flag.Type }}(&cmd.{{ $flag.Pascal}})
+			{{- if $flag.Default }}.Default({{ $flag.Default }}){{- end }}
+		{{- end }}
+		{{- range $arg := $.Args }}
+		cli.Arg(`{{ $arg.Name }}`).{{- $arg.Type }}(&cmd.{{ $arg.Pascal}})
+			{{- if $arg.Default }}.Default({{ $arg.Default }}){{- end }}
+		{{- end }}
+		{{- range $cmd := $.Commands }}
+			{{ template "command" $cmd }}
+		{{- end }}
+		{{- if $.Runnable }}
+		cli.Run(func(ctx context.Context) error {
+			return c.{{ $.Package }}.{{ $.Pascal }}({{- if $.HasContext }}ctx, {{- end }}cmd)
+		})
+		{{- end }}
+	}
+{{- end }}
