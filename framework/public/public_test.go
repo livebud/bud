@@ -14,6 +14,7 @@ func TestNoProject(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)
+	is.NoErr(td.Write(ctx))
 	cli := testcli.New(dir)
 	is.NoErr(td.NotExists("bud/internal/web/public"))
 	result, err := cli.Run(ctx)
