@@ -20,7 +20,7 @@ import (
 	"github.com/livebud/bud/package/router"
 )
 
-func New(fsys fs.FS, bus pubsub.Client, log log.Interface, vm js.VM) *Server {
+func New(fsys fs.FS, bus pubsub.Client, log log.Log, vm js.VM) *Server {
 	router := router.New()
 	server := &Server{
 		Handler: router,
@@ -48,7 +48,7 @@ type Server struct {
 	fsys fs.FS
 	hfs  http.FileSystem
 	bus  pubsub.Publisher
-	log  log.Interface
+	log  log.Log
 	vm   js.VM
 }
 

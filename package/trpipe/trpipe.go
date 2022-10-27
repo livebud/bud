@@ -11,7 +11,7 @@ import (
 	"github.com/livebud/bud/package/log"
 )
 
-func New(log log.Interface) *Pipeline {
+func New(log log.Log) *Pipeline {
 	return &Pipeline{
 		fns:   map[string][]func(file *File) error{},
 		graph: dijkstra.Graph{},
@@ -23,7 +23,7 @@ type Pipeline struct {
 	mu    sync.RWMutex
 	fns   map[string][]func(file *File) error
 	graph dijkstra.Graph
-	log   log.Interface
+	log   log.Log
 }
 
 type File struct {

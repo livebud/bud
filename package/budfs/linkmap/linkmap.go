@@ -7,12 +7,12 @@ import (
 )
 
 // New linkmap. Linkmap is safe for concurrent use.
-func New(log log.Interface) *Map {
+func New(log log.Log) *Map {
 	return &Map{log: log}
 }
 
 type Map struct {
-	log log.Interface
+	log log.Log
 	sm  sync.Map
 }
 
@@ -37,7 +37,7 @@ func (m *Map) Range(fn func(path string, list *List) bool) {
 }
 
 type List struct {
-	log  log.Interface
+	log  log.Log
 	mu   sync.RWMutex
 	from string
 	fns  []func(path string) bool

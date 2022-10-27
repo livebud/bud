@@ -1,27 +1,22 @@
 package filter
 
 import (
-	"github.com/livebud/bud/package/log"
+	log "github.com/livebud/bud/package/log"
 )
 
-// Load console handler
-func Load(handler log.Handler, pattern string) (log.Handler, error) {
-	level, err := log.ParseLevel(pattern)
-	if err != nil {
-		return nil, err
-	}
-	return &Filter{handler, level}, nil
+func New(handler log.Handler, level log.Level) *Handler {
+	return &Handler{handler, level}
 }
 
-// Filter logs by level. Can be initialized manually or by the Load function.
-type Filter struct {
-	Handler log.Handler
-	Level   log.Level
+// Handler logs by level
+type Handler struct {
+	handler log.Handler
+	level   log.Level
 }
 
-func (f *Filter) Log(entry log.Entry) {
-	if entry.Level < f.Level {
-		return
+func (f *Handler) Log(entry *log.Entry) error {
+	if entry.Level < f.level {
+		return nil
 	}
-	f.Handler.Log(entry)
+	return f.handler.Log(entry)
 }

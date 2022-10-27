@@ -1,6 +1,6 @@
 package json
 
-import log "github.com/livebud/bud/package/log2"
+import log "github.com/livebud/bud/package/log"
 
 func New() *Handler {
 	return &Handler{}

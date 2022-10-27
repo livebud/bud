@@ -25,7 +25,7 @@ import (
 	"github.com/livebud/bud/package/log"
 )
 
-func New(fsys fs.FS, log log.Interface) *FileSystem {
+func New(fsys fs.FS, log log.Log) *FileSystem {
 	// Exclude the underlying filesystem (often os) from contributing bud/* files.
 	// The bud/* directory is owned by the generator filesytem.
 	fsys = virtual.Exclude(fsys, func(path string) bool {
@@ -53,7 +53,7 @@ type FileSystem struct {
 	fsys    fs.FS
 	node    *treefs.Node
 	lmap    *linkmap.Map
-	log     log.Interface
+	log     log.Log
 }
 
 type File struct {

@@ -10,7 +10,7 @@ import (
 	"github.com/livebud/bud/package/parser"
 )
 
-func New(fsys fs.FS, log log.Interface, module *gomod.Module, parser *parser.Parser) *Injector {
+func New(fsys fs.FS, log log.Log, module *gomod.Module, parser *parser.Parser) *Injector {
 	return &Injector{
 		fsys:   fsys,
 		log:    log,
@@ -23,7 +23,7 @@ type Injector struct {
 	// Filesystem to look for files
 	fsys fs.FS
 	// Logger to use
-	log log.Interface
+	log log.Log
 	// Module where project dependencies will be wired
 	module *gomod.Module
 	// Go parser

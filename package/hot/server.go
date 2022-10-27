@@ -13,12 +13,12 @@ import (
 )
 
 // New server-sent event (SSE) server
-func New(log log.Interface, ps pubsub.Subscriber) *Server {
+func New(log log.Log, ps pubsub.Subscriber) *Server {
 	return &Server{log, ps, time.Now}
 }
 
 type Server struct {
-	log log.Interface
+	log log.Log
 	ps  pubsub.Subscriber
 	Now func() time.Time // Used for testing
 }

@@ -2,7 +2,7 @@ package multi
 
 import (
 	"github.com/livebud/bud/internal/errs"
-	log "github.com/livebud/bud/package/log2"
+	log "github.com/livebud/bud/package/log"
 )
 
 func New(handlers ...log.Handler) *Handler {

@@ -10,14 +10,14 @@ import (
 	"github.com/livebud/bud/package/virtual"
 )
 
-func Wrap(cache Cache, fsys fs.FS, log log.Interface) fs.FS {
+func Wrap(cache Cache, fsys fs.FS, log log.Log) fs.FS {
 	return &cachedfs{cache, fsys, log}
 }
 
 type cachedfs struct {
 	cache Cache
 	fsys  fs.FS
-	log   log.Interface
+	log   log.Log
 }
 
 func (f *cachedfs) Open(name string) (fs.File, error) {

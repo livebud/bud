@@ -1,14 +1,11 @@
 package log
 
 import (
-	"flag"
 	"fmt"
 )
 
 // Level of the logger
 type Level uint8
-
-var _ flag.Value = (*Level)(nil)
 
 // Log level
 const (
@@ -34,15 +31,6 @@ func (level Level) String() string {
 	default:
 		return ""
 	}
-}
-
-func (level *Level) Set(l string) error {
-	lvl, err := ParseLevel(l)
-	if err != nil {
-		return err
-	}
-	*level = lvl
-	return nil
 }
 
 func ParseLevel(level string) (Level, error) {

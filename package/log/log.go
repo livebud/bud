@@ -1,183 +1,177 @@
+// Package log is inspired by apex/log.
 package log
 
 import (
 	"fmt"
-	"path/filepath"
-	"runtime"
 	"sort"
+	"time"
+
+	"github.com/livebud/bud/internal/stacktrace"
 )
 
-type Fields []Field
+type Fields map[string]interface{}
 
-func (f Fields) Len() int {
-	return len(f)
+func (f Fields) Get(key string) interface{} {
+	return f[key]
 }
 
-func (f Fields) Less(i, j int) bool {
-	return f[i].Key < f[j].Key
+func (f Fields) Keys() []string {
+	keys := make([]string, len(f))
+	i := 0
+	for key := range f {
+		keys[i] = key
+		i++
+	}
+	sort.Strings(keys)
+	return keys
 }
 
-func (f Fields) Swap(i, j int) {
-	f[i], f[j] = f[j], f[i]
+// Now returns the current time.
+var Now = time.Now
+
+type Log interface {
+	Field(key string, value interface{}) Log
+	Fields(fields map[string]interface{}) Log
+	Debug(msg string, args ...interface{}) error
+	Info(msg string, args ...interface{}) error
+	Notice(msg string, args ...interface{}) error
+	Warn(msg string, args ...interface{}) error
+	Error(msg string, args ...interface{}) error
+	Err(err error, msg string, args ...interface{}) error
+}
+
+func Error(log Log, err error) Log {
+	return log.Field("error", err)
+}
+
+type Entry struct {
+	Timestamp time.Time
+	Level     Level
+	Message   string
+	Fields    Fields
+}
+
+type Handler interface {
+	Log(log *Entry) error
+}
+
+// New logger
+func New(level Level, handler Handler) *Logger {
+	return &Logger{level, handler}
+}
+
+type Logger struct {
+	Level   Level
+	Handler Handler
+}
+
+var _ Log = (*Logger)(nil)
+
+func (l *Logger) Fields(fields map[string]interface{}) Log {
+	return &sublogger{l, fields}
+}
+
+func (l *Logger) Field(key string, value interface{}) Log {
+	return &sublogger{l, Fields{key: value}}
+}
+
+func (l *Logger) Debug(msg string, args ...interface{}) error {
+	return l.log(DebugLevel, msg, args, nil)
+}
+
+func (l *Logger) Info(msg string, args ...interface{}) error {
+	return l.log(InfoLevel, msg, args, nil)
+}
+
+func (l *Logger) Warn(msg string, args ...interface{}) error {
+	return l.log(WarnLevel, msg, args, nil)
+}
+
+func (l *Logger) Notice(msg string, args ...interface{}) error {
+	return l.log(NoticeLevel, msg, args, nil)
+}
+
+func (l *Logger) Error(msg string, args ...interface{}) error {
+	return l.log(ErrorLevel, msg, args, nil)
+}
+
+func (l *Logger) Err(err error, msg string, args ...interface{}) error {
+	return l.log(ErrorLevel, msg, args, Fields{
+		"error":  err.Error(),
+		"source": stacktrace.Source(1),
+	})
+}
+
+func (l *Logger) log(level Level, msg string, args []interface{}, fields map[string]interface{}) error {
+	if level < l.Level {
+		return nil
+	}
+	if len(args) > 0 {
+		msg = fmt.Sprintf(msg, args...)
+	}
+	return l.Handler.Log(&Entry{
+		Timestamp: Now(),
+		Level:     level,
+		Message:   msg,
+		Fields:    fields,
+	})
 }
 
 type Field struct {
 	Key   string
-	Value string // Can be empty, though usually a user error
+	Value interface{}
 }
 
-type Entry struct {
-	Level   Level
-	Message string
-	Fields  []Field
-	Path    string // File path can be empty
+type logger interface {
+	Log
+	log(level Level, msg string, args []interface{}, fields map[string]interface{}) error
 }
 
-type Handler interface {
-	Log(log Entry)
+type sublogger struct {
+	logger logger
+	fields map[string]interface{}
 }
 
-// Flusher is an optional interface
-type Flusher interface {
-	Flush()
-}
-
-type Interface interface {
-	Debug(message string, args ...interface{})
-	Info(message string, args ...interface{})
-	Notice(message string, args ...interface{})
-	Warn(message string, args ...interface{})
-	Error(message string, args ...interface{})
-}
-
-type dispatcher func(log Entry)
-
-func (fn dispatcher) Log(log Entry) {
-	fn(log)
-}
-
-var Discard = &logger{
-	Handler: dispatcher(func(log Entry) {}),
-}
-
-type Option func(logger *logger)
-
-// WithPath determines whether or not to pass the file path to the handler
-// This is typically turned off to improve performance, but is really handy
-// for debugging.
-func WithPath(includePath bool) Option {
-	return func(l *logger) {
-		l.includePath = includePath
+func (l *sublogger) Fields(fields map[string]interface{}) Log {
+	for k, v := range l.fields {
+		if _, ok := fields[k]; !ok {
+			fields[k] = v
+		}
 	}
+	return &sublogger{l.logger, fields}
 }
 
-// New logger
-func New(handler Handler, options ...Option) Interface {
-	logger := &logger{
-		Handler:     handler,
-		includePath: false,
-	}
-	for _, option := range options {
-		option(logger)
-	}
-	return logger
+func (l *sublogger) Field(key string, value interface{}) Log {
+	return l.Fields(Fields{key: value})
 }
 
-type logger struct {
-	Handler     Handler
-	fields      []Field
-	includePath bool
+func (l *sublogger) Debug(msg string, args ...interface{}) error {
+	return l.log(DebugLevel, msg, args, l.fields)
 }
 
-func (l *logger) path() string {
-	if !l.includePath {
-		return ""
-	}
-	// Gets the filename. Uses 2 because we're two levels deep from the caller
-	_, filename, _, ok := runtime.Caller(2)
-	if !ok {
-		return ""
-	}
-	return filepath.Dir(filename)
+func (l *sublogger) Info(msg string, args ...interface{}) error {
+	return l.log(InfoLevel, msg, args, l.fields)
 }
 
-// Turns a list of key values into an array of fields
-func (l *logger) keyValues(kvs ...interface{}) (list Fields) {
-	size := len(kvs)
-	// Special cases
-	if size == 0 {
-		return nil
-	} else if size == 1 {
-		return []Field{{Key: fmt.Sprintf("%s", kvs[0])}}
-	}
-	for i := 1; i < size; i += 2 {
-		list = append(list, Field{
-			Key:   fmt.Sprintf("%s", kvs[i-1]),
-			Value: fmt.Sprintf("%v", kvs[i]),
-		})
-	}
-	// Add in the fields
-	list = append(list, l.fields...)
-	// Sort the fields by key
-	sort.Sort(list)
-	return list
+func (l *sublogger) Warn(msg string, args ...interface{}) error {
+	return l.log(WarnLevel, msg, args, l.fields)
 }
 
-// New sub logger
-func (l *logger) New(fields ...interface{}) Interface {
-	return &logger{
-		Handler:     l.Handler,
-		includePath: l.includePath,
-		fields:      append(l.keyValues(fields...), l.fields...),
-	}
+func (l *sublogger) Notice(msg string, args ...interface{}) error {
+	return l.log(NoticeLevel, msg, args, l.fields)
 }
 
-// Debug message is written to the console
-func (l *logger) Debug(message string, fields ...interface{}) {
-	l.Handler.Log(Entry{
-		Message: message,
-		Fields:  l.keyValues(fields...),
-		Level:   DebugLevel,
-		Path:    l.path(),
-	})
+func (l *sublogger) Error(msg string, args ...interface{}) error {
+	return l.log(ErrorLevel, msg, args, l.fields)
 }
 
-// Info message is written to the console
-func (l *logger) Info(message string, fields ...interface{}) {
-	l.Handler.Log(Entry{
-		Message: message,
-		Fields:  l.keyValues(fields...),
-		Level:   InfoLevel,
-		Path:    l.path(),
-	})
+func (l *sublogger) Err(err error, msg string, args ...interface{}) error {
+	return l.Fields(Fields{
+		"error":  err.Error(),
+		"source": stacktrace.Source(1),
+	}).Error(msg, args...)
 }
 
-// Notice message is written to the console
-func (l *logger) Notice(message string, fields ...interface{}) {
-	l.Handler.Log(Entry{
-		Message: message,
-		Fields:  l.keyValues(fields...),
-		Level:   NoticeLevel,
-		Path:    l.path(),
-	})
-}
-
-// Warn message is written to the console
-func (l *logger) Warn(message string, fields ...interface{}) {
-	l.Handler.Log(Entry{
-		Message: message,
-		Fields:  l.keyValues(fields...),
-		Level:   WarnLevel,
-		Path:    l.path(),
-	})
-}
-
-// Error message is written to the console
-func (l *logger) Error(message string, fields ...interface{}) {
-	l.Handler.Log(Entry{
-		Message: message,
-		Fields:  l.keyValues(fields...),
-		Level:   ErrorLevel,
-		Path:    l.path(),
-	})
+func (l *sublogger) log(level Level, msg string, args []interface{}, fields map[string]interface{}) error {
+	return l.logger.log(level, msg, args, fields)
 }
