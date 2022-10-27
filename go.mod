@@ -6,12 +6,14 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/ajg/form v1.5.2-0.20200323032839-9aeb3cf462e1
 	github.com/albertorestifo/dijkstra v0.0.0-20160910063646-aba76f725f72
+	github.com/aybabtme/rgbterm v0.0.0-20170906152045-cc83f3b3ce59
 	github.com/bep/debounce v1.2.1
 	github.com/cespare/xxhash v1.1.0
 	github.com/evanw/esbuild v0.14.11
 	github.com/fatih/structtag v1.2.0
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/gitchander/permutation v0.0.0-20201214100618-1f3e7285f953
+	github.com/go-logfmt/logfmt v0.5.1
 	github.com/gobwas/glob v0.2.3
 	github.com/hexops/valast v1.4.1
 	github.com/keegancsmith/rpc v1.3.0
