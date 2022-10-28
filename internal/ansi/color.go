@@ -1,37 +1,54 @@
 package ansi
 
-import "os"
+import (
+	"os"
 
-type Colors struct {
-	Reset     string
-	Bold      string
-	Dim       string
-	Underline string
+	"github.com/aybabtme/rgbterm"
+)
 
-	White  string
-	Teal   string
-	Blue   string
-	Yellow string
-	Red    string
-	Green  string
+var noColor = os.Getenv("NO_COLOR") != ""
+
+func paint(msg string, r, g, b uint8) string {
+	if noColor {
+		return msg
+	}
+	return rgbterm.FgString(msg, r, g, b)
 }
 
-// Color set
-var Color = func() Colors {
-	if os.Getenv("NO_COLOR") != "" {
-		return Colors{}
+func Dim(msg string) string {
+	if noColor {
+		return msg
 	}
-	return Colors{
-		Reset:     "\033[0m",
-		Bold:      "\033[1m",
-		Dim:       "\033[37m",
-		Underline: "\033[4m",
+	return "\033[37m" + msg + "\033[0m"
+}
 
-		White:  "\033[37m",
-		Teal:   "\033[36m",
-		Blue:   "\033[34m",
-		Yellow: "\033[33m",
-		Red:    "\033[31m",
-		Green:  "\033[32m",
+func Bold(msg string) string {
+	if noColor {
+		return msg
 	}
-}()
+	return "\033[1m" + msg + "\033[0m"
+}
+
+func White(msg string) string {
+	return paint(msg, 226, 232, 240)
+}
+
+func Green(msg string) string {
+	return paint(msg, 43, 255, 99)
+}
+
+func Blue(msg string) string {
+	return paint(msg, 43, 199, 255)
+}
+
+func Yellow(msg string) string {
+	return paint(msg, 255, 237, 43)
+}
+
+func Pink(msg string) string {
+	return paint(msg, 192, 38, 211)
+}
+
+func Red(msg string) string {
+	return paint(msg, 255, 43, 43)
+}

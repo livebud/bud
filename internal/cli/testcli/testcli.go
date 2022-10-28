@@ -167,7 +167,7 @@ func (c *CLI) Start(ctx context.Context, args ...string) (*Client, error) {
 // Client for interacting with the running app
 type Client struct {
 	eg     *errgroup.Group
-	log    log.Interface
+	log    log.Log
 	bus    pubsub.Client
 	stdout *bytes.Buffer
 	stderr *bytes.Buffer

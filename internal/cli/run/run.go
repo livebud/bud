@@ -160,7 +160,7 @@ type budServer struct {
 	budln net.Listener
 	bus   pubsub.Client
 	fsys  fs.FS
-	log   log.Interface
+	log   log.Log
 }
 
 // Run the bud server
@@ -182,7 +182,7 @@ type appServer struct {
 	prompter *prompter.Prompter
 	bus      pubsub.Client
 	bfs      *bfs.FS
-	log      log.Interface
+	log      log.Log
 	module   *gomod.Module
 	starter  *exe.Command
 }

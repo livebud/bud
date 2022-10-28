@@ -13,27 +13,27 @@ import (
 
 type FS = fs.FS
 
-func New(fsys FS, log log.Interface, vm js.VM) *Handler {
+func New(fsys FS, log log.Log, vm js.VM) *Handler {
 	return &Handler{http.FS(fsys), fsys, log, vm}
 }
 
 type Handler struct {
 	hfs  http.FileSystem
 	fsys FS
-	log  log.Interface
+	log  log.Log
 	vm   js.VM
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	file, err := h.hfs.Open(r.URL.Path)
 	if err != nil {
-		h.log.Error("view: open error", "error", err)
+		h.log.Field("error", err).Error("view: open error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	stat, err := file.Stat()
 	if err != nil {
-		h.log.Error("view: stat error", "error", err)
+		h.log.Field("error", err).Error("view: stat error")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -46,7 +46,7 @@ func (h *Handler) Renderer(route string, props interface{}) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		res, err := h.render(route, props)
 		if err != nil {
-			h.log.Error("view: render error", "error", err)
+			h.log.Field("error", err).Error("view: render error")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

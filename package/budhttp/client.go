@@ -25,7 +25,7 @@ type Client interface {
 
 // Try tries loading a dev client from an environment variable or returns an
 // empty client if no environment variable is set
-func Try(log log.Interface, addr string) (Client, error) {
+func Try(log log.Log, addr string) (Client, error) {
 	if addr == "" {
 		return discard{}, nil
 	}
@@ -33,7 +33,7 @@ func Try(log log.Interface, addr string) (Client, error) {
 }
 
 // Load a client from an address
-func Load(log log.Interface, addr string) (Client, error) {
+func Load(log log.Log, addr string) (Client, error) {
 	url, err := urlx.Parse(addr)
 	if err != nil {
 		return nil, err
@@ -58,7 +58,7 @@ func Load(log log.Interface, addr string) (Client, error) {
 type client struct {
 	baseURL    string
 	httpClient *http.Client
-	log        log.Interface
+	log        log.Log
 }
 
 var _ Client = (*client)(nil)

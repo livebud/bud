@@ -18,7 +18,7 @@ import (
 	"github.com/matthewmueller/gotext"
 )
 
-func Load(fsys budfs.FS, injector *di.Injector, log log.Interface, module *gomod.Module, parser *parser.Parser) (*State, error) {
+func Load(fsys budfs.FS, injector *di.Injector, log log.Log, module *gomod.Module, parser *parser.Parser) (*State, error) {
 	return (&loader{
 		injector: injector,
 		log:      log,
@@ -30,7 +30,7 @@ func Load(fsys budfs.FS, injector *di.Injector, log log.Interface, module *gomod
 
 type loader struct {
 	injector *di.Injector
-	log      log.Interface
+	log      log.Log
 	module   *gomod.Module
 	parser   *parser.Parser
 	imports  *imports.Set
@@ -48,7 +48,6 @@ func (l *loader) Load(bfs budfs.FS) (state *State, err error) {
 	l.imports.AddStd("context", "os", "errors")
 	l.imports.AddNamed("gomod", "github.com/livebud/bud/package/gomod")
 	l.imports.AddNamed("log", "github.com/livebud/bud/package/log")
-	l.imports.AddNamed("filter", "github.com/livebud/bud/package/log/filter")
 	l.imports.AddNamed("console", "github.com/livebud/bud/package/log/console")
 	l.imports.AddNamed("commander", "github.com/livebud/bud/package/commander")
 	l.imports.AddNamed("remotefs", "github.com/livebud/bud/package/remotefs")
@@ -111,7 +110,7 @@ func (l *loader) loadProvider(generators []*UserGenerator) *di.Provider {
 		Target:  l.module.Import("bud/command/generate"),
 		Imports: l.imports,
 		Params: []*di.Param{
-			{Import: "github.com/livebud/bud/package/log", Type: "Interface"},
+			{Import: "github.com/livebud/bud/package/log", Type: "Log"},
 			{Import: "github.com/livebud/bud/package/gomod", Type: "*Module"},
 			{Import: "context", Type: "Context"},
 		},

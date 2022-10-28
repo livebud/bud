@@ -42,12 +42,12 @@ type App struct {
 }
 
 // logger creates a structured log that supports filtering
-func (a *App) logger() (log.Interface, error) {
-	handler, err := filter.Load(console.New(os.Stderr), a.Log)
+func (a *App) logger() (log.Log, error) {
+	level, err := log.ParseLevel(a.Log)
 	if err != nil {
 		return nil, err
 	}
-	return log.New(handler), nil
+	return log.New(level, console.New(os.Stderr)), nil
 }
 
 // Run your app
@@ -80,7 +80,7 @@ func (a *App) Run(ctx context.Context) error {
 		{{- if $.Provider.Variable "github.com/livebud/bud/package/budhttp.Client" }}budClient,{{ end }}
 		{{- if $.Provider.Variable "context.Context" }}ctx,{{ end }}
 		{{- if $.Provider.Variable "github.com/livebud/bud/package/gomod.*Module" }}module,{{ end }}
-		{{- if $.Provider.Variable "github.com/livebud/bud/package/log.Interface" }}log,{{ end }}
+		{{- if $.Provider.Variable "github.com/livebud/bud/package/log.Log" }}log,{{ end }}
 	)
 	if err != nil {
 		budClient.Publish("app:error", []byte(err.Error()))

@@ -16,7 +16,6 @@ import (
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/log/console"
-	"github.com/livebud/bud/package/log/filter"
 	"github.com/livebud/bud/package/socket"
 )
 
@@ -96,12 +95,12 @@ func BudModule() (*gomod.Module, error) {
 	return gomod.Find(dirname)
 }
 
-func Log(stderr io.Writer, logFilter string) (log.Interface, error) {
-	handler, err := filter.Load(console.New(stderr), logFilter)
+func Log(stderr io.Writer, logFilter string) (log.Log, error) {
+	level, err := log.ParseLevel(logFilter)
 	if err != nil {
 		return nil, err
 	}
-	return log.New(handler), nil
+	return log.New(level, console.New(stderr)), nil
 }
 
 // EnsureVersionAlignment ensures that the CLI and runtime versions are aligned.

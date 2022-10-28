@@ -26,7 +26,7 @@ import (
 	"github.com/livebud/bud/package/svelte"
 )
 
-func Load(flag *framework.Flag, log log.Interface, module *gomod.Module) (*FS, error) {
+func Load(flag *framework.Flag, log log.Log, module *gomod.Module) (*FS, error) {
 	fsys := budfs.New(module, log)
 	parser := parser.New(fsys, module)
 	injector := di.New(fsys, log, module, parser)
