@@ -90,7 +90,7 @@ func (c *console) Log(log *log.Entry) error {
 }
 
 // Stderr is a console log singleton that writes to stderr
-var stderr = log.New(log.DebugLevel, New(os.Stderr))
+var stderr = log.New(New(os.Stderr))
 
 // Return a logger with a field
 func Field(key string, value interface{}) log.Log {

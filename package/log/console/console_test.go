@@ -16,6 +16,6 @@ func TestConsole(t *testing.T) {
 	console.Field("file", "console_test.go").Field("another", "cool story").Warn("hello %s", "mars")
 	console.Field("file", "console_test.go").Field("another", "cool story").Error("hello %s", "mars")
 	console.Err(errors.New("one"), "two %s", "three")
-	logger := log.New(log.InfoLevel, console.New(os.Stdout))
+	logger := log.New(console.New(os.Stdout))
 	logger.Err(errors.New("one"), "two %s", "three")
 }
