@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/livebud/bud/package/log/levelfilter"
+
 	"github.com/livebud/bud/internal/current"
 	"github.com/livebud/bud/internal/pubsub"
 	"golang.org/x/mod/semver"
@@ -100,7 +102,7 @@ func Log(stderr io.Writer, logFilter string) (log.Log, error) {
 	if err != nil {
 		return nil, err
 	}
-	return log.New(level, console.New(stderr)), nil
+	return log.New(levelfilter.New(console.New(stderr), level)), nil
 }
 
 // EnsureVersionAlignment ensures that the CLI and runtime versions are aligned.

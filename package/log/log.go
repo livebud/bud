@@ -56,12 +56,11 @@ type Handler interface {
 }
 
 // New logger
-func New(level Level, handler Handler) *Logger {
-	return &Logger{level, handler}
+func New(handler Handler) *Logger {
+	return &Logger{handler}
 }
 
 type Logger struct {
-	Level   Level
 	Handler Handler
 }
 
@@ -103,9 +102,6 @@ func (l *Logger) Err(err error, msg string, args ...interface{}) error {
 }
 
 func (l *Logger) log(level Level, msg string, args []interface{}, fields map[string]interface{}) error {
-	if level < l.Level {
-		return nil
-	}
 	if len(args) > 0 {
 		msg = fmt.Sprintf(msg, args...)
 	}

@@ -49,6 +49,7 @@ func (l *loader) Load(bfs budfs.FS) (state *State, err error) {
 	l.imports.AddNamed("gomod", "github.com/livebud/bud/package/gomod")
 	l.imports.AddNamed("log", "github.com/livebud/bud/package/log")
 	l.imports.AddNamed("console", "github.com/livebud/bud/package/log/console")
+	l.imports.AddNamed("levelfilter", "github.com/livebud/bud/package/log/levelfilter")
 	l.imports.AddNamed("commander", "github.com/livebud/bud/package/commander")
 	l.imports.AddNamed("remotefs", "github.com/livebud/bud/package/remotefs")
 	l.imports.AddNamed("budfs", "github.com/livebud/bud/package/budfs")

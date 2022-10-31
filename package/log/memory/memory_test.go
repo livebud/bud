@@ -12,7 +12,7 @@ import (
 func TestLog(t *testing.T) {
 	is := is.New(t)
 	handler := memory.New()
-	log := log.New(log.InfoLevel, handler)
+	log := log.New(handler)
 	log.Info("hello")
 	log.Info("world")
 	log.Warn("hello %s!", "mars")
@@ -42,7 +42,7 @@ func TestLog(t *testing.T) {
 func TestErr(t *testing.T) {
 	is := is.New(t)
 	handler := memory.New()
-	log := log.New(log.InfoLevel, handler)
+	log := log.New(handler)
 	log.Err(errors.New("one"), "two %s", "three")
 	is.Equal(len(handler.Entries), 1)
 	is.Equal(handler.Entries[0].Level.String(), "error")
