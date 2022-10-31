@@ -29,7 +29,7 @@ func run(ctx context.Context) error {
 
 func generate(ctx context.Context) error {
 	{{/* TODO: configurable logger */}}
-	log := log.New(log.InfoLevel, console.New(os.Stderr))
+	log := log.New(levelfilter.New(console.New(os.Stderr), log.InfoLevel))
 	module, err := gomod.Find(".")
 	if err != nil {
 		return err
