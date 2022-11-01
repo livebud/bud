@@ -3,12 +3,12 @@ package tooldi
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"strings"
 
 	"github.com/livebud/bud/internal/cli/bud"
 	"github.com/livebud/bud/internal/imports"
-	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/parser"
@@ -21,6 +21,7 @@ func New(bud *bud.Command, in *bud.Input) *Command {
 type Command struct {
 	bud          *bud.Command
 	in           *bud.Input
+	Name         string
 	Target       string
 	Map          map[string]string
 	Dependencies []string
@@ -38,8 +39,10 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	bfs := budfs.New(module, log)
-	parser := parser.New(bfs, module)
+	// For the dependency injection CLI, use written files insted of generated
+	// files. Note that this was changed due to budfs ignoring the bud/* dir.
+	var fsys fs.FS = module
+	parser := parser.New(fsys, module)
 	fn := &di.Function{
 		Hoist: c.Hoist,
 	}
@@ -70,6 +73,9 @@ func (c *Command) Run(ctx context.Context) error {
 		}
 		fn.Results = append(fn.Results, dep)
 	}
+	if len(c.Dependencies) > 0 {
+		fn.Results = append(fn.Results, &di.Error{})
+	}
 	// Add the externals
 	for _, external := range c.Externals {
 		ext, err := c.toDependency(module, external)
@@ -81,7 +87,7 @@ func (c *Command) Run(ctx context.Context) error {
 			Type:   ext.TypeName(),
 		})
 	}
-	injector := di.New(bfs, log, module, parser)
+	injector := di.New(module, log, module, parser)
 	node, err := injector.Load(fn)
 	if err != nil {
 		return err
@@ -89,7 +95,7 @@ func (c *Command) Run(ctx context.Context) error {
 	if c.Verbose {
 		fmt.Println(node.Print())
 	}
-	provider := node.Generate(imports.New(), "Load", fn.Target)
+	provider := node.Generate(imports.New(), c.Name, fn.Target)
 	fmt.Fprintln(os.Stdout, provider.File())
 	return nil
 }
