@@ -113,6 +113,7 @@ func (c *CLI) Run(ctx context.Context, args ...string) error {
 		{ // $ bud tool di
 			cmd := tooldi.New(cmd, c.in)
 			cli := cli.Command("di", "dependency injection generator")
+			cli.Flag("name", "name of the function").String(&cmd.Name).Default("Load")
 			cli.Flag("dependency", "generate dependency provider").Short('d').Strings(&cmd.Dependencies)
 			cli.Flag("external", "mark dependency as external").Short('e').Strings(&cmd.Externals).Optional()
 			cli.Flag("map", "map interface types to concrete types").Short('m').StringMap(&cmd.Map).Optional()
