@@ -13,6 +13,7 @@ import (
 	"github.com/livebud/bud/framework/generator"
 	"github.com/livebud/bud/framework/public"
 	"github.com/livebud/bud/framework/transform/transformrt"
+	transform "github.com/livebud/bud/framework/transform2"
 	"github.com/livebud/bud/framework/view"
 	"github.com/livebud/bud/framework/view/dom"
 	"github.com/livebud/bud/framework/view/ssr"
@@ -50,6 +51,7 @@ func Load(flag *framework.Flag, log log.Log, module *gomod.Module) (*FS, error) 
 	fsys.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
 	fsys.FileServer("bud/view", dom.New(module, transforms.DOM))
 	fsys.FileServer("bud/node_modules", dom.NodeModules(module))
+	fsys.FileGenerator("bud/internal/generator/transform/transform.go", transform.New(flag, injector, log, module, parser))
 	fsys.FileGenerator("bud/command/.generate/main.go", generator.New(fsys, flag, injector, log, module, parser))
 	return &FS{fsys, module}, nil
 }
@@ -69,6 +71,23 @@ var skipHidden = dsync.WithSkip(func(name string, isDir bool) bool {
 	return base[0] == '_' || base[0] == '.'
 })
 
+// Directories to expand
+var expandDirs = [...]string{
+	"bud/internal/generator",
+	"bud/command/.generate",
+}
+
+func (f *FS) expand() error {
+	for _, to := range expandDirs {
+		if err := f.fsys.Sync(f.module, to); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // Directories to sync
 var syncDirs = [...]string{
 	"bud/command",
@@ -77,10 +96,8 @@ var syncDirs = [...]string{
 }
 
 func (f *FS) Sync() error {
-	if err := f.fsys.Sync(f.module, "bud/command/.generate"); err != nil {
-		if !errors.Is(err, fs.ErrNotExist) {
-			return err
-		}
+	if err := f.expand(); err != nil {
+		return err
 	}
 	for _, to := range syncDirs {
 		if err := f.fsys.Sync(f.module, to, skipHidden); err != nil {
