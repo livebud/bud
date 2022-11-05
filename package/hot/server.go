@@ -50,16 +50,19 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		topics = append(topics, `frontend:update:`+pagePath)
 	}
 	subscription := s.ps.Subscribe(topics...)
-	s.log.Debug("hot: subscribed to topics", "topics", topics)
+	s.log.Fields(log.Fields{"topics": topics}).Debug("hot: subscribed to topics")
 	ctx := r.Context()
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-subscription.Wait():
-			s.log.Debug("hot: got event", "topic", "frontend:update")
+			s.log.Fields(log.Fields{
+				"topic": "frontend:update",
+				"page":  pagePath,
+			}).Debug("hot: got event")
 			if pagePath == "" {
-				s.log.Debug("hot: no page path, triggering a full reload")
+				s.log.Debug("hot: full reload")
 				reload(flusher, w)
 				continue
 			}
@@ -76,7 +79,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		//
 		// See: https://html.spec.whatwg.org/multipage/server-sent-events.html#server-sent-events-intro
 		case <-s.ps.Subscribe("backend:update").Wait():
-			s.log.Debug("hot: got event", "topic", "page:reload")
+			s.log.Fields(log.Fields{"topic": "page:reload"}).Debug("hot: got event")
 			reload(flusher, w)
 		}
 	}

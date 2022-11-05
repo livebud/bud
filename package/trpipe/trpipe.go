@@ -81,7 +81,10 @@ func (p *Pipeline) Run(fromPath, toExt string, code []byte) ([]byte, error) {
 		// Handle .svelte -> .svelte transformations
 		key := pair[0] + ">" + pair[1]
 		if transforms, ok := p.fns[key]; ok {
-			p.log.Debug("trpipe: running transforms", "key", key, "transforms", len(transforms))
+			p.log.Fields(log.Fields{
+				"key":        key,
+				"transforms": len(transforms),
+			}).Debug("trpipe: running transforms")
 			for _, transform := range transforms {
 				if err := transform(file); err != nil {
 					return nil, err

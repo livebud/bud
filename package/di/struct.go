@@ -21,7 +21,7 @@ var _ Dependency = (*Struct)(nil)
 var _ Declaration = (*Struct)(nil)
 
 func (s *Struct) ID() string {
-	return `"` + s.Import + `".` + s.Type
+	return `'` + s.Import + `'.` + s.Type
 }
 
 func (s *Struct) ImportPath() string {

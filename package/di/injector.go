@@ -33,7 +33,7 @@ type Injector struct {
 // Load the dependency graph, but don't generate any code. Load is intentionally
 // low-level and used by higher-level APIs like Generate.
 func (i *Injector) Load(fn *Function) (*Node, error) {
-	i.log.Debug("di: loading function", "fn", fn.Signature())
+	i.log.Field("fn", fn.Signature()).Debug("di: loading function")
 	// Validate the function
 	if err := fn.Validate(); err != nil {
 		return nil, err
@@ -72,7 +72,10 @@ func (i *Injector) Load(fn *Function) (*Node, error) {
 func (i *Injector) load(externals map[string]*Param, aliases map[string]Dependency, dep Dependency) (*Node, error) {
 	// Replace dep with mapped type alias if we have one
 	if alias, ok := aliases[dep.ID()]; ok {
-		i.log.Debug("di: aliased dep", "from", dep.ID(), "to", alias.ID())
+		i.log.Fields(log.Fields{
+			"from": dep.ID(),
+			"to":   alias.ID(),
+		}).Debug("di: aliased dep")
 		dep = alias
 	}
 	// Handle external nodes
@@ -80,7 +83,9 @@ func (i *Injector) load(externals map[string]*Param, aliases map[string]Dependen
 	typeName := dep.TypeName()
 	id := dep.ID()
 	if param, ok := externals[id]; ok {
-		i.log.Debug("di: marked external", "id", id)
+		i.log.Fields(log.Fields{
+			"id": id,
+		}).Debug("di: marked external")
 		return &Node{
 			Import:   importPath,
 			Type:     typeName,
@@ -102,7 +107,10 @@ func (i *Injector) load(externals map[string]*Param, aliases map[string]Dependen
 	deps := decl.Dependencies()
 	// Find and load the dependencies
 	for _, dep := range deps {
-		i.log.Debug("di: finding dependency", "id", dep.ID(), "for", decl.ID())
+		i.log.Fields(log.Fields{
+			"id":  dep.ID(),
+			"for": decl.ID(),
+		}).Debug("di: finding dependency")
 		child, err := i.load(externals, aliases, dep)
 		if err != nil {
 			return nil, err

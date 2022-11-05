@@ -45,7 +45,11 @@ type List struct {
 }
 
 func (l *List) Link(caller string, tos ...string) {
-	l.log.Debug("linkmap: link", "caller", caller, "from", l.from, "to", tos)
+	l.log.Fields(log.Fields{
+		"caller": caller,
+		"from":   l.from,
+		"to":     tos,
+	}).Debug("linkmap: link")
 	l.mu.Lock()
 	for _, to := range tos {
 		l.tos[to] = struct{}{}
@@ -54,7 +58,10 @@ func (l *List) Link(caller string, tos ...string) {
 }
 
 func (l *List) Select(caller string, fn func(path string) bool) {
-	l.log.Debug("linkmap: select fn", "caller", caller, "from", l.from)
+	l.log.Fields(log.Fields{
+		"caller": caller,
+		"from":   l.from,
+	}).Debug("linkmap: select")
 	l.mu.Lock()
 	l.fns = append(l.fns, fn)
 	l.mu.Unlock()
