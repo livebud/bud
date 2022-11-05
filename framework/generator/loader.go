@@ -58,7 +58,7 @@ func (l *loader) Load(bfs budfs.FS) (state *State, err error) {
 }
 
 func (l *loader) loadGenerators(bfs budfs.FS) (generators []*UserGenerator) {
-	generatorDirs, err := finder.Find(bfs, "generator/**.go", func(path string, isDir bool) (entries []string) {
+	generatorDirs, err := finder.Find(bfs, "{generator/**.go,bud/internal/generator/**.go}", func(path string, isDir bool) (entries []string) {
 		if !isDir && valid.GoFile(path) {
 			entries = append(entries, filepath.Dir(path))
 		}
