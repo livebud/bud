@@ -203,7 +203,7 @@ func (node *Node) Print() string {
 }
 
 func (node *Node) format() string {
-	return `"` + node.Import + `".` + toTypeName(node.Type)
+	return `'` + node.Import + `'.` + toTypeName(node.Type)
 }
 
 func (node *Node) print(seen map[string]bool) string {

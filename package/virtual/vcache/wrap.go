@@ -21,13 +21,13 @@ type cachedfs struct {
 }
 
 func (f *cachedfs) Open(name string) (fs.File, error) {
-	f.log.Debug("vcache: open", "name", name)
+	fields := log.Fields{"name": name}
 	entry, ok := f.cache.Get(name)
 	if ok {
-		f.log.Debug("vcache: cache hit", "name", name)
+		f.log.Fields(fields).Debug("vcache: open cache hit")
 		return virtual.New(entry), nil
 	}
-	f.log.Debug("vcache: cache miss", "name", name)
+	f.log.Fields(fields).Debug("vcache: open cache miss")
 	file, err := f.fsys.Open(name)
 	if err != nil {
 		return nil, err
@@ -102,12 +102,12 @@ func (e *dirEntry) Type() fs.FileMode {
 }
 
 func (e *dirEntry) Info() (fs.FileInfo, error) {
-	e.f.log.Debug("vcache: entry info", "name", e.entryPath)
+	fields := log.Fields{"name": e.entryPath}
 	entry, ok := e.f.cache.Get(e.entryPath)
 	if ok {
-		e.f.log.Debug("vcache: cache hit", "name", e.entryPath)
+		e.f.log.Fields(fields).Debug("vcache: info cache hit")
 		return virtual.New(entry).Stat()
 	}
-	e.f.log.Debug("vcache: cache miss", "name", e.entryPath)
+	e.f.log.Fields(fields).Debug("vcache: info cache miss")
 	return e.de.Info()
 }

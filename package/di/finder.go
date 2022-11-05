@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/parser"
 )
 
@@ -18,7 +19,7 @@ type Finder interface {
 }
 
 func (i *Injector) Find(currModule *gomod.Module, dep Dependency) (Declaration, error) {
-	i.log.Debug("di: finding declaration", "for", dep.ID())
+	i.log.Field("for", dep.ID()).Debug("di: finding declaration")
 	// If modfile is nil, we default to the project modfile
 	if currModule == nil {
 		currModule = i.module
@@ -60,7 +61,10 @@ func (i *Injector) Find(currModule *gomod.Module, dep Dependency) (Declaration, 
 			}
 			return nil, err
 		}
-		i.log.Debug("di: found function declaration", "id", decl.ID(), "for", dep.ID())
+		i.log.Fields(log.Fields{
+			"id":  decl.ID(),
+			"for": dep.ID(),
+		}).Debug("di: found function declaration")
 		return decl, nil
 	}
 	// Look through the structs
@@ -72,7 +76,10 @@ func (i *Injector) Find(currModule *gomod.Module, dep Dependency) (Declaration, 
 			}
 			return nil, err
 		}
-		i.log.Debug("di: found struct declaration", "id", decl.ID(), "for", dep.ID())
+		i.log.Fields(log.Fields{
+			"id":  decl.ID(),
+			"for": dep.ID(),
+		}).Debug("di: found struct declaration")
 		return decl, nil
 	}
 	// TODO: add breadcrumbs to help with finding the root of this error

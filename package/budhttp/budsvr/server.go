@@ -88,7 +88,7 @@ func (s *Server) render(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) open(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Query().Get("path")
-	s.log.Debug("devserver: opening", "file", path)
+	s.log.Field("file", path).Debug("devserver: opening")
 	file, err := s.fsys.Open(path)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -105,7 +105,7 @@ func (s *Server) open(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(body)
-	s.log.Debug("devserver: opened", "file", path)
+	s.log.Field("file", path).Debug("devserver: opened")
 }
 
 func (s *Server) publish(w http.ResponseWriter, r *http.Request) {

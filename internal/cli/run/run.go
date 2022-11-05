@@ -94,7 +94,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 			return err
 		}
 		defer budln.Close()
-		log.Debug("run: bud server is listening", "url", "http://"+budln.Addr().String())
+		log.Debug("run: bud server is listening on %s", "http://"+budln.Addr().String())
 	}
 	// Load the generator filesystem
 	bfs, err := bfs.Load(c.Flag, log, module)
@@ -151,7 +151,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	eg.Go(func() error { return appServer.Run(ctx) })
 	// Wait until either the hot or web server exits
 	err = eg.Wait()
-	log.Debug("run: command finished", "err", err)
+	log.Field("error", err).Debug("run: command finished")
 	return err
 }
 
@@ -171,7 +171,7 @@ func (s *budServer) Run(ctx context.Context) error {
 	}
 	devServer := budsvr.New(s.fsys, s.bus, s.log, vm)
 	err = webrt.Serve(ctx, s.budln, devServer)
-	s.log.Debug("run: bud server closed", "err", err)
+	s.log.Field("error", err).Debug("run: bud server closed")
 	return err
 }
 
@@ -192,20 +192,20 @@ func (a *appServer) Run(ctx context.Context) error {
 	// Generate the app
 	if err := a.bfs.Sync(); err != nil {
 		a.bus.Publish("app:error", []byte(err.Error()))
-		a.log.Debug("run: published event", "event", "app:error")
+		a.log.Debug("run: published event %q", "app:error")
 		return err
 	}
 	// Build the app
 	if err := a.builder.Build(ctx, "bud/internal/app/main.go", "bud/app"); err != nil {
 		a.bus.Publish("app:error", []byte(err.Error()))
-		a.log.Debug("run: published event", "event", "app:error")
+		a.log.Debug("run: published event %q", "app:error")
 		return err
 	}
 	// Start the built app
 	process, err := a.starter.Start(ctx, filepath.Join("bud", "app"))
 	if err != nil {
 		a.bus.Publish("app:error", []byte(err.Error()))
-		a.log.Debug("run: published event", "event", "app:error")
+		a.log.Debug("run: published event %q", "app:error")
 		return err
 	}
 	// Watch for changes
@@ -215,7 +215,7 @@ func (a *appServer) Run(ctx context.Context) error {
 		// Inform the bud filesystem of the changes
 		changes := make([]string, len(events))
 		for i, event := range events {
-			a.log.Debug("run: file changed", "path", event.Path)
+			a.log.Debug("run: file path changed %q", event.Path)
 			changes[i] = event.Path
 		}
 		a.bfs.Change(changes...)
@@ -224,10 +224,10 @@ func (a *appServer) Run(ctx context.Context) error {
 			a.log.Debug("run: incrementally reloading")
 			// Publish the frontend:update event
 			a.bus.Publish("frontend:update", nil)
-			a.log.Debug("run: published event", "event", "frontend:update")
+			a.log.Debug("run: published event %q", "frontend:update")
 			// Publish the app:ready event
 			a.bus.Publish("app:ready", nil)
-			a.log.Debug("run: published event", "event", "app:ready")
+			a.log.Debug("run: published event %q", "app:ready")
 			a.prompter.SuccessReload()
 			return nil
 		}
@@ -237,7 +237,7 @@ func (a *appServer) Run(ctx context.Context) error {
 			return err
 		}
 		a.bus.Publish("backend:update", nil)
-		a.log.Debug("run: published event", "event", "backend:update")
+		a.log.Debug("run: published event %q", "backend:update")
 		// Generate the app
 		if err := a.bfs.Sync(); err != nil {
 			return err
@@ -250,11 +250,11 @@ func (a *appServer) Run(ctx context.Context) error {
 		p, err := process.Restart(ctx)
 		if err != nil {
 			a.bus.Publish("app:error", nil)
-			a.log.Debug("run: published event", "event", "app:error")
+			a.log.Debug("run: published event %q", "app:error")
 			return err
 		}
 		a.prompter.SuccessReload()
-		a.log.Debug("restarted the process", "in", time.Since(now))
+		a.log.Debug("restarted the process in %d", time.Since(now))
 		process = p
 		return nil
 	}))

@@ -225,7 +225,10 @@ func (g *fileGenerator) Generate(target string) (fs.File, error) {
 	}
 	fctx := &fileSystem{context.TODO(), g.fsys, g.fsys.lmap.Scope(target)}
 	file := &File{nil, g.path, g.node.Mode(), target}
-	g.fsys.log.Debug("budfs: running file generator function", "target", target)
+	g.fsys.log.Fields(log.Fields{
+		"target": target,
+		"path":   g.path,
+	}).Debug("budfs: running file generator function")
 	if err := g.fn(fctx, file); err != nil {
 		return nil, err
 	}
@@ -261,7 +264,10 @@ func (g *dirGenerator) Generate(target string) (fs.File, error) {
 	g.node.Clear()
 	fctx := &fileSystem{context.TODO(), g.fsys, g.fsys.lmap.Scope(target)}
 	dir := &Dir{g.fsys, g.node, target}
-	g.fsys.log.Debug("budfs: running dir generator function", "path", g.node.Path(), "target", target)
+	g.fsys.log.Fields(log.Fields{
+		"target": target,
+		"path":   g.node.Path(),
+	}).Debug("budfs: running dir generator function")
 	if err := g.fn(fctx, dir); err != nil {
 		return nil, err
 	}
@@ -305,7 +311,10 @@ func (g *fileServer) Generate(target string) (fs.File, error) {
 	// File differs slightly than others because g.node.Path() is the directory
 	// path, but we want the target path for serving files.
 	file := &File{nil, g.path, g.node.Mode(), target}
-	g.fsys.log.Debug("budfs: running file server function", "path", g.node.Path(), "target", target)
+	g.fsys.log.Fields(log.Fields{
+		"target": target,
+		"path":   g.node.Path(),
+	}).Debug("budfs: running file server function")
 	if err := g.fn(fctx, file); err != nil {
 		return nil, err
 	}
@@ -371,7 +380,7 @@ func (f *FileSystem) Change(paths ...string) {
 	for i := 0; i < len(paths); i++ {
 		path := paths[i]
 		if f.cache.Has(path) {
-			f.log.Debug("budfs: cache", "delete", path)
+			f.log.Debug("budfs: delete cache path %q", path)
 			f.cache.Delete(path)
 		}
 		f.lmap.Range(func(genPath string, fns *linkmap.List) bool {

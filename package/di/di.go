@@ -12,7 +12,7 @@ type Dependency interface {
 }
 
 func getID(importPath, typeName string) string {
-	return `"` + importPath + `".` + typeName
+	return `'` + importPath + `'.` + typeName
 }
 
 type Generator interface {

@@ -324,7 +324,7 @@ func (c *Client) Ready(ctx context.Context) error {
 }
 
 func (c *Client) Get(path string) (*Response, error) {
-	c.log.Debug("testcli: get request", "path", path)
+	c.log.Debug("testcli: get request %q", path)
 	req, err := c.GetRequest(path)
 	if err != nil {
 		return nil, err
@@ -333,7 +333,7 @@ func (c *Client) Get(path string) (*Response, error) {
 }
 
 func (c *Client) GetJSON(path string) (*Response, error) {
-	c.log.Debug("testcli: get json request", "path", path)
+	c.log.Debug("testcli: get json request %q", path)
 	req, err := c.GetRequest(path)
 	if err != nil {
 		return nil, err
@@ -347,7 +347,7 @@ func (c *Client) GetRequest(path string) (*http.Request, error) {
 }
 
 func (c *Client) Post(path string, body io.Reader) (*Response, error) {
-	c.log.Debug("testcli: post request", "path", path)
+	c.log.Debug("testcli: post request %q", path)
 	req, err := c.PostRequest(path, body)
 	if err != nil {
 		return nil, err
@@ -356,7 +356,7 @@ func (c *Client) Post(path string, body io.Reader) (*Response, error) {
 }
 
 func (c *Client) PostJSON(path string, body io.Reader) (*Response, error) {
-	c.log.Debug("testcli: post json request", "path", path)
+	c.log.Debug("testcli: post json request %q", path)
 	req, err := c.PostRequest(path, body)
 	if err != nil {
 		return nil, err
@@ -371,7 +371,7 @@ func (c *Client) PostRequest(path string, body io.Reader) (*http.Request, error)
 }
 
 func (c *Client) Patch(path string, body io.Reader) (*Response, error) {
-	c.log.Debug("testcli: patch request", "path", path)
+	c.log.Debug("testcli: patch request %q", path)
 	req, err := c.PatchRequest(path, body)
 	if err != nil {
 		return nil, err
@@ -380,7 +380,7 @@ func (c *Client) Patch(path string, body io.Reader) (*Response, error) {
 }
 
 func (c *Client) PatchJSON(path string, body io.Reader) (*Response, error) {
-	c.log.Debug("testcli: patch json request", "path", path)
+	c.log.Debug("testcli: patch json request %q", path)
 	req, err := c.PatchRequest(path, body)
 	if err != nil {
 		return nil, err
@@ -395,7 +395,7 @@ func (c *Client) PatchRequest(path string, body io.Reader) (*http.Request, error
 }
 
 func (c *Client) Delete(path string, body io.Reader) (*Response, error) {
-	c.log.Debug("testcli: delete request", "path", path)
+	c.log.Debug("testcli: delete request %q", path)
 	req, err := c.DeleteRequest(path, body)
 	if err != nil {
 		return nil, err
@@ -404,7 +404,7 @@ func (c *Client) Delete(path string, body io.Reader) (*Response, error) {
 }
 
 func (c *Client) DeleteJSON(path string, body io.Reader) (*Response, error) {
-	c.log.Debug("testcli: delete json request", "path", path)
+	c.log.Debug("testcli: delete json request %q", path)
 	req, err := c.DeleteRequest(path, body)
 	if err != nil {
 		return nil, err

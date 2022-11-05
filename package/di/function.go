@@ -174,7 +174,7 @@ type function struct {
 var _ Declaration = (*function)(nil)
 
 func (fn *function) ID() string {
-	return `"` + fn.Import + `".` + fn.Name
+	return `'` + fn.Import + `'.` + fn.Name
 }
 
 // Dependencies are the values that the funcDecl depends on to run
