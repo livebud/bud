@@ -54,8 +54,14 @@ func (l *loader) Load() (state *State, err error) {
 	l.imports.AddNamed("router", "github.com/livebud/bud/package/router")
 	// Show the welcome page if we don't have any web resources
 	if len(webDirs) == 0 {
-		l.imports.AddNamed("welcome", "github.com/livebud/bud/framework/web/welcome")
-		state.ShowWelcome = true
+		const importPath = "github.com/livebud/bud/framework/web/welcome"
+		state.Resources = append(state.Resources, &Resource{
+			Camel: "welcome",
+			Import: &imports.Import{
+				Name: l.imports.Add(importPath),
+				Path: importPath,
+			},
+		})
 		state.Imports = l.imports.List()
 		return state, nil
 	}

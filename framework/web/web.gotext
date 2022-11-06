@@ -14,9 +14,6 @@ import (
 // New web server
 func New(
 	router *router.Router,
-	{{- if $.ShowWelcome }}
-	welcome welcome.Middleware,
-	{{- end }}
 	{{- range $resource := $.Resources }}
 	{{ $resource.Camel }} *{{ $resource.Import.Name }}.Handler,
 	{{- end }}
@@ -31,12 +28,10 @@ func New(
 	middleware := middleware.Compose(
 		middleware.MethodOverride(),
 		router,
-		{{- if $.ShowWelcome }}
-		welcome,
-		{{- end }}
 	)
 	// 404 at the bottom of the middleware
 	handler := middleware.Middleware(http.NotFoundHandler())
+	// Return the web server
 	return &Server{handler}
 }
 
