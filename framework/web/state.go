@@ -7,8 +7,6 @@ type State struct {
 	Resources []*Resource
 
 	// TODO: remove below
-	Actions     []*Action
-	HasView     bool
 	ShowWelcome bool
 }
 
@@ -17,11 +15,4 @@ type Resource struct {
 	Import *imports.Import
 	Path   string
 	Camel  string
-}
-
-// TODO: remove action
-type Action struct {
-	Method   string
-	Route    string
-	CallName string
 }

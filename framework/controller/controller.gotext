@@ -9,6 +9,14 @@ import (
 )
 {{- end }}
 
+type Handler struct {
+	*Controller
+}
+
+func (h *Handler) Register(r *router.Router) {
+	h.Controller.register(r)
+}
+
 {{- define "controller" }}
 
 // Controller struct
@@ -18,6 +26,15 @@ type {{ $.Pascal }}Controller struct {
 	{{- end }}
 	{{- range $controller := $.Controllers }}
 	{{$controller.Last.Pascal}}Controller *{{$controller.Pascal}}Controller
+	{{- end }}
+}
+
+func (c *{{ $.Pascal }}Controller) register(r *router.Router) {
+	{{- range $action := $.Actions }}
+	r.{{ $action.Method }}(`{{ $action.Route }}`, c.{{$action.Pascal}})
+	{{- end }}
+	{{- range $controller := $.Controllers }}
+	c.{{$controller.Last.Pascal}}Controller.register(r)
 	{{- end }}
 }
 
@@ -63,7 +80,7 @@ func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpRes
 	// Unmarshal the request body
 	if err := request.Unmarshal(httpRequest, &in); err != nil {
 		return &response.Format{
-			{{- if ne $action.Method "GET" }}
+			{{- if ne $action.Method "Get" }}
 			HTML: response.Status(http.StatusSeeOther).RedirectBack(httpRequest.URL.Path),
 			{{- end }}
 			JSON: response.Status(400).Set("Content-Type", "application/json").JSON(map[string]string{"error": err.Error()}),
@@ -82,7 +99,7 @@ func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpRes
 	{{- end }}
 	if err != nil {
 		return &response.Format{
-			{{- if ne $action.Method "GET" }}
+			{{- if ne $action.Method "Get" }}
 			HTML: response.Status(http.StatusSeeOther).RedirectBack(httpRequest.URL.Path),
 			{{- end }}
 			JSON: response.Status(500).Set("Content-Type", "application/json").JSON(map[string]string{"error": err.Error()}),
@@ -101,7 +118,7 @@ func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpRes
 	{{- if $action.Results.Error }}
 	if {{ $action.Results.Error }} != nil {
 		return &response.Format{
-			{{- if ne $action.Method "GET" }}
+			{{- if ne $action.Method "Get" }}
 			HTML: response.Status(http.StatusSeeOther).RedirectBack(httpRequest.URL.Path),
 			{{- end }}
 			JSON: response.Status(500).Set("Content-Type", "application/json").JSON(map[string]string{"error": {{ $action.Results.Error }}.Error()}),
@@ -111,7 +128,7 @@ func ({{$action.Short}} *{{ $.Pascal }}{{$action.Pascal}}Action) handler(httpRes
 
 	// Respond
 	return &response.Format{
-		{{- if eq $action.Method "GET" }}
+		{{- if eq $action.Method "Get" }}
 		{{- if $action.View }}
 		HTML: {{ $action.Short }}.View.Renderer("{{$action.View.Route}}", {{ $action.Results.ViewResult }}),
 		{{- else if $action.RespondHTML }}

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"net/http"
 	"path"
 	"sort"
 	"strconv"
@@ -55,6 +54,7 @@ func (l *loader) Load() (state *State, err error) {
 	state = new(State)
 	state.Controller = l.loadController("controller")
 	state.Providers = l.providers.List()
+	l.imports.AddNamed("router", "github.com/livebud/bud/package/router")
 	state.Imports = l.imports.List()
 	return state, nil
 }
@@ -228,17 +228,24 @@ func (l *loader) loadActionRoute(controllerRoute, actionName string) string {
 	}
 }
 
+const (
+	methodGet    = "Get"
+	methodPost   = "Post"
+	methodPatch  = "Patch"
+	methodDelete = "Delete"
+)
+
 // Method is the HTTP method for this controller
 func (l *loader) loadActionMethod(actionName string) string {
 	switch actionName {
 	case "Create":
-		return http.MethodPost
+		return methodPost
 	case "Update":
-		return http.MethodPatch
+		return methodPatch
 	case "Delete":
-		return http.MethodDelete
+		return methodDelete
 	default:
-		return http.MethodGet
+		return methodGet
 	}
 }
 
@@ -430,7 +437,7 @@ func (l *loader) loadActionResultFields(result *parser.Result, def parser.Declar
 // with better methods
 func (l *loader) loadActionRedirect(action *Action) string {
 	// Redirect for non-create methods is an empty string
-	if action.Method != http.MethodPost {
+	if action.Method != methodPost {
 		return `""`
 	}
 	results := action.Results
