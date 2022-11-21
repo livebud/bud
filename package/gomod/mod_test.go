@@ -297,3 +297,12 @@ func TestFindBy(t *testing.T) {
 	is.Equal(modules[0].Import(), "github.com/livebud/bud-test-nested-plugin")
 	is.Equal(modules[1].Import(), "github.com/livebud/bud-test-plugin")
 }
+
+func TestNew(t *testing.T) {
+	is := is.New(t)
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	is.NoErr(err)
+	module := gomod.New(dir)
+	is.Equal(dir, module.Directory())
+	is.Equal(module.Import(), "change.me")
+}

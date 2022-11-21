@@ -77,6 +77,24 @@ func Parse(path string, data []byte, options ...Option) (*Module, error) {
 	return parse(opt, path, data)
 }
 
+func New(dir string, options ...Option) *Module {
+	opt := &option{
+		modCache: modcache.Default(),
+	}
+	for _, option := range options {
+		option(opt)
+	}
+	modulePath := modulePathFromGoPath(dir)
+	if modulePath == "" {
+		modulePath = "change.me"
+	}
+	module, err := parse(opt, filepath.Join(dir, "go.mod"), []byte(`module `+modulePath))
+	if err != nil {
+		panic("mod: invalid module data: " + err.Error())
+	}
+	return module
+}
+
 // gopathToModulePath tries inferring the module path of directory. This only
 // works if you're in working within the $GOPATH
 func modulePathFromGoPath(path string) string {
