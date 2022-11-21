@@ -58,7 +58,6 @@ func (p *Pipeline) Run(fromPath, toExt string, code []byte) ([]byte, error) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	fromExt := path.Ext(fromPath)
-	fmt.Println(fromPath, fromExt, toExt)
 	hops, _, err := p.graph.Path(fromExt, toExt)
 	if err != nil {
 		return nil, fmt.Errorf("trpipe: no path to transform %q to %q for %q. %w", fromExt, toExt, fromPath, err)

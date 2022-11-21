@@ -11,6 +11,8 @@ import (
 type File = trpipe.File
 
 type Transform struct {
+	// TODO: figure out why import is need in the runtime
+	// Shouldn't this be in the generator?
 	Import string // import path
 	From   string
 	To     string
