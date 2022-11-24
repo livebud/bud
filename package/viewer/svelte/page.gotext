@@ -1,0 +1,30 @@
+{{- if $.Layout }}
+import Layout from "./{{ $.Layout.Path }}"
+{{- end }}
+
+{{- range $i, $frame := $.Frames }}
+import Frame{{$i}} from "./{{ $frame.Path }}"
+{{- end }}
+
+import Main from "./{{ $.Main.Path }}";
+
+import View from "bud-svelte-runtime";
+const view = new View({
+	main: Main,
+	{{- if $.Layout }}
+	layout: Layout,
+	{{- end }}
+	frames: [
+		{{- range $i, $frame := $.Frames }}
+		Frame{{$i}},
+		{{- end }}
+	],
+	scripts: [
+		"{{ $.Client }}",
+	]
+})
+
+// Render the page
+export function render(propMap) {
+	return view.render(propMap)
+};
