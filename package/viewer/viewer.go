@@ -18,20 +18,21 @@ type Viewer interface {
 }
 
 type Page struct {
+	*View
 	Layout *View   `json:"layout,omitempty"`
 	Frames []*View `json:"frames,omitempty"`
-	Main   *View   `json:"main,omitempty"`
 }
 
 func (p *Page) Client() string {
-	return path.Join("bud", p.Main.Path+".js")
+	return path.Join("bud", p.Path+".js")
 }
 
 type Props = map[string]interface{}
 type Context = map[string]interface{}
 
 type View struct {
-	Path    string  `json:"path,omitempty"`
+	Key     string  `json:"key,omitempty"`
+	Path    string  `json:"path,omitempty"` // Can be empty
 	Props   Props   `json:"props,omitempty"`
 	Context Context `json:"context,omitempty"`
 }

@@ -46,7 +46,7 @@ func (v *Viewer) Render(ctx context.Context, page *viewer.Page) ([]byte, error) 
 		return nil, err
 	}
 	expr := fmt.Sprintf("%s\nbud.render(%s)", code, props)
-	html, err := v.vm.Eval(page.Main.Path, expr)
+	html, err := v.vm.Eval(page.Path, expr)
 	if err != nil {
 		return nil, err
 	}
@@ -68,8 +68,8 @@ func (v *Viewer) compile(page *viewer.Page) (code []byte, err error) {
 	result := esbuild.Build(esbuild.BuildOptions{
 		EntryPointsAdvanced: []esbuild.EntryPoint{
 			{
-				InputPath:  page.Main.Path + ".js",
-				OutputPath: path.Join(page.Main.Path + ".js"),
+				InputPath:  page.Path + ".js",
+				OutputPath: path.Join(page.Path + ".js"),
 			},
 		},
 		AbsWorkingDir: v.module.Directory(),
@@ -113,12 +113,12 @@ func (v *Viewer) pagePlugin(page *viewer.Page) esbuild.Plugin {
 	return esbuild.Plugin{
 		Name: "bud-svelte-page",
 		Setup: func(epb esbuild.PluginBuild) {
-			epb.OnResolve(esbuild.OnResolveOptions{Filter: `^` + page.Main.Path + `\.js$`}, func(args esbuild.OnResolveArgs) (result esbuild.OnResolveResult, err error) {
-				result.Namespace = page.Main.Path + `.js`
+			epb.OnResolve(esbuild.OnResolveOptions{Filter: `^` + page.Path + `\.js$`}, func(args esbuild.OnResolveArgs) (result esbuild.OnResolveResult, err error) {
+				result.Namespace = page.Path + `.js`
 				result.Path = args.Path
 				return result, nil
 			})
-			epb.OnLoad(esbuild.OnLoadOptions{Filter: `.*`, Namespace: page.Main.Path + `.js`}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
+			epb.OnLoad(esbuild.OnLoadOptions{Filter: `.*`, Namespace: page.Path + `.js`}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
 				code, err := pageTemplate.Generate(page)
 				if err != nil {
 					return result, err
