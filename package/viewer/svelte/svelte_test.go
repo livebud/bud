@@ -2,12 +2,18 @@ package svelte_test
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"io/fs"
+	"net/http"
+	"net/http/httptest"
+	"path/filepath"
 	"testing"
 
 	"github.com/livebud/bud/framework/transform2/transformrt"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log/testlog"
+	"github.com/livebud/bud/package/router"
 	"github.com/livebud/bud/package/viewer"
 	"github.com/livebud/bud/package/virtual"
 
@@ -17,6 +23,84 @@ import (
 	svelteCompiler "github.com/livebud/bud/package/svelte"
 	"github.com/livebud/bud/package/viewer/svelte"
 )
+
+type View struct {
+	Svelte *svelte.Viewer
+}
+
+func (v *View) Register(r *router.Router) error {
+	r.Get("/posts/:id", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		html, err := v.Render(r.Context(), &viewer.Page{
+			View: &viewer.View{
+				Key:     "posts/show",
+				Props:   viewer.Props{},
+				Context: viewer.Context{},
+			},
+			Frames: []*viewer.View{
+				{
+					Key:     "posts/frame",
+					Props:   viewer.Props{},
+					Context: viewer.Context{},
+				},
+				{
+					Key:     "frame",
+					Props:   viewer.Props{},
+					Context: viewer.Context{},
+				},
+			},
+		})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(html)
+	}))
+	return nil
+}
+
+var keyPaths = map[string]string{
+	"frame":       "view/frame.svelte",
+	"posts/show":  "view/posts/show.svelte",
+	"posts/frame": "view/posts/frame.svelte",
+}
+
+func (v *View) Viewer(path string) (viewer viewer.Viewer, err error) {
+	switch filepath.Ext(path) {
+	case ".svelte":
+		return v.Svelte, nil
+	default:
+		return nil, fmt.Errorf("view: no viewer for %q", path)
+	}
+}
+
+func (v *View) Render(ctx context.Context, page *viewer.Page) ([]byte, error) {
+	// Attach the paths to the views
+	if path, ok := keyPaths[page.Key]; ok {
+		page.Path = path
+	}
+	for _, frame := range page.Frames {
+		if path, ok := keyPaths[frame.Key]; ok {
+			frame.Path = path
+		}
+	}
+	if page.Layout != nil {
+		if path, ok := keyPaths[page.Layout.Key]; ok {
+			page.Layout.Path = path
+		}
+	}
+	viewer, err := v.Viewer(page.Path)
+	if err != nil {
+		return nil, err
+	}
+	return viewer.Render(ctx, page)
+}
+
+func (v *View) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	router := router.New()
+	v.Register(router)
+	router.ServeHTTP(w, r)
+}
 
 func loadViewer(t testing.TB, fsys fs.FS) *svelte.Viewer {
 	is := is.New(t)
@@ -44,6 +128,41 @@ func loadViewer(t testing.TB, fsys fs.FS) *svelte.Viewer {
 	return svelte.New(fsys, log, module, transformer, vm)
 }
 
+// loadView
+func loadView(svelte *svelte.Viewer) *View {
+	return &View{
+		Svelte: svelte,
+	}
+}
+
+func TestServeView(t *testing.T) {
+	is := is.New(t)
+	viewer := loadViewer(t, virtual.Map{
+		"view/posts/show.svelte": &virtual.File{
+			Data: []byte(`<h1>Posts</h1>`),
+		},
+		"view/posts/frame.svelte": &virtual.File{
+			Data: []byte(`<div><slot /></div>`),
+		},
+		"view/frame.svelte": &virtual.File{
+			Data: []byte(`<article><slot /></article>`),
+		},
+	})
+	view := loadView(viewer)
+	r := httptest.NewRequest("GET", "/posts/10", nil)
+	w := httptest.NewRecorder()
+	view.ServeHTTP(w, r)
+	res := w.Result()
+	body, err := io.ReadAll(res.Body)
+	is.NoErr(err)
+	is.In(string(body), `<article><div><h1>Posts</h1></div></article>`)
+	// default layout
+	is.In(string(body), `<!doctype html>`)
+	is.In(string(body), `<meta charset="utf-8" />`)
+	is.Equal(res.StatusCode, 200)
+	is.Equal(res.Header.Get("Content-Type"), "text/html; charset=utf-8")
+}
+
 func TestOnlyPage(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
@@ -53,7 +172,7 @@ func TestOnlyPage(t *testing.T) {
 		},
 	})
 	html, err := view.Render(ctx, &viewer.Page{
-		Main: &viewer.View{
+		View: &viewer.View{
 			Path:  "view/posts/show.svelte",
 			Props: viewer.Props{},
 		},
@@ -162,7 +281,7 @@ func TestSimple(t *testing.T) {
 				},
 			},
 		},
-		Main: &viewer.View{
+		View: &viewer.View{
 			Path: "view/posts/show.svelte",
 			Props: map[string]interface{}{
 				"title": "Hello World",
@@ -196,7 +315,7 @@ func TestError(t *testing.T) {
 		},
 	})
 	html, err := view.Render(ctx, &viewer.Page{
-		Main: &viewer.View{
+		View: &viewer.View{
 			Path:  "view/posts/show.svelte",
 			Props: viewer.Props{},
 		},
@@ -205,7 +324,7 @@ func TestError(t *testing.T) {
 	is.Equal(err.Error(), `ReferenceError: title is not defined`)
 	is.Equal(html, nil)
 	html = view.RenderError(ctx, &viewer.Page{
-		Main: &viewer.View{
+		View: &viewer.View{
 			Path: "view/error.svelte",
 			Props: viewer.Props{
 				"message": err.Error(),

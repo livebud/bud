@@ -6,11 +6,11 @@ import Layout from "./{{ $.Layout.Path }}"
 import Frame{{$i}} from "./{{ $frame.Path }}"
 {{- end }}
 
-import Main from "./{{ $.Main.Path }}";
+import Page from "./{{ $.Path }}";
 
 import View from "bud-svelte-runtime";
 const view = new View({
-	main: Main,
+	page: Page,
 	{{- if $.Layout }}
 	layout: Layout,
 	{{- end }}
