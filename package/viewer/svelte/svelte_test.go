@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"github.com/livebud/bud/framework/transform2/transformrt"
@@ -24,31 +25,47 @@ import (
 	"github.com/livebud/bud/package/viewer/svelte"
 )
 
+func newView(svelte *svelte.Viewer) *View {
+	return &View{
+		Svelte: svelte,
+		router: router.New(),
+	}
+}
+
 type View struct {
 	Svelte *svelte.Viewer
+
+	registerOnce sync.Once
+	router       *router.Router
 }
 
 func (v *View) Register(r *router.Router) error {
-	r.Get("/posts/:id", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		html, err := v.Render(r.Context(), &viewer.Page{
-			View: &viewer.View{
-				Key:     "posts/show",
+	staticPage := &viewer.Page{
+		View: &viewer.View{
+			Key:     "posts/show",
+			Path:    "view/posts/show.svelte",
+			Props:   viewer.Props{},
+			Context: viewer.Context{},
+		},
+		Client: "/bud/view/posts/show.svelte.js",
+		Frames: []*viewer.View{
+			{
+				Key:     "posts/frame",
+				Path:    "view/posts/frame.svelte",
 				Props:   viewer.Props{},
 				Context: viewer.Context{},
 			},
-			Frames: []*viewer.View{
-				{
-					Key:     "posts/frame",
-					Props:   viewer.Props{},
-					Context: viewer.Context{},
-				},
-				{
-					Key:     "frame",
-					Props:   viewer.Props{},
-					Context: viewer.Context{},
-				},
+			{
+				Key:     "frame",
+				Path:    "view/frame.svelte",
+				Props:   viewer.Props{},
+				Context: viewer.Context{},
 			},
-		})
+		},
+	}
+	// Register the page if it doesn't exist already
+	r.Get("/posts/:id", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		html, err := v.Render(r.Context(), staticPage)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -56,6 +73,7 @@ func (v *View) Register(r *router.Router) error {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write(html)
 	}))
+	v.Svelte.RegisterClient(r, staticPage)
 	return nil
 }
 
@@ -96,10 +114,10 @@ func (v *View) Render(ctx context.Context, page *viewer.Page) ([]byte, error) {
 	return viewer.Render(ctx, page)
 }
 
+// ServeHTTP allows View to be used standalone.
 func (v *View) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	router := router.New()
-	v.Register(router)
-	router.ServeHTTP(w, r)
+	v.registerOnce.Do(func() { v.Register(v.router) })
+	v.router.ServeHTTP(w, r)
 }
 
 func loadViewer(t testing.TB, fsys fs.FS) *svelte.Viewer {
@@ -124,18 +142,23 @@ func loadViewer(t testing.TB, fsys fs.FS) *svelte.Viewer {
 				return nil
 			},
 		},
+		&transformrt.Transform{
+			From: ".svelte",
+			To:   ".js",
+			Func: func(file *transformrt.File) error {
+				dom, err := compiler.DOM(file.Path(), file.Data)
+				if err != nil {
+					return err
+				}
+				file.Data = []byte(dom.JS)
+				return nil
+			},
+		},
 	)
 	return svelte.New(fsys, log, module, transformer, vm)
 }
 
-// loadView
-func loadView(svelte *svelte.Viewer) *View {
-	return &View{
-		Svelte: svelte,
-	}
-}
-
-func TestServeView(t *testing.T) {
+func TestServeViewSSR(t *testing.T) {
 	is := is.New(t)
 	viewer := loadViewer(t, virtual.Map{
 		"view/posts/show.svelte": &virtual.File{
@@ -148,19 +171,49 @@ func TestServeView(t *testing.T) {
 			Data: []byte(`<article><slot /></article>`),
 		},
 	})
-	view := loadView(viewer)
+	view := newView(viewer)
 	r := httptest.NewRequest("GET", "/posts/10", nil)
 	w := httptest.NewRecorder()
 	view.ServeHTTP(w, r)
 	res := w.Result()
 	body, err := io.ReadAll(res.Body)
 	is.NoErr(err)
-	is.In(string(body), `<article><div><h1>Posts</h1></div></article>`)
+	is.In(string(body), `<div id="bud_target"><article><div><h1>Posts</h1></div></article></div>`)
 	// default layout
 	is.In(string(body), `<!doctype html>`)
 	is.In(string(body), `<meta charset="utf-8" />`)
+	is.In(string(body), `<script src="/bud/view/posts/show.svelte.js" defer></script>`)
+	is.In(string(body), `<script id="bud_data" type="text/data" defer>{`)
 	is.Equal(res.StatusCode, 200)
 	is.Equal(res.Header.Get("Content-Type"), "text/html; charset=utf-8")
+}
+
+func TestServeViewDOM(t *testing.T) {
+	is := is.New(t)
+	viewer := loadViewer(t, virtual.Map{
+		"view/posts/show.svelte": &virtual.File{
+			Data: []byte(`<b>Posts</b>`),
+		},
+		"view/posts/frame.svelte": &virtual.File{
+			Data: []byte(`<u><slot /></u>`),
+		},
+		"view/frame.svelte": &virtual.File{
+			Data: []byte(`<em><slot /></em>`),
+		},
+	})
+	view := newView(viewer)
+	// Get the client
+	r := httptest.NewRequest("GET", "/bud/view/posts/show.svelte.js", nil)
+	w := httptest.NewRecorder()
+	view.ServeHTTP(w, r)
+	res := w.Result()
+	body, err := io.ReadAll(res.Body)
+	is.NoErr(err)
+	is.In(string(body), `"em"`)
+	is.In(string(body), `"u"`)
+	is.In(string(body), `"b"`)
+	is.In(string(body), `hydrator.hydrate(document.getElementById("bud_target"), document.getElementById("bud_data"))`)
+	is.Equal(res.StatusCode, 200)
 }
 
 func TestOnlyPage(t *testing.T) {

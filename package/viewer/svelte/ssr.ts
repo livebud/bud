@@ -1,3 +1,7 @@
+/**
+ * ssr.ts is the runtime for rendering server-side pages
+ */
+
 import type { create_ssr_component } from 'svelte/internal'
 type Component = ReturnType<typeof create_ssr_component>
 
@@ -6,7 +10,6 @@ type Input = {
   frames: Component[]
   layout?: Component
   error?: Component
-  scripts: string[]
 }
 
 type RenderParams = Parameters<Component["render"]>
@@ -25,15 +28,16 @@ type Page = View & {
   frames: View[]
   layout?: View
   error?: View
+  client?: string
 }
 
-export default class Viewer {
+export class Viewer {
   constructor(private readonly input: Input) { }
 
   render(page: Page) {
     const input = this.input
-    const heads: string[] = []
     const styles: string[] = []
+    let heads: string[] = []
     const { head, css, html: pageHTML } = input.page.render(page.props, {
       context: new Map(Object.entries(page.context || {}))
     })
@@ -57,12 +61,21 @@ export default class Viewer {
       }
       html = frameHTML
     }
+    // Add the data and client-side script. Note: we add to the head with defer
+    // with the assumption that we won't block rendering but the browser will
+    // start downloading dependencies earlier. TODO: double-check this.
+    heads = heads.reverse()
+    if (page.client) {
+      heads.push(`<script id="bud_data" type="text/data" defer>${JSON.stringify(page)}</script>`)
+      heads.push(`<script src="${page.client}" defer></script>`)
+    }
+
     const layout = input.layout || new defaultLayout()
     const { html: layoutHTML } = layout.render(page.layout?.props, {
       context: new Map(Object.entries(page.layout?.context || {})),
       '$$slots': {
-        default: () => html,
-        head: () => heads.reverse().join("\n"),
+        default: () => `<div id="bud_target">${html}</div>`,
+        head: () => heads.join("\n"),
         style: () => `<style>\n\t${styles.reverse().join("\n\t")}\n</style>`,
       }
     })
