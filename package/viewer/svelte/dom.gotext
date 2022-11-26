@@ -1,0 +1,26 @@
+{{/**
+dom.gotext is the entrypoint for browser components
+*/}}
+
+{{- range $i, $frame := $.Frames }}
+import Frame{{ $i }} from "./{{$frame.Path}}"
+{{- end }}
+
+import Page from "./{{$.Path}}"
+
+import { Hydrator } from "domSvelteRuntime";
+
+const hydrator = new Hydrator({
+	frames: [
+		{{- range $i, $frame := $.Frames }}
+		Frame{{$i}},
+		{{- end }}
+	],
+	Page: Page,
+})
+
+// Hydrate "bud_target" with "bud_data"
+hydrator.hydrate(
+	document.getElementById("bud_target"),
+	document.getElementById("bud_data"),
+)

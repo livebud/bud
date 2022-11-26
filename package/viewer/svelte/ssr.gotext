@@ -1,3 +1,7 @@
+{{/**
+ssr.gotext is the entrypoint for server-pages
+*/}}
+
 {{- if $.Layout }}
 import Layout from "./{{ $.Layout.Path }}"
 {{- end }}
@@ -8,8 +12,8 @@ import Frame{{$i}} from "./{{ $frame.Path }}"
 
 import Page from "./{{ $.Path }}";
 
-import View from "bud-svelte-runtime";
-const view = new View({
+import { Viewer } from "ssrSvelteRuntime";
+const viewer = new Viewer({
 	page: Page,
 	{{- if $.Layout }}
 	layout: Layout,
@@ -19,12 +23,9 @@ const view = new View({
 		Frame{{$i}},
 		{{- end }}
 	],
-	scripts: [
-		"{{ $.Client }}",
-	]
 })
 
 // Render the page
-export function render(propMap) {
-	return view.render(propMap)
+export function render(page) {
+	return viewer.render(page)
 };
