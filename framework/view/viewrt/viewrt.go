@@ -64,6 +64,7 @@ func (h *Handler) render(path string, props interface{}) (*ssr.Response, error) 
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("rendering path", path)
 	script, err := fs.ReadFile(h.fsys, "bud/view/_ssr.js")
 	if err != nil {
 		return nil, err

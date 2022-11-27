@@ -11,10 +11,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/livebud/bud/framework/transform2/transformrt"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/router"
+	"github.com/livebud/bud/package/transpiler"
 	"github.com/livebud/bud/package/viewer"
 	"github.com/livebud/bud/package/virtual"
 
@@ -129,33 +129,24 @@ func loadViewer(t testing.TB, fsys fs.FS) *svelte.Viewer {
 	is.NoErr(err)
 	compiler, err := svelteCompiler.Load(vm)
 	is.NoErr(err)
-	transformer := transformrt.Load(log,
-		&transformrt.Transform{
-			From: ".svelte",
-			To:   ".ssr.js",
-			Func: func(file *transformrt.File) error {
-				ssr, err := compiler.SSR(file.Path(), file.Data)
-				if err != nil {
-					return err
-				}
-				file.Data = []byte(ssr.JS)
-				return nil
-			},
-		},
-		&transformrt.Transform{
-			From: ".svelte",
-			To:   ".js",
-			Func: func(file *transformrt.File) error {
-				dom, err := compiler.DOM(file.Path(), file.Data)
-				if err != nil {
-					return err
-				}
-				file.Data = []byte(dom.JS)
-				return nil
-			},
-		},
-	)
-	return svelte.New(fsys, log, module, transformer, vm)
+	tr := transpiler.New()
+	tr.Add(".svelte", ".ssr.js", func(file *transpiler.File) error {
+		ssr, err := compiler.SSR(file.Path(), file.Data)
+		if err != nil {
+			return err
+		}
+		file.Data = []byte(ssr.JS)
+		return nil
+	})
+	tr.Add(".svelte", ".js", func(file *transpiler.File) error {
+		dom, err := compiler.DOM(file.Path(), file.Data)
+		if err != nil {
+			return err
+		}
+		file.Data = []byte(dom.JS)
+		return nil
+	})
+	return svelte.New(fsys, log, module, tr, vm)
 }
 
 func TestServeViewSSR(t *testing.T) {

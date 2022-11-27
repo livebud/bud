@@ -2,6 +2,7 @@ package view
 
 import (
 	_ "embed"
+	"fmt"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/transform/transformrt"
@@ -44,5 +45,11 @@ func (c *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
 		return err
 	}
 	file.Data = code
+	return nil
+}
+
+func (g *Generator) ServeFile(fsys budfs.FS, file *budfs.File) error {
+	fmt.Println("serving", file.Target())
+	// return g.GenerateFile(fsys, file)
 	return nil
 }

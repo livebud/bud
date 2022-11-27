@@ -8,30 +8,32 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/livebud/bud/internal/gotemplate"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
-	"github.com/livebud/bud/framework/transform2/transformrt"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/js"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/router"
+	"github.com/livebud/bud/package/transpiler"
 	"github.com/livebud/bud/package/viewer"
 )
 
-func New(fsys fs.FS, log log.Log, module *gomod.Module, transformer *transformrt.Transformer, vm js.VM) *Viewer {
-	return &Viewer{fsys, log, module, transformer, vm}
+type FS = fs.FS
+
+func New(fsys FS, log log.Log, module *gomod.Module, transpiler transpiler.Interface, vm js.VM) *Viewer {
+	return &Viewer{fsys, log, module, transpiler, vm}
 }
 
 type Viewer struct {
-	fsys        fs.FS
-	log         log.Log
-	module      *gomod.Module
-	transformer *transformrt.Transformer
-	vm          js.VM
+	fsys       FS
+	log        log.Log
+	module     *gomod.Module
+	transpiler transpiler.Interface
+	vm         js.VM
 }
 
 var _ viewer.Viewer = (*Viewer)(nil)
@@ -163,11 +165,15 @@ func (v *Viewer) ssrSvelteTransform() esbuild.Plugin {
 				return result, nil
 			})
 			epb.OnLoad(esbuild.OnLoadOptions{Filter: `.*`, Namespace: `svelte`}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
-				code, err := v.transformer.Transform(v.fsys, path.Join("ssr.js", args.Path))
+				code, err := fs.ReadFile(v.fsys, filepath.Clean(args.Path))
 				if err != nil {
 					return result, err
 				}
-				contents := string(code)
+				transpiled, err := v.transpiler.Transpile(args.Path, ".ssr.js", code)
+				if err != nil {
+					return result, err
+				}
+				contents := string(transpiled)
 				result.ResolveDir = v.module.Directory()
 				result.Contents = &contents
 				result.Loader = esbuild.LoaderJS
@@ -294,11 +300,15 @@ func (v *Viewer) domSvelteTransform() esbuild.Plugin {
 				return result, nil
 			})
 			epb.OnLoad(esbuild.OnLoadOptions{Filter: `.*`, Namespace: `svelte`}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
-				code, err := v.transformer.Transform(v.fsys, path.Join("js", args.Path))
+				code, err := fs.ReadFile(v.fsys, filepath.Clean(args.Path))
 				if err != nil {
 					return result, err
 				}
-				contents := string(code)
+				transpiled, err := v.transpiler.Transpile(args.Path, ".js", code)
+				if err != nil {
+					return result, err
+				}
+				contents := string(transpiled)
 				result.ResolveDir = v.module.Directory()
 				result.Contents = &contents
 				result.Loader = esbuild.LoaderJS
