@@ -11,12 +11,9 @@ import (
 type File = trpipe.File
 
 type Transform struct {
-	// TODO: figure out why import is need in the runtime
-	// Shouldn't this be in the generator?
-	Import string // import path
-	From   string
-	To     string
-	Func   func(file *File) error
+	From string
+	To   string
+	Func func(file *File) error
 }
 
 func Load(log log.Log, transforms ...*Transform) *Transformer {

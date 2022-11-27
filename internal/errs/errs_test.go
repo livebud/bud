@@ -24,7 +24,15 @@ func TestOne(t *testing.T) {
 func TestOneIs(t *testing.T) {
 	is := is.New(t)
 	err := fmt.Errorf("one: %w", fs.ErrNotExist)
-	is.True(errors.Is(errs.Join(nil, err, nil), fs.ErrNotExist))
+	is.True(errors.Is(errs.Join(nil, err, err), fs.ErrNotExist))
+}
+
+// Allow chains of the same error type to continue passing error.Is checks.
+func TestChainIs(t *testing.T) {
+	is := is.New(t)
+	e1 := fmt.Errorf("one: %w", fs.ErrNotExist)
+	e2 := fmt.Errorf("two: %w", e1)
+	is.True(errors.Is(errs.Join(nil, e1, e2), fs.ErrNotExist))
 }
 
 // Can't assume multiple non-nested errors are a certain type of error.
