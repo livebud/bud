@@ -21,7 +21,6 @@ func Load(
 		{{- range $transformer := $.Transformers }}
 		{{- range $transform := $transformer.Transforms }}
 		&transformrt.Transform{
-			Import: "{{ $transformer.Import.Path }}",
 			From: "{{ $transform.From }}",
 			To: "{{ $transform.To }}",
 			Func: {{ $transformer.Camel }}.{{ $transform.Name }},
