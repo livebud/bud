@@ -4,9 +4,10 @@ import "io"
 
 // Flag is used by many of the framework generators
 type Flag struct {
-	Embed  bool
-	Minify bool
-	Hot    bool
+	Embed        bool
+	Minify       bool
+	Hot          bool
+	Noautolaunch bool
 
 	// Comes from *bud.Input
 	Stdin  io.Reader

@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"golang.org/x/sync/errgroup"
-
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/web/webrt"
 	"github.com/livebud/bud/internal/bfs"
@@ -26,6 +24,8 @@ import (
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/package/watcher"
+	"github.com/pkg/browser"
+	"golang.org/x/sync/errgroup"
 )
 
 // New command for bud run.
@@ -150,6 +150,15 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	// Start the internal app server
 	eg.Go(func() error { return appServer.Run(ctx) })
 	// Wait until either the hot or web server exits
+
+	// Launch browser unless we're told not to
+	if !c.Flag.Noautolaunch { // if not not autolaunch, i.e. if autolaunch
+		go func() {
+			time.Sleep(1 * time.Second)
+			_ = browser.OpenURL("http://" + webln.Addr().String())
+		}()
+	}
+
 	err = eg.Wait()
 	log.Field("error", err).Debug("run: command finished")
 	return err

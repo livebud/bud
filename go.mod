@@ -23,6 +23,7 @@ require (
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac
 	github.com/matthewmueller/text v0.0.0-20210424201111-ec1e4af8dfe8
 	github.com/otiai10/copy v1.7.0
+	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/pointlander/peg v1.0.1
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/timewasted/go-accept-headers v0.0.0-20130320203746-c78f304b1b09
