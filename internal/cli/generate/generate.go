@@ -2,7 +2,7 @@ package generate
 
 import (
 	"context"
-	"os/exec"
+	"strings"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/bfs"
@@ -54,21 +54,21 @@ func (c *Command) Run(ctx context.Context) error {
 		return err
 	}
 	defer bfs.Close()
-	// Generate the application
-	if err := bfs.Sync(); err != nil {
-		return err
-	}
-	// Run go generate if we have any args
-	if len(c.Args) > 0 {
-		cmd := exec.CommandContext(ctx, "go", append([]string{"generate"}, c.Args...)...)
-		cmd.Dir = module.Directory()
-		cmd.Env = c.in.Env
-		cmd.Stdin = c.in.Stdin
-		cmd.Stdout = c.in.Stdout
-		cmd.Stderr = c.in.Stderr
-		if err := cmd.Run(); err != nil {
-			return err
+	// Sync either the entire bud directory or the specified files
+	return bfs.Sync(selectBudDirs(c.Args)...)
+}
+
+func selectBudDirs(patterns []string) (paths []string) {
+	for _, pattern := range patterns {
+		// Only sync from within the bud directory
+		if !strings.HasPrefix(pattern, "bud/") {
+			continue
 		}
+		// Trim the wildcard suffix since SyncDirs is recursive already
+		// TODO: support non-recursive syncs
+		pattern = strings.TrimSuffix(pattern, "/...")
+		// Add the file or directory
+		paths = append(paths, pattern)
 	}
-	return nil
+	return paths
 }
