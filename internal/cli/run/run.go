@@ -48,8 +48,9 @@ type Command struct {
 	in  *bud.Input
 
 	// Flags
-	Flag   *framework.Flag
-	Listen string // Web listener address
+	Flag        *framework.Flag
+	Listen      string // Web listener address
+	OpenBrowser bool
 }
 
 // Run the run command. That's a mouthful.
@@ -151,12 +152,11 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	eg.Go(func() error { return appServer.Run(ctx) })
 	// Wait until either the hot or web server exits
 
-	// Launch browser unless we're told not to
-	if !c.Flag.Noautolaunch { // if not not autolaunch, i.e. if autolaunch
-		go func() {
-			time.Sleep(1 * time.Second)
-			_ = browser.OpenURL("http://" + webln.Addr().String())
-		}()
+	if !c.OpenBrowser {
+		err := browser.OpenURL("http://" + webln.Addr().String())
+		if err != nil {
+			return err
+		}
 	}
 
 	err = eg.Wait()
