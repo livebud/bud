@@ -95,12 +95,33 @@ var syncDirs = [...]string{
 	"bud/package",
 }
 
-func (f *FS) Sync() error {
+// Sync delegates to either sync
+func (f *FS) Sync(dirs ...string) error {
+	if len(dirs) == 0 {
+		return f.syncDefault()
+	}
+	return f.syncDirs(dirs...)
+}
+
+// syncDefault performs the sync used in `bud run`
+func (f *FS) syncDefault() error {
 	if err := f.expand(); err != nil {
 		return err
 	}
 	for _, to := range syncDirs {
 		if err := f.fsys.Sync(f.module, to, skipHidden); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// syncDirs syncs specific directories and is used in `bud generate`
+func (f *FS) syncDirs(dirs ...string) error {
+	for _, dir := range dirs {
+		if err := f.fsys.Sync(f.module, dir, skipHidden); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
 				return err
 			}
