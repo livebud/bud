@@ -53,6 +53,8 @@ func Load(flag *framework.Flag, log log.Log, module *gomod.Module) (*FS, error) 
 	fsys.FileServer("bud/node_modules", dom.NodeModules(module))
 	fsys.FileGenerator("bud/internal/generator/transform/transform.go", transform.New(flag, injector, log, module, parser))
 	fsys.FileGenerator("bud/command/.generate/main.go", generator.New(fsys, flag, injector, log, module, parser))
+	// fsys.FileGenerator("bud/cmd/appfs/main.go", appfs.New(flag, injector, log, module))
+	// fsys.FileGenerator("bud/internal/generator/generator.go", generator2.New(fsys, flag, injector, log, module, parser))
 	return &FS{fsys, module}, nil
 }
 

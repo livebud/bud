@@ -19,6 +19,17 @@ type Provider struct {
 	externalMap map[string]string // External map for faster lookup
 }
 
+// Needs returns true if any of the import types are required as parameters by
+// the provider
+func (p *Provider) Needs(importTypes ...string) bool {
+	for _, it := range importTypes {
+		if _, ok := p.externalMap[it]; ok {
+			return true
+		}
+	}
+	return false
+}
+
 // Variable returns the variable name of an external
 // The importType key is importPath.dataType
 func (p *Provider) Variable(importType string) string {

@@ -17,7 +17,6 @@ func Load(fsys fs.FS, injector *di.Injector, module *gomod.Module, flag *framewo
 		return nil, err
 	}
 	return (&loader{
-		fsys:     fsys,
 		injector: injector,
 		module:   module,
 		flag:     flag,
@@ -26,7 +25,6 @@ func Load(fsys fs.FS, injector *di.Injector, module *gomod.Module, flag *framewo
 }
 
 type loader struct {
-	fsys     fs.FS
 	injector *di.Injector
 	module   *gomod.Module
 	flag     *framework.Flag

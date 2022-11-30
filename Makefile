@@ -49,6 +49,12 @@ example.hn.embed:
 example.hn.watch:
 	@ watch -- $(MAKE) example.hn
 
+example.blog:
+	@ go run main.go -C example/blog generate bud/internal/generator/... bud/cmd/appfs
+
+example.blog.watch:
+	@ watch --clear -- $(MAKE) example.blog
+
 ##
 # Go
 ##
@@ -261,3 +267,4 @@ e2e.bud.build:
 	)
 	./bud -C welcome build
 	./welcome/bud/app -h
+
