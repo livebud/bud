@@ -1,0 +1,26 @@
+package generator
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+func New(
+	bfs *budfs.FileSystem,
+	module *gomod.Module,
+	log log.Log,
+	{{- range $generator := $.Generators }}
+	{{ $generator.Camel }} *{{ $generator.Import.Name }}.Generator,
+	{{- end }}
+) FS {
+	{{- range $generator := $.Generators }}
+	bfs.{{ $generator.Type }}(`{{ $generator.Path }}`, {{ $generator.Camel }})
+	{{- end }}
+	return bfs
+}
+
+type FS = fs.FS
