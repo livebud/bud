@@ -306,3 +306,12 @@ func TestNew(t *testing.T) {
 	is.Equal(dir, module.Directory())
 	is.Equal(module.Import(), "change.me")
 }
+
+func TestDeleteOutside(t *testing.T) {
+	is := is.New(t)
+	dir := t.TempDir()
+	is.NoErr(os.MkdirAll(filepath.Join(dir, "livebud", "bud"), 0755))
+	module := gomod.New(filepath.Join(dir, "livebud", "bud"))
+	err := module.RemoveAll("../..")
+	is.True(errors.Is(err, fs.ErrInvalid))
+}

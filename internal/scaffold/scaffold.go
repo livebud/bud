@@ -11,18 +11,18 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/internal/gotemplate"
-	"github.com/livebud/bud/package/vfs"
+	"github.com/livebud/bud/package/virtual"
 	"github.com/otiai10/copy"
 )
 
-type MapFS = vfs.Memory
+type MapFS = virtual.Tree
 
-func OSFS(dir string) vfs.ReadWritable {
-	return vfs.OS(dir)
+func OSFS(dir string) virtual.FS {
+	return virtual.OS(dir)
 }
 
 type Scaffolding interface {
-	Scaffold(fsys vfs.ReadWritable) error
+	Scaffold(fsys virtual.FS) error
 }
 
 func Template(path, template string, state interface{}) Scaffolding {
@@ -35,7 +35,7 @@ type templateFile struct {
 	state    interface{}
 }
 
-func (t *templateFile) Scaffold(fsys vfs.ReadWritable) error {
+func (t *templateFile) Scaffold(fsys virtual.FS) error {
 	template, err := gotemplate.Parse(t.path, t.template)
 	if err != nil {
 		return err
@@ -59,7 +59,7 @@ type jsonFile struct {
 	state interface{}
 }
 
-func (j *jsonFile) Scaffold(fsys vfs.ReadWritable) error {
+func (j *jsonFile) Scaffold(fsys virtual.FS) error {
 	code, err := json.MarshalIndent(j.state, "", "  ")
 	if err != nil {
 		return err
@@ -79,14 +79,14 @@ type file struct {
 	data []byte
 }
 
-func (f *file) Scaffold(fsys vfs.ReadWritable) error {
+func (f *file) Scaffold(fsys virtual.FS) error {
 	if err := fsys.MkdirAll(filepath.Dir(f.path), 0755); err != nil {
 		return err
 	}
 	return fsys.WriteFile(f.path, f.data, 0644)
 }
 
-func Scaffold(fsys vfs.ReadWritable, scaffoldings ...Scaffolding) error {
+func Scaffold(fsys virtual.FS, scaffoldings ...Scaffolding) error {
 	// TODO: make concurrency safe then refactor to use errgroup.
 	for _, s := range scaffoldings {
 		if err := s.Scaffold(fsys); err != nil {

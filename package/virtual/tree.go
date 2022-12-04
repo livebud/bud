@@ -20,10 +20,9 @@ func (fsys Tree) Open(path string) (fs.File, error) {
 	if ok {
 		// Can be either a file or a empty directory
 		file.Path = path
-		if file.IsDir() {
-			return &entryDir{&Dir{file.Path, file.Mode, file.ModTime, nil}, 0}, nil
+		if !file.IsDir() {
+			return &entryFile{file, 0}, nil
 		}
-		return &entryFile{file, 0}, nil
 	}
 
 	// The following logic is based on "testing/fstest".MapFS.Open
