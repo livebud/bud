@@ -1,3 +1,5 @@
+// Package vfs is deprecated and will be deleted once remaining code is migrated
+// All new functionality should go in the virtual package.
 package vfs
 
 import (

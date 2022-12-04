@@ -7,6 +7,7 @@ import (
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/vfs"
+	"github.com/livebud/bud/package/virtual"
 )
 
 func TestMemory(t *testing.T) {
@@ -60,7 +61,7 @@ func TestMemory(t *testing.T) {
 func TestWriteAll(t *testing.T) {
 	is := is.New(t)
 	dir := t.TempDir()
-	dirfs := vfs.OS(dir)
+	dirfs := virtual.OS(dir)
 	fsys := vfs.Memory{
 		"duo/view/index.svelte": &vfs.File{
 			Data: []byte(`<h1>index</h1>`),

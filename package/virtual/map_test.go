@@ -73,3 +73,26 @@ func TestMapRoot(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(len(des), 0)
 }
+
+func TestMapReadDirWithChild(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Map{
+		"a/b.txt": &virtual.File{Data: []byte("b")},
+		"a":       &virtual.File{Mode: fs.ModeDir},
+	}
+	des, err := fs.ReadDir(fsys, "a")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
+	is.Equal(des[0].Name(), "b.txt")
+}
+
+func TestMapOpenParentInvalid(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Map{
+		"a/b.txt": &virtual.File{Data: []byte("b")},
+		"a":       &virtual.File{Mode: fs.ModeDir},
+	}
+	file, err := fsys.Open("../a/b.txt")
+	is.True(errors.Is(err, fs.ErrInvalid))
+	is.Equal(file, nil)
+}
