@@ -2,6 +2,9 @@ package generate
 
 import (
 	"context"
+	"fmt"
+	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/livebud/bud/framework"
@@ -54,11 +57,20 @@ func (c *Command) Run(ctx context.Context) error {
 		return err
 	}
 	defer bfs.Close()
+	for _, budDir := range findBudDirs(c.Args) {
+		rel := unroot(budDir)
+		fmt.Println(rel)
+	}
 	// Sync either the entire bud directory or the specified files
-	return bfs.Sync(selectBudDirs(c.Args)...)
+	return bfs.Sync(findBudDirs(c.Args)...)
 }
 
-func selectBudDirs(patterns []string) (paths []string) {
+func unroot(fpath string) string {
+	parts := strings.Split(fpath, string(filepath.Separator))
+	return path.Join(parts[1:]...)
+}
+
+func findBudDirs(patterns []string) (paths []string) {
 	for _, pattern := range patterns {
 		// Only sync from within the bud directory
 		if !strings.HasPrefix(pattern, "bud/") {
