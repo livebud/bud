@@ -7,6 +7,7 @@ import (
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/vfs"
+	"github.com/livebud/bud/package/virtual"
 )
 
 func TestMemory(t *testing.T) {
@@ -57,43 +58,43 @@ func TestMemory(t *testing.T) {
 	is.Equal(code, nil)
 }
 
-// func TestWriteAll(t *testing.T) {
-// 	is := is.New(t)
-// 	dir := t.TempDir()
-// 	dirfs := vfs.OS(dir)
-// 	fsys := vfs.Memory{
-// 		"duo/view/index.svelte": &vfs.File{
-// 			Data: []byte(`<h1>index</h1>`),
-// 		},
-// 	}
+func TestWriteAll(t *testing.T) {
+	is := is.New(t)
+	dir := t.TempDir()
+	dirfs := virtual.OS(dir)
+	fsys := vfs.Memory{
+		"duo/view/index.svelte": &vfs.File{
+			Data: []byte(`<h1>index</h1>`),
+		},
+	}
 
-// 	// write duo/controller/controller.go
-// 	err := fsys.WriteFile("duo/controller/controller.go", []byte(`package controller`), 0644)
-// 	is.NoErr(err)
+	// write duo/controller/controller.go
+	err := fsys.WriteFile("duo/controller/controller.go", []byte(`package controller`), 0644)
+	is.NoErr(err)
 
-// 	// remove duo/view
-// 	err = fsys.RemoveAll("duo/view")
-// 	is.NoErr(err)
+	// remove duo/view
+	err = fsys.RemoveAll("duo/view")
+	is.NoErr(err)
 
-// 	err = vfs.WriteAll(".", dir, fsys)
-// 	is.NoErr(err)
+	err = vfs.WriteAll(".", dir, fsys)
+	is.NoErr(err)
 
-// 	// _tmp/duo has real entries
-// 	des, err := fs.ReadDir(dirfs, "duo")
-// 	is.NoErr(err)
-// 	is.Equal(len(des), 1)
-// 	is.Equal(des[0].Name(), "controller")
+	// _tmp/duo has real entries
+	des, err := fs.ReadDir(dirfs, "duo")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
+	is.Equal(des[0].Name(), "controller")
 
-// 	// duo/controller/controller.go exists in _tmp
-// 	code, err := fs.ReadFile(dirfs, "duo/controller/controller.go")
-// 	is.NoErr(err)
-// 	is.Equal(string(code), `package controller`)
+	// duo/controller/controller.go exists in _tmp
+	code, err := fs.ReadFile(dirfs, "duo/controller/controller.go")
+	is.NoErr(err)
+	is.Equal(string(code), `package controller`)
 
-// 	// duo/view/index.svelte doesn't exist in _tmp
-// 	code, err = fs.ReadFile(dirfs, "duo/view/index.svelte")
-// 	is.Equal(errors.Is(err, fs.ErrNotExist), true)
-// 	is.Equal(code, nil)
-// }
+	// duo/view/index.svelte doesn't exist in _tmp
+	code, err = fs.ReadFile(dirfs, "duo/view/index.svelte")
+	is.Equal(errors.Is(err, fs.ErrNotExist), true)
+	is.Equal(code, nil)
+}
 
 func TestWriteRead(t *testing.T) {
 	is := is.New(t)
