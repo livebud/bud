@@ -1,17 +1,22 @@
 package once
 
-import "github.com/livebud/bud/internal/errs"
+import (
+	"github.com/livebud/bud/internal/errs"
+)
 
 type Closer struct {
-	Closes []func() error
+	closes []func() error
 	once   Error
 }
 
-func (c *Closer) Close(reasons ...error) error {
+func (c *Closer) Add(fn func() error) {
+	c.closes = append(c.closes, fn)
+}
+
+func (c *Closer) Close() (err error) {
 	return c.once.Do(func() error {
-		err := errs.Join(reasons...)
-		for i := len(c.Closes) - 1; i >= 0; i-- {
-			err = errs.Join(err, c.Closes[i]())
+		for i := len(c.closes) - 1; i >= 0; i-- {
+			err = errs.Join(err, c.closes[i]())
 		}
 		return err
 	})
