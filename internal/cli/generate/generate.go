@@ -2,15 +2,10 @@ package generate
 
 import (
 	"context"
-	"fmt"
-	"path"
-	"path/filepath"
-	"strings"
 
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/internal/bfs"
+	"github.com/livebud/bud/internal/buddy"
 	"github.com/livebud/bud/internal/cli/bud"
-	"github.com/livebud/bud/internal/versions"
 )
 
 // New command for bud generate
@@ -37,50 +32,24 @@ type Command struct {
 
 // Run the generate command
 func (c *Command) Run(ctx context.Context) error {
-	// Find go.mod
-	module, err := bud.Module(c.bud.Dir)
+	bud, err := buddy.Load(ctx, &buddy.Input{
+		Embed:  c.Flag.Embed,
+		Minify: c.Flag.Minify,
+		Hot:    c.Flag.Hot,
+		Log:    c.bud.Log,
+		Dir:    c.bud.Dir,
+		Stdin:  c.in.Stdin,
+		Stdout: c.in.Stdout,
+		Stderr: c.in.Stderr,
+		Env:    c.in.Env,
+	})
 	if err != nil {
 		return err
 	}
-	// Ensure we have version alignment between the CLI and the runtime
-	if err := bud.EnsureVersionAlignment(ctx, module, versions.Bud); err != nil {
-		return err
-	}
-	// Setup the logger
-	log, err := bud.Log(c.in.Stderr, c.bud.Log)
+	appFS, err := bud.Generate(ctx, c.Args...)
 	if err != nil {
 		return err
 	}
-	// Load the filesystem
-	bfs, err := bfs.Load(c.Flag, log, module)
-	if err != nil {
-		return err
-	}
-	defer bfs.Close()
-	for _, budDir := range findBudDirs(c.Args) {
-		rel := unroot(budDir)
-		fmt.Println(rel)
-	}
-	// Sync either the entire bud directory or the specified files
-	return bfs.Sync(findBudDirs(c.Args)...)
-}
-
-func unroot(fpath string) string {
-	parts := strings.Split(fpath, string(filepath.Separator))
-	return path.Join(parts[1:]...)
-}
-
-func findBudDirs(patterns []string) (paths []string) {
-	for _, pattern := range patterns {
-		// Only sync from within the bud directory
-		if !strings.HasPrefix(pattern, "bud/") {
-			continue
-		}
-		// Trim the wildcard suffix since SyncDirs is recursive already
-		// TODO: support non-recursive syncs
-		pattern = strings.TrimSuffix(pattern, "/...")
-		// Add the file or directory
-		paths = append(paths, pattern)
-	}
-	return paths
+	defer appFS.Close()
+	return nil
 }

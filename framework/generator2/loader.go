@@ -106,6 +106,15 @@ func (l *loader) loadCoreGenerators() (generators []*CodeGenerator) {
 		},
 		&CodeGenerator{
 			Import: &imports.Import{
+				Name: l.imports.Add("github.com/livebud/bud/framework/command"),
+				Path: "github.com/livebud/bud/framework/command",
+			},
+			Path:  "bud/internal/command/command.go",
+			Type:  FileGenerator,
+			Camel: gotext.Camel("command"),
+		},
+		&CodeGenerator{
+			Import: &imports.Import{
 				Name: l.imports.Add("github.com/livebud/bud/framework/public"),
 				Path: "github.com/livebud/bud/framework/public",
 			},

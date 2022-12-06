@@ -1,4 +1,4 @@
-module github.com/livebud/bud/v3/blog
+module github.com/livebud/bud/example/blog
 
 go 1.19
 

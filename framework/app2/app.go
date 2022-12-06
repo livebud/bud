@@ -73,6 +73,9 @@ func (l *loader) Load() (state *State, err error) {
 	defer l.Recover2(&err, "app")
 	state = new(State)
 	state.Provider = l.loadProvider()
+	l.imports.AddStd("context", "errors", "os")
+	l.imports.AddNamed("commander", "github.com/livebud/bud/package/commander")
+	l.imports.AddNamed("console", "github.com/livebud/bud/package/log/console")
 	state.Imports = l.imports.List()
 	return state, nil
 }

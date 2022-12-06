@@ -375,6 +375,21 @@ func (f *FileSystem) Sync(writable virtual.FS, to string, options ...dsync.Optio
 	return err
 }
 
+// Sync the overlay to the filesystem
+func (f *FileSystem) SyncMany(writable virtual.FS, tos []string, options ...dsync.Option) error {
+	// Temporarily replace the underlying fs.FS with a cached fs.FS
+	cache := vcache.New()
+	fsys := f.fsys
+	f.fsys = vcache.Wrap(cache, fsys, f.log)
+	for _, to := range tos {
+		if err := dsync.To(f.fsys, writable, to, options...); err != nil {
+			return err
+		}
+	}
+	f.fsys = fsys
+	return nil
+}
+
 // Change updates the cache
 func (f *FileSystem) Change(paths ...string) {
 	for i := 0; i < len(paths); i++ {
