@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/fs"
 
+	"github.com/livebud/bud/internal/errs"
 	"github.com/livebud/bud/internal/exe"
 	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/once"
@@ -24,28 +25,31 @@ func (c *Command) Start(ctx context.Context, name string, args ...string) (*Proc
 	if err != nil {
 		return nil, err
 	}
-	closer.Closes = append(closer.Closes, ln.Close)
+	closer.Add(ln.Close)
 	// Turn the listener into a file to be passed to the subprocess
 	file, err := ln.File()
 	if err != nil {
-		return nil, closer.Close(err)
+		err = errs.Join(err, closer.Close())
+		return nil, err
 	}
-	closer.Closes = append(closer.Closes, file.Close)
+	closer.Add(file.Close)
 	// Inject the file listener into the subprocess
 	extrafile.Inject(&c.ExtraFiles, &c.Env, defaultPrefix, file)
 	// Start the subprocess
 	process, err := (*exe.Command)(c).Start(ctx, name, args...)
 	if err != nil {
-		return nil, closer.Close(err)
+		err = errs.Join(err, closer.Close())
+		return nil, err
 	}
-	closer.Closes = append(closer.Closes, process.Close)
+	closer.Add(process.Close)
 	// Dial the subprocess and return a client
 	addr := ln.Addr().String()
 	client, err := Dial(ctx, addr)
 	if err != nil {
-		return nil, closer.Close(err)
+		err = errs.Join(err, closer.Close())
+		return nil, err
 	}
-	closer.Closes = append(closer.Closes, client.Close)
+	closer.Add(client.Close)
 	// Return the process
 	return &Process{client, &closer, process, addr}, nil
 }

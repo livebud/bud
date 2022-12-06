@@ -438,7 +438,7 @@ func (f *fileSystem) Context() context.Context {
 // Defer a function until close is called. May be called multiple times if
 // generators are triggered multiple times.
 func (f *fileSystem) Defer(fn func() error) {
-	f.fsys.closer.Closes = append(f.fsys.closer.Closes, fn)
+	f.fsys.closer.Add(fn)
 }
 
 // Glob implements fs.GlobFS
