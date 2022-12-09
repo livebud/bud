@@ -1,0 +1,119 @@
+package genfs
+
+import (
+	"fmt"
+	"io/fs"
+	gopath "path"
+
+	"github.com/livebud/bud/package/virtual"
+)
+
+type Dir struct {
+	cg     CacheGraph
+	genfs  *FileSystem
+	path   string
+	target string
+	radix  *radix  // Radix tree for matching generators
+	filler *filler // Fill in missing files and dirs between generators
+}
+
+func (d *Dir) Target() string {
+	return d.target
+}
+
+func (d *Dir) Relative() string {
+	return relativePath(d.path, d.target)
+}
+
+func (d *Dir) Path() string {
+	return d.path
+}
+
+func (d *Dir) Mode() fs.FileMode {
+	return fs.ModeDir
+}
+
+func (d *Dir) GenerateFile(path string, fn func(fsys FS, file *File) error) {
+	fpath := gopath.Join(d.path, path)
+	fileg := &fileGenerator{d.cg, fn, d.genfs, fs.FileMode(0), fpath}
+	d.radix.Insert(fpath, fileg)
+	d.filler.Insert(fpath, fs.FileMode(0))
+}
+
+func (d *Dir) FileGenerator(path string, generator FileGenerator) {
+	d.GenerateFile(path, generator.GenerateFile)
+}
+
+func (d *Dir) GenerateDir(path string, fn func(fsys FS, dir *Dir) error) {
+	fpath := gopath.Join(d.path, path)
+	dirg := &dirGenerator{d.cg, fn, d.genfs, fs.ModeDir, fpath, d.radix, d.filler}
+	d.radix.Insert(fpath, dirg)
+	d.filler.Insert(fpath, fs.ModeDir)
+}
+
+func (d *Dir) DirGenerator(path string, generator DirGenerator) {
+	d.GenerateDir(path, generator.GenerateDir)
+}
+
+type DirGenerator interface {
+	GenerateDir(fsys FS, dir *Dir) error
+}
+
+type GenerateDir func(fsys FS, dir *Dir) error
+
+func (fn GenerateDir) GenerateDir(fsys FS, dir *Dir) error {
+	return fn(fsys, dir)
+}
+
+type dirGenerator struct {
+	cg     CacheGraph
+	fn     func(fsys FS, dir *Dir) error
+	genfs  *FileSystem
+	mode   fs.FileMode
+	path   string
+	radix  *radix  // Radix tree for matching generators
+	filler *filler // Fill in missing files and dirs between generators
+}
+
+func (d *dirGenerator) Mode() fs.FileMode {
+	return fs.ModeDir
+}
+
+func (d *dirGenerator) Generate(target string) (fs.File, error) {
+	if entry, ok := d.cg.Get(d.path); ok {
+		_ = entry
+		// TODO: wrap the entry file in a virtualDir
+		return nil, fmt.Errorf("cache get not implemented yet")
+	}
+	scopedFS := &scopedFS{d.cg, d.genfs, d.path}
+	dir := &Dir{d.cg, d.genfs, d.path, target, d.radix, d.filler}
+	if err := d.fn(scopedFS, dir); err != nil {
+		return nil, err
+	}
+	// Traverse into the directory looking for the target
+	if d.path != target {
+		return d.genfs.openAs(d.path, target)
+	}
+	des, err := fs.ReadDir(d.filler, target)
+	if err != nil {
+		return nil, err
+	}
+	// Create the virtual directory
+	dirEntries := make([]fs.DirEntry, len(des))
+	for i := range des {
+		dirEntries[i] = &dirEntry{d.genfs, des[i].Name(), des[i].Type(), gopath.Join(d.path, des[i].Name())}
+	}
+	entry := &virtual.Dir{
+		Path:    d.path,
+		Mode:    d.mode,
+		Entries: dirEntries,
+	}
+	// Cache the directory entry
+	d.cg.Set(d.path, entry)
+	// Return the virtual directory
+	return &wrapFile{
+		File:  virtual.New(entry),
+		genfs: d.genfs,
+		path:  d.path,
+	}, nil
+}
