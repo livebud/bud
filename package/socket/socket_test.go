@@ -130,7 +130,8 @@ func TestUDSCleanup(t *testing.T) {
 
 func TestListenUp(t *testing.T) {
 	is := is.New(t)
-	ln0, err := socket.Listen(":0")
+	// Letting the OS decide leads to port conflicts when run with other tests
+	ln0, err := socket.Listen(":10000")
 	is.NoErr(err)
 	defer ln0.Close()
 	ln1, err := socket.ListenUp(ln0.Addr().String(), 5)
@@ -150,7 +151,7 @@ func TestListenUp(t *testing.T) {
 func TestListenMaxAttemptsReached(t *testing.T) {
 	is := is.New(t)
 	// Letting the OS decide leads to port conflicts when run with other tests
-	ln0, err := socket.Listen(":10000")
+	ln0, err := socket.Listen(":20000")
 	is.NoErr(err)
 	defer ln0.Close()
 	// This one should work
