@@ -9,13 +9,15 @@ import (
 )
 
 type Dir struct {
-	cg     CacheGraph
+	cache  Cache
 	genfs  *FileSystem
-	path   string
-	target string
+	path   string  // Current directory path
+	target string  // Final target path
 	radix  *radix  // Radix tree for matching generators
 	filler *filler // Fill in missing files and dirs between generators
 }
+
+var _ Generators = (*Dir)(nil)
 
 func (d *Dir) Target() string {
 	return d.target
@@ -35,7 +37,7 @@ func (d *Dir) Mode() fs.FileMode {
 
 func (d *Dir) GenerateFile(path string, fn func(fsys FS, file *File) error) {
 	fpath := gopath.Join(d.path, path)
-	fileg := &fileGenerator{d.cg, fn, d.genfs, fs.FileMode(0), fpath}
+	fileg := &fileGenerator{d.cache, fn, d.genfs, fpath}
 	d.radix.Insert(fpath, fileg)
 	d.filler.Insert(fpath, fs.FileMode(0))
 }
@@ -46,13 +48,35 @@ func (d *Dir) FileGenerator(path string, generator FileGenerator) {
 
 func (d *Dir) GenerateDir(path string, fn func(fsys FS, dir *Dir) error) {
 	fpath := gopath.Join(d.path, path)
-	dirg := &dirGenerator{d.cg, fn, d.genfs, fs.ModeDir, fpath, d.radix, d.filler}
+	dirg := &dirGenerator{d.cache, fn, d.genfs, fpath, d.radix, d.filler}
 	d.radix.Insert(fpath, dirg)
 	d.filler.Insert(fpath, fs.ModeDir)
 }
 
 func (d *Dir) DirGenerator(path string, generator DirGenerator) {
 	d.GenerateDir(path, generator.GenerateDir)
+}
+
+func (d *Dir) ServeFile(path string, fn func(fsys FS, file *File) error) {
+	fpath := gopath.Join(d.path, path)
+	server := &fileServer{d.cache, fn, d.genfs, fpath}
+	d.radix.Insert(fpath, server)
+	d.filler.Insert(fpath, fs.ModeDir)
+}
+
+func (d *Dir) FileServer(path string, server FileServer) {
+	d.ServeFile(path, server.ServeFile)
+}
+
+func (d *Dir) GenerateExternal(path string, fn func(fsys FS, file *ExternalFile) error) {
+	fpath := gopath.Join(d.path, path)
+	external := &externalGenerator{d.cache, fn, d.genfs, fpath}
+	d.radix.Insert(fpath, external)
+	d.filler.Insert(fpath, fs.FileMode(0))
+}
+
+func (d *Dir) ExternalGenerator(path string, generator ExternalGenerator) {
+	d.GenerateExternal(path, generator.GenerateExternal)
 }
 
 type DirGenerator interface {
@@ -66,27 +90,22 @@ func (fn GenerateDir) GenerateDir(fsys FS, dir *Dir) error {
 }
 
 type dirGenerator struct {
-	cg     CacheGraph
+	cache  Cache
 	fn     func(fsys FS, dir *Dir) error
 	genfs  *FileSystem
-	mode   fs.FileMode
 	path   string
 	radix  *radix  // Radix tree for matching generators
 	filler *filler // Fill in missing files and dirs between generators
 }
 
-func (d *dirGenerator) Mode() fs.FileMode {
-	return fs.ModeDir
-}
-
 func (d *dirGenerator) Generate(target string) (fs.File, error) {
-	if entry, ok := d.cg.Get(d.path); ok {
+	if entry, ok := d.cache.Get(d.path); ok {
 		_ = entry
 		// TODO: wrap the entry file in a virtualDir
 		return nil, fmt.Errorf("cache get not implemented yet")
 	}
-	scopedFS := &scopedFS{d.cg, d.genfs, d.path}
-	dir := &Dir{d.cg, d.genfs, d.path, target, d.radix, d.filler}
+	scopedFS := &scopedFS{d.cache, d.genfs, d.path}
+	dir := &Dir{d.cache, d.genfs, d.path, target, d.radix, d.filler}
 	if err := d.fn(scopedFS, dir); err != nil {
 		return nil, err
 	}
@@ -105,11 +124,11 @@ func (d *dirGenerator) Generate(target string) (fs.File, error) {
 	}
 	entry := &virtual.Dir{
 		Path:    d.path,
-		Mode:    d.mode,
+		Mode:    fs.ModeDir,
 		Entries: dirEntries,
 	}
 	// Cache the directory entry
-	d.cg.Set(d.path, entry)
+	d.cache.Set(d.path, entry)
 	// Return the virtual directory
 	return &wrapFile{
 		File:  virtual.New(entry),

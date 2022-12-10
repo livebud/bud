@@ -1,18 +1,12 @@
-package vcg
+package fscache
 
 import (
 	"github.com/livebud/bud/package/budfs/linkmap"
+	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/virtual"
 	"github.com/livebud/bud/package/virtual/vcache"
 )
-
-type Cache interface {
-	Get(name string) (entry virtual.Entry, ok bool)
-	Set(path string, entry virtual.Entry)
-	Link(from, to string)
-	Check(from string, checker func(path string) (changed bool))
-}
 
 func New(log log.Log) *Memory {
 	return &Memory{
@@ -27,6 +21,8 @@ type Memory struct {
 	log log.Log
 	vc  vcache.Cache
 }
+
+var _ genfs.Cache = (*Memory)(nil)
 
 func (m *Memory) Get(name string) (entry virtual.Entry, ok bool) {
 	return m.vc.Get(name)

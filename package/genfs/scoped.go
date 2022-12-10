@@ -11,7 +11,7 @@ import (
 )
 
 type scopedFS struct {
-	cg    CacheGraph
+	cache Cache
 	genfs fs.FS
 	from  string // generator path
 }
@@ -20,7 +20,7 @@ var _ FS = (*scopedFS)(nil)
 
 // Open implements fs.FS
 func (f *scopedFS) Open(name string) (fs.File, error) {
-	f.cg.Link(f.from, name)
+	f.cache.Link(f.from, name)
 	file, err := f.genfs.Open(name)
 	if err != nil {
 		return nil, err
@@ -33,7 +33,7 @@ func (f *scopedFS) Watch(patterns ...string) error {
 	for _, path := range patterns {
 		// Not a glob
 		if glob.Base(path) == path {
-			f.cg.Link(f.from, path)
+			f.cache.Link(f.from, path)
 			continue
 		}
 		// Compile the pattern into a glob matcher
@@ -42,7 +42,7 @@ func (f *scopedFS) Watch(patterns ...string) error {
 			return err
 		}
 		// Check for changes in the matched paths
-		f.cg.Check(f.from, func(path string) bool {
+		f.cache.Check(f.from, func(path string) bool {
 			return matcher.Match(path)
 		})
 	}
@@ -57,7 +57,7 @@ func (f *scopedFS) Glob(pattern string) (matches []string, err error) {
 		return nil, err
 	}
 	// Check for changes in the matched paths
-	f.cg.Check(f.from, func(path string) bool {
+	f.cache.Check(f.from, func(path string) bool {
 		return matcher.Match(path)
 	})
 	// Base is a minor optimization to avoid walking the entire tree
@@ -83,7 +83,7 @@ func (f *scopedFS) Glob(pattern string) (matches []string, err error) {
 // ReadDir implements fs.ReadDirFS
 func (f *scopedFS) ReadDir(name string) ([]fs.DirEntry, error) {
 	// Check for directory changes
-	f.cg.Check(f.from, func(path string) bool {
+	f.cache.Check(f.from, func(path string) bool {
 		return path == name || filepath.Dir(path) == name
 	})
 	des, err := fs.ReadDir(f.genfs, name)

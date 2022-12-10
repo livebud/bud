@@ -7,7 +7,10 @@ import (
 )
 
 type File struct {
-	Data   []byte
+	Data []byte
+
+	// Target and path are the same when called within GenerateFile, but not
+	// always the same when called within ServeFile
 	path   string
 	target string
 }
@@ -39,32 +42,30 @@ func (fn GenerateFile) GenerateFile(fsys FS, file *File) error {
 }
 
 type fileGenerator struct {
-	cg    CacheGraph
+	cache Cache
 	fn    func(fsys FS, file *File) error
 	genfs fs.FS
-	mode  fs.FileMode
 	path  string
 }
 
-func (f *fileGenerator) Mode() fs.FileMode {
-	return f.mode
-}
-
 func (f *fileGenerator) Generate(target string) (fs.File, error) {
-	if entry, ok := f.cg.Get(target); ok {
+	if target != f.path {
+		return nil, formatError(fs.ErrNotExist, "%q path doesn't match %q target", f.path, target)
+	}
+	if entry, ok := f.cache.Get(target); ok {
 		return virtual.New(entry), nil
 	}
 	file := &File{nil, f.path, target}
-	scoped := &scopedFS{f.cg, f.genfs, target}
+	scoped := &scopedFS{f.cache, f.genfs, target}
 	if err := f.fn(scoped, file); err != nil {
 		return nil, err
 	}
 	// TODO: Have File implement virtual.Entry and remove this
 	vfile := &virtual.File{
 		Path: f.path,
-		Mode: f.mode,
+		Mode: fs.FileMode(0),
 		Data: file.Data,
 	}
-	f.cg.Set(target, vfile)
+	f.cache.Set(target, vfile)
 	return virtual.New(vfile), nil
 }

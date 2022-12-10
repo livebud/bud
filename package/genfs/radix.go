@@ -16,7 +16,6 @@ type radix struct {
 
 type generator interface {
 	Generate(target string) (fs.File, error)
-	Mode() fs.FileMode
 }
 
 func (r *radix) Insert(path string, gen generator) {
