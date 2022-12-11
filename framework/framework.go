@@ -9,6 +9,7 @@ type Flag struct {
 	Hot    bool
 
 	// Comes from *bud.Input
+	// TODO: remove
 	Stdin  io.Reader
 	Stdout io.Writer
 	Stderr io.Writer

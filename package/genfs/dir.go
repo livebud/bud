@@ -5,12 +5,13 @@ import (
 	"io/fs"
 	gopath "path"
 
+	"github.com/livebud/bud/internal/fscache"
 	"github.com/livebud/bud/package/virtual"
 )
 
 type Dir struct {
-	cache  Cache
-	genfs  *FileSystem
+	cache  fscache.Cache
+	genfs  *fileSystem
 	path   string  // Current directory path
 	target string  // Final target path
 	radix  *radix  // Radix tree for matching generators
@@ -90,9 +91,9 @@ func (fn GenerateDir) GenerateDir(fsys FS, dir *Dir) error {
 }
 
 type dirGenerator struct {
-	cache  Cache
+	cache  fscache.Cache
 	fn     func(fsys FS, dir *Dir) error
-	genfs  *FileSystem
+	genfs  *fileSystem
 	path   string
 	radix  *radix  // Radix tree for matching generators
 	filler *filler // Fill in missing files and dirs between generators

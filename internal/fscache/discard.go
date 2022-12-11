@@ -1,13 +1,14 @@
 package fscache
 
 import (
-	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/virtual"
 )
 
-var Discard genfs.Cache = discard{}
+var Discard Cache = discard{}
 
 type discard struct{}
+
+var _ Cache = discard{}
 
 func (discard) Get(name string) (entry virtual.Entry, ok bool) {
 	return

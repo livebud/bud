@@ -50,7 +50,12 @@ example.hn.watch:
 	@ watch -- $(MAKE) example.hn
 
 example.blog:
-	@ go run main.go -C example/blog generate bud/internal/command bud/cmd/app
+	@ go run main.go -C example/blog generate \
+		bud/internal/generator \
+		bud/cmd/afs \
+		bud/afs \
+		bud/cmd/app
+	@ echo "finished"
 
 example.blog.watch:
 	@ watch --clear -- $(MAKE) example.blog

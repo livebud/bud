@@ -13,14 +13,29 @@ import (
 
 const defaultPrefix = "BUD_REMOTEFS"
 
+// Start a remote server and connect to it
+func Start(ctx context.Context, exec *exe.Template, name string, args ...string) (*Process, error) {
+	cmd := &Command{
+		Dir:        exec.Dir,
+		Stdin:      exec.Stdin,
+		Stdout:     exec.Stdout,
+		Stderr:     exec.Stderr,
+		Env:        exec.Env,
+		ExtraFiles: exec.ExtraFiles,
+	}
+	return cmd.Start(ctx, name, args...)
+}
+
 // Command helps you launch a remotefs server and connect to it with the
 // remotefs client
+// TODO: remove this approach
 type Command exe.Command
 
 func (c *Command) Start(ctx context.Context, name string, args ...string) (*Process, error) {
 	var closer once.Closer
 	// Listen on any available TCP port
 	// TODO: support other ways to start the server
+	// TODO: use an os.Pipe?
 	ln, err := socket.Listen(":0")
 	if err != nil {
 		return nil, err
@@ -81,4 +96,14 @@ func (p *Process) Close() error {
 		return err
 	}
 	return p.process.Wait()
+}
+
+// Restart the process
+func (p *Process) Restart(ctx context.Context) error {
+	process, err := p.process.Restart(ctx)
+	if err != nil {
+		return err
+	}
+	p.process = process
+	return nil
 }

@@ -1,4 +1,4 @@
-package appfsrt
+package afsrt
 
 import (
 	"context"
@@ -7,12 +7,15 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/livebud/bud/package/genfs"
+	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/log/console"
 	"github.com/livebud/bud/package/log/levelfilter"
 	"github.com/livebud/bud/package/remotefs"
 
 	"github.com/livebud/bud/internal/extrafile"
+	"github.com/livebud/bud/internal/fscache"
 	"github.com/livebud/bud/package/socket"
 )
 
@@ -23,6 +26,12 @@ func Logger(level string) (log.Log, error) {
 	}
 	logger := log.New(levelfilter.New(console.New(os.Stderr), lvl))
 	return logger, nil
+}
+
+// GenFS creates a new filesystem
+func GenFS(module *gomod.Module, log log.Log) genfs.FileSystem {
+	cache := fscache.Discard
+	return genfs.New(cache, module, log)
 }
 
 // Serve the remote filesystem
@@ -51,13 +60,13 @@ func Serve(ctx context.Context, log log.Log, fsys fs.FS, path string) error {
 func listen(log log.Log, path string) (socket.Listener, error) {
 	files := extrafile.Load("BUD_REMOTEFS")
 	if len(files) > 0 {
-		log.Debug("appfs: serving from BUD_REMOTEFS file listener passed in from the parent process")
+		log.Debug("afs: serving from BUD_REMOTEFS file listener passed in from the parent process")
 		return socket.From(files[0])
 	}
 	ln, err := socket.ListenUp(path, 5)
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("appfs: serving from %s", ln.Addr())
+	log.Debug("afs: serving from %s", ln.Addr())
 	return ln, nil
 }

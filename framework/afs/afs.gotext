@@ -25,7 +25,7 @@ func main() {
 
 func run(ctx context.Context) error {
 	cmd := new(Command)
-	cli := commander.New("appfs")
+	cli := commander.New("afs")
 	cli.Flag("chdir", "change the working directory").Short('C').String(&cmd.Dir).Default(".")
 	cli.Flag("embed", "embed assets").Bool(&cmd.Flag.Embed).Default(false)
 	cli.Flag("hot", "hot reloading").Bool(&cmd.Flag.Hot).Default(true)
@@ -50,20 +50,20 @@ func (c *Command) Serve(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	log, err := appfsrt.Logger(c.Log)
+	log, err := afsrt.Logger(c.Log)
 	if err != nil {
 		return err
 	}
-	bfs := budfs.New(module, log)
-	parser := parser.New(bfs, module)
-	injector := di.New(bfs, log, module, parser)
+	genfs := afsrt.GenFS(module, log)
+	parser := parser.New(genfs, module)
+	injector := di.New(genfs, log, module, parser)
 	_ = injector
 	fsys, err := {{ $.Provider.Name }}(
 		{{- /* Order matters. Ordered by package name (e.g. budfs.*FileSystem > context.Context) */}}
-		{{- if $.Provider.Variable "github.com/livebud/bud/package/budfs.*FileSystem" }}bfs,{{ end }}
 		{{- if $.Provider.Variable "context.Context" }}ctx,{{ end }}
 		{{- if $.Provider.Variable "github.com/livebud/bud/package/di.*Injector" }}injector,{{ end }}
 		{{- if $.Provider.Variable "github.com/livebud/bud/framework.*Flag" }}&c.Flag,{{ end }}
+		{{- if $.Provider.Variable "github.com/livebud/bud/package/genfs.FileSystem" }}genfs,{{ end }}
 		{{- if $.Provider.Variable "github.com/livebud/bud/package/gomod.*Module" }}module,{{ end }}
 		{{- if $.Provider.Variable "github.com/livebud/bud/package/log.Log" }}log,{{ end }}
 		{{- if $.Provider.Variable "github.com/livebud/bud/package/parser.*Parser" }}parser,{{ end }}
@@ -71,7 +71,7 @@ func (c *Command) Serve(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	return appfsrt.Serve(ctx, log, fsys, c.Listen)
+	return afsrt.Serve(ctx, log, fsys, c.Listen)
 }
 
 // {{ $.Provider.Name }} provides the generator filesystem

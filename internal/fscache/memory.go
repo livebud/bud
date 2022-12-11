@@ -2,7 +2,6 @@ package fscache
 
 import (
 	"github.com/livebud/bud/package/budfs/linkmap"
-	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/virtual"
 	"github.com/livebud/bud/package/virtual/vcache"
@@ -22,7 +21,7 @@ type Memory struct {
 	vc  vcache.Cache
 }
 
-var _ genfs.Cache = (*Memory)(nil)
+var _ Cache = (*Memory)(nil)
 
 func (m *Memory) Get(name string) (entry virtual.Entry, ok bool) {
 	return m.vc.Get(name)

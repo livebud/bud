@@ -5,13 +5,14 @@ import (
 	"io/fs"
 	"path/filepath"
 
+	"github.com/livebud/bud/internal/fscache"
 	"github.com/livebud/bud/internal/glob"
 	"github.com/livebud/bud/internal/orderedset"
 	"github.com/livebud/bud/internal/valid"
 )
 
 type scopedFS struct {
-	cache Cache
+	cache fscache.Cache
 	genfs fs.FS
 	from  string // generator path
 }

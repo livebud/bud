@@ -3,6 +3,7 @@ package genfs
 import (
 	"io/fs"
 
+	"github.com/livebud/bud/internal/fscache"
 	"github.com/livebud/bud/package/virtual"
 )
 
@@ -42,7 +43,7 @@ func (fn GenerateFile) GenerateFile(fsys FS, file *File) error {
 }
 
 type fileGenerator struct {
-	cache Cache
+	cache fscache.Cache
 	fn    func(fsys FS, file *File) error
 	genfs fs.FS
 	path  string

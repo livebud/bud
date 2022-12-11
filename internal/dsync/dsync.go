@@ -2,7 +2,9 @@ package dsync
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
+	"path"
 	"path/filepath"
 	"strconv"
 
@@ -53,6 +55,9 @@ func Rel(sdir, tdir string) func(path string) (string, error) {
 
 // Dir syncs the source directory from the source filesystem to the target directory
 // in the target filesystem
+//
+// Dir calls the source filesystem's Open function up to 3 times per file, so
+// it's important to cache the source filesystem.
 func Dir(sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string, options ...Option) error {
 	opt := &option{
 		Skip: func(name string, isDir bool) bool { return false },
@@ -117,6 +122,9 @@ func diff(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string
 	// Create the source set from the source entries
 	sourceSet := set.NewWithSize(len(sourceEntries))
 	for _, de := range sourceEntries {
+		if opt.Skip(path.Join(sdir, de.Name()), de.IsDir()) {
+			continue
+		}
 		// Ensure all sources actually exist
 		if _, err := de.Info(); err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
@@ -129,6 +137,10 @@ func diff(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string
 	// Create a target set from the target entries
 	targetSet := set.NewWithSize(len(targetEntries))
 	for _, de := range targetEntries {
+		// Skip can also be used on target files to avoid deleting files
+		if opt.Skip(path.Join(sdir, de.Name()), de.IsDir()) {
+			continue
+		}
 		// Ensure all sources actually exist
 		if _, err := de.Info(); err != nil {
 			if errors.Is(err, fs.ErrNotExist) {
@@ -165,9 +177,6 @@ func createOps(opt *option, sfs fs.FS, dir string, des []fs.DirEntry) (ops []Op,
 			continue
 		}
 		path := filepath.Join(dir, de.Name())
-		if opt.Skip(path, de.IsDir()) {
-			continue
-		}
 		if !de.IsDir() {
 			data, err := fs.ReadFile(sfs, path)
 			if err != nil {
@@ -208,9 +217,6 @@ func deleteOps(opt *option, dir string, des []fs.DirEntry) (ops []Op, err error)
 			continue
 		}
 		path := filepath.Join(dir, de.Name())
-		if opt.Skip(path, de.IsDir()) {
-			continue
-		}
 		rel, err := opt.rel(path)
 		if err != nil {
 			return nil, err
@@ -227,9 +233,6 @@ func updateOps(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir s
 			continue
 		}
 		spath := filepath.Join(sdir, de.Name())
-		if opt.Skip(spath, de.IsDir()) {
-			continue
-		}
 		tpath := filepath.Join(tdir, de.Name())
 		// Recurse directories
 		if de.IsDir() {
@@ -274,6 +277,7 @@ func apply(sfs fs.FS, tfs vfs.ReadWritable, ops []Op) error {
 	for _, op := range ops {
 		switch op.Type {
 		case CreateType:
+			fmt.Println("creating", op.Path)
 			dir := filepath.Dir(op.Path)
 			if err := tfs.MkdirAll(dir, 0755); err != nil {
 				return err
@@ -282,10 +286,12 @@ func apply(sfs fs.FS, tfs vfs.ReadWritable, ops []Op) error {
 				return err
 			}
 		case UpdateType:
+			fmt.Println("updating", op.Path)
 			if err := tfs.WriteFile(op.Path, op.Data, 0644); err != nil {
 				return err
 			}
 		case DeleteType:
+			fmt.Println("deleting", op.Path)
 			if err := tfs.RemoveAll(op.Path); err != nil {
 				return err
 			}

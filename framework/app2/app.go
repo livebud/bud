@@ -3,13 +3,14 @@ package app
 import (
 	_ "embed"
 	"fmt"
+	"io/fs"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/internal/imports"
-	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/di"
+	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log"
 )
@@ -34,7 +35,11 @@ type Generator struct {
 	module   *gomod.Module
 }
 
-func (g *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
+func (g *Generator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
+	fmt.Println("generating file!", file.Target())
+	if _, err := fs.Stat(fsys, "bud/internal/command"); err != nil {
+		return err
+	}
 	state, err := Load(g.injector, g.log, g.module)
 	if err != nil {
 		return fmt.Errorf("framework/app: unable to load state %w", err)
@@ -89,7 +94,7 @@ func (l *loader) loadProvider() *di.Provider {
 			// {Import: "github.com/livebud/bud/package/log", Type: "Log"},
 			// {Import: "github.com/livebud/bud/package/gomod", Type: "*Module"},
 			// {Import: "github.com/livebud/bud/framework", Type: "*Flag"},
-			// {Import: "github.com/livebud/bud/package/budfs", Type: "*FileSystem"},
+			// {Import: "github.com/livebud/bud/package/genfs", Type: "*FileSystem"},
 			// {Import: "github.com/livebud/bud/package/di", Type: "*Injector"},
 			// {Import: "github.com/livebud/bud/package/parser", Type: "*Parser"},
 			// {Import: "context", Type: "Context"},

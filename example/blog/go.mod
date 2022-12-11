@@ -7,6 +7,7 @@ replace github.com/livebud/bud => /Users/m/dev/src/github.com/livebud/bud
 require github.com/livebud/bud v0.0.0-00010101000000-000000000000
 
 require (
+	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/aybabtme/rgbterm v0.0.0-20170906152045-cc83f3b3ce59 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect

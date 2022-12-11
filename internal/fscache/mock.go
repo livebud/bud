@@ -9,6 +9,8 @@ type Mock struct {
 	MockCheck func(from string, checker func(path string) (changed bool))
 }
 
+var _ Cache = (*Mock)(nil)
+
 func (m *Mock) Get(name string) (entry virtual.Entry, ok bool) {
 	if m.MockGet != nil {
 		return m.MockGet(name)

@@ -47,8 +47,8 @@ func TestGenerateDir(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.GenerateDir("bud", func(fsys genfs.FS, dir *genfs.Dir) error {
+	gfs := genfs.New(cache, fsys, log)
+	gfs.GenerateDir("bud", func(fsys genfs.FS, dir *genfs.Dir) error {
 		dir.GenerateDir("docs", func(fsys genfs.FS, dir *genfs.Dir) error {
 			dir.GenerateFile("a.txt", func(fsys genfs.FS, file *genfs.File) error {
 				file.Data = []byte("a")
@@ -58,7 +58,7 @@ func TestGenerateDir(t *testing.T) {
 		})
 		return nil
 	})
-	code, err := fs.ReadFile(bfs, "bud/docs/a.txt")
+	code, err := fs.ReadFile(gfs, "bud/docs/a.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "a")
 }
@@ -84,12 +84,12 @@ func TestFS(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfsfs := genfs.New(cache, fsys, log)
-	bfsfs.FileGenerator("bud/public/tailwind/tailwind.css", &tailwind{})
-	bfsfs.FileGenerator("bud/view/index.svelte", &svelte{})
+	gfsfs := genfs.New(cache, fsys, log)
+	gfsfs.FileGenerator("bud/public/tailwind/tailwind.css", &tailwind{})
+	gfsfs.FileGenerator("bud/view/index.svelte", &svelte{})
 
 	// .
-	des, err := fs.ReadDir(bfsfs, ".")
+	des, err := fs.ReadDir(gfsfs, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 
@@ -100,12 +100,12 @@ func TestFS(t *testing.T) {
 	fi, err := des[0].Info()
 	is.NoErr(err)
 	is.Equal(fi.Mode(), fs.ModeDir)
-	stat, err := fs.Stat(bfsfs, "bud")
+	stat, err := fs.Stat(gfsfs, "bud")
 	is.NoErr(err)
 	is.Equal(stat.Mode(), fs.ModeDir)
 
 	// bud/public
-	des, err = fs.ReadDir(bfsfs, "bud")
+	des, err = fs.ReadDir(gfsfs, "bud")
 	is.NoErr(err)
 	is.Equal(len(des), 2)
 	is.Equal(des[0].Name(), "public")
@@ -114,16 +114,16 @@ func TestFS(t *testing.T) {
 	fi, err = des[0].Info()
 	is.NoErr(err)
 	is.Equal(fi.Name(), "public")
-	stat, err = fs.Stat(bfsfs, "bud/public")
+	stat, err = fs.Stat(gfsfs, "bud/public")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "public")
 
 	// return errors for non-existent files
-	_, err = bfsfs.Open("bud\\public")
+	_, err = gfsfs.Open("bud\\public")
 	is.True(errors.Is(err, fs.ErrNotExist))
 
 	// bud/public/tailwind
-	des, err = fs.ReadDir(bfsfs, "bud/public/tailwind")
+	des, err = fs.ReadDir(gfsfs, "bud/public/tailwind")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "tailwind.css")
@@ -135,20 +135,20 @@ func TestFS(t *testing.T) {
 	is.Equal(info.IsDir(), false)
 	is.Equal(info.Size(), int64(14))
 
-	// read bfserated data
-	data, err := fs.ReadFile(bfsfs, "bud/public/index.html")
+	// read gfserated data
+	data, err := fs.ReadFile(gfsfs, "bud/public/index.html")
 	is.True(err != nil)
 	is.True(errors.Is(err, fs.ErrNotExist))
 	is.True(data == nil)
-	data, err = fs.ReadFile(bfsfs, "bud/public/tailwind/tailwind.css")
+	data, err = fs.ReadFile(gfsfs, "bud/public/tailwind/tailwind.css")
 	is.NoErr(err)
 	is.Equal(string(data), "/* tailwind */")
-	data, err = fs.ReadFile(bfsfs, "bud/view/index.svelte")
+	data, err = fs.ReadFile(gfsfs, "bud/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(string(data), "/* svelte */")
 
 	// run the TestFS compliance test suite
-	is.NoErr(fstest.TestFS(bfsfs, "bud/public/tailwind/tailwind.css", "bud/view/index.svelte"))
+	is.NoErr(fstest.TestFS(gfsfs, "bud/public/tailwind/tailwind.css", "bud/view/index.svelte"))
 }
 
 func view() func(fsys genfs.FS, dir *genfs.Dir) error {
@@ -170,11 +170,11 @@ func TestViewFS(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.GenerateDir("bud/view", view())
+	gfs := genfs.New(cache, fsys, log)
+	gfs.GenerateDir("bud/view", view())
 
 	// bud
-	des, err := fs.ReadDir(bfs, "bud")
+	des, err := fs.ReadDir(gfs, "bud")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "view")
@@ -185,28 +185,28 @@ func TestViewFS(t *testing.T) {
 	is.Equal(fi.Name(), "view")
 
 	// bud/view
-	stat, err := fs.Stat(bfs, "bud/view")
+	stat, err := fs.Stat(gfs, "bud/view")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "view")
 	is.Equal(stat.IsDir(), true)
 	is.Equal(stat.Mode(), fs.ModeDir)
 
-	_, err = bfs.Open("about")
+	_, err = gfs.Open("about")
 	is.True(err != nil)
 	is.True(errors.Is(err, fs.ErrNotExist))
 
-	_, err = bfs.Open("bud/view/.")
+	_, err = gfs.Open("bud/view/.")
 	is.True(err != nil)
 	is.True(errors.Is(err, fs.ErrInvalid))
 
-	code, err := fs.ReadFile(bfs, "bud/view/index.svelte")
+	code, err := fs.ReadFile(gfs, "bud/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), "<h1>index</h1>")
-	code, err = fs.ReadFile(bfs, "bud/view/about/about.svelte")
+	code, err = fs.ReadFile(gfs, "bud/view/about/about.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), "<h2>about</h2>")
 
-	des, err = fs.ReadDir(bfs, "bud/view/about")
+	des, err = fs.ReadDir(gfs, "bud/view/about")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "about.svelte")
@@ -216,11 +216,11 @@ func TestViewFS(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(fi.Name(), "about.svelte")
 	is.Equal(fi.Mode(), fs.FileMode(0))
-	stat, err = fs.Stat(bfs, "bud/view/about/about.svelte")
+	stat, err = fs.Stat(gfs, "bud/view/about/about.svelte")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "about.svelte")
 
-	is.NoErr(fstest.TestFS(bfs, "bud/view/index.svelte", "bud/view/about/about.svelte"))
+	is.NoErr(fstest.TestFS(gfs, "bud/view/index.svelte", "bud/view/about/about.svelte"))
 }
 
 func TestAll(t *testing.T) {
@@ -228,15 +228,15 @@ func TestAll(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.GenerateDir("bud/view", view())
+	gfs := genfs.New(cache, fsys, log)
+	gfs.GenerateDir("bud/view", view())
 
 	// .
-	file, err := bfs.Open(".")
+	file, err := gfs.Open(".")
 	is.NoErr(err)
-	rbfs, ok := file.(fs.ReadDirFile)
+	rgfs, ok := file.(fs.ReadDirFile)
 	is.True(ok)
-	des, err := rbfs.ReadDir(-1)
+	des, err := rgfs.ReadDir(-1)
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "bud")
@@ -259,7 +259,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Size(), int64(0))
 	is.Equal(stat.Sys(), nil)
 	// Stat .
-	stat, err = fs.Stat(bfs, ".")
+	stat, err = fs.Stat(gfs, ".")
 	is.NoErr(err)
 	is.Equal(stat.Name(), ".")
 	is.Equal(stat.Mode(), fs.ModeDir)
@@ -268,7 +268,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Size(), int64(0))
 	is.Equal(stat.Sys(), nil)
 	// ReadDir .
-	des, err = fs.ReadDir(bfs, ".")
+	des, err = fs.ReadDir(gfs, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "bud")
@@ -276,11 +276,11 @@ func TestAll(t *testing.T) {
 	is.Equal(des[0].Type(), fs.ModeDir)
 
 	// bud
-	file, err = bfs.Open("bud")
+	file, err = gfs.Open("bud")
 	is.NoErr(err)
-	rbfs, ok = file.(fs.ReadDirFile)
+	rgfs, ok = file.(fs.ReadDirFile)
 	is.True(ok)
-	des, err = rbfs.ReadDir(-1)
+	des, err = rgfs.ReadDir(-1)
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "view")
@@ -303,7 +303,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Size(), int64(0))
 	is.Equal(stat.Sys(), nil)
 	// Stat bud
-	stat, err = fs.Stat(bfs, "bud")
+	stat, err = fs.Stat(gfs, "bud")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "bud")
 	is.Equal(stat.Mode(), fs.ModeDir)
@@ -312,7 +312,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Size(), int64(0))
 	is.Equal(stat.Sys(), nil)
 	// ReadDir bud
-	des, err = fs.ReadDir(bfs, "bud")
+	des, err = fs.ReadDir(gfs, "bud")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "view")
@@ -320,11 +320,11 @@ func TestAll(t *testing.T) {
 	is.Equal(des[0].Type(), fs.ModeDir)
 
 	// bud/view
-	file, err = bfs.Open("bud/view")
+	file, err = gfs.Open("bud/view")
 	is.NoErr(err)
-	rbfs, ok = file.(fs.ReadDirFile)
+	rgfs, ok = file.(fs.ReadDirFile)
 	is.True(ok)
-	des, err = rbfs.ReadDir(-1)
+	des, err = rgfs.ReadDir(-1)
 	is.NoErr(err)
 	is.Equal(len(des), 2)
 	is.Equal(des[0].Name(), "about")
@@ -358,7 +358,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Size(), int64(0))
 	is.Equal(stat.Sys(), nil)
 	// Stat bud
-	stat, err = fs.Stat(bfs, "bud/view")
+	stat, err = fs.Stat(gfs, "bud/view")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "view")
 	is.Equal(stat.Mode(), fs.ModeDir)
@@ -367,7 +367,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Size(), int64(0))
 	is.Equal(stat.Sys(), nil)
 	// ReadDir bud
-	des, err = fs.ReadDir(bfs, "bud/view")
+	des, err = fs.ReadDir(gfs, "bud/view")
 	is.NoErr(err)
 	is.Equal(len(des), 2)
 	is.Equal(des[0].Name(), "about")
@@ -394,11 +394,11 @@ func TestAll(t *testing.T) {
 	is.Equal(fi.Sys(), nil)
 
 	// bud/view/about
-	file, err = bfs.Open("bud/view/about")
+	file, err = gfs.Open("bud/view/about")
 	is.NoErr(err)
-	rbfs, ok = file.(fs.ReadDirFile)
+	rgfs, ok = file.(fs.ReadDirFile)
 	is.True(ok)
-	des, err = rbfs.ReadDir(-1)
+	des, err = rgfs.ReadDir(-1)
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "about.svelte")
@@ -421,7 +421,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Size(), int64(0))
 	is.Equal(stat.Sys(), nil)
 	// Stat bud
-	stat, err = fs.Stat(bfs, "bud/view/about")
+	stat, err = fs.Stat(gfs, "bud/view/about")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "about")
 	is.Equal(stat.Mode(), fs.ModeDir)
@@ -430,7 +430,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Size(), int64(0))
 	is.Equal(stat.Sys(), nil)
 	// ReadDir bud
-	des, err = fs.ReadDir(bfs, "bud/view/about")
+	des, err = fs.ReadDir(gfs, "bud/view/about")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "about.svelte")
@@ -447,7 +447,7 @@ func TestAll(t *testing.T) {
 
 	// bud/view/index.svelte
 	// Open
-	file, err = bfs.Open("bud/view/index.svelte")
+	file, err = gfs.Open("bud/view/index.svelte")
 	is.NoErr(err)
 	stat, err = file.Stat()
 	is.NoErr(err)
@@ -458,7 +458,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Size(), int64(14))
 	is.Equal(stat.Sys(), nil)
 	// Stat
-	stat, err = fs.Stat(bfs, "bud/view/index.svelte")
+	stat, err = fs.Stat(gfs, "bud/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "index.svelte")
 	is.Equal(stat.Mode(), fs.FileMode(0))
@@ -467,13 +467,13 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Size(), int64(14))
 	is.Equal(stat.Sys(), nil)
 	// ReadFile
-	code, err := fs.ReadFile(bfs, "bud/view/index.svelte")
+	code, err := fs.ReadFile(gfs, "bud/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), `<h1>index</h1>`)
 
 	// bud/view/about/about.svelte
 	// Open
-	file, err = bfs.Open("bud/view/about/about.svelte")
+	file, err = gfs.Open("bud/view/about/about.svelte")
 	is.NoErr(err)
 	stat, err = file.Stat()
 	is.NoErr(err)
@@ -484,7 +484,7 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Size(), int64(14))
 	is.Equal(stat.Sys(), nil)
 	// Stat
-	stat, err = fs.Stat(bfs, "bud/view/about/about.svelte")
+	stat, err = fs.Stat(gfs, "bud/view/about/about.svelte")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "about.svelte")
 	is.Equal(stat.Mode(), fs.FileMode(0))
@@ -493,12 +493,12 @@ func TestAll(t *testing.T) {
 	is.Equal(stat.Size(), int64(14))
 	is.Equal(stat.Sys(), nil)
 	// ReadFile
-	code, err = fs.ReadFile(bfs, "bud/view/about/about.svelte")
+	code, err = fs.ReadFile(gfs, "bud/view/about/about.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), `<h2>about</h2>`)
 
 	// Run TestFS
-	err = fstest.TestFS(bfs, "bud", "bud/view", "bud/view/index.svelte", "bud/view/about/about.svelte")
+	err = fstest.TestFS(gfs, "bud", "bud/view", "bud/view/index.svelte", "bud/view/about/about.svelte")
 	is.NoErr(err)
 }
 
@@ -507,8 +507,8 @@ func TestDir(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.GenerateDir("bud/view", func(fsys genfs.FS, dir *genfs.Dir) error {
+	gfs := genfs.New(cache, fsys, log)
+	gfs.GenerateDir("bud/view", func(fsys genfs.FS, dir *genfs.Dir) error {
 		dir.GenerateDir("about", func(fsys genfs.FS, dir *genfs.Dir) error {
 			dir.GenerateDir("me", func(fsys genfs.FS, dir *genfs.Dir) error {
 				return nil
@@ -520,32 +520,32 @@ func TestDir(t *testing.T) {
 		})
 		return nil
 	})
-	des, err := fs.ReadDir(bfs, "bud")
+	des, err := fs.ReadDir(gfs, "bud")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "view")
 	is.Equal(des[0].IsDir(), true)
-	des, err = fs.ReadDir(bfs, "bud/view")
+	des, err = fs.ReadDir(gfs, "bud/view")
 	is.NoErr(err)
 	is.Equal(len(des), 2)
 	is.Equal(des[0].Name(), "about")
 	is.Equal(des[0].IsDir(), true)
 	is.Equal(des[1].Name(), "users")
 	is.Equal(des[1].IsDir(), true)
-	des, err = fs.ReadDir(bfs, "bud/view/about")
+	des, err = fs.ReadDir(gfs, "bud/view/about")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "me")
 	is.Equal(des[0].IsDir(), true)
-	des, err = fs.ReadDir(bfs, "bud/view/about/me")
+	des, err = fs.ReadDir(gfs, "bud/view/about/me")
 	is.NoErr(err)
 	is.Equal(len(des), 0)
-	des, err = fs.ReadDir(bfs, "bud/view/users")
+	des, err = fs.ReadDir(gfs, "bud/view/users")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "admin")
 	is.Equal(des[0].IsDir(), true)
-	des, err = fs.ReadDir(bfs, "bud/view/users/admin")
+	des, err = fs.ReadDir(gfs, "bud/view/users/admin")
 	is.NoErr(err)
 	is.Equal(len(des), 0)
 }
@@ -557,8 +557,8 @@ func TestReadFsys(t *testing.T) {
 	}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	code, err := fs.ReadFile(bfs, "a.txt")
+	gfs := genfs.New(cache, fsys, log)
+	code, err := fs.ReadFile(gfs, "a.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "a")
 }
@@ -568,11 +568,11 @@ func TestGenerateFileError(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.GenerateFile("bud/main.go", func(fsys genfs.FS, file *genfs.File) error {
+	gfs := genfs.New(cache, fsys, log)
+	gfs.GenerateFile("bud/main.go", func(fsys genfs.FS, file *genfs.File) error {
 		return fs.ErrNotExist
 	})
-	code, err := fs.ReadFile(bfs, "bud/main.go")
+	code, err := fs.ReadFile(gfs, "bud/main.go")
 	is.True(err != nil)
 	fmt.Println(err.Error())
 	is.In(err.Error(), `genfs: open "bud/main.go"`)
@@ -586,15 +586,15 @@ func TestHTTP(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.GenerateDir("bud/view", func(fsys genfs.FS, dir *genfs.Dir) error {
+	gfs := genfs.New(cache, fsys, log)
+	gfs.GenerateDir("bud/view", func(fsys genfs.FS, dir *genfs.Dir) error {
 		dir.GenerateFile(dir.Relative(), func(fsys genfs.FS, file *genfs.File) error {
 			file.Data = []byte(dir.Target() + "'s data")
 			return nil
 		})
 		return nil
 	})
-	hfs := http.FS(bfs)
+	hfs := http.FS(gfs)
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		file, err := hfs.Open(r.URL.Path)
@@ -633,15 +633,15 @@ func TestTargetPath(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.GenerateDir("bud/view", func(fsys genfs.FS, dir *genfs.Dir) error {
+	gfs := genfs.New(cache, fsys, log)
+	gfs.GenerateDir("bud/view", func(fsys genfs.FS, dir *genfs.Dir) error {
 		dir.GenerateFile("about/about.svelte", func(fsys genfs.FS, file *genfs.File) error {
 			file.Data = []byte(rootless(file.Target()))
 			return nil
 		})
 		return nil
 	})
-	code, err := fs.ReadFile(bfs, "bud/view/about/about.svelte")
+	code, err := fs.ReadFile(gfs, "bud/view/about/about.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), "view/about/about.svelte")
 }
@@ -651,8 +651,8 @@ func TestDynamicDir(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.GenerateDir("bud/view", func(fsys genfs.FS, dir *genfs.Dir) error {
+	gfs := genfs.New(cache, fsys, log)
+	gfs.GenerateDir("bud/view", func(fsys genfs.FS, dir *genfs.Dir) error {
 		doms := []string{"about/about.svelte", "index.svelte"}
 		for _, dom := range doms {
 			dom := dom
@@ -663,12 +663,12 @@ func TestDynamicDir(t *testing.T) {
 		}
 		return nil
 	})
-	des, err := fs.ReadDir(bfs, "bud/view")
+	des, err := fs.ReadDir(gfs, "bud/view")
 	is.NoErr(err)
 	is.Equal(len(des), 2)
 	is.Equal(des[0].Name(), "about")
 	is.Equal(des[1].Name(), "index.svelte")
-	des, err = fs.ReadDir(bfs, "bud/view/about")
+	des, err = fs.ReadDir(gfs, "bud/view/about")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "about.svelte")
@@ -679,17 +679,17 @@ func TestBases(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.GenerateDir("bud/view", func(fsys genfs.FS, dir *genfs.Dir) error {
+	gfs := genfs.New(cache, fsys, log)
+	gfs.GenerateDir("bud/view", func(fsys genfs.FS, dir *genfs.Dir) error {
 		return nil
 	})
-	bfs.GenerateDir("bud/controller", func(fsys genfs.FS, dir *genfs.Dir) error {
+	gfs.GenerateDir("bud/controller", func(fsys genfs.FS, dir *genfs.Dir) error {
 		return nil
 	})
-	stat, err := fs.Stat(bfs, "bud/controller")
+	stat, err := fs.Stat(gfs, "bud/controller")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "controller")
-	stat, err = fs.Stat(bfs, "bud/view")
+	stat, err = fs.Stat(gfs, "bud/view")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "view")
 }
@@ -699,8 +699,8 @@ func TestDirUnevenMerge(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.GenerateDir("bud/view", func(fsys genfs.FS, dir *genfs.Dir) error {
+	gfs := genfs.New(cache, fsys, log)
+	gfs.GenerateDir("bud/view", func(fsys genfs.FS, dir *genfs.Dir) error {
 		dir.GenerateDir("public", func(fsys genfs.FS, dir *genfs.Dir) error {
 			dir.GenerateFile("favicon.ico", func(fsys genfs.FS, file *genfs.File) error {
 				file.Data = []byte("cool_favicon.ico")
@@ -710,7 +710,7 @@ func TestDirUnevenMerge(t *testing.T) {
 		})
 		return nil
 	})
-	bfs.GenerateDir("bud", func(fsys genfs.FS, dir *genfs.Dir) error {
+	gfs.GenerateDir("bud", func(fsys genfs.FS, dir *genfs.Dir) error {
 		dir.GenerateDir("controller", func(fsys genfs.FS, dir *genfs.Dir) error {
 			dir.GenerateFile("controller.go", func(fsys genfs.FS, file *genfs.File) error {
 				file.Data = []byte("package controller")
@@ -720,10 +720,10 @@ func TestDirUnevenMerge(t *testing.T) {
 		})
 		return nil
 	})
-	code, err := fs.ReadFile(bfs, "bud/view/public/favicon.ico")
+	code, err := fs.ReadFile(gfs, "bud/view/public/favicon.ico")
 	is.NoErr(err)
 	is.Equal(string(code), "cool_favicon.ico")
-	code, err = fs.ReadFile(bfs, "bud/controller/controller.go")
+	code, err = fs.ReadFile(gfs, "bud/controller/controller.go")
 	is.NoErr(err)
 	is.Equal(string(code), "package controller")
 }
@@ -734,11 +734,11 @@ func TestAddGenerator(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.GenerateDir("bud/view", view())
+	gfs := genfs.New(cache, fsys, log)
+	gfs.GenerateDir("bud/view", view())
 
 	// Add the controller
-	bfs.GenerateDir("bud/controller", func(fsys genfs.FS, dir *genfs.Dir) error {
+	gfs.GenerateDir("bud/controller", func(fsys genfs.FS, dir *genfs.Dir) error {
 		dir.GenerateFile("controller.go", func(fsys genfs.FS, file *genfs.File) error {
 			file.Data = []byte(`package controller`)
 			return nil
@@ -746,19 +746,19 @@ func TestAddGenerator(t *testing.T) {
 		return nil
 	})
 
-	des, err := fs.ReadDir(bfs, "bud")
+	des, err := fs.ReadDir(gfs, "bud")
 	is.NoErr(err)
 	is.Equal(len(des), 2)
 	is.Equal(des[0].Name(), "controller")
 	is.Equal(des[1].Name(), "view")
 
 	// Read from view
-	code, err := fs.ReadFile(bfs, "bud/view/index.svelte")
+	code, err := fs.ReadFile(gfs, "bud/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), `<h1>index</h1>`)
 
 	// Read from controller
-	code, err = fs.ReadFile(bfs, "bud/controller/controller.go")
+	code, err = fs.ReadFile(gfs, "bud/controller/controller.go")
 	is.NoErr(err)
 	is.Equal(string(code), `package controller`)
 }
@@ -785,9 +785,9 @@ func TestFileGenerator(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.FileGenerator("bud/command/command.go", &commandGenerator{Input: "a"})
-	code, err := fs.ReadFile(bfs, "bud/command/command.go")
+	gfs := genfs.New(cache, fsys, log)
+	gfs.FileGenerator("bud/command/command.go", &commandGenerator{Input: "a"})
+	code, err := fs.ReadFile(gfs, "bud/command/command.go")
 	is.NoErr(err)
 	is.Equal(string(code), "aa")
 }
@@ -797,9 +797,9 @@ func TestDirGenerator(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.DirGenerator("bud/view", &commandGenerator{Input: "a"})
-	code, err := fs.ReadFile(bfs, "bud/view/index.svelte")
+	gfs := genfs.New(cache, fsys, log)
+	gfs.DirGenerator("bud/view", &commandGenerator{Input: "a"})
+	code, err := fs.ReadFile(gfs, "bud/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), "aa")
 }
@@ -809,16 +809,16 @@ func TestDotReadDirEmpty(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.GenerateFile("bud/bfserate/main.go", func(fsys genfs.FS, file *genfs.File) error {
+	gfs := genfs.New(cache, fsys, log)
+	gfs.GenerateFile("bud/gfserate/main.go", func(fsys genfs.FS, file *genfs.File) error {
 		file.Data = []byte("package main")
 		return nil
 	})
-	bfs.GenerateFile("go.mod", func(fsys genfs.FS, file *genfs.File) error {
+	gfs.GenerateFile("go.mod", func(fsys genfs.FS, file *genfs.File) error {
 		file.Data = []byte("module pkg")
 		return nil
 	})
-	des, err := fs.ReadDir(bfs, ".")
+	des, err := fs.ReadDir(gfs, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 2)
 }
@@ -828,48 +828,48 @@ func TestEmbedOpen(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.FileGenerator("bud/view/index.svelte", &genfs.EmbedFile{
+	gfs := genfs.New(cache, fsys, log)
+	gfs.FileGenerator("bud/view/index.svelte", &genfs.EmbedFile{
 		Data: []byte(`<h1>index</h1>`),
 	})
-	bfs.FileGenerator("bud/view/about/about.svelte", &genfs.EmbedFile{
+	gfs.FileGenerator("bud/view/about/about.svelte", &genfs.EmbedFile{
 		Data: []byte(`<h1>about</h1>`),
 	})
-	bfs.FileGenerator("bud/public/favicon.ico", &genfs.EmbedFile{
+	gfs.FileGenerator("bud/public/favicon.ico", &genfs.EmbedFile{
 		Data: []byte(`favicon.ico`),
 	})
 	// bud/view/index.svelte
-	code, err := fs.ReadFile(bfs, "bud/view/index.svelte")
+	code, err := fs.ReadFile(gfs, "bud/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), `<h1>index</h1>`)
-	stat, err := fs.Stat(bfs, "bud/view/index.svelte")
+	stat, err := fs.Stat(gfs, "bud/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(stat.ModTime(), time.Time{})
 	is.Equal(stat.Mode(), fs.FileMode(0))
 	is.Equal(stat.IsDir(), false)
 
 	// bud/view/about/about.svelte
-	code, err = fs.ReadFile(bfs, "bud/view/about/about.svelte")
+	code, err = fs.ReadFile(gfs, "bud/view/about/about.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), `<h1>about</h1>`)
-	stat, err = fs.Stat(bfs, "bud/view/about/about.svelte")
+	stat, err = fs.Stat(gfs, "bud/view/about/about.svelte")
 	is.NoErr(err)
 	is.Equal(stat.ModTime(), time.Time{})
 	is.Equal(stat.Mode(), fs.FileMode(0))
 	is.Equal(stat.IsDir(), false)
 
 	// bud/public/favicon.ico
-	code, err = fs.ReadFile(bfs, "bud/public/favicon.ico")
+	code, err = fs.ReadFile(gfs, "bud/public/favicon.ico")
 	is.NoErr(err)
 	is.Equal(string(code), `favicon.ico`)
-	stat, err = fs.Stat(bfs, "bud/public/favicon.ico")
+	stat, err = fs.Stat(gfs, "bud/public/favicon.ico")
 	is.NoErr(err)
 	is.Equal(stat.ModTime(), time.Time{})
 	is.Equal(stat.Mode(), fs.FileMode(0))
 	is.Equal(stat.IsDir(), false)
 
 	// bud/public
-	des, err := fs.ReadDir(bfs, "bud/public")
+	des, err := fs.ReadDir(gfs, "bud/public")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "favicon.ico")
@@ -880,16 +880,16 @@ func TestGoModGoMod(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.GenerateFile("go.mod", func(fsys genfs.FS, file *genfs.File) error {
+	gfs := genfs.New(cache, fsys, log)
+	gfs.GenerateFile("go.mod", func(fsys genfs.FS, file *genfs.File) error {
 		file.Data = []byte("module app.com\nrequire mod.test/module v1.2.4")
 		return nil
 	})
-	stat, err := fs.Stat(bfs, "go.mod/go.mod")
+	stat, err := fs.Stat(gfs, "go.mod/go.mod")
 	is.True(err != nil)
 	is.True(errors.Is(err, fs.ErrNotExist))
 	is.Equal(stat, nil)
-	stat, err = fs.Stat(bfs, "go.mod")
+	stat, err = fs.Stat(gfs, "go.mod")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "go.mod")
 }
@@ -899,15 +899,15 @@ func TestGoModGoModEmbed(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.FileGenerator("go.mod", &genfs.EmbedFile{
+	gfs := genfs.New(cache, fsys, log)
+	gfs.FileGenerator("go.mod", &genfs.EmbedFile{
 		Data: []byte("module app.com\nrequire mod.test/module v1.2.4"),
 	})
-	stat, err := fs.Stat(bfs, "go.mod/go.mod")
+	stat, err := fs.Stat(gfs, "go.mod/go.mod")
 	is.True(err != nil)
 	is.True(errors.Is(err, fs.ErrNotExist))
 	is.Equal(stat, nil)
-	stat, err = fs.Stat(bfs, "go.mod")
+	stat, err = fs.Stat(gfs, "go.mod")
 	is.NoErr(err)
 	is.Equal(stat.Name(), "go.mod")
 }
@@ -918,18 +918,18 @@ func TestGoModGoModEmbed(t *testing.T) {
 // 	log := testlog.New()
 // 	cache := vcache.Discard
 // 	linker := &Linker{}
-// 	bfs := genfs.New(cache, fsys, log)
-// 	bfs.GenerateDir("bud/generator", func(fsys genfs.FS, dir *genfs.Dir) error {
+// 	gfs := genfs.New(cache, fsys, log)
+// 	gfs.GenerateDir("bud/generator", func(fsys genfs.FS, dir *genfs.Dir) error {
 // 		return dir.Mount(&virtual.Tree{
 // 			"tailwind/tailwind.go": &virtual.File{Data: []byte("package tailwind")},
 // 			"html/html.go":         &virtual.File{Data: []byte("package html")},
 // 			"service.json":         &virtual.File{Data: []byte(`{"name":"service"}`)},
 // 		})
 // 	})
-// 	des, err := fs.ReadDir(bfs, "bud/generator")
+// 	des, err := fs.ReadDir(gfs, "bud/generator")
 // 	is.NoErr(err)
 // 	is.Equal(len(des), 3)
-// 	err = fstest.TestFS(bfs,
+// 	err = fstest.TestFS(gfs,
 // 		"bud/generator/tailwind/tailwind.go",
 // 		"bud/generator/html/html.go",
 // 		"bud/generator/service.json",
@@ -945,25 +945,25 @@ func TestGoModGoModEmbed(t *testing.T) {
 // 	log := testlog.New()
 // 	cache := vcache.Discard
 // 	linker := &Linker{}
-// 	bfs := genfs.New(cache, fsys, log)
-// 	bfs.GenerateFile("bud/generator/service.json", func(fsys genfs.FS, file *genfs.File) error {
+// 	gfs := genfs.New(cache, fsys, log)
+// 	gfs.GenerateFile("bud/generator/service.json", func(fsys genfs.FS, file *genfs.File) error {
 // 		file.Data = []byte(`{"name":"generator service"}`)
 // 		return nil
 // 	})
-// 	bfs.GenerateDir("bud/generator", func(fsys genfs.FS, dir *genfs.Dir) error {
+// 	gfs.GenerateDir("bud/generator", func(fsys genfs.FS, dir *genfs.Dir) error {
 // 		return dir.Mount(&virtual.Tree{
 // 			"tailwind/tailwind.go": &virtual.File{Data: []byte("package tailwind")},
 // 			"html/html.go":         &virtual.File{Data: []byte("package html")},
 // 			"service.json":         &virtual.File{Data: []byte(`{"name":"mount service"}`)},
 // 		})
 // 	})
-// 	err := fstest.TestFS(bfs,
+// 	err := fstest.TestFS(gfs,
 // 		"bud/generator/tailwind/tailwind.go",
 // 		"bud/generator/html/html.go",
 // 		"bud/generator/service.json",
 // 	)
 // 	is.NoErr(err)
-// 	code, err := fs.ReadFile(bfs, "bud/generator/service.json")
+// 	code, err := fs.ReadFile(gfs, "bud/generator/service.json")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), `{"name":"mount service"}`)
 // }
@@ -978,22 +978,22 @@ func TestGoModGoModEmbed(t *testing.T) {
 // 	log := testlog.New()
 // 	cache := vcache.Discard
 // 	linker := &Linker{}
-// 	bfs := genfs.New(cache, fsys, log)
-// 	bfs.Mount(virtual.Map{
+// 	gfs := genfs.New(cache, fsys, log)
+// 	gfs.Mount(virtual.Map{
 // 		"a.txt": &virtual.File{Data: []byte("a2")},
 // 		"b.txt": &virtual.File{Data: []byte("b2")},
 // 	})
-// 	bfs.GenerateFile("a.txt", func(fsys genfs.FS, file *genfs.File) error {
+// 	gfs.GenerateFile("a.txt", func(fsys genfs.FS, file *genfs.File) error {
 // 		file.Data = []byte("a1")
 // 		return nil
 // 	})
-// 	code, err := fs.ReadFile(bfs, "a.txt")
+// 	code, err := fs.ReadFile(gfs, "a.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "a1")
-// 	code, err = fs.ReadFile(bfs, "b.txt")
+// 	code, err = fs.ReadFile(gfs, "b.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "b2")
-// 	code, err = fs.ReadFile(bfs, "c.txt")
+// 	code, err = fs.ReadFile(gfs, "c.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "c3")
 // }
@@ -1003,18 +1003,18 @@ func TestReadDirNotExists(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
+	gfs := genfs.New(cache, fsys, log)
 	reads := 0
-	bfs.GenerateFile("bud/controller/controller.go", func(fsys genfs.FS, file *genfs.File) error {
+	gfs.GenerateFile("bud/controller/controller.go", func(fsys genfs.FS, file *genfs.File) error {
 		reads++
 		return fs.ErrNotExist
 	})
 	// Generators aren't called on dirs, so the value is wrong until read or stat.
-	des, err := fs.ReadDir(bfs, "bud/controller")
+	des, err := fs.ReadDir(gfs, "bud/controller")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(reads, 0)
-	code, err := fs.ReadFile(bfs, "bud/controller/controller.go")
+	code, err := fs.ReadFile(gfs, "bud/controller/controller.go")
 	is.True(errors.Is(err, fs.ErrNotExist))
 	is.Equal(code, nil)
 	is.Equal(reads, 1)
@@ -1025,18 +1025,18 @@ func TestReadRootNotExists(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
+	gfs := genfs.New(cache, fsys, log)
 	reads := 0
-	bfs.GenerateFile("controller.go", func(fsys genfs.FS, file *genfs.File) error {
+	gfs.GenerateFile("controller.go", func(fsys genfs.FS, file *genfs.File) error {
 		reads++
 		return fs.ErrNotExist
 	})
 	// Generators aren't called on dirs, so the value is wrong until read or stat.
-	des, err := fs.ReadDir(bfs, ".")
+	des, err := fs.ReadDir(gfs, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(reads, 0)
-	code, err := fs.ReadFile(bfs, "controller.go")
+	code, err := fs.ReadFile(gfs, "controller.go")
 	is.True(errors.Is(err, fs.ErrNotExist))
 	is.Equal(code, nil)
 	is.Equal(reads, 1)
@@ -1047,19 +1047,19 @@ func TestServeFile(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.ServeFile("duo/view", func(fsys genfs.FS, file *genfs.File) error {
+	gfs := genfs.New(cache, fsys, log)
+	gfs.ServeFile("duo/view", func(fsys genfs.FS, file *genfs.File) error {
 		file.Data = []byte(file.Target() + `'s data`)
 		return nil
 	})
-	des, err := fs.ReadDir(bfs, "duo/view")
+	des, err := fs.ReadDir(gfs, "duo/view")
 	is.NoErr(err)
 	is.Equal(len(des), 0)
 
 	// _index.svelte
-	file, err := bfs.Open("duo/view/_index.svelte")
+	file, err := gfs.Open("duo/view/_index.svelte")
 	is.NoErr(err)
-	code, err := fs.ReadFile(bfs, "duo/view/_index.svelte")
+	code, err := fs.ReadFile(gfs, "duo/view/_index.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), `duo/view/_index.svelte's data`)
 	stat, err := file.Stat()
@@ -1072,7 +1072,7 @@ func TestServeFile(t *testing.T) {
 	is.Equal(stat.Sys(), nil)
 
 	// about/_about.svelte
-	file, err = bfs.Open("duo/view/about/_about.svelte")
+	file, err = gfs.Open("duo/view/about/_about.svelte")
 	is.NoErr(err)
 	stat, err = file.Stat()
 	is.NoErr(err)
@@ -1082,7 +1082,7 @@ func TestServeFile(t *testing.T) {
 	is.True(stat.ModTime().IsZero())
 	is.Equal(stat.Size(), int64(35))
 	is.Equal(stat.Sys(), nil)
-	code, err = fs.ReadFile(bfs, "duo/view/about/_about.svelte")
+	code, err = fs.ReadFile(gfs, "duo/view/about/_about.svelte")
 	is.NoErr(err)
 	is.Equal(string(code), `duo/view/about/_about.svelte's data`)
 }
@@ -1092,14 +1092,14 @@ func TestGenerateDirNotExists(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.GenerateDir("bud/public", func(fsys genfs.FS, dir *genfs.Dir) error {
+	gfs := genfs.New(cache, fsys, log)
+	gfs.GenerateDir("bud/public", func(fsys genfs.FS, dir *genfs.Dir) error {
 		return fs.ErrNotExist
 	})
-	stat, err := fs.Stat(bfs, "bud/public")
+	stat, err := fs.Stat(gfs, "bud/public")
 	is.True(errors.Is(err, fs.ErrNotExist))
 	is.Equal(stat, nil)
-	des, err := fs.ReadDir(bfs, "bud/public")
+	des, err := fs.ReadDir(gfs, "bud/public")
 	is.True(errors.Is(err, fs.ErrNotExist))
 	is.Equal(len(des), 0)
 }
@@ -1113,12 +1113,12 @@ func TestGeneratorPriority(t *testing.T) {
 	}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.GenerateFile("a.txt", func(fsys genfs.FS, file *genfs.File) error {
+	gfs := genfs.New(cache, fsys, log)
+	gfs.GenerateFile("a.txt", func(fsys genfs.FS, file *genfs.File) error {
 		file.Data = []byte("b")
 		return nil
 	})
-	code, err := fs.ReadFile(bfs, "a.txt")
+	code, err := fs.ReadFile(gfs, "a.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "b")
 }
@@ -1140,8 +1140,8 @@ func TestGlob(t *testing.T) {
 	fsys, err := gomod.Find(dir)
 	is.NoErr(err)
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.GenerateDir("bud/controller", func(fsys genfs.FS, dir *genfs.Dir) error {
+	gfs := genfs.New(cache, fsys, log)
+	gfs.GenerateDir("bud/controller", func(fsys genfs.FS, dir *genfs.Dir) error {
 		results, err := fs.Glob(fsys, "controller/**.go")
 		if err != nil {
 			return err
@@ -1154,11 +1154,11 @@ func TestGlob(t *testing.T) {
 		})
 		return nil
 	})
-	des, err := fs.ReadDir(bfs, "bud/controller")
+	des, err := fs.ReadDir(gfs, "bud/controller")
 	is.NoErr(err)
 	is.Equal(len(des), 1)
 	is.Equal(des[0].Name(), "controller.go")
-	code, err := fs.ReadFile(bfs, "bud/controller/controller.go")
+	code, err := fs.ReadFile(gfs, "bud/controller/controller.go")
 	is.NoErr(err)
 	is.Equal(string(code), "controller/controller.go controller/posts/controller.go")
 }
@@ -1232,8 +1232,8 @@ func TestSideBySideDir(t *testing.T) {
 // 	fsys := &dirFS{count, dir}
 // 	cache := vcache.Discard
 // 	linker := &Linker{}
-// 	bfs := genfs.New(cache, fsys, log)
-// 	bfs.GenerateFile("bud/internal/web/view/view.go", func(fsys genfs.FS, file *genfs.File) error {
+// 	gfs := genfs.New(cache, fsys, log)
+// 	gfs.GenerateFile("bud/internal/web/view/view.go", func(fsys genfs.FS, file *genfs.File) error {
 // 		_, err := fs.Stat(fsys, "view/index.svelte")
 // 		if err != nil {
 // 			return err
@@ -1246,7 +1246,7 @@ func TestSideBySideDir(t *testing.T) {
 // 		file.Data = []byte("package view")
 // 		return nil
 // 	})
-// 	bfs.GenerateFile("bud/internal/web/web.go", func(fsys genfs.FS, file *genfs.File) error {
+// 	gfs.GenerateFile("bud/internal/web/web.go", func(fsys genfs.FS, file *genfs.File) error {
 // 		_, err := fs.Stat(fsys, "bud/internal/web/view/view.go")
 // 		if err != nil {
 // 			return err
@@ -1263,14 +1263,14 @@ func TestSideBySideDir(t *testing.T) {
 // 	is.Equal(count["view/about/index.svelte"], 0, "wrong about/index.svelte file reads")
 // 	// First sync
 // 	out := virtual.Map{}
-// 	err = bfs.Sync(out, "bud/internal")
+// 	err = gfs.Sync(out, "bud/internal")
 // 	is.NoErr(err)
 // 	is.Equal(count["bud/internal/web/web.go"], 1, "wrong web generator reads")
 // 	is.Equal(count["bud/internal/web/view/view.go"], 1, "wrong view generator reads")
 // 	is.Equal(count["view/index.svelte"], 1, "wrong index.svelte file reads")
 // 	is.Equal(count["view/about/index.svelte"], 1, "wrong about/index.svelte file reads")
 // 	// No change because we're only syncing generators and generators are cached
-// 	err = bfs.Sync(out, "bud/internal")
+// 	err = gfs.Sync(out, "bud/internal")
 // 	is.NoErr(err)
 // 	is.Equal(count["view/index.svelte"], 1, "wrong index.svelte file reads")
 // 	is.Equal(count["view/about/index.svelte"], 1, "wrong about/index.svelte file reads")
@@ -1278,7 +1278,7 @@ func TestSideBySideDir(t *testing.T) {
 // 	is.Equal(count["bud/internal/web/web.go"], 1, "wrong web generator reads")
 // 	// Increments real files because we're syncing everything, including the 2
 // 	// files directly. The generators still haven't run since the first run though.
-// 	err = bfs.Sync(out, ".")
+// 	err = gfs.Sync(out, ".")
 // 	is.NoErr(err)
 // 	is.Equal(count["view/index.svelte"], 2, "wrong index.svelte file reads")
 // 	is.Equal(count["view/about/index.svelte"], 2, "wrong about/index.svelte file reads")
@@ -1288,8 +1288,8 @@ func TestSideBySideDir(t *testing.T) {
 // 	// directly. However the files are only read once and cached, so they only
 // 	// increment by one, despite being read directly by the generator. Generators
 // 	// are also only run once before cached.
-// 	bfs.Change("view/about/index.svelte")
-// 	err = bfs.Sync(out, ".")
+// 	gfs.Change("view/about/index.svelte")
+// 	err = gfs.Sync(out, ".")
 // 	is.NoErr(err)
 // 	is.Equal(count["view/index.svelte"], 3, "wrong index.svelte file reads")
 // 	is.Equal(count["view/about/index.svelte"], 3, "wrong about/index.svelte file reads")
@@ -1310,8 +1310,8 @@ func TestSideBySideDir(t *testing.T) {
 // 	fsys := &dirFS{count, dir}
 // 	cache := vcache.Discard
 // 	linker := &Linker{}
-// 	bfs := genfs.New(cache, fsys, log)
-// 	bfs.GenerateDir("bud/internal/node_modules", func(fsys genfs.FS, dir *genfs.Dir) error {
+// 	gfs := genfs.New(cache, fsys, log)
+// 	gfs.GenerateDir("bud/internal/node_modules", func(fsys genfs.FS, dir *genfs.Dir) error {
 // 		_, err := fs.Stat(fsys, "node_modules")
 // 		if err != nil {
 // 			return err
@@ -1329,30 +1329,30 @@ func TestSideBySideDir(t *testing.T) {
 // 		return nil
 // 	})
 // 	out := virtual.Map{}
-// 	err = bfs.Sync(out, ".")
+// 	err = gfs.Sync(out, ".")
 // 	is.NoErr(err)
 // 	is.Equal(count["node_modules/svelte/svelte.ts"], 1, "wrong svelte.ts generator reads")
 // 	is.Equal(count["bud/internal/node_modules"], 1, "wrong node_modules generator reads")
 // 	is.Equal(count["bud/internal/node_modules/svelte.js"], 1, "wrong svelte.js generator reads")
 // 	// Try again without any changes. Files caching is always reset per sync but
 // 	// the generators are cached across syncs.
-// 	err = bfs.Sync(out, ".")
+// 	err = gfs.Sync(out, ".")
 // 	is.NoErr(err)
 // 	is.Equal(count["node_modules/svelte/svelte.ts"], 2, "wrong svelte.ts generator reads")
 // 	is.Equal(count["bud/internal/node_modules"], 1, "wrong node_modules generator reads")
 // 	is.Equal(count["bud/internal/node_modules/svelte.js"], 1, "wrong svelte.js generator reads")
 // 	// Changing the node_modules directory should trigger the dir generator to run
 // 	// but not the svelte generator
-// 	bfs.Change("node_modules")
-// 	err = bfs.Sync(out, ".")
+// 	gfs.Change("node_modules")
+// 	err = gfs.Sync(out, ".")
 // 	is.NoErr(err)
 // 	is.Equal(count["node_modules/svelte/svelte.ts"], 3, "wrong svelte.ts generator reads")
 // 	is.Equal(count["bud/internal/node_modules"], 2, "wrong node_modules generator reads")
 // 	is.Equal(count["bud/internal/node_modules/svelte.js"], 1, "wrong svelte.js generator reads")
 // 	// Changing the node_modules/svelte.ts file should trigger the file generator
 // 	// to run but not the node_module directory generator
-// 	bfs.Change("node_modules/svelte/svelte.ts")
-// 	err = bfs.Sync(out, ".")
+// 	gfs.Change("node_modules/svelte/svelte.ts")
+// 	err = gfs.Sync(out, ".")
 // 	is.NoErr(err)
 // 	is.Equal(count["node_modules/svelte/svelte.ts"], 4, "wrong svelte.ts generator reads")
 // 	is.Equal(count["bud/internal/node_modules"], 2, "wrong node_modules generator reads")
@@ -1360,8 +1360,8 @@ func TestSideBySideDir(t *testing.T) {
 // 	// Adding a file will reset the file generator because the file generator
 // 	// reads the svelte directory. The directory generator will not increment.
 // 	is.NoErr(os.WriteFile(filepath.Join(dir, "node_modules/svelte/new.ts"), []byte("new"), 0644))
-// 	bfs.Change("node_modules/svelte/new.ts")
-// 	err = bfs.Sync(out, ".")
+// 	gfs.Change("node_modules/svelte/new.ts")
+// 	err = gfs.Sync(out, ".")
 // 	is.NoErr(err)
 // 	is.Equal(count["node_modules/svelte/svelte.ts"], 5, "wrong svelte.ts generator reads")
 // 	is.Equal(count["node_modules/svelte/new.ts"], 1, "wrong svelte.ts generator reads")
@@ -1370,8 +1370,8 @@ func TestSideBySideDir(t *testing.T) {
 // 	// Deleting a file will reset the file generator because the file generator
 // 	// reads the svelte directory. The directory generator will not increment.
 // 	is.NoErr(os.Remove(filepath.Join(dir, "node_modules/svelte/new.ts")))
-// 	bfs.Change("node_modules/svelte/new.ts")
-// 	err = bfs.Sync(out, ".")
+// 	gfs.Change("node_modules/svelte/new.ts")
+// 	err = gfs.Sync(out, ".")
 // 	is.NoErr(err)
 // 	is.Equal(count["node_modules/svelte/svelte.ts"], 6, "wrong svelte.ts generator reads")
 // 	is.Equal(count["node_modules/svelte/new.ts"], 1, "wrong svelte.ts generator reads")
@@ -1393,8 +1393,8 @@ func TestSideBySideDir(t *testing.T) {
 // 	fsys := &dirFS{count, dir}
 // 	cache := vcache.Discard
 // 	linker := &Linker{}
-// 	bfs := genfs.New(cache, fsys, log)
-// 	bfs.ServeFile("bud/internal/node_modules", func(fsys genfs.FS, file *genfs.File) error {
+// 	gfs := genfs.New(cache, fsys, log)
+// 	gfs.ServeFile("bud/internal/node_modules", func(fsys genfs.FS, file *genfs.File) error {
 // 		count["bud/internal/node_modules"]++
 // 		rel := file.Relative()
 // 		code, err := fs.ReadFile(fsys, path.Join("node_modules", rel))
@@ -1409,21 +1409,21 @@ func TestSideBySideDir(t *testing.T) {
 // 	is.Equal(count["node_modules/uid.js"], 0, "wrong uid.js generator reads")
 // 	is.Equal(count["bud/internal/node_modules"], 0, "wrong node_modules generator reads")
 // 	// First time read from the generator for svelte.js
-// 	code, err := fs.ReadFile(bfs, "bud/internal/node_modules/svelte.js")
+// 	code, err := fs.ReadFile(gfs, "bud/internal/node_modules/svelte.js")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "svelte", "wrong svelte.js code")
 // 	is.Equal(count["node_modules/svelte.js"], 1, "wrong svelte.js generator reads")
 // 	is.Equal(count["node_modules/uid.js"], 0, "wrong uid.js generator reads")
 // 	is.Equal(count["bud/internal/node_modules"], 1, "wrong node_modules generator reads")
 // 	// First time read from the generator for uid.js
-// 	code, err = fs.ReadFile(bfs, "bud/internal/node_modules/uid.js")
+// 	code, err = fs.ReadFile(gfs, "bud/internal/node_modules/uid.js")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "uid", "wrong uid.js code")
 // 	is.Equal(count["node_modules/svelte.js"], 1, "wrong svelte.js generator reads")
 // 	is.Equal(count["node_modules/uid.js"], 1, "wrong uid.js generator reads")
 // 	is.Equal(count["bud/internal/node_modules"], 2, "wrong node_modules generator reads")
 // 	// Second time read from the generator for svelte.js should be cached
-// 	code, err = fs.ReadFile(bfs, "bud/internal/node_modules/svelte.js")
+// 	code, err = fs.ReadFile(gfs, "bud/internal/node_modules/svelte.js")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "svelte", "wrong svelte.js code")
 // 	is.Equal(count["node_modules/svelte.js"], 1, "wrong svelte.js generator reads")
@@ -1431,15 +1431,15 @@ func TestSideBySideDir(t *testing.T) {
 // 	is.Equal(count["bud/internal/node_modules"], 2, "wrong node_modules generator reads")
 // 	// Mark "node_modules/svelte.js" which should cause the svelte.js generator to
 // 	// run once again
-// 	bfs.Change("node_modules/svelte.js")
-// 	code, err = fs.ReadFile(bfs, "bud/internal/node_modules/svelte.js")
+// 	gfs.Change("node_modules/svelte.js")
+// 	code, err = fs.ReadFile(gfs, "bud/internal/node_modules/svelte.js")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "svelte", "wrong svelte.js code")
 // 	is.Equal(count["node_modules/svelte.js"], 2, "wrong svelte.js generator reads")
 // 	is.Equal(count["node_modules/uid.js"], 1, "wrong uid.js generator reads")
 // 	is.Equal(count["bud/internal/node_modules"], 3, "wrong node_modules generator reads")
 // 	// Second time read from the generator for svelte.js should be cached
-// 	code, err = fs.ReadFile(bfs, "bud/internal/node_modules/svelte.js")
+// 	code, err = fs.ReadFile(gfs, "bud/internal/node_modules/svelte.js")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "svelte", "wrong svelte.js code")
 // 	is.Equal(count["node_modules/svelte.js"], 2, "wrong svelte.js generator reads")
@@ -1482,14 +1482,14 @@ func TestSideBySideDir(t *testing.T) {
 // 	})
 // 	cache = vcache.Discard
 // 	linker = &Linker{}
-// 	bfs := genfs.New(cache, fsys, log)
-// 	bfs.GenerateDir("bud/generator", func(fsys genfs.FS, dir *genfs.Dir) error {
+// 	gfs := genfs.New(cache, fsys, log)
+// 	gfs.GenerateDir("bud/generator", func(fsys genfs.FS, dir *genfs.Dir) error {
 // 		count["bud/generator"]++
-// 		subfs, err := fs.Sub(mountfs, "bud/generator")
+// 		sugfs, err := fs.Sub(mountfs, "bud/generator")
 // 		if err != nil {
 // 			return err
 // 		}
-// 		return dir.Mount(subfs)
+// 		return dir.Mount(sugfs)
 // 	})
 // 	// Base state
 // 	is.Equal(count["view/a.txt"], 0, "wrong view/a.txt file reads")
@@ -1499,7 +1499,7 @@ func TestSideBySideDir(t *testing.T) {
 // 	is.Equal(count["bud/generator/b.txt"], 0, "wrong bud/generator/b.txt mount reads")
 // 	// Initial sync
 // 	out := virtual.Map{}
-// 	err = bfs.Sync(out, ".")
+// 	err = gfs.Sync(out, ".")
 // 	is.NoErr(err)
 // 	// Multiple reads due to lack of shared caching across budfs:
 // 	// 1. budfs reads "view/a.txt" with an empty cache
@@ -1513,7 +1513,7 @@ func TestSideBySideDir(t *testing.T) {
 // 	// because we reset the file cache. The generators in mountfs are still
 // 	// cached and weren't run, leading to no additional reads in view/*.txt.
 // 	out = virtual.Map{}
-// 	err = bfs.Sync(out, ".")
+// 	err = gfs.Sync(out, ".")
 // 	is.NoErr(err)
 // 	is.Equal(count["view/a.txt"], 3, "wrong view/a.txt file reads")
 // 	is.Equal(count["view/b.txt"], 3, "wrong view/b.txt file reads")
@@ -1523,10 +1523,10 @@ func TestSideBySideDir(t *testing.T) {
 // 	// Change a file and try again. This time there should be 2 new events, once
 // 	// for the file itelf and once for the mount generator reseting its generator
 // 	// cache.
-// 	bfs.Change("view/a.txt")
+// 	gfs.Change("view/a.txt")
 // 	mountfs.Change("view/a.txt")
 // 	out = virtual.Map{}
-// 	err = bfs.Sync(out, ".")
+// 	err = gfs.Sync(out, ".")
 // 	is.NoErr(err)
 // 	is.Equal(count["view/a.txt"], 5, "wrong view/a.txt file reads")
 // 	is.Equal(count["view/b.txt"], 4, "wrong view/b.txt file reads")
@@ -1541,14 +1541,14 @@ func TestSideBySideDir(t *testing.T) {
 // 	fsys := virtual.Map{}
 // 	cache := vcache.Discard
 // 	linker := &Linker{}
-// 	bfs := genfs.New(cache, fsys, log)
+// 	gfs := genfs.New(cache, fsys, log)
 // 	m1 := virtual.Tree{
 // 		"a.txt": &virtual.File{Data: []byte("a")},
 // 	}
 // 	m2 := virtual.Tree{
 // 		"b.txt": &virtual.File{Data: []byte("b")},
 // 	}
-// 	bfs.GenerateDir("bud", func(fsys genfs.FS, dir *genfs.Dir) error {
+// 	gfs.GenerateDir("bud", func(fsys genfs.FS, dir *genfs.Dir) error {
 // 		if dir.Target() == "bud/a.txt" {
 // 			return dir.Mount(m1)
 // 		}
@@ -1558,19 +1558,19 @@ func TestSideBySideDir(t *testing.T) {
 // 		return nil
 // 	})
 // 	// Initial tests
-// 	code, err := fs.ReadFile(bfs, "bud/a.txt")
+// 	code, err := fs.ReadFile(gfs, "bud/a.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "a", "wrong a.txt code")
-// 	code, err = fs.ReadFile(bfs, "bud/b.txt")
+// 	code, err = fs.ReadFile(gfs, "bud/b.txt")
 // 	is.True(errors.Is(err, fs.ErrNotExist))
 // 	is.Equal(code, nil)
 // 	// Mark the directory as changed
-// 	bfs.Change("bud")
+// 	gfs.Change("bud")
 // 	// It should reverse
-// 	code, err = fs.ReadFile(bfs, "bud/b.txt")
+// 	code, err = fs.ReadFile(gfs, "bud/b.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "b", "wrong b.txt code")
-// 	code, err = fs.ReadFile(bfs, "bud/a.txt")
+// 	code, err = fs.ReadFile(gfs, "bud/a.txt")
 // 	is.True(errors.Is(err, fs.ErrNotExist), "bud/a.txt should not exist")
 // 	is.Equal(code, nil)
 // }
@@ -1581,7 +1581,7 @@ func TestSideBySideDir(t *testing.T) {
 // 	fsys := virtual.Map{}
 // 	cache := vcache.Discard
 // 	linker := &Linker{}
-// 	bfs := genfs.New(cache, fsys, log)
+// 	gfs := genfs.New(cache, fsys, log)
 // 	m1 := virtual.Tree{
 // 		"tailwind/a.txt": &virtual.File{Data: []byte("a")},
 // 	}
@@ -1589,7 +1589,7 @@ func TestSideBySideDir(t *testing.T) {
 // 		"markdoc/b.txt": &virtual.File{Data: []byte("b")},
 // 	}
 // 	count := 0
-// 	bfs.GenerateDir("bud", func(fsys genfs.FS, dir *genfs.Dir) error {
+// 	gfs.GenerateDir("bud", func(fsys genfs.FS, dir *genfs.Dir) error {
 // 		if count == 0 {
 // 			count++
 // 			return dir.Mount(m1)
@@ -1597,21 +1597,21 @@ func TestSideBySideDir(t *testing.T) {
 // 		return dir.Mount(m2)
 // 	})
 // 	// Initial tests
-// 	des, err := fs.ReadDir(bfs, "bud")
+// 	des, err := fs.ReadDir(gfs, "bud")
 // 	is.NoErr(err)
 // 	is.Equal(len(des), 1)
 // 	is.Equal(des[0].Name(), "tailwind")
-// 	code, err := fs.ReadFile(bfs, "bud/tailwind/a.txt")
+// 	code, err := fs.ReadFile(gfs, "bud/tailwind/a.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "a", "wrong a.txt code")
 // 	// Mark the directory as changed
-// 	bfs.Change("bud")
+// 	gfs.Change("bud")
 // 	// Now the mount should be markdoc
-// 	des, err = fs.ReadDir(bfs, "bud")
+// 	des, err = fs.ReadDir(gfs, "bud")
 // 	is.NoErr(err)
 // 	is.Equal(len(des), 1)
 // 	is.Equal(des[0].Name(), "markdoc")
-// 	code, err = fs.ReadFile(bfs, "bud/markdoc/b.txt")
+// 	code, err = fs.ReadFile(gfs, "bud/markdoc/b.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "b", "wrong b.txt code")
 // }
@@ -1621,17 +1621,17 @@ func TestCyclesOk(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.GenerateFile("a.txt", func(fsys genfs.FS, file *genfs.File) error {
+	gfs := genfs.New(cache, fsys, log)
+	gfs.GenerateFile("a.txt", func(fsys genfs.FS, file *genfs.File) error {
 		is.NoErr(fsys.Watch("a.txt"))
 		file.Data = []byte("a")
 		return nil
 	})
-	code, err := fs.ReadFile(bfs, "a.txt")
+	code, err := fs.ReadFile(gfs, "a.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "a")
-	// bfs.Change("a.txt")
-	// code, err = fs.ReadFile(bfs, "a.txt")
+	// gfs.Change("a.txt")
+	// code, err = fs.ReadFile(gfs, "a.txt")
 	// is.NoErr(err)
 	// is.Equal(string(code), "a")
 }
@@ -1642,19 +1642,19 @@ func TestCyclesOk(t *testing.T) {
 // 	log := testlog.New()
 // 	cache := vcache.Discard
 // 	linker := &Linker{}
-// 	bfs := genfs.New(cache, fsys, log)
+// 	gfs := genfs.New(cache, fsys, log)
 // 	count := map[string]int{}
-// 	bfs.GenerateFile("a.txt", func(fsys genfs.FS, file *genfs.File) error {
+// 	gfs.GenerateFile("a.txt", func(fsys genfs.FS, file *genfs.File) error {
 // 		file.Data = []byte("a" + strconv.Itoa(count["a.txt"]))
 // 		count["a.txt"]++
 // 		return nil
 // 	})
-// 	bfs.GenerateFile("b.txt", func(fsys genfs.FS, file *genfs.File) error {
+// 	gfs.GenerateFile("b.txt", func(fsys genfs.FS, file *genfs.File) error {
 // 		file.Data = []byte("b" + strconv.Itoa(count["b.txt"]))
 // 		count["b.txt"]++
 // 		return nil
 // 	})
-// 	bfs.GenerateFile("bud/c.txt", func(fsys genfs.FS, file *genfs.File) error {
+// 	gfs.GenerateFile("bud/c.txt", func(fsys genfs.FS, file *genfs.File) error {
 // 		is.NoErr(fsys.Watch("*.txt"))
 // 		a, err := fs.ReadFile(fsys, "a.txt")
 // 		is.NoErr(err)
@@ -1664,31 +1664,31 @@ func TestCyclesOk(t *testing.T) {
 // 		count["bud/c.txt"]++
 // 		return nil
 // 	})
-// 	code, err := fs.ReadFile(bfs, "bud/c.txt")
+// 	code, err := fs.ReadFile(gfs, "bud/c.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "c0a0b0")
-// 	code, err = fs.ReadFile(bfs, "bud/c.txt")
+// 	code, err = fs.ReadFile(gfs, "bud/c.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "c0a0b0")
-// 	bfs.Change("a.txt")
-// 	code, err = fs.ReadFile(bfs, "bud/c.txt")
+// 	gfs.Change("a.txt")
+// 	code, err = fs.ReadFile(gfs, "bud/c.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "c1a1b0")
-// 	code, err = fs.ReadFile(bfs, "bud/c.txt")
+// 	code, err = fs.ReadFile(gfs, "bud/c.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "c1a1b0")
-// 	bfs.Change("b.txt")
-// 	code, err = fs.ReadFile(bfs, "bud/c.txt")
+// 	gfs.Change("b.txt")
+// 	code, err = fs.ReadFile(gfs, "bud/c.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "c2a1b1")
-// 	code, err = fs.ReadFile(bfs, "bud/c.txt")
+// 	code, err = fs.ReadFile(gfs, "bud/c.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "c2a1b1")
-// 	bfs.Change("b.txt", "a.txt")
-// 	code, err = fs.ReadFile(bfs, "bud/c.txt")
+// 	gfs.Change("b.txt", "a.txt")
+// 	code, err = fs.ReadFile(gfs, "bud/c.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "c3a2b2")
-// 	code, err = fs.ReadFile(bfs, "bud/c.txt")
+// 	code, err = fs.ReadFile(gfs, "bud/c.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "c3a2b2")
 // }
@@ -1699,9 +1699,9 @@ func TestCyclesOk(t *testing.T) {
 // 	log := testlog.New()
 // 	cache := vcache.Discard
 // 	linker := &Linker{}
-// 	bfs := genfs.New(cache, fsys, log)
+// 	gfs := genfs.New(cache, fsys, log)
 // 	count := map[string]int{}
-// 	bfs.GenerateFile("b.txt", func(fsys genfs.FS, file *genfs.File) error {
+// 	gfs.GenerateFile("b.txt", func(fsys genfs.FS, file *genfs.File) error {
 // 		data := "b" + strconv.Itoa(count["b.txt"])
 // 		code, err := fs.ReadFile(fsys, "a.txt")
 // 		if err == nil {
@@ -1713,21 +1713,21 @@ func TestCyclesOk(t *testing.T) {
 // 		count["b.txt"]++
 // 		return nil
 // 	})
-// 	code, err := fs.ReadFile(bfs, "b.txt")
+// 	code, err := fs.ReadFile(gfs, "b.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "b0")
-// 	code, err = fs.ReadFile(bfs, "b.txt")
+// 	code, err = fs.ReadFile(gfs, "b.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "b0")
 // 	fsys["a.txt"] = &virtual.File{Data: []byte("a")}
-// 	code, err = fs.ReadFile(bfs, "b.txt")
+// 	code, err = fs.ReadFile(gfs, "b.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "b0")
-// 	bfs.Change("a.txt")
-// 	code, err = fs.ReadFile(bfs, "b.txt")
+// 	gfs.Change("a.txt")
+// 	code, err = fs.ReadFile(gfs, "b.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "b1a")
-// 	code, err = fs.ReadFile(bfs, "b.txt")
+// 	code, err = fs.ReadFile(gfs, "b.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "b1a")
 // }
@@ -1738,9 +1738,9 @@ func TestCyclesOk(t *testing.T) {
 // 	log := testlog.New()
 // 	cache := vcache.Discard
 // 	linker := &Linker{}
-// 	bfs := genfs.New(cache, fsys, log)
+// 	gfs := genfs.New(cache, fsys, log)
 // 	count := map[string]int{}
-// 	bfs.GenerateFile("b.txt", func(fsys genfs.FS, file *genfs.File) error {
+// 	gfs.GenerateFile("b.txt", func(fsys genfs.FS, file *genfs.File) error {
 // 		data := "b" + strconv.Itoa(count["b.txt"])
 // 		des, err := fs.ReadDir(fsys, "a")
 // 		if err == nil {
@@ -1752,21 +1752,21 @@ func TestCyclesOk(t *testing.T) {
 // 		count["b.txt"]++
 // 		return nil
 // 	})
-// 	code, err := fs.ReadFile(bfs, "b.txt")
+// 	code, err := fs.ReadFile(gfs, "b.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "b0")
-// 	code, err = fs.ReadFile(bfs, "b.txt")
+// 	code, err = fs.ReadFile(gfs, "b.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "b0")
 // 	is.NoErr(fsys.MkdirAll("a", 0755))
-// 	code, err = fs.ReadFile(bfs, "b.txt")
+// 	code, err = fs.ReadFile(gfs, "b.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "b0")
-// 	bfs.Change("a")
-// 	code, err = fs.ReadFile(bfs, "b.txt")
+// 	gfs.Change("a")
+// 	code, err = fs.ReadFile(gfs, "b.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "b10")
-// 	code, err = fs.ReadFile(bfs, "b.txt")
+// 	code, err = fs.ReadFile(gfs, "b.txt")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "b10")
 // }
@@ -1779,9 +1779,9 @@ func TestCyclesOk(t *testing.T) {
 // 	log := testlog.New()
 // 	cache := vcache.Discard
 // 	linker := &Linker{}
-// 	bfs := genfs.New(cache, fsys, log)
+// 	gfs := genfs.New(cache, fsys, log)
 // 	count := map[string]int{}
-// 	bfs.GenerateFile("bud/public/public.go", func(fsys genfs.FS, file *genfs.File) error {
+// 	gfs.GenerateFile("bud/public/public.go", func(fsys genfs.FS, file *genfs.File) error {
 // 		count["bud/public/public.go"]++
 // 		files, err := fs.Glob(fsys, "public/**")
 // 		if err != nil {
@@ -1793,19 +1793,19 @@ func TestCyclesOk(t *testing.T) {
 // 		return nil
 // 	})
 // 	// Test that the file is generated.
-// 	code, err := fs.ReadFile(bfs, "bud/public/public.go")
+// 	code, err := fs.ReadFile(gfs, "bud/public/public.go")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "package public")
 // 	is.Equal(count["bud/public/public.go"], 1)
 // 	// Test again with a cached version
-// 	code, err = fs.ReadFile(bfs, "bud/public/public.go")
+// 	code, err = fs.ReadFile(gfs, "bud/public/public.go")
 // 	is.NoErr(err)
 // 	is.Equal(string(code), "package public")
 // 	is.Equal(count["bud/public/public.go"], 1)
 // 	// Remove the file
 // 	delete(fsys, "public/favicon.ico")
-// 	bfs.Change("public/favicon.ico")
-// 	code, err = fs.ReadFile(bfs, "bud/public/public.go")
+// 	gfs.Change("public/favicon.ico")
+// 	code, err = fs.ReadFile(gfs, "bud/public/public.go")
 // 	is.True(errors.Is(err, fs.ErrNotExist))
 // 	is.Equal(code, nil)
 // 	is.Equal(count["bud/public/public.go"], 2)
@@ -1816,18 +1816,18 @@ func TestDirServeFile(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.GenerateDir("service", func(fsys genfs.FS, dir *genfs.Dir) error {
+	gfs := genfs.New(cache, fsys, log)
+	gfs.GenerateDir("service", func(fsys genfs.FS, dir *genfs.Dir) error {
 		dir.ServeFile("transform", func(fsys genfs.FS, file *genfs.File) error {
 			file.Data = []byte(`transforming: ` + file.Relative())
 			return nil
 		})
 		return nil
 	})
-	code, err := fs.ReadFile(bfs, "service/transform/a.txt")
+	code, err := fs.ReadFile(gfs, "service/transform/a.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "transforming: a.txt")
-	code, err = fs.ReadFile(bfs, "service/transform/b/b.txt")
+	code, err = fs.ReadFile(gfs, "service/transform/b/b.txt")
 	is.NoErr(err)
 	is.Equal(string(code), "transforming: b/b.txt")
 }
@@ -1837,16 +1837,43 @@ func TestExternal(t *testing.T) {
 	fsys := virtual.Map{}
 	log := testlog.New()
 	cache := fscache.Discard
-	bfs := genfs.New(cache, fsys, log)
-	bfs.GenerateDir("bud", func(_ genfs.FS, dir *genfs.Dir) error {
+	gfs := genfs.New(cache, fsys, log)
+	gfs.GenerateDir("bud", func(_ genfs.FS, dir *genfs.Dir) error {
 		dir.GenerateExternal("app", func(_ genfs.FS, file *genfs.ExternalFile) error {
 			is.Equal(file.Target(), "bud/app")
 			return fsys.WriteFile(file.Target(), []byte("my app"), 0644)
 		})
 		return nil
 	})
-	is.NoErr(dsync.Dir(bfs, ".", fsys, "."))
+	is.NoErr(dsync.Dir(gfs, ".", fsys, "."))
 	code, err := fs.ReadFile(fsys, "bud/app")
 	is.NoErr(err)
 	is.Equal(string(code), "my app")
+}
+
+func TestReadDirNoTrigger(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Map{}
+	log := testlog.New()
+	cache := fscache.Discard
+	gfs := genfs.New(cache, fsys, log)
+	count := map[string]int{}
+	gfs.GenerateExternal("bud/app", func(_ genfs.FS, file *genfs.ExternalFile) error {
+		count[file.Target()]++
+		return fsys.WriteFile(file.Target(), []byte("my app"), 0644)
+	})
+	des, err := fs.ReadDir(gfs, "bud")
+	is.NoErr(err)
+	is.Equal(len(des), 1)
+	is.Equal(des[0].Name(), "app")
+	is.Equal(des[0].IsDir(), false)
+	is.Equal(count["bud/app"], 0)
+	dsync.To(gfs, fsys, "bud", dsync.WithSkip(func(name string, isDir bool) bool {
+		return name == "bud/app"
+	}))
+	is.Equal(count["bud/app"], 0)
+	// stat, err := fs.Stat(gfs, "bud/app")
+	// is.NoErr(err)
+	// is.Equal(stat.Name(), "app")
+	// is.Equal(count["bud/app"], 1)
 }

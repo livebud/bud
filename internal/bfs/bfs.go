@@ -8,19 +8,15 @@ import (
 	"github.com/livebud/bud/internal/dsync"
 
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/framework/appfs"
-	generator "github.com/livebud/bud/framework/generator2"
 	"github.com/livebud/bud/package/budfs"
-	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log"
-	"github.com/livebud/bud/package/parser"
 )
 
 func Load(flag *framework.Flag, log log.Log, module *gomod.Module) (*FS, error) {
 	fsys := budfs.New(module, log)
-	parser := parser.New(fsys, module)
-	injector := di.New(fsys, log, module, parser)
+	// parser := parser.New(fsys, module)
+	// injector := di.New(fsys, log, module, parser)
 	// vm, err := v8.Load()
 	// if err != nil {
 	// 	return nil, err
@@ -43,8 +39,8 @@ func Load(flag *framework.Flag, log log.Log, module *gomod.Module) (*FS, error) 
 	// fsys.FileServer("bud/node_modules", dom.NodeModules(module))
 	// fsys.FileGenerator("bud/internal/generator/transform/transform.go", transform.New(flag, injector, log, module, parser))
 	// fsys.FileGenerator("bud/command/.generate/main.go", generator.New(fsys, flag, injector, log, module, parser))
-	fsys.FileGenerator("bud/cmd/appfs/main.go", appfs.New(flag, injector, log, module))
-	fsys.FileGenerator("bud/internal/generator/generator.go", generator.New(fsys, flag, injector, log, module, parser))
+	// fsys.FileGenerator("bud/cmd/appfs/main.go", afs.New(flag, injector, log, module))
+	// fsys.FileGenerator("bud/internal/generator/generator.go", generator.New(log, module, parser))
 	return &FS{fsys, module}, nil
 }
 

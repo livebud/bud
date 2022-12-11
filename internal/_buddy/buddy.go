@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/livebud/bud/framework/appfs"
+	"github.com/livebud/bud/framework/afs"
 	generator "github.com/livebud/bud/framework/generator2"
 	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/di"
@@ -162,7 +162,7 @@ func (d *Driver) Generate(ctx context.Context, dirs ...string) (*remotefs.Proces
 	// Load the injector
 	injector := di.New(bfs, d.log, d.module, parser)
 	// Setup the initial file generators
-	bfs.FileGenerator("bud/cmd/appfs/main.go", appfs.New(d.flag, injector, d.log, d.module))
+	bfs.FileGenerator("bud/cmd/appfs/main.go", afs.New(d.flag, injector, d.log, d.module))
 	bfs.FileGenerator("bud/internal/generator/generator.go", generator.New(bfs, d.flag, injector, d.log, d.module, parser))
 	// If all dirs are part of the appfs phase, so we can just sync them and
 	// return early.

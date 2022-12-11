@@ -10,7 +10,7 @@ import (
 {{- end }}
 
 func New(
-	bfs *budfs.FileSystem,
+	genfs genfs.FileSystem,
 	module *gomod.Module,
 	log log.Log,
 	{{- range $generator := $.Generators }}
@@ -18,9 +18,9 @@ func New(
 	{{- end }}
 ) FS {
 	{{- range $generator := $.Generators }}
-	bfs.{{ $generator.Type }}(`{{ $generator.Path }}`, {{ $generator.Camel }})
+	genfs.{{ $generator.Type }}(`{{ $generator.Path }}`, {{ $generator.Camel }})
 	{{- end }}
-	return bfs
+	return genfs
 }
 
 type FS = fs.FS

@@ -4,10 +4,8 @@ import (
 	_ "embed"
 	"fmt"
 
-	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/gotemplate"
-	"github.com/livebud/bud/package/budfs"
-	"github.com/livebud/bud/package/di"
+	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/parser"
@@ -22,22 +20,19 @@ func Generate(state *State) ([]byte, error) {
 	return generator.Generate(state)
 }
 
-func New(bfs *budfs.FileSystem, flag *framework.Flag, injector *di.Injector, log log.Log, module *gomod.Module, parser *parser.Parser) *Generator {
-	return &Generator{bfs, flag, injector, log, module, parser}
+func New(log log.Log, module *gomod.Module, parser *parser.Parser) *Generator {
+	return &Generator{log, module, parser}
 }
 
 type Generator struct {
-	bfs      *budfs.FileSystem
-	flag     *framework.Flag
-	injector *di.Injector
-	log      log.Log
-	module   *gomod.Module
-	parser   *parser.Parser
+	log    log.Log
+	module *gomod.Module
+	parser *parser.Parser
 }
 
 // GenerateFile connects to the remotefs and mounts the remote directory.
-func (g *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
-	state, err := Load(fsys, g.injector, g.log, g.module, g.parser)
+func (g *Generator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
+	state, err := Load(fsys, g.log, g.module, g.parser)
 	if err != nil {
 		return fmt.Errorf("framework/generator: unable to load. %w", err)
 	}

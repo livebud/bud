@@ -6,55 +6,52 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/package/finder"
+	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/log"
 
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/internal/valid"
-	"github.com/livebud/bud/package/budfs"
-	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/parser"
 	"github.com/matthewmueller/gotext"
 )
 
-func Load(fsys budfs.FS, injector *di.Injector, log log.Log, module *gomod.Module, parser *parser.Parser) (*State, error) {
+func Load(fsys genfs.FS, log log.Log, module *gomod.Module, parser *parser.Parser) (*State, error) {
 	return (&loader{
-		injector: injector,
-		log:      log,
-		module:   module,
-		parser:   parser,
-		imports:  imports.New(),
+		log:     log,
+		module:  module,
+		parser:  parser,
+		imports: imports.New(),
 	}).Load(fsys)
 }
 
 type loader struct {
-	injector *di.Injector
-	log      log.Log
-	module   *gomod.Module
-	parser   *parser.Parser
-	imports  *imports.Set
+	log     log.Log
+	module  *gomod.Module
+	parser  *parser.Parser
+	imports *imports.Set
 	bail.Struct
 }
 
-func (l *loader) Load(bfs budfs.FS) (state *State, err error) {
+func (l *loader) Load(fsys genfs.FS) (state *State, err error) {
 	defer l.Recover2(&err, "generator")
 	state = new(State)
-	state.Generators = l.loadGenerators(bfs)
+	state.Generators = l.loadGenerators(fsys)
 	state.Generators = append(state.Generators, l.loadCoreGenerators()...)
 	if len(state.Generators) == 0 {
 		return nil, fs.ErrNotExist
 	}
 	l.imports.AddStd("io/fs")
-	l.imports.AddNamed("budfs", "github.com/livebud/bud/package/budfs")
+	l.imports.AddNamed("genfs", "github.com/livebud/bud/package/genfs")
 	l.imports.AddNamed("gomod", "github.com/livebud/bud/package/gomod")
 	l.imports.AddNamed("log", "github.com/livebud/bud/package/log")
 	state.Imports = l.imports.List()
 	return state, nil
 }
 
-func (l *loader) loadGenerators(bfs budfs.FS) (generators []*CodeGenerator) {
-	generatorDirs, err := finder.Find(bfs, "{generator/**.go,bud/internal/generator/*/**.go}", func(path string, isDir bool) (entries []string) {
+func (l *loader) loadGenerators(fsys genfs.FS) (generators []*CodeGenerator) {
+	generatorDirs, err := finder.Find(fsys, "{generator/**.go,bud/internal/generator/*/**.go}", func(path string, isDir bool) (entries []string) {
 		if !isDir && valid.GoFile(path) {
 			entries = append(entries, filepath.Dir(path))
 		}
@@ -104,24 +101,24 @@ func (l *loader) loadCoreGenerators() (generators []*CodeGenerator) {
 			Type:  FileGenerator,
 			Camel: gotext.Camel("app"),
 		},
-		&CodeGenerator{
-			Import: &imports.Import{
-				Name: l.imports.Add("github.com/livebud/bud/framework/command"),
-				Path: "github.com/livebud/bud/framework/command",
-			},
-			Path:  "bud/internal/command/command.go",
-			Type:  FileGenerator,
-			Camel: gotext.Camel("command"),
-		},
-		&CodeGenerator{
-			Import: &imports.Import{
-				Name: l.imports.Add("github.com/livebud/bud/framework/public"),
-				Path: "github.com/livebud/bud/framework/public",
-			},
-			Path:  "bud/internal/web/public/public.go",
-			Type:  FileGenerator,
-			Camel: gotext.Camel("public"),
-		},
+		// &CodeGenerator{
+		// 	Import: &imports.Import{
+		// 		Name: l.imports.Add("github.com/livebud/bud/framework/command"),
+		// 		Path: "github.com/livebud/bud/framework/command",
+		// 	},
+		// 	Path:  "bud/internal/command/command.go",
+		// 	Type:  FileGenerator,
+		// 	Camel: gotext.Camel("command"),
+		// },
+		// &CodeGenerator{
+		// 	Import: &imports.Import{
+		// 		Name: l.imports.Add("github.com/livebud/bud/framework/public"),
+		// 		Path: "github.com/livebud/bud/framework/public",
+		// 	},
+		// 	Path:  "bud/internal/web/public/public.go",
+		// 	Type:  FileGenerator,
+		// 	Camel: gotext.Camel("public"),
+		// },
 	}
 }
 

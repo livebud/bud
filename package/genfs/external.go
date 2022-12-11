@@ -3,6 +3,7 @@ package genfs
 import (
 	"io/fs"
 
+	"github.com/livebud/bud/internal/fscache"
 	"github.com/livebud/bud/package/virtual"
 )
 
@@ -23,7 +24,7 @@ type ExternalGenerator interface {
 }
 
 type externalGenerator struct {
-	cache Cache
+	cache fscache.Cache
 	fn    func(fsys FS, e *ExternalFile) error
 	genfs fs.FS
 	path  string
