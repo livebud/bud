@@ -3,6 +3,7 @@ package generate
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io/fs"
 	"path"
 	"path/filepath"
@@ -63,12 +64,15 @@ func (c *Command) Run(ctx context.Context) error {
 		Stderr: c.in.Stderr,
 		Env:    c.in.Env,
 	}
-	afs := newAFS(exec, c.Flag, log, module)
+	afs, err := loadAFS(exec, c.Flag, log, module)
+	if err != nil {
+		return err
+	}
 	defer afs.Close()
 	return afs.Generate(ctx, c.Args...)
 }
 
-func newAFS(exec *exe.Template, flag *framework.Flag, log log.Log, module *gomod.Module) *AFS {
+func loadAFS(exec *exe.Template, flag *framework.Flag, log log.Log, module *gomod.Module) (*AFS, error) {
 	// Create the generator filesystem
 	cache := fscache.Discard
 	genfs := genfs.New(cache, module, log)
@@ -77,12 +81,18 @@ func newAFS(exec *exe.Template, flag *framework.Flag, log log.Log, module *gomod
 	// Load the injector
 	injector := di.New(genfs, log, module, parser)
 	// Setup the initial file generators
-	generator := generator.New(log, module, parser)
+	gen := generator.New(log, module, parser)
+	state, err := generator.Load(genfs, log, module, parser)
+	if err != nil {
+		return nil, err
+	}
+	// TODO: mount all of the generators that proxy to the remote filesystem
+	fmt.Println("got state", state)
 	afs := afs.New(exec, flag, injector, log, module)
-	genfs.FileGenerator("bud/internal/generator/generator.go", generator)
+	genfs.FileGenerator("bud/internal/generator/generator.go", gen)
 	genfs.FileGenerator("bud/cmd/afs/main.go", afs)
 	// Return the new afs controller
-	return &AFS{cache, exec, flag, genfs, log, module, nil}
+	return &AFS{cache, exec, flag, genfs, log, module, nil}, nil
 }
 
 type AFS struct {
@@ -155,6 +165,7 @@ func (a *AFS) Generate(ctx context.Context, dirs ...string) error {
 			return err
 		}
 	} else {
+		// TODO: pass flags through
 		process, err := remotefs.Start(ctx, a.exec, "bud/afs")
 		if err != nil {
 			return err
@@ -199,14 +210,13 @@ func (a *AFS) Close() error {
 }
 
 func newApp(afs *AFS, exec *exe.Template, log log.Log) *App {
-	return &App{afs, exec, log, nil}
+	return &App{afs, exec, log}
 }
 
 type App struct {
-	afs     *AFS
-	exec    *exe.Template
-	log     log.Log
-	process *exe.Process // nil when no process is running
+	afs  *AFS
+	exec *exe.Template
+	log  log.Log
 }
 
 func (a *App) Run() error {
@@ -220,11 +230,3 @@ func (a *App) Watch() error {
 func (a *App) Build() error {
 	return nil
 }
-
-// func (a *App) Generate(dirs ...string) error {
-// 	return nil
-// }
-
-// func (a *App) Change(dirs ...string) error {
-// 	return nil
-// }

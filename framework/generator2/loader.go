@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/package/finder"
-	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/log"
 
 	"github.com/livebud/bud/internal/bail"
@@ -17,7 +16,7 @@ import (
 	"github.com/matthewmueller/gotext"
 )
 
-func Load(fsys genfs.FS, log log.Log, module *gomod.Module, parser *parser.Parser) (*State, error) {
+func Load(fsys fs.FS, log log.Log, module *gomod.Module, parser *parser.Parser) (*State, error) {
 	return (&loader{
 		log:     log,
 		module:  module,
@@ -34,7 +33,7 @@ type loader struct {
 	bail.Struct
 }
 
-func (l *loader) Load(fsys genfs.FS) (state *State, err error) {
+func (l *loader) Load(fsys fs.FS) (state *State, err error) {
 	defer l.Recover2(&err, "generator")
 	state = new(State)
 	state.Generators = l.loadGenerators(fsys)
@@ -50,7 +49,7 @@ func (l *loader) Load(fsys genfs.FS) (state *State, err error) {
 	return state, nil
 }
 
-func (l *loader) loadGenerators(fsys genfs.FS) (generators []*CodeGenerator) {
+func (l *loader) loadGenerators(fsys fs.FS) (generators []*CodeGenerator) {
 	generatorDirs, err := finder.Find(fsys, "{generator/**.go,bud/internal/generator/*/**.go}", func(path string, isDir bool) (entries []string) {
 		if !isDir && valid.GoFile(path) {
 			entries = append(entries, filepath.Dir(path))
