@@ -38,16 +38,16 @@ func (res *Response) Write(w http.ResponseWriter) {
 	w.Write([]byte(res.Body))
 }
 
-func New(module *gomod.Module, transformer transformrt.Transformer) *Compiler {
-	return &Compiler{module, transformer}
+func New(module *gomod.Module, transformer *transformrt.Map) *Generator {
+	return &Generator{module, transformer}
 }
 
-type Compiler struct {
+type Generator struct {
 	module      *gomod.Module
-	transformer transformrt.Transformer
+	transformer *transformrt.Map
 }
 
-func (c *Compiler) Compile(ctx context.Context, fsys budfs.FS) ([]byte, error) {
+func (c *Generator) Compile(ctx context.Context, fsys budfs.FS) ([]byte, error) {
 	dir := c.module.Directory()
 	result := esbuild.Build(esbuild.BuildOptions{
 		EntryPointsAdvanced: []esbuild.EntryPoint{
@@ -73,7 +73,7 @@ func (c *Compiler) Compile(ctx context.Context, fsys budfs.FS) ([]byte, error) {
 			jsxTransformPlugin(fsys, dir),
 			sveltePlugin(fsys, dir),
 			svelteRuntimePlugin(fsys, dir),
-		}, c.transformer.Plugins()...),
+		}, c.transformer.SSR.Plugins()...),
 	})
 	if len(result.Errors) > 0 {
 		msgs := esbuild.FormatMessages(result.Errors, esbuild.FormatMessagesOptions{
@@ -98,7 +98,7 @@ func (c *Compiler) Compile(ctx context.Context, fsys budfs.FS) ([]byte, error) {
 	return result.OutputFiles[0].Contents, nil
 }
 
-func (c *Compiler) GenerateFile(fsys budfs.FS, file *budfs.File) error {
+func (c *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
 	code, err := c.Compile(fsys.Context(), fsys)
 	if err != nil {
 		return err

@@ -8,6 +8,8 @@ import (
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/livebud/bud/internal/dag"
+	"github.com/livebud/bud/package/log"
+	"github.com/livebud/bud/package/svelte"
 )
 
 type File struct {
@@ -36,6 +38,37 @@ type Transformable struct {
 	To   string
 	From string
 	For  Platforms
+}
+
+// Default transformer
+// TODO: this was required to get DI working with the *view.Generator. We should
+// remove this
+func Default(log log.Log, svelteCompiler *svelte.Compiler) (*Map, error) {
+	return Load(&Transformable{
+		From: ".svelte",
+		To:   ".js",
+		For: Platforms{
+			// DOM transform (browser)
+			PlatformDOM: func(file *File) error {
+				dom, err := svelteCompiler.DOM(file.Path(), file.Code)
+				if err != nil {
+					return err
+				}
+				file.Code = []byte(dom.JS)
+				return nil
+			},
+
+			// SSR transform (server)
+			PlatformSSR: func(file *File) error {
+				ssr, err := svelteCompiler.SSR(file.Path(), file.Code)
+				if err != nil {
+					return err
+				}
+				file.Code = []byte(ssr.JS)
+				return nil
+			},
+		},
+	})
 }
 
 func MustLoad(transformables ...*Transformable) *Map {

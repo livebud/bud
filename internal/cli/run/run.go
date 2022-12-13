@@ -97,6 +97,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		log.Debug("run: bud server is listening on %s", "http://"+budln.Addr().String())
 	}
 	// Load the generator filesystem
+	c.Flag.Env = append(c.Flag.Env, "BUD_LISTEN="+budln.Addr().String())
 	bfs, err := bfs.Load(c.Flag, log, module)
 	if err != nil {
 		return err

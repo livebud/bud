@@ -17,7 +17,7 @@ import (
 func paint(level log.Level, msg string) string {
 	switch level {
 	case log.DebugLevel:
-		return ansi.White(msg)
+		return ansi.Dim(msg)
 	case log.InfoLevel:
 		return ansi.Blue(msg)
 	case log.NoticeLevel:
