@@ -11,6 +11,7 @@ require (
 	github.com/ajg/form v1.5.2-0.20200323032839-9aeb3cf462e1 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/evanw/esbuild v0.14.11 // indirect
+	github.com/fatih/structtag v1.2.0 // indirect
 	github.com/gedex/inflector v0.0.0-20170307190818-16278e9db813 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac // indirect

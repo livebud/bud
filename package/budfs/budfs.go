@@ -25,13 +25,12 @@ import (
 	"github.com/livebud/bud/package/log"
 )
 
-func New(fsys fs.FS, log log.Log) *FileSystem {
+func New(cache vcache.Cache, fsys fs.FS, log log.Log) *FileSystem {
 	// Exclude the underlying filesystem (often os) from contributing bud/* files.
 	// The bud/* directory is owned by the generator filesytem.
 	fsys = virtual.Exclude(fsys, func(path string) bool {
 		return path == "bud" || strings.HasPrefix(path, "bud/")
 	})
-	cache := vcache.New()
 	node := treefs.New(".")
 	mountfs := &mountFS{}
 	merged := mergefs.Merge(node, mountfs, fsys)

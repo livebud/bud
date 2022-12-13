@@ -1,64 +1,74 @@
 package bfs
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"io/fs"
 	"path/filepath"
 
 	"github.com/livebud/bud/internal/dsync"
+	"github.com/livebud/bud/internal/exe"
 
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/framework/app"
-	"github.com/livebud/bud/framework/controller"
-	"github.com/livebud/bud/framework/generator"
-	"github.com/livebud/bud/framework/public"
-	"github.com/livebud/bud/framework/transform/transformrt"
-	transform "github.com/livebud/bud/framework/transform2"
-	"github.com/livebud/bud/framework/view"
-	"github.com/livebud/bud/framework/view/dom"
-	"github.com/livebud/bud/framework/view/ssr"
-	"github.com/livebud/bud/framework/web"
+	"github.com/livebud/bud/framework/afs"
+	generator "github.com/livebud/bud/framework/generator2"
 	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
-	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/parser"
-	"github.com/livebud/bud/package/svelte"
+	"github.com/livebud/bud/package/remotefs"
+	"github.com/livebud/bud/package/virtual/vcache"
 )
 
 func Load(flag *framework.Flag, log log.Log, module *gomod.Module) (*FS, error) {
-	fsys := budfs.New(module, log)
+	fsys := budfs.New(vcache.Discard, module, log)
 	parser := parser.New(fsys, module)
 	injector := di.New(fsys, log, module, parser)
-	vm, err := v8.Load()
-	if err != nil {
-		return nil, err
+	// vm, err := v8.Load()
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// svelteCompiler, err := svelte.Load(vm)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// transforms, err := transformrt.Load(svelte.NewTransformable(svelteCompiler))
+	// if err != nil {
+	// 	return nil, err
+	// }
+	exec := &exe.Template{
+		Dir:    module.Directory(),
+		Env:    flag.Env,
+		Stderr: flag.Stderr,
+		Stdin:  flag.Stdin,
+		Stdout: flag.Stdout,
 	}
-	svelteCompiler, err := svelte.Load(vm)
-	if err != nil {
-		return nil, err
-	}
-	transforms, err := transformrt.Load(svelte.NewTransformable(svelteCompiler))
-	if err != nil {
-		return nil, err
-	}
-	fsys.FileGenerator("bud/internal/app/main.go", app.New(injector, module, flag))
-	fsys.FileGenerator("bud/internal/web/web.go", web.New(module, parser))
-	fsys.FileGenerator("bud/internal/web/controller/controller.go", controller.New(injector, module, parser))
-	fsys.FileGenerator("bud/internal/web/view/view.go", view.New(module, transforms, flag))
-	fsys.FileGenerator("bud/internal/web/public/public.go", public.New(flag, module))
-	fsys.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
-	fsys.FileServer("bud/view", dom.New(module, transforms.DOM))
-	fsys.FileServer("bud/node_modules", dom.NodeModules(module))
-	fsys.FileGenerator("bud/internal/generator/transform/transform.go", transform.New(flag, injector, log, module, parser))
-	fsys.FileGenerator("bud/command/.generate/main.go", generator.New(fsys, flag, injector, log, module, parser))
-	return &FS{fsys, module}, nil
+	generator := generator.New(log, module, parser)
+	fsys.FileGenerator("bud/internal/generator/generator.go", generator)
+	fsys.FileGenerator("bud/cmd/afs/main.go", afs.New(exec, injector, log, module))
+	// fsys.FileGenerator("bud/internal/app/main.go", app.New(injector, module, flag))
+	// fsys.FileGenerator("bud/internal/web/web.go", web.New(module, parser))
+	// fsys.FileGenerator("bud/internal/web/controller/controller.go", controller.New(injector, module, parser))
+	// fsys.FileGenerator("bud/internal/web/view/view.go", view.New(module, transforms, flag))
+	// fsys.FileGenerator("bud/internal/web/public/public.go", public.New(flag, module))
+	// fsys.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
+	// fsys.FileServer("bud/view", dom.New(module, transforms.DOM))
+	// fsys.FileServer("bud/node_modules", dom.NodeModules(module))
+	// fsys.FileGenerator("bud/internal/generator/transform/transform.go", transform.New(flag, injector, log, module, parser))
+	// fsys.FileGenerator("bud/command/.generate/main.go", generator.New(fsys, flag, injector, log, module, parser))
+	return &FS{exec, flag, fsys, generator, log, module, nil}, nil
 }
 
 type FS struct {
-	fsys   *budfs.FileSystem
-	module *gomod.Module
+	exec       *exe.Template
+	flag       *framework.Flag
+	fsys       *budfs.FileSystem
+	generators *generator.Generator
+	log        log.Log
+	module     *gomod.Module
+	process    *remotefs.Process // Starts out nil
 }
 
 func (f *FS) Open(name string) (fs.File, error) {
@@ -97,10 +107,12 @@ var syncDirs = [...]string{
 
 // Sync delegates to either sync
 func (f *FS) Sync(dirs ...string) error {
-	if len(dirs) == 0 {
-		return f.syncDefault()
-	}
-	return f.syncDirs(dirs...)
+	fmt.Println("generating...")
+	return f.Generate(context.Background(), f.flag, dirs...)
+	// if len(dirs) == 0 {
+	// 	return f.syncDefault()
+	// }
+	// return f.syncDirs(dirs...)
 }
 
 // syncDefault performs the sync used in `bud run`
@@ -130,10 +142,4 @@ func (f *FS) syncDirs(dirs ...string) error {
 	return nil
 }
 
-func (f *FS) Change(paths ...string) {
-	f.fsys.Change(paths...)
-}
-
-func (f *FS) Close() error {
-	return f.fsys.Close()
-}
+// REFACTOR

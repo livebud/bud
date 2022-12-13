@@ -13,6 +13,7 @@ import (
 )
 
 // ServeFrom serves the filesystem from a listener passed in by a parent process
+// TODO: remove once we replace framework/generator
 func ServeFrom(ctx context.Context, fsys fs.FS, prefix string) error {
 	if prefix == "" {
 		prefix = defaultPrefix

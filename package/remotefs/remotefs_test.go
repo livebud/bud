@@ -11,6 +11,7 @@ import (
 	"testing"
 	"testing/fstest"
 
+	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testsub"
 	"github.com/livebud/bud/package/remotefs"
@@ -152,11 +153,15 @@ func TestCommand(t *testing.T) {
 		is.NoErr(processfs.Close())
 	}
 	child := func(t testing.TB) {
-		ctx := context.Background()
 		fsys := fstest.MapFS{
 			"a.txt": &fstest.MapFile{Data: []byte("a")},
 		}
-		err := remotefs.ServeFrom(ctx, fsys, "BUD_REMOTEFS")
+		files := extrafile.Load("BUD_REMOTEFS")
+		is.True(len(files) > 0)
+		ln, err := socket.From(files[0])
+		is.NoErr(err)
+		defer ln.Close()
+		err = remotefs.Serve(fsys, ln)
 		is.NoErr(err)
 	}
 	testsub.Run(t, parent, child)
