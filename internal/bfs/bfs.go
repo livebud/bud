@@ -23,6 +23,7 @@ import (
 )
 
 func Load(flag *framework.Flag, log log.Log, module *gomod.Module) (*FS, error) {
+	// TODO: figure out how to re-enable caching
 	fsys := budfs.New(vcache.Discard, module, log)
 	parser := parser.New(fsys, module)
 	injector := di.New(fsys, log, module, parser)
