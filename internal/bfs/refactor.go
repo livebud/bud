@@ -12,6 +12,7 @@ import (
 	"github.com/livebud/bud/framework"
 	generator "github.com/livebud/bud/framework/generator2"
 	"github.com/livebud/bud/internal/dsync"
+	"github.com/livebud/bud/internal/errs"
 	"github.com/livebud/bud/internal/gobuild"
 	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/remotefs"
@@ -164,12 +165,22 @@ func (f *FS) Generate(ctx context.Context, flag *framework.Flag, paths ...string
 	return nil
 }
 
-func (f *FS) Change(paths ...string) {
+func (f *FS) Change(paths ...string) error {
+	if f.process != nil {
+		if err := f.process.Change(paths...); err != nil {
+			return err
+		}
+	}
 	f.fsys.Change(paths...)
+	return nil
 }
 
-func (f *FS) Close() error {
-	return f.fsys.Close()
+func (f *FS) Close() (err error) {
+	if f.process != nil {
+		err = errs.Join(err, f.process.Close())
+	}
+	err = errs.Join(err, f.fsys.Close())
+	return err
 }
 
 func needsBinary(paths []string) bool {

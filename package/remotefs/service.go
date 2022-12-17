@@ -84,3 +84,14 @@ func (s *Service) ReadDir(name string, vdes *[]fs.DirEntry) error {
 	}
 	return nil
 }
+
+type changer interface {
+	Change(path ...string)
+}
+
+func (s *Service) Change(paths []string, _ *struct{}) error {
+	if fsys, ok := s.fsys.(changer); ok {
+		fsys.Change(paths...)
+	}
+	return nil
+}
