@@ -143,7 +143,7 @@ func TestCommand(t *testing.T) {
 			Stderr: os.Stderr,
 			Stdout: os.Stdout,
 		}
-		processfs, err := command.Start(ctx, cmd.Path, cmd.Args...)
+		processfs, err := command.Start(ctx, cmd.Path, cmd.Args[1:]...)
 		is.NoErr(err)
 		defer processfs.Close()
 		code, err := fs.ReadFile(processfs, "a.txt")
