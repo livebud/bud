@@ -30,7 +30,7 @@ func Logger(level string) (log.Log, error) {
 
 // BudFS creates a new filesystem
 func BudFS(module *gomod.Module, log log.Log) *budfs.FileSystem {
-	return budfs.New(vcache.Discard, module, log)
+	return budfs.New(vcache.New(), module, log)
 }
 
 // Serve the remote filesystem

@@ -37,7 +37,7 @@ example.scratch.watch:
 	@ watch -- $(MAKE) example.scratch
 
 example.hn:
-	@ go run main.go -C example/hn -log=debug run
+	@ go run main.go -C example/hn run
 
 example.hn.embed:
 	@ (cd example/hn && npm link ../../livebud)

@@ -64,6 +64,10 @@ func (c *Client) ReadDir(name string) (des []fs.DirEntry, err error) {
 	return *vdes, nil
 }
 
+func (c *Client) Change(paths ...string) error {
+	return c.rpc.Call(c.ctx, "remotefs.Change", paths, nil)
+}
+
 func (c *Client) Close() error {
 	return c.rpc.Close()
 }

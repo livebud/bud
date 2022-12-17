@@ -91,6 +91,10 @@ func (p *Process) ReadDir(name string) (des []fs.DirEntry, err error) {
 	return p.client.ReadDir(name)
 }
 
+func (p *Process) Change(path ...string) error {
+	return p.client.Change(path...)
+}
+
 func (p *Process) Close() error {
 	if err := p.closer.Close(); err != nil {
 		return err
