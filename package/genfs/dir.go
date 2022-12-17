@@ -10,7 +10,8 @@ import (
 
 type Dir struct {
 	cache  Cache
-	genfs  *FileSystem
+	genfs  *fileSystem
+	linker Linker
 	path   string  // Current directory path
 	target string  // Final target path
 	radix  *radix  // Radix tree for matching generators
@@ -37,7 +38,7 @@ func (d *Dir) Mode() fs.FileMode {
 
 func (d *Dir) GenerateFile(path string, fn func(fsys FS, file *File) error) {
 	fpath := gopath.Join(d.path, path)
-	fileg := &fileGenerator{d.cache, fn, d.genfs, fpath}
+	fileg := &fileGenerator{d.cache, fn, d.genfs, d.linker, fpath}
 	d.radix.Insert(fpath, fileg)
 	d.filler.Insert(fpath, fs.FileMode(0))
 }
@@ -48,7 +49,7 @@ func (d *Dir) FileGenerator(path string, generator FileGenerator) {
 
 func (d *Dir) GenerateDir(path string, fn func(fsys FS, dir *Dir) error) {
 	fpath := gopath.Join(d.path, path)
-	dirg := &dirGenerator{d.cache, fn, d.genfs, fpath, d.radix, d.filler}
+	dirg := &dirGenerator{d.cache, fn, d.genfs, d.linker, fpath, d.radix, d.filler}
 	d.radix.Insert(fpath, dirg)
 	d.filler.Insert(fpath, fs.ModeDir)
 }
@@ -59,24 +60,13 @@ func (d *Dir) DirGenerator(path string, generator DirGenerator) {
 
 func (d *Dir) ServeFile(path string, fn func(fsys FS, file *File) error) {
 	fpath := gopath.Join(d.path, path)
-	server := &fileServer{d.cache, fn, d.genfs, fpath}
+	server := &fileServer{d.cache, fn, d.genfs, d.linker, fpath}
 	d.radix.Insert(fpath, server)
 	d.filler.Insert(fpath, fs.ModeDir)
 }
 
 func (d *Dir) FileServer(path string, server FileServer) {
 	d.ServeFile(path, server.ServeFile)
-}
-
-func (d *Dir) GenerateExternal(path string, fn func(fsys FS, file *ExternalFile) error) {
-	fpath := gopath.Join(d.path, path)
-	external := &externalGenerator{d.cache, fn, d.genfs, fpath}
-	d.radix.Insert(fpath, external)
-	d.filler.Insert(fpath, fs.FileMode(0))
-}
-
-func (d *Dir) ExternalGenerator(path string, generator ExternalGenerator) {
-	d.GenerateExternal(path, generator.GenerateExternal)
 }
 
 type DirGenerator interface {
@@ -92,7 +82,8 @@ func (fn GenerateDir) GenerateDir(fsys FS, dir *Dir) error {
 type dirGenerator struct {
 	cache  Cache
 	fn     func(fsys FS, dir *Dir) error
-	genfs  *FileSystem
+	genfs  *fileSystem
+	linker Linker
 	path   string
 	radix  *radix  // Radix tree for matching generators
 	filler *filler // Fill in missing files and dirs between generators
@@ -104,8 +95,8 @@ func (d *dirGenerator) Generate(target string) (fs.File, error) {
 		// TODO: wrap the entry file in a virtualDir
 		return nil, fmt.Errorf("cache get not implemented yet")
 	}
-	scopedFS := &scopedFS{d.cache, d.genfs, d.path}
-	dir := &Dir{d.cache, d.genfs, d.path, target, d.radix, d.filler}
+	scopedFS := &scopedFS{d.cache, d.genfs, d.path, d.linker}
+	dir := &Dir{d.cache, d.genfs, d.linker, d.path, target, d.radix, d.filler}
 	if err := d.fn(scopedFS, dir); err != nil {
 		return nil, err
 	}

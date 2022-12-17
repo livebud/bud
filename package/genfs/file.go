@@ -42,10 +42,11 @@ func (fn GenerateFile) GenerateFile(fsys FS, file *File) error {
 }
 
 type fileGenerator struct {
-	cache Cache
-	fn    func(fsys FS, file *File) error
-	genfs fs.FS
-	path  string
+	cache  Cache
+	fn     func(fsys FS, file *File) error
+	genfs  fs.FS
+	linker Linker
+	path   string
 }
 
 func (f *fileGenerator) Generate(target string) (fs.File, error) {
@@ -56,7 +57,7 @@ func (f *fileGenerator) Generate(target string) (fs.File, error) {
 		return virtual.New(entry), nil
 	}
 	file := &File{nil, f.path, target}
-	scoped := &scopedFS{f.cache, f.genfs, target}
+	scoped := &scopedFS{f.cache, f.genfs, target, f.linker}
 	if err := f.fn(scoped, file); err != nil {
 		return nil, err
 	}

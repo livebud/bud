@@ -12,6 +12,11 @@ import (
 	"github.com/livebud/bud/package/virtual"
 )
 
+type FileSystem interface {
+	fs.FS
+	Generators
+}
+
 type Generators interface {
 	GenerateFile(path string, fn func(fsys FS, file *File) error)
 	FileGenerator(path string, generator FileGenerator)
@@ -19,15 +24,15 @@ type Generators interface {
 	DirGenerator(path string, generator DirGenerator)
 	ServeFile(dir string, fn func(fsys FS, file *File) error)
 	FileServer(dir string, server FileServer)
-	GenerateExternal(path string, fn func(fsys FS, file *ExternalFile) error)
-	ExternalGenerator(path string, generator ExternalGenerator)
 }
 
 type Cache interface {
 	Get(name string) (entry virtual.Entry, ok bool)
 	Set(path string, entry virtual.Entry)
-	Link(from, to string)
-	Check(from string, checker func(path string) (changed bool))
+}
+
+type Linker interface {
+	Link(fromPattern string, toPatterns ...string) error
 }
 
 type FS interface {
@@ -37,63 +42,54 @@ type FS interface {
 	Watch(patterns ...string) error
 }
 
-func New(cache Cache, fsys fs.FS, log log.Log) *FileSystem {
+func New(cache Cache, fsys fs.FS, linker Linker, log log.Log) FileSystem {
 	filler := newFiller()
 	fsys = mergefs.Merge(fsys, filler)
-	return &FileSystem{cache, fsys, log, newRadix(), filler}
+	return &fileSystem{cache, fsys, linker, log, newRadix(), filler}
 }
 
-type FileSystem struct {
-	cache   Cache   // File cache that supports linking files together into a DAG
+type fileSystem struct {
+	cache   Cache   // File cache
 	mergefs fs.FS   // Merged external filesystem (local, remote, etc.) with filler
+	linker  Linker  // Link files into a DAG
 	log     log.Log // Log messages
 	radix   *radix  // Radix tree for matching generators
 	filler  *filler // Fill in missing files and dirs between generators
 }
 
-var _ Generators = (*FileSystem)(nil)
+var _ FileSystem = (*fileSystem)(nil)
 
-func (f *FileSystem) GenerateFile(path string, fn func(fsys FS, file *File) error) {
-	fileg := &fileGenerator{f.cache, fn, f, path}
+func (f *fileSystem) GenerateFile(path string, fn func(fsys FS, file *File) error) {
+	fileg := &fileGenerator{f.cache, fn, f, f.linker, path}
 	f.radix.Insert(path, fileg)
 	f.filler.Insert(path, fs.FileMode(0))
 }
 
-func (f *FileSystem) FileGenerator(path string, generator FileGenerator) {
+func (f *fileSystem) FileGenerator(path string, generator FileGenerator) {
 	f.GenerateFile(path, generator.GenerateFile)
 }
 
-func (f *FileSystem) GenerateDir(path string, fn func(fsys FS, dir *Dir) error) {
-	dirg := &dirGenerator{f.cache, fn, f, path, f.radix, f.filler}
+func (f *fileSystem) GenerateDir(path string, fn func(fsys FS, dir *Dir) error) {
+	dirg := &dirGenerator{f.cache, fn, f, f.linker, path, f.radix, f.filler}
 	f.radix.Insert(path, dirg)
 	f.filler.Insert(path, fs.ModeDir)
 }
 
-func (f *FileSystem) DirGenerator(path string, generator DirGenerator) {
+func (f *fileSystem) DirGenerator(path string, generator DirGenerator) {
 	f.GenerateDir(path, generator.GenerateDir)
 }
 
-func (f *FileSystem) ServeFile(dir string, fn func(fsys FS, file *File) error) {
-	server := &fileServer{f.cache, fn, f, dir}
+func (f *fileSystem) ServeFile(dir string, fn func(fsys FS, file *File) error) {
+	server := &fileServer{f.cache, fn, f, f.linker, dir}
 	f.radix.Insert(dir, server)
 	f.filler.Insert(dir, fs.ModeDir)
 }
 
-func (f *FileSystem) FileServer(dir string, server FileServer) {
+func (f *fileSystem) FileServer(dir string, server FileServer) {
 	f.ServeFile(dir, server.ServeFile)
 }
 
-func (f *FileSystem) GenerateExternal(path string, fn func(fsys FS, file *ExternalFile) error) {
-	external := &externalGenerator{f.cache, fn, f, path}
-	f.radix.Insert(path, external)
-	f.filler.Insert(path, fs.FileMode(0))
-}
-
-func (f *FileSystem) ExternalGenerator(path string, generator ExternalGenerator) {
-	f.GenerateExternal(path, generator.GenerateExternal)
-}
-
-func (f *FileSystem) Open(target string) (fs.File, error) {
+func (f *fileSystem) Open(target string) (fs.File, error) {
 	// Check that target is valid
 	if !fs.ValidPath(target) {
 		return nil, formatError(fs.ErrInvalid, "invalid target path %q", target)
@@ -101,7 +97,7 @@ func (f *FileSystem) Open(target string) (fs.File, error) {
 	return f.openAs("", target)
 }
 
-func (f *FileSystem) openAs(callerPath string, target string) (fs.File, error) {
+func (f *fileSystem) openAs(callerPath string, target string) (fs.File, error) {
 	if callerPath == target {
 		return nil, formatError(fs.ErrInvalid, "genfs: cycle detected %q", target)
 	}

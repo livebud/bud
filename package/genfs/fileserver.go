@@ -17,10 +17,11 @@ func (fn ServeFile) ServeFile(fsys FS, file *File) error {
 }
 
 type fileServer struct {
-	cache Cache
-	fn    func(fsys FS, file *File) error
-	genfs fs.FS
-	path  string
+	cache  Cache
+	fn     func(fsys FS, file *File) error
+	genfs  fs.FS
+	linker Linker
+	path   string
 }
 
 var _ generator = (*fileServer)(nil)
@@ -36,7 +37,7 @@ func (f *fileServer) Generate(target string) (fs.File, error) {
 			Mode: fs.ModeDir,
 		}), nil
 	}
-	scopedFS := &scopedFS{f.cache, f.genfs, f.path}
+	scopedFS := &scopedFS{f.cache, f.genfs, f.path, f.linker}
 	// File differs slightly than others because g.node.Path() is the directory
 	// path, but we want the target path for serving files.
 	file := &File{nil, f.path, target}
