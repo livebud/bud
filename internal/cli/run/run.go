@@ -254,7 +254,7 @@ func (a *appServer) Run(ctx context.Context) error {
 			return err
 		}
 		a.prompter.SuccessReload()
-		a.log.Debug("restarted the process in %d", time.Since(now))
+		a.log.Debug("restarted the process in %s", time.Since(now))
 		process = p
 		return nil
 	}))
