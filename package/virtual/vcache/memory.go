@@ -3,6 +3,7 @@ package vcache
 import (
 	"sync"
 
+	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/virtual"
 )
 
@@ -15,12 +16,13 @@ type Cache interface {
 	Clear()
 }
 
-func New() Cache {
-	return &memory{}
+func New(log log.Log) Cache {
+	return &memory{log, sync.Map{}}
 }
 
 type memory struct {
-	sm sync.Map
+	log log.Log
+	sm  sync.Map
 }
 
 func (c *memory) Has(path string) (ok bool) {

@@ -4,7 +4,9 @@ import (
 	"io/fs"
 	"testing"
 
-	"github.com/livebud/bud/package/budfs/treefs"
+	"github.com/livebud/bud/internal/genfs"
+	"github.com/livebud/bud/internal/pathlink"
+
 	"github.com/livebud/bud/package/log/testlog"
 
 	"github.com/livebud/bud/internal/is"
@@ -15,7 +17,8 @@ import (
 
 func TestStat(t *testing.T) {
 	is := is.New(t)
-	cache := vcache.New()
+	log := testlog.New()
+	cache := vcache.New(log)
 	cache.Set("go.mod", &virtual.File{
 		Path: "go.mod",
 		Data: []byte("module github.com/livebud/bud"),
@@ -35,17 +38,16 @@ func TestStat(t *testing.T) {
 func TestReadParentNoGenerate(t *testing.T) {
 	is := is.New(t)
 	log := testlog.New()
-	cache := vcache.New()
-	tfs := treefs.New(".")
+	cache := vcache.New(log)
+	linker := pathlink.Discard
+	gfs := genfs.New(cache, virtual.Map{}, linker, log)
 	generates := 0
-	tfs.FileGenerator("controller/controller.go", treefs.Generate(func(target string) (fs.File, error) {
+	gfs.GenerateFile("controller/controller.go", func(_ genfs.FS, file *genfs.File) error {
 		generates++
-		return virtual.New(&virtual.File{
-			Path: target,
-			Data: []byte("package controller"),
-		}), nil
-	}))
-	fsys := vcache.Wrap(cache, tfs, log)
+		file.Data = []byte("package controller")
+		return nil
+	})
+	fsys := vcache.Wrap(cache, gfs, log)
 	des, err := fs.ReadDir(fsys, "controller")
 	is.NoErr(err)
 	is.Equal(len(des), 1)

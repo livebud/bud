@@ -40,7 +40,7 @@ func (f *fileServer) Generate(target string) (fs.File, error) {
 	scopedFS := &scopedFS{f.cache, f.genfs, f.path, f.linker}
 	// File differs slightly than others because g.node.Path() is the directory
 	// path, but we want the target path for serving files.
-	file := &File{nil, f.path, target}
+	file := &File{nil, f.path, modeGenerator, target}
 	// g.fsys.log.Fields(log.Fields{
 	// 	"target": target,
 	// 	"path":   g.node.Path(),
@@ -50,7 +50,7 @@ func (f *fileServer) Generate(target string) (fs.File, error) {
 	}
 	vfile := &virtual.File{
 		Path: target,
-		Mode: fs.FileMode(0),
+		Mode: file.mode.FileMode(),
 		Data: file.Data,
 	}
 	f.cache.Set(target, vfile)

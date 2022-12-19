@@ -20,7 +20,6 @@ func (f *fillerDir) Generate(target string) (fs.File, error) {
 	}
 	children := f.node.Children()
 	var entries []fs.DirEntry
-	// TODO: run in parallel
 	for _, child := range children {
 		de := &dirEntry{child}
 		entries = append(entries, de)

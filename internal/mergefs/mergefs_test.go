@@ -8,7 +8,7 @@ import (
 	"testing/fstest"
 
 	"github.com/livebud/bud/internal/is"
-	"github.com/livebud/bud/package/budfs/mergefs"
+	"github.com/livebud/bud/internal/mergefs"
 )
 
 func TestMerge(t *testing.T) {

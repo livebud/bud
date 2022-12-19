@@ -3,6 +3,7 @@ package genfs
 import (
 	"io/fs"
 
+	"github.com/livebud/bud/internal/treefs"
 	"github.com/livebud/bud/package/virtual"
 )
 
@@ -12,6 +13,7 @@ type File struct {
 	// Target and path are the same when called within GenerateFile, but not
 	// always the same when called within ServeFile
 	path   string
+	mode   treefs.Mode
 	target string
 }
 
@@ -27,8 +29,8 @@ func (f *File) Path() string {
 	return f.path
 }
 
-func (f *File) Mode() fs.FileMode {
-	return fs.FileMode(0)
+func (f *File) Mode() treefs.Mode {
+	return f.mode
 }
 
 type FileGenerator interface {
@@ -56,7 +58,7 @@ func (f *fileGenerator) Generate(target string) (fs.File, error) {
 	if entry, ok := f.cache.Get(target); ok {
 		return virtual.New(entry), nil
 	}
-	file := &File{nil, f.path, target}
+	file := &File{nil, f.path, modeGenerator, target}
 	scoped := &scopedFS{f.cache, f.genfs, target, f.linker}
 	if err := f.fn(scoped, file); err != nil {
 		return nil, err
@@ -64,7 +66,7 @@ func (f *fileGenerator) Generate(target string) (fs.File, error) {
 	// TODO: Have File implement virtual.Entry and remove this
 	vfile := &virtual.File{
 		Path: f.path,
-		Mode: fs.FileMode(0),
+		Mode: file.mode.FileMode(),
 		Data: file.Data,
 	}
 	f.cache.Set(target, vfile)

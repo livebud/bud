@@ -7,9 +7,9 @@ import (
 
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/exe"
+	"github.com/livebud/bud/internal/genfs"
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/internal/imports"
-	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log"
@@ -36,7 +36,7 @@ type Generator struct {
 	module   *gomod.Module
 }
 
-func (g *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
+func (g *Generator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
 	if _, err := fs.Stat(fsys, "bud/internal/generator/generator.go"); err != nil {
 		return err
 	}
