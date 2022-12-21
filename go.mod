@@ -23,11 +23,13 @@ require (
 	github.com/matthewmueller/diff v0.0.0-20220104030700-cb2fe910d90c
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac
 	github.com/matthewmueller/text v0.0.0-20210424201111-ec1e4af8dfe8
+	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/otiai10/copy v1.7.0
 	github.com/pointlander/peg v1.0.1
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/timewasted/go-accept-headers v0.0.0-20130320203746-c78f304b1b09
 	github.com/xlab/treeprint v1.1.0
+	github.com/xo/dburl v0.13.0
 	go.kuoruan.net/v8go-polyfills v0.5.1-0.20220727011656-c74c5b408ebd
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
@@ -47,7 +49,7 @@ require (
 	github.com/livebud/bud-test-nested-plugin v0.0.5 // indirect
 	github.com/pointlander/compress v1.1.1-0.20190518213731-ff44bd196cc3 // indirect
 	github.com/pointlander/jetset v1.0.1-0.20190518214125-eee7eff80bd4 // indirect
-	github.com/rogpeppe/go-internal v1.8.1 // indirect
+	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/shurcooL/go-goon v0.0.0-20170922171312-37c2f522c041 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20220218215828-6cf2b201936e // indirect
