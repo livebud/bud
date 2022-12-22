@@ -2,61 +2,114 @@ package genfs
 
 import (
 	"errors"
+	"io"
 	"io/fs"
-	gopath "path"
+
+	"github.com/livebud/bud/internal/once"
 )
-
-// Wrap the file to override ReadDir so that ReadDir reads from the generated
-// files
-type wrapFile struct {
-	fs.File
-	genfs fs.FS
-	path  string
-}
-
-var _ fs.ReadDirFile = (*wrapFile)(nil)
 
 // errNotImplemented mirrors what fs.ReadDir returns when called on a file
 var errNotImplemented = errors.New("not implemented")
 
-// Override the default ReadDir so that file stat's can use the generated files
-func (d *wrapFile) ReadDir(n int) (des []fs.DirEntry, err error) {
-	dir, ok := d.File.(fs.ReadDirFile)
-	if !ok {
-		return nil, formatError(errNotImplemented, "cannot readdir %q", d.path)
+// Open a wrapped file. This is similar to a virtual file except that it calls
+// back to genfs as the filesystem for reading directories and getting info.
+func wrapFile(file fs.File, genfs fs.FS, path string) *wrappedFile {
+	return &wrappedFile{
+		File:  file,
+		genfs: genfs,
+		path:  path,
+
+		offset:      0,
+		readOnce:    new(once.Bytes),
+		readDirOnce: new(once.DirEntries),
+		statOnce:    new(once.FileInfo),
 	}
-	des, err = dir.ReadDir(n)
+}
+
+// Wrap the file to override ReadDir so that ReadDir reads from the generated
+// files
+type wrappedFile struct {
+	fs.File
+	genfs fs.FS
+	path  string
+
+	// stateful
+	offset      int64
+	readOnce    *once.Bytes
+	readDirOnce *once.DirEntries
+	statOnce    *once.FileInfo
+}
+
+var _ fs.File = (*wrappedFile)(nil)
+var _ fs.ReadDirFile = (*wrappedFile)(nil)
+var _ io.ReadSeeker = (*wrappedFile)(nil)
+
+func (w *wrappedFile) Read(b []byte) (int, error) {
+	data, err := w.readOnce.Do(func() ([]byte, error) { return io.ReadAll(w.File) })
+	if err != nil {
+		return 0, err
+	}
+	if w.offset >= int64(len(data)) {
+		return 0, io.EOF
+	}
+	if w.offset < 0 {
+		return 0, &fs.PathError{Op: "read", Path: w.path, Err: fs.ErrInvalid}
+	}
+	n := copy(b, data[w.offset:])
+	w.offset += int64(n)
+	return n, nil
+}
+
+func (w *wrappedFile) readDir(count int) (des []fs.DirEntry, err error) {
+	if _, ok := w.File.(fs.ReadDirFile); !ok {
+		return nil, formatError(errNotImplemented, "cannot readdir %q", w.path)
+	}
+	des, err = fs.ReadDir(w.genfs, w.path)
 	if err != nil {
 		return nil, err
 	}
-	dirEntries := make([]fs.DirEntry, len(des))
-	for i := range des {
-		dirEntries[i] = &dirEntry{d.genfs, des[i].Name(), des[i].Type(), gopath.Join(d.path, des[i].Name())}
+	return des, nil
+}
+
+// Override the default ReadDir so that file stat's can use the generated files
+func (w *wrappedFile) ReadDir(count int) (des []fs.DirEntry, err error) {
+	// Read directory entries at most once
+	des, err = w.readDirOnce.Do(func() ([]fs.DirEntry, error) { return w.readDir(count) })
+	if err != nil {
+		return nil, err
 	}
-	return dirEntries, nil
+	offset := int(w.offset)
+	n := len(des) - offset
+	if count > 0 && n > count {
+		n = count
+	}
+	if n == 0 && count > 0 {
+		return nil, io.EOF
+	}
+	entries := make([]fs.DirEntry, n)
+	for i := range entries {
+		entries[i] = des[offset+i]
+	}
+	w.offset += int64(n)
+	return entries, nil
 }
 
-type dirEntry struct {
-	genfs fs.FS
-	name  string
-	mode  fs.FileMode
-	path  string
-}
-
-var _ fs.DirEntry = (*dirEntry)(nil)
-
-func (d *dirEntry) Name() string {
-	return d.name
-}
-
-func (d *dirEntry) Type() fs.FileMode {
-	return d.mode
-}
-
-func (d *dirEntry) IsDir() bool {
-	return d.mode.IsDir()
-}
-
-func (d *dirEntry) Info() (fs.FileInfo, error) {
-	return fs.Stat(d.genfs, d.path)
+func (w *wrappedFile) Seek(offset int64, whence int) (int64, error) {
+	stat, err := w.statOnce.Do(func() (fs.FileInfo, error) { return w.File.Stat() })
+	if err != nil {
+		return 0, err
+	}
+	switch whence {
+	case 0:
+		// offset += 0
+	case 1:
+		offset += w.offset
+	case 2:
+		offset += stat.Size()
+	}
+	if offset < 0 || offset > stat.Size() {
+		return 0, &fs.PathError{Op: "seek", Path: w.path, Err: fs.ErrInvalid}
+	}
+	w.offset = offset
+	return offset, nil
 }
