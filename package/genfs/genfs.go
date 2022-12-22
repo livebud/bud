@@ -82,10 +82,10 @@ func (f *FileSystem) Open(target string) (fs.File, error) {
 	if !fs.ValidPath(target) {
 		return nil, formatError(fs.ErrInvalid, "invalid target path %q", target)
 	}
-	return f.openAs("", target)
+	return f.openFrom("", target)
 }
 
-func (f *FileSystem) openAs(previous string, target string) (fs.File, error) {
+func (f *FileSystem) openFrom(previous string, target string) (fs.File, error) {
 	// First look for an exact matching generator
 	node, found := f.tree.Find(target)
 	if found && node.Generator != nil {

@@ -96,7 +96,7 @@ func (d *dirGenerator) Generate(target string) (fs.File, error) {
 	}
 	// Traverse into the directory looking for the target
 	if d.path != target {
-		return d.genfs.openAs(d.path, target)
+		return d.genfs.openFrom(d.path, target)
 	}
 	entry := &virtual.Dir{
 		Path:    d.path,
