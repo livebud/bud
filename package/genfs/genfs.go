@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"strings"
 
+	"github.com/livebud/bud/internal/fsmode"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/virtual"
 )
@@ -22,8 +23,7 @@ type Generators interface {
 type Cache interface {
 	Get(name string) (entry virtual.Entry, ok bool)
 	Set(path string, entry virtual.Entry)
-	Link(from, to string)
-	Check(from string, checker func(path string) (changed bool))
+	Link(from string, toPatterns ...string) error
 }
 
 type FS interface {
@@ -52,7 +52,7 @@ var _ Generators = (*FileSystem)(nil)
 
 func (f *FileSystem) GenerateFile(path string, fn func(fsys FS, file *File) error) {
 	fileg := &fileGenerator{f.cache, fn, f, path}
-	f.tree.Insert(path, modeGen, fileg)
+	f.tree.Insert(path, fsmode.Gen, fileg)
 }
 
 func (f *FileSystem) FileGenerator(path string, generator FileGenerator) {
@@ -61,7 +61,7 @@ func (f *FileSystem) FileGenerator(path string, generator FileGenerator) {
 
 func (f *FileSystem) GenerateDir(path string, fn func(fsys FS, dir *Dir) error) {
 	dirg := &dirGenerator{f.cache, fn, f, path, f.tree}
-	f.tree.Insert(path, modeDir|modeGen, dirg)
+	f.tree.Insert(path, fsmode.GenDir, dirg)
 }
 
 func (f *FileSystem) DirGenerator(path string, generator DirGenerator) {
@@ -70,7 +70,7 @@ func (f *FileSystem) DirGenerator(path string, generator DirGenerator) {
 
 func (f *FileSystem) ServeFile(dir string, fn func(fsys FS, file *File) error) {
 	server := &fileServer{f.cache, fn, f, dir}
-	f.tree.Insert(dir, modeDir|modeGen, server)
+	f.tree.Insert(dir, fsmode.GenDir, server)
 }
 
 func (f *FileSystem) FileServer(dir string, server FileServer) {

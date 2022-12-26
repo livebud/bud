@@ -48,10 +48,9 @@ func (m *Memory) Delete(paths ...string) {
 	}
 }
 
-func (m *Memory) Link(from, to string) {
-	m.lm.Scope(from).Link("link", to)
-}
-
-func (m *Memory) Check(from string, checker func(path string) (changed bool)) {
-	m.lm.Scope(from).Select("check", checker)
+func (m *Memory) Link(from string, toPatterns ...string) error {
+	for _, to := range toPatterns {
+		m.lm.Scope(from).Link("link", to)
+	}
+	return nil
 }

@@ -16,7 +16,8 @@ func (discard) Get(name string) (entry virtual.Entry, ok bool) {
 func (discard) Set(path string, entry virtual.Entry) {
 }
 
-func (discard) Link(from, to string) {
+func (discard) Link(from string, toPatterns ...string) error {
+	return nil
 }
 
 func (discard) Check(from string, checker func(path string) (changed bool)) {

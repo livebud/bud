@@ -5,7 +5,7 @@ import "github.com/livebud/bud/package/virtual"
 type Mock struct {
 	MockGet   func(name string) (entry virtual.Entry, ok bool)
 	MockSet   func(path string, entry virtual.Entry)
-	MockLink  func(from, to string)
+	MockLink  func(from string, toPatterns ...string) error
 	MockCheck func(from string, checker func(path string) (changed bool))
 }
 
@@ -22,10 +22,11 @@ func (m *Mock) Set(path string, entry virtual.Entry) {
 	}
 }
 
-func (m *Mock) Link(from, to string) {
+func (m *Mock) Link(from string, toPatterns ...string) error {
 	if m.MockLink != nil {
-		m.MockLink(from, to)
+		return m.MockLink(from, toPatterns...)
 	}
+	return nil
 }
 
 func (m *Mock) Check(from string, checker func(path string) (changed bool)) {

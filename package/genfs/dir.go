@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	gopath "path"
 
+	"github.com/livebud/bud/internal/fsmode"
 	"github.com/livebud/bud/package/virtual"
 )
 
@@ -37,7 +38,7 @@ func (d *Dir) Mode() fs.FileMode {
 func (d *Dir) GenerateFile(path string, fn func(fsys FS, file *File) error) {
 	fpath := gopath.Join(d.path, path)
 	fileg := &fileGenerator{d.cache, fn, d.genfs, fpath}
-	d.tree.Insert(fpath, modeGen, fileg)
+	d.tree.Insert(fpath, fsmode.Gen, fileg)
 }
 
 func (d *Dir) FileGenerator(path string, generator FileGenerator) {
@@ -47,7 +48,7 @@ func (d *Dir) FileGenerator(path string, generator FileGenerator) {
 func (d *Dir) GenerateDir(path string, fn func(fsys FS, dir *Dir) error) {
 	fpath := gopath.Join(d.path, path)
 	dirg := &dirGenerator{d.cache, fn, d.genfs, fpath, d.tree}
-	d.tree.Insert(fpath, modeDir|modeGen, dirg)
+	d.tree.Insert(fpath, fsmode.GenDir, dirg)
 }
 
 func (d *Dir) DirGenerator(path string, generator DirGenerator) {
@@ -57,7 +58,7 @@ func (d *Dir) DirGenerator(path string, generator DirGenerator) {
 func (d *Dir) ServeFile(path string, fn func(fsys FS, file *File) error) {
 	fpath := gopath.Join(d.path, path)
 	server := &fileServer{d.cache, fn, d.genfs, fpath}
-	d.tree.Insert(fpath, modeDir|modeGen, server)
+	d.tree.Insert(fpath, fsmode.GenDir, server)
 }
 
 func (d *Dir) FileServer(path string, server FileServer) {

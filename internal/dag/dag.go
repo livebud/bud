@@ -11,7 +11,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-var ErrNotFound = fmt.Errorf("dcache: file not found")
+var ErrNotFound = fmt.Errorf("dag: file not found")
 
 type File struct {
 	Path  string
