@@ -18,6 +18,8 @@ type Generators interface {
 	DirGenerator(path string, generator DirGenerator)
 	ServeFile(dir string, fn func(fsys FS, file *File) error)
 	FileServer(dir string, server FileServer)
+	GenerateExternal(path string, fn func(fsys FS, file *External) error)
+	ExternalGenerator(path string, generator ExternalGenerator)
 }
 
 type Cache interface {
@@ -75,6 +77,14 @@ func (f *FileSystem) ServeFile(dir string, fn func(fsys FS, file *File) error) {
 
 func (f *FileSystem) FileServer(dir string, server FileServer) {
 	f.ServeFile(dir, server.ServeFile)
+}
+
+func (f *FileSystem) GenerateExternal(path string, fn func(fsys FS, file *External) error) {
+	fileg := &externalGenerator{f.cache, fn, f, path}
+	f.tree.Insert(path, fsmode.Gen, fileg)
+}
+func (f *FileSystem) ExternalGenerator(path string, generator ExternalGenerator) {
+	f.GenerateExternal(path, generator.GenerateExternal)
 }
 
 func (f *FileSystem) Open(target string) (fs.File, error) {

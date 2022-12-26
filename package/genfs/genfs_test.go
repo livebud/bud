@@ -17,6 +17,7 @@ import (
 
 	"github.com/livebud/bud/package/gomod"
 
+	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/fscache"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
@@ -1868,21 +1869,21 @@ func TestSeek(t *testing.T) {
 	// is.Equal(string(code), "a")
 }
 
-// func TestExternal(t *testing.T) {
-// 	is := is.New(t)
-// 	fsys := virtual.Map{}
-// 	log := testlog.New()
-// 	cache := fscache.Discard
-// 	bfs := genfs.New(cache, fsys, log)
-// 	bfs.GenerateDir("bud", func(_ genfs.FS, dir *genfs.Dir) error {
-// 		dir.GenerateExternal("app", func(_ genfs.FS, file *genfs.ExternalFile) error {
-// 			is.Equal(file.Target(), "bud/app")
-// 			return fsys.WriteFile(file.Target(), []byte("my app"), 0644)
-// 		})
-// 		return nil
-// 	})
-// 	is.NoErr(dsync.Dir(bfs, ".", fsys, "."))
-// 	code, err := fs.ReadFile(fsys, "bud/app")
-// 	is.NoErr(err)
-// 	is.Equal(string(code), "my app")
-// }
+func TestExternal(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Map{}
+	log := testlog.New()
+	cache := fscache.Discard
+	bfs := genfs.New(cache, fsys, log)
+	bfs.GenerateDir("bud", func(_ genfs.FS, dir *genfs.Dir) error {
+		dir.GenerateExternal("app", func(_ genfs.FS, file *genfs.External) error {
+			is.Equal(file.Target(), "bud/app")
+			return fsys.WriteFile(file.Target(), []byte("my app"), 0644)
+		})
+		return nil
+	})
+	is.NoErr(dsync.Dir(bfs, ".", fsys, "."))
+	code, err := fs.ReadFile(fsys, "bud/app")
+	is.NoErr(err)
+	is.Equal(string(code), "my app")
+}

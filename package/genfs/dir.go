@@ -65,6 +65,15 @@ func (d *Dir) FileServer(path string, server FileServer) {
 	d.ServeFile(path, server.ServeFile)
 }
 
+func (d *Dir) GenerateExternal(path string, fn func(fsys FS, file *External) error) {
+	fpath := gopath.Join(d.path, path)
+	fileg := &externalGenerator{d.cache, fn, d.genfs, fpath}
+	d.tree.Insert(fpath, fsmode.Gen, fileg)
+}
+func (d *Dir) ExternalGenerator(path string, generator ExternalGenerator) {
+	d.GenerateExternal(path, generator.GenerateExternal)
+}
+
 type DirGenerator interface {
 	GenerateDir(fsys FS, dir *Dir) error
 }
