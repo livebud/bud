@@ -3,7 +3,7 @@ package genfs
 import (
 	"io/fs"
 
-	"github.com/livebud/bud/package/virtual"
+	"github.com/livebud/bud/package/virt"
 )
 
 type External struct {
@@ -33,7 +33,7 @@ func (e *externalGenerator) Generate(target string) (fs.File, error) {
 	if target != e.path {
 		return nil, formatError(fs.ErrNotExist, "%q path doesn't match %q target", e.path, target)
 	}
-	if _, ok := e.cache.Get(target); ok {
+	if _, err := e.cache.Get(target); err == nil {
 		return nil, fs.ErrNotExist
 	}
 	scoped := &scopedFS{e.cache, e.genfs, target}
@@ -41,9 +41,12 @@ func (e *externalGenerator) Generate(target string) (fs.File, error) {
 	if err := e.fn(scoped, file); err != nil {
 		return nil, err
 	}
-	vfile := &virtual.File{
-		Path: e.path,
+	vfile := &virt.File{
+		Path: target,
+		Mode: file.Mode(),
 	}
-	e.cache.Set(target, vfile)
+	if err := e.cache.Set(target, vfile); err != nil {
+		return nil, err
+	}
 	return nil, fs.ErrNotExist
 }

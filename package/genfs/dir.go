@@ -6,7 +6,7 @@ import (
 	gopath "path"
 
 	"github.com/livebud/bud/internal/fsmode"
-	"github.com/livebud/bud/package/virtual"
+	"github.com/livebud/bud/package/virt"
 )
 
 type Dir struct {
@@ -93,7 +93,7 @@ type dirGenerator struct {
 }
 
 func (d *dirGenerator) Generate(target string) (fs.File, error) {
-	if entry, ok := d.cache.Get(d.path); ok {
+	if entry, err := d.cache.Get(d.path); err == nil {
 		_ = entry
 		// TODO: wrap the entry file in a virtualDir
 		return nil, fmt.Errorf("cache get not implemented yet")
@@ -108,13 +108,15 @@ func (d *dirGenerator) Generate(target string) (fs.File, error) {
 	if d.path != target {
 		return d.genfs.openFrom(d.path, target)
 	}
-	entry := &virtual.Dir{
+	entry := &virt.File{
 		Path:    d.path,
 		Mode:    fs.ModeDir,
 		Entries: nil, // Entries get filled in on-demand.
 	}
 	// Cache the directory entry
-	// d.cache.Set(d.path, entry)
+	if err := d.cache.Set(d.path, entry); err != nil {
+		return nil, err
+	}
 	// Return the virtual directory
-	return wrapFile(virtual.New(entry), d.genfs, d.path), nil
+	return wrapFile(virt.Open(entry), d.genfs, d.path), nil
 }

@@ -1,7 +1,7 @@
 package dag_test
 
 import (
-	"context"
+	"bytes"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -10,25 +10,26 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/livebud/bud/internal/testsub"
+	"github.com/livebud/bud/package/virt"
 
 	"github.com/livebud/bud/internal/dag"
 	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/internal/testsub"
 )
 
 const dbPath = ":memory:"
 
-func TestPutGet(t *testing.T) {
+func TestSetGet(t *testing.T) {
 	is := is.New(t)
-	ctx := context.Background()
-	cache, err := dag.Load(ctx, dbPath)
+	fsys := virt.Map{}
+	cache, err := dag.Load(fsys, dbPath)
 	is.NoErr(err)
 	defer cache.Close()
-	is.NoErr(cache.Put(ctx, "a.txt", &dag.File{
+	is.NoErr(cache.Set("a.txt", &virt.File{
 		Data: []byte("a.txt"),
 		Mode: 0644,
 	}))
-	file, err := cache.Get(ctx, "a.txt")
+	file, err := cache.Get("a.txt")
 	is.NoErr(err)
 	is.Equal(file.Data, []byte("a.txt"))
 	is.Equal(file.Mode, fs.FileMode(0644))
@@ -36,88 +37,86 @@ func TestPutGet(t *testing.T) {
 
 func TestGetNotFound(t *testing.T) {
 	is := is.New(t)
-	ctx := context.Background()
-	cache, err := dag.Load(ctx, dbPath)
+	fsys := virt.Map{}
+	cache, err := dag.Load(fsys, dbPath)
 	is.NoErr(err)
 	defer cache.Close()
-	file, err := cache.Get(ctx, "a.txt")
+	file, err := cache.Get("a.txt")
 	is.True(errors.Is(err, dag.ErrNotFound))
 	is.Equal(file, nil)
 }
 
-func seed(ctx context.Context, is *is.I, cache dag.Cache) {
-	is.NoErr(cache.Put(ctx, "a.txt", &dag.File{
-		Data:  []byte("a.txt"),
-		Mode:  0644,
-		Links: []string{"b.txt", "c.txt"},
+func seed(is *is.I, cache *dag.Cache) {
+	is.NoErr(cache.Set("a.txt", &virt.File{
+		Data: []byte("a.txt"),
+		Mode: 0644,
 	}))
-	is.NoErr(cache.Put(ctx, "b.txt", &dag.File{
-		Data:  []byte("b.txt"),
-		Mode:  0644,
-		Links: []string{"e.txt"},
+	is.NoErr(cache.Link("a.txt", "b.txt", "c.txt"))
+	is.NoErr(cache.Set("b.txt", &virt.File{
+		Data: []byte("b.txt"),
+		Mode: 0644,
 	}))
-	is.NoErr(cache.Put(ctx, "e.txt", &dag.File{
-		Data:  []byte("e.txt"),
-		Mode:  0644,
-		Links: []string{},
+	is.NoErr(cache.Link("b.txt", "e.txt"))
+	is.NoErr(cache.Set("e.txt", &virt.File{
+		Data: []byte("e.txt"),
+		Mode: 0644,
 	}))
-	is.NoErr(cache.Put(ctx, "c.txt", &dag.File{
-		Data:  []byte("c.txt"),
-		Mode:  0644,
-		Links: []string{"d.txt"},
+	is.NoErr(cache.Set("c.txt", &virt.File{
+		Data: []byte("c.txt"),
+		Mode: 0644,
 	}))
-	is.NoErr(cache.Put(ctx, "d.txt", &dag.File{
-		Data:  []byte("d.txt"),
-		Mode:  0644,
-		Links: []string{"f.txt"},
+	is.NoErr(cache.Link("c.txt", "d.txt"))
+	is.NoErr(cache.Set("d.txt", &virt.File{
+		Data: []byte("d.txt"),
+		Mode: 0644,
 	}))
-	is.NoErr(cache.Put(ctx, "f.txt", &dag.File{
-		Data:  []byte("f.txt"),
-		Mode:  0644,
-		Links: []string{},
+	is.NoErr(cache.Link("d.txt", "f.txt"))
+	is.NoErr(cache.Set("f.txt", &virt.File{
+		Data: []byte("f.txt"),
+		Mode: 0644,
 	}))
 }
 
 func TestAncestors(t *testing.T) {
 	is := is.New(t)
-	ctx := context.Background()
-	cache, err := dag.Load(ctx, dbPath)
+	fsys := virt.Map{}
+	cache, err := dag.Load(fsys, dbPath)
 	is.NoErr(err)
 	defer cache.Close()
-	seed(ctx, is, cache)
-	paths, err := cache.Ancestors(ctx, "a.txt")
+	seed(is, cache)
+	paths, err := cache.Ancestors("a.txt")
 	is.NoErr(err)
 	is.Equal(len(paths), 0)
-	paths, err = cache.Ancestors(ctx, "c.txt")
+	paths, err = cache.Ancestors("c.txt")
 	is.NoErr(err)
 	is.Equal(paths, []string{"a.txt"})
-	paths, err = cache.Ancestors(ctx, "c.txt", "e.txt")
+	paths, err = cache.Ancestors("c.txt", "e.txt")
 	is.NoErr(err)
 	is.Equal(paths, []string{"a.txt", "b.txt"})
-	paths, err = cache.Ancestors(ctx, "f.txt", "e.txt")
+	paths, err = cache.Ancestors("f.txt", "e.txt")
 	is.NoErr(err)
 	is.Equal(paths, []string{"a.txt", "b.txt", "c.txt", "d.txt"})
 }
 
 func TestDelete(t *testing.T) {
 	is := is.New(t)
-	ctx := context.Background()
-	cache, err := dag.Load(ctx, dbPath)
+	fsys := virt.Map{}
+	cache, err := dag.Load(fsys, dbPath)
 	is.NoErr(err)
 	defer cache.Close()
-	seed(ctx, is, cache)
+	seed(is, cache)
 	// Changing c.txt deletes c.txt and a.txt
-	err = cache.Delete(ctx, "c.txt")
+	err = cache.Delete("c.txt")
 	is.NoErr(err)
 
-	file, err := cache.Get(ctx, "a.txt")
+	file, err := cache.Get("a.txt")
 	is.True(errors.Is(err, dag.ErrNotFound))
 	is.Equal(file, nil)
-	file, err = cache.Get(ctx, "c.txt")
+	file, err = cache.Get("c.txt")
 	is.True(errors.Is(err, dag.ErrNotFound))
 	is.Equal(file, nil)
 
-	files, err := cache.Files(ctx)
+	files, err := cache.Files()
 	is.NoErr(err)
 	is.Equal(len(files), 4)
 	is.Equal(files[0].Path, "b.txt")
@@ -125,7 +124,7 @@ func TestDelete(t *testing.T) {
 	is.Equal(files[2].Path, "e.txt")
 	is.Equal(files[3].Path, "f.txt")
 
-	links, err := cache.Links(ctx)
+	links, err := cache.Links()
 	is.NoErr(err)
 	is.Equal(len(links), 2)
 	is.Equal(links[0].From, "b.txt")
@@ -136,14 +135,15 @@ func TestDelete(t *testing.T) {
 
 func TestPrint(t *testing.T) {
 	is := is.New(t)
-	ctx := context.Background()
-	cache, err := dag.Load(ctx, dbPath)
+	fsys := virt.Map{}
+	cache, err := dag.Load(fsys, dbPath)
 	is.NoErr(err)
 	defer cache.Close()
-	seed(ctx, is, cache)
-	dot, err := cache.Print(ctx)
+	seed(is, cache)
+	dot := new(bytes.Buffer)
+	err = cache.Print(dot)
 	is.NoErr(err)
-	is.Equal(dot, `digraph dag {
+	is.Equal(dot.String(), `digraph dag {
 	"a.txt"
 	"b.txt"
 	"c.txt"
@@ -161,12 +161,12 @@ func TestPrint(t *testing.T) {
 
 func TestManyWrites(t *testing.T) {
 	is := is.New(t)
-	ctx := context.Background()
-	cache, err := dag.Load(ctx, dbPath)
+	fsys := virt.Map{}
+	cache, err := dag.Load(fsys, dbPath)
 	is.NoErr(err)
 	defer cache.Close()
 	for i := 0; i < 100; i++ {
-		is.NoErr(cache.Put(ctx, fmt.Sprintf("%d.txt", i), &dag.File{
+		is.NoErr(cache.Set(fmt.Sprintf("%d.txt", i), &virt.File{
 			Data: []byte(fmt.Sprintf("%d.txt", i)),
 		}))
 	}
@@ -174,10 +174,10 @@ func TestManyWrites(t *testing.T) {
 
 func TestConcurrentWrites(t *testing.T) {
 	is := is.New(t)
-	ctx := context.Background()
+	fsys := virt.Map{}
 	parent := func(t testing.TB, cmd *exec.Cmd) {
 		dbPath := filepath.Join(t.TempDir(), "test_concurrent_writes.db")
-		cache, err := dag.Load(ctx, dbPath)
+		cache, err := dag.Load(fsys, dbPath)
 		is.NoErr(err)
 		defer cache.Close()
 		cmd.Stdout = os.Stdout
@@ -185,7 +185,7 @@ func TestConcurrentWrites(t *testing.T) {
 		cmd.Env = append(cmd.Env, "DBPATH="+dbPath)
 		is.NoErr(cmd.Start())
 		for i := 0; i < 100; i++ {
-			is.NoErr(cache.Put(ctx, fmt.Sprintf("%d.txt", i), &dag.File{
+			is.NoErr(cache.Set(fmt.Sprintf("%d.txt", i), &virt.File{
 				Data: []byte(fmt.Sprintf("%d.txt", i)),
 			}))
 		}
@@ -193,11 +193,11 @@ func TestConcurrentWrites(t *testing.T) {
 	}
 	child := func(t testing.TB) {
 		dbPath := os.Getenv("DBPATH")
-		cache, err := dag.Load(ctx, dbPath)
+		cache, err := dag.Load(fsys, dbPath)
 		is.NoErr(err)
 		defer cache.Close()
 		for i := 100; i < 200; i++ {
-			is.NoErr(cache.Put(ctx, fmt.Sprintf("%d.txt", i), &dag.File{
+			is.NoErr(cache.Set(fmt.Sprintf("%d.txt", i), &virt.File{
 				Data: []byte(fmt.Sprintf("%d.txt", i)),
 			}))
 		}

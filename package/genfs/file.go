@@ -3,7 +3,7 @@ package genfs
 import (
 	"io/fs"
 
-	"github.com/livebud/bud/package/virtual"
+	"github.com/livebud/bud/package/virt"
 )
 
 type File struct {
@@ -52,20 +52,21 @@ func (f *fileGenerator) Generate(target string) (fs.File, error) {
 	if target != f.path {
 		return nil, formatError(fs.ErrNotExist, "%q path doesn't match %q target", f.path, target)
 	}
-	if entry, ok := f.cache.Get(target); ok {
-		return virtual.New(entry), nil
+	if file, err := f.cache.Get(target); err == nil {
+		return virt.Open(file), nil
 	}
 	file := &File{nil, f.path, target}
 	scoped := &scopedFS{f.cache, f.genfs, target}
 	if err := f.fn(scoped, file); err != nil {
 		return nil, err
 	}
-	// TODO: Have File implement virtual.Entry and remove this
-	vfile := &virtual.File{
-		Path: f.path,
+	vfile := &virt.File{
+		Path: target,
 		Mode: fs.FileMode(0),
 		Data: file.Data,
 	}
-	f.cache.Set(target, vfile)
-	return virtual.New(vfile), nil
+	if err := f.cache.Set(target, vfile); err != nil {
+		return nil, err
+	}
+	return virt.Open(vfile), nil
 }

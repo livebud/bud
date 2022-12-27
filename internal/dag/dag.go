@@ -1,13 +1,16 @@
 package dag
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
+	"sort"
 	"strings"
 
+	"github.com/livebud/bud/package/genfs"
+	"github.com/livebud/bud/package/virt"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -25,22 +28,15 @@ type Link struct {
 	To   string
 }
 
-type Cache interface {
-	Get(ctx context.Context, path string) (*File, error)
-	Put(ctx context.Context, path string, file *File) error
-	Delete(ctx context.Context, paths ...string) error
-	Close() error
-}
-
-func Load(ctx context.Context, dbPath string) (*cache, error) {
+func Load(fsys fs.FS, path string) (*Cache, error) {
 	// Open the SQLite database
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("sqlite3", path)
 	if err != nil {
 		return nil, err
 	}
 
 	// Create the files and links tables.
-	if _, err := db.ExecContext(ctx, `
+	if _, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS files (
 			path TEXT PRIMARY KEY,
 			data BLOB,
@@ -49,7 +45,7 @@ func Load(ctx context.Context, dbPath string) (*cache, error) {
 	`); err != nil {
 		return nil, err
 	}
-	if _, err := db.ExecContext(ctx, `
+	if _, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS links (
 			from_path TEXT,
 			to_path TEXT,
@@ -61,154 +57,104 @@ func Load(ctx context.Context, dbPath string) (*cache, error) {
 		return nil, err
 	}
 
-	return &cache{db}, nil
+	return &Cache{fsys, db}, nil
 }
 
-type cache struct {
-	db *sql.DB
+type Cache struct {
+	fsys fs.FS
+	db   *sql.DB
 }
 
-var _ Cache = (*cache)(nil)
+var _ genfs.Cache = (*Cache)(nil)
 
-func (c *cache) Put(ctx context.Context, path string, file *File) error {
+func (c *Cache) Set(path string, file *virt.File) error {
 	file.Path = path
-
-	// Start a transaction.
-	tx, err := c.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
 	// Insert the file into the files table.
-	if _, err := tx.Exec(`
+	if _, err := c.db.Exec(`
 		INSERT INTO files (path, data, mode)
 		VALUES (?, ?, ?)
-	`, path, file.Data, file.Mode); err != nil {
+	`, file.Path, file.Data, file.Mode); err != nil {
 		return err
 	}
-
-	// Insert the links of the file into the links table.
-	for _, to := range file.Links {
-		if _, err := tx.Exec(`
-			INSERT INTO links (from_path, to_path)
-			VALUES (?, ?)
-		`, path, to); err != nil {
-			return err
-		}
-	}
-
-	return tx.Commit()
+	return nil
 }
 
-func (c *cache) Get(ctx context.Context, path string) (*File, error) {
+func (c *Cache) Get(path string) (*virt.File, error) {
 	row := c.db.QueryRow(`
 		SELECT path, data, mode
 		FROM files
 		WHERE path = ?
 	`, path)
-	var file File
+	file := new(virt.File)
 	if err := row.Scan(&file.Path, &file.Data, &file.Mode); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("%w %q", ErrNotFound, path)
 		}
 		return nil, err
 	}
+	return file, nil
+}
 
-	// Retrieve the links of the file.
-	rows, err := c.db.Query(`
-		SELECT to_path
-		FROM links
-		WHERE from_path = ?
-	`, path)
-	if err != nil {
-		return nil, err
+func (c *Cache) Link(from string, toPatterns ...string) error {
+	params := make([]interface{}, len(toPatterns)*2)
+	for i, to := range toPatterns {
+		params[i*2] = from
+		params[i*2+1] = to
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var to string
-		if err := rows.Scan(&to); err != nil {
-			return nil, err
+	// Insert the links of the file into the links table.
+	sql := new(strings.Builder)
+	sql.WriteString(`INSERT INTO links (from_path, to_path) VALUES `)
+	for i := range toPatterns {
+		if i > 0 {
+			sql.WriteString(", ")
 		}
-		file.Links = append(file.Links, to)
+		sql.WriteString(`(?, ?)`)
 	}
-	if err := rows.Err(); err != nil {
-		return nil, err
+	if _, err := c.db.Exec(sql.String(), params...); err != nil {
+		return err
 	}
-
-	return &file, nil
+	return nil
 }
 
 // Ancestors returns all the ancestor paths. Those that depend on the given
 // paths.
-func (c *cache) Ancestors(ctx context.Context, paths ...string) (deps []string, err error) {
-	// Start a transaction.
-	tx, err := c.db.Begin()
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-	deps, err = c.ancestors(ctx, tx, paths...)
-	if err != nil {
-		return nil, err
-	}
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-	return deps, nil
-}
-
-func (c *cache) ancestors(ctx context.Context, tx *sql.Tx, paths ...string) (deps []string, err error) {
-	params := make([]interface{}, len(paths))
-	for i, path := range paths {
-		params[i] = path
-	}
-	// Use a recursive CTE to retrieve the deps of the file.
-	sql := `
-		WITH RECURSIVE deps AS (
+func (c *Cache) Ancestors(paths ...string) (deps []string, err error) {
+	visited := make(map[string]bool)
+	for i := 0; i < len(paths); i++ {
+		const sql = `
 			SELECT from_path
 			FROM links
-			WHERE to_path IN ` + parameterize(len(params)) + `
-			UNION ALL
-			SELECT links.from_path
-			FROM links
-			JOIN deps
-			ON links.to_path = deps.from_path
-		)
-		SELECT DISTINCT from_path
-		FROM deps
-		ORDER BY from_path
-	`
-	rows, err := tx.QueryContext(ctx, sql, params...)
-
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var to string
-		if err := rows.Scan(&to); err != nil {
+			WHERE to_path = ?
+		`
+		rows, err := c.db.Query(sql, paths[i])
+		if err != nil {
 			return nil, err
 		}
-		deps = append(deps, to)
+		defer rows.Close()
+		for rows.Next() {
+			var from string
+			if err := rows.Scan(&from); err != nil {
+				return nil, err
+			}
+			if !visited[from] {
+				paths = append(paths, from)
+				deps = append(deps, from)
+				visited[from] = true
+			}
+		}
+		if err := rows.Err(); err != nil {
+			return nil, err
+		} else if err := rows.Close(); err != nil {
+			return nil, err
+		}
 	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
+	sort.Strings(deps)
 	return deps, nil
 }
 
-func (c *cache) Delete(ctx context.Context, paths ...string) error {
-	// Start a transaction
-	tx, err := c.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
+func (c *Cache) Delete(paths ...string) error {
 	// Get all the ancestors paths
-	ancestors, err := c.ancestors(ctx, tx, paths...)
+	ancestors, err := c.Ancestors(paths...)
 	if err != nil {
 		return err
 	}
@@ -225,7 +171,7 @@ func (c *cache) Delete(ctx context.Context, paths ...string) error {
 		DELETE FROM files
 		WHERE path IN ` + parameterize(len(params)) + `
 	`
-	_, err = tx.ExecContext(ctx, sql, params...)
+	_, err = c.db.Exec(sql, params...)
 	if err != nil {
 		return err
 	}
@@ -236,12 +182,12 @@ func (c *cache) Delete(ctx context.Context, paths ...string) error {
 		WHERE to_path IN ` + parameterize(len(params)) + `
 		OR from_path IN ` + parameterize(len(params)) + `
 	`
-	_, err = tx.ExecContext(ctx, sql, append(params, params...)...)
+	_, err = c.db.Exec(sql, append(params, params...)...)
 	if err != nil {
 		return err
 	}
 
-	return tx.Commit()
+	return nil
 }
 
 func parameterize(n int) string {
@@ -256,8 +202,8 @@ func parameterize(n int) string {
 	return out
 }
 
-func (c *cache) Files(ctx context.Context) ([]*File, error) {
-	rows, err := c.db.QueryContext(ctx, `
+func (c *Cache) Files() ([]*File, error) {
+	rows, err := c.db.Query(`
 		SELECT path, data, mode
 		FROM files
 		ORDER BY path
@@ -280,8 +226,8 @@ func (c *cache) Files(ctx context.Context) ([]*File, error) {
 	return files, nil
 }
 
-func (c *cache) Links(ctx context.Context) ([]*Link, error) {
-	rows, err := c.db.QueryContext(ctx, `
+func (c *Cache) Links() ([]*Link, error) {
+	rows, err := c.db.Query(`
 		SELECT from_path, to_path
 		FROM links
 		ORDER BY from_path, to_path
@@ -306,28 +252,27 @@ func (c *cache) Links(ctx context.Context) ([]*Link, error) {
 
 // Print the DAG in a dot graph format. That you can paste in here:
 // https://dreampuf.github.io/GraphvizOnline
-func (c *cache) Print(ctx context.Context) (string, error) {
-	out := new(strings.Builder)
+func (c *Cache) Print(w io.Writer) error {
 	// Open the digraph
-	out.WriteString("digraph dag {\n")
+	fmt.Fprintf(w, "digraph dag {\n")
 	// Print the nodes of the graph.
 	rows, err := c.db.Query(`
 		SELECT path
 		FROM files
 	`)
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var path string
 		if err := rows.Scan(&path); err != nil {
-			return "", err
+			return err
 		}
-		fmt.Fprintf(out, "\t%[1]q\n", path)
+		fmt.Fprintf(w, "\t%[1]q\n", path)
 	}
 	if err := rows.Err(); err != nil {
-		return "", err
+		return err
 	}
 	// Print the edges of the graph.
 	rows, err = c.db.Query(`
@@ -335,24 +280,24 @@ func (c *cache) Print(ctx context.Context) (string, error) {
 		FROM links
 	`)
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var from, to string
 		if err := rows.Scan(&from, &to); err != nil {
-			return "", err
+			return err
 		}
-		fmt.Fprintf(out, "\t%q -> %q\n", from, to)
+		fmt.Fprintf(w, "\t%q -> %q\n", from, to)
 	}
 	if err := rows.Err(); err != nil {
-		return "", err
+		return err
 	}
 	// Close the graph.
-	out.WriteString("}\n")
-	return out.String(), nil
+	fmt.Fprintf(w, "}\n")
+	return nil
 }
 
-func (c *cache) Close() error {
+func (c *Cache) Close() error {
 	return c.db.Close()
 }

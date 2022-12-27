@@ -3,7 +3,7 @@ package genfs
 import (
 	"io/fs"
 
-	"github.com/livebud/bud/package/virtual"
+	"github.com/livebud/bud/package/virt"
 )
 
 type FileServer interface {
@@ -26,12 +26,12 @@ type fileServer struct {
 var _ generator = (*fileServer)(nil)
 
 func (f *fileServer) Generate(target string) (fs.File, error) {
-	if entry, ok := f.cache.Get(target); ok {
-		return virtual.New(entry), nil
+	if file, err := f.cache.Get(target); err == nil {
+		return virt.Open(file), nil
 	}
 	// Always return an empty directory if we request the root
 	if f.path == target {
-		return virtual.New(&virtual.Dir{
+		return virt.Open(&virt.File{
 			Path: f.path,
 			Mode: fs.ModeDir,
 		}), nil
@@ -47,11 +47,13 @@ func (f *fileServer) Generate(target string) (fs.File, error) {
 	if err := f.fn(scopedFS, file); err != nil {
 		return nil, err
 	}
-	vfile := &virtual.File{
+	vfile := &virt.File{
 		Path: target,
 		Mode: fs.FileMode(0),
 		Data: file.Data,
 	}
-	f.cache.Set(target, vfile)
-	return virtual.New(vfile), nil
+	if err := f.cache.Set(target, vfile); err != nil {
+		return nil, err
+	}
+	return virt.Open(vfile), nil
 }

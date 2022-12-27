@@ -8,7 +8,7 @@ import (
 
 	"github.com/livebud/bud/internal/fsmode"
 	"github.com/livebud/bud/package/log"
-	"github.com/livebud/bud/package/virtual"
+	"github.com/livebud/bud/package/virt"
 )
 
 type Generators interface {
@@ -23,8 +23,8 @@ type Generators interface {
 }
 
 type Cache interface {
-	Get(name string) (entry virtual.Entry, ok bool)
-	Set(path string, entry virtual.Entry)
+	Get(path string) (*virt.File, error)
+	Set(path string, file *virt.File) error
 	Link(from string, toPatterns ...string) error
 }
 
@@ -114,7 +114,7 @@ func (f *FileSystem) openFrom(previous string, target string) (fs.File, error) {
 	// Next, if we did find a generator node above, return it now. It'll be a
 	// filler directory, not a generator.
 	if found && node.Mode.IsDir() {
-		dir := virtual.New(&virtual.Dir{
+		dir := virt.Open(&virt.File{
 			Path: target,
 			Mode: node.Mode.FileMode(),
 		})
