@@ -1,211 +1,303 @@
 package dag
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
+	"io"
+	"io/fs"
 	"sort"
 	"strings"
-	"sync"
+
+	"github.com/livebud/bud/package/genfs"
+	"github.com/livebud/bud/package/virt"
+	_ "github.com/mattn/go-sqlite3"
 )
 
-func New() *Graph {
-	return &Graph{
-		nodes: map[string]struct{}{},
-		ins:   map[string]map[string]struct{}{},
-		outs:  map[string]map[string]struct{}{},
+var ErrNotFound = fmt.Errorf("dag: file not found")
+
+type File struct {
+	Path  string
+	Data  []byte
+	Mode  fs.FileMode
+	Links []string
+}
+
+type Link struct {
+	From string
+	To   string
+}
+
+func Load(fsys fs.FS, path string) (*Cache, error) {
+	// Open the SQLite database
+	db, err := sql.Open("sqlite3", path)
+	if err != nil {
+		return nil, err
 	}
-}
 
-type Graph struct {
-	mu    sync.RWMutex
-	nodes map[string]struct{}
-	ins   map[string]map[string]struct{}
-	outs  map[string]map[string]struct{}
-}
-
-func (g *Graph) Nodes() (nodes []string) {
-	for path := range g.nodes {
-		nodes = append(nodes, path)
+	// Create the files and links tables.
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS files (
+			path TEXT PRIMARY KEY,
+			data BLOB,
+			mode INTEGER
+		)
+	`); err != nil {
+		return nil, err
 	}
-	sort.Strings(nodes)
-	return nodes
-}
-
-func (g *Graph) Set(path string) {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	g.nodes[path] = struct{}{}
-}
-
-func (g *Graph) Link(from, to string) {
-	// if from == to {
-	// 	return
-	// }
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	// Create nodes if we haven't yet
-	g.nodes[from] = struct{}{}
-	g.nodes[to] = struct{}{}
-	// Set the dependencies
-	if g.outs[from] == nil {
-		g.outs[from] = map[string]struct{}{}
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS links (
+			from_path TEXT,
+			to_path TEXT,
+			FOREIGN KEY(from_path) REFERENCES files(path),
+			FOREIGN KEY(to_path) REFERENCES files(path),
+			PRIMARY KEY(from_path, to_path)
+		)
+	`); err != nil {
+		return nil, err
 	}
-	g.outs[from][to] = struct{}{}
-	// Link the other way too
-	if g.ins[to] == nil {
-		g.ins[to] = map[string]struct{}{}
+
+	return &Cache{fsys, db}, nil
+}
+
+type Cache struct {
+	fsys fs.FS
+	db   *sql.DB
+}
+
+var _ genfs.Cache = (*Cache)(nil)
+
+func (c *Cache) Set(path string, file *virt.File) error {
+	file.Path = path
+	// Insert the file into the files table.
+	if _, err := c.db.Exec(`
+		INSERT INTO files (path, data, mode)
+		VALUES (?, ?, ?)
+	`, file.Path, file.Data, file.Mode); err != nil {
+		return err
 	}
-	g.ins[to][from] = struct{}{}
+	return nil
 }
 
-// Remove a node
-func (g *Graph) Remove(paths ...string) {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	for _, path := range paths {
-		g.remove(path)
-	}
-}
-
-// Unlink and remove the node
-func (g *Graph) remove(path string) {
-	// Remove dependant links
-	for from := range g.ins[path] {
-		delete(g.ins[path], from)
-		delete(g.outs[from], path)
-	}
-	// Remove dependency links
-	for to := range g.outs[path] {
-		delete(g.outs[path], to)
-		delete(g.ins[to], path)
-	}
-	// Remove node
-	delete(g.nodes, path)
-}
-
-// Return the links out (dependencies)
-func (g *Graph) Children(from string) (tos []string) {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-	return g.children(from)
-}
-
-func (g *Graph) children(from string) (froms []string) {
-	for from := range g.outs[from] {
-		froms = append(froms, from)
-	}
-	sort.Strings(froms)
-	return froms
-}
-
-// Descendants recursively returns children, children of children, etc.
-// Descendants includes self.
-func (g *Graph) Descendants(path string) (descendants []string) {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-	descendants = append(descendants, path)
-	descendants = append(descendants, g.children(path)...)
-	return descendants
-}
-
-// Return the links in (parents)
-func (g *Graph) Parents(to string) (froms []string) {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-	return g.parents(to)
-}
-
-func (g *Graph) parents(to string) (tos []string) {
-	for to := range g.ins[to] {
-		tos = append(tos, to)
-	}
-	sort.Strings(tos)
-	return tos
-}
-
-// Ancestors recursively returns parents, parents of parents, etc.
-func (g *Graph) Ancestors(path string) (ancestors []string) {
-	ancestors = append(ancestors, g.parents(path)...)
-	return ancestors
-}
-
-// String returns a digraph
-func (g *Graph) String() string {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-	s := strings.Builder{}
-	s.WriteString("digraph g {\n")
-	// Rank from the bottom to the top
-	s.WriteString("  rankdir = BT\n")
-	for from := range g.nodes {
-		tos := g.outs[from]
-		if len(tos) == 0 {
-			s.WriteString(fmt.Sprintf("  %q\n", from))
-			continue
+func (c *Cache) Get(path string) (*virt.File, error) {
+	row := c.db.QueryRow(`
+		SELECT path, data, mode
+		FROM files
+		WHERE path = ?
+	`, path)
+	file := new(virt.File)
+	if err := row.Scan(&file.Path, &file.Data, &file.Mode); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("%w %q", ErrNotFound, path)
 		}
-		for to := range tos {
-			s.WriteString(fmt.Sprintf("  %q -> %q\n", from, to))
-		}
+		return nil, err
 	}
-	s.WriteString("}\n")
-	return s.String()
+	return file, nil
 }
 
-func (g *Graph) ShortestPath(start, end string) (nodes []string, err error) {
-	return g.shortestPath(start, end, nil)
+func (c *Cache) Link(from string, toPatterns ...string) error {
+	params := make([]interface{}, len(toPatterns)*2)
+	for i, to := range toPatterns {
+		params[i*2] = from
+		params[i*2+1] = to
+	}
+	// Insert the links of the file into the links table.
+	sql := new(strings.Builder)
+	sql.WriteString(`INSERT INTO links (from_path, to_path) VALUES `)
+	for i := range toPatterns {
+		if i > 0 {
+			sql.WriteString(", ")
+		}
+		sql.WriteString(`(?, ?)`)
+	}
+	if _, err := c.db.Exec(sql.String(), params...); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (g *Graph) shortestPath(start, end string, paths []string) (shortest []string, err error) {
-	if _, ok := g.nodes[start]; !ok {
-		return nil, fmt.Errorf("dag: %q doesn't exist", start)
-	}
-	paths = append(paths, start)
-	if start == end {
-		return paths, nil
-	}
-	for _, node := range g.children(start) {
-		if hasNode(paths, node) {
-			continue
-		}
-		newPath, err := g.shortestPath(node, end, paths)
+// Ancestors returns all the ancestor paths. Those that depend on the given
+// paths.
+func (c *Cache) Ancestors(paths ...string) (deps []string, err error) {
+	visited := make(map[string]bool)
+	for i := 0; i < len(paths); i++ {
+		const sql = `
+			SELECT from_path
+			FROM links
+			WHERE to_path = ?
+		`
+		rows, err := c.db.Query(sql, paths[i])
 		if err != nil {
 			return nil, err
 		}
-		lenNewPath := len(newPath)
-		lenShortest := len(shortest)
-		if lenNewPath == 0 {
-			continue
+		defer rows.Close()
+		for rows.Next() {
+			var from string
+			if err := rows.Scan(&from); err != nil {
+				return nil, err
+			}
+			if !visited[from] {
+				paths = append(paths, from)
+				deps = append(deps, from)
+				visited[from] = true
+			}
 		}
-		if lenShortest == 0 || lenNewPath < lenShortest {
-			shortest = newPath
+		if err := rows.Err(); err != nil {
+			return nil, err
+		} else if err := rows.Close(); err != nil {
+			return nil, err
 		}
 	}
-	if len(shortest) == 0 {
-		return nil, fmt.Errorf("dag: no path between %q and %q", start, end)
-	}
-	return shortest, nil
+	sort.Strings(deps)
+	return deps, nil
 }
 
-func hasNode(list []string, item string) bool {
-	for _, v := range list {
-		if v == item {
-			return true
-		}
+func (c *Cache) Delete(paths ...string) error {
+	// Get all the ancestors paths
+	ancestors, err := c.Ancestors(paths...)
+	if err != nil {
+		return err
 	}
-	return false
+	params := make([]interface{}, len(paths)+len(ancestors))
+	for i, path := range paths {
+		params[i] = path
+	}
+	for i, path := range ancestors {
+		params[i+len(paths)] = path
+	}
+
+	// Delete all paths and their dependencies
+	sql := `
+		DELETE FROM files
+		WHERE path IN ` + parameterize(len(params)) + `
+	`
+	_, err = c.db.Exec(sql, params...)
+	if err != nil {
+		return err
+	}
+
+	// Delete all links to these paths
+	sql = `
+		DELETE FROM links
+		WHERE to_path IN ` + parameterize(len(params)) + `
+		OR from_path IN ` + parameterize(len(params)) + `
+	`
+	_, err = c.db.Exec(sql, append(params, params...)...)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (g *Graph) ShortestPathOf(start string, ends []string) (nodes []string, err error) {
-	for _, end := range ends {
-		shortest, err := g.shortestPath(start, end, nil)
-		if err != nil {
-			continue
+func parameterize(n int) string {
+	out := "("
+	for i := 0; i < n; i++ {
+		if i > 0 {
+			out += ", "
 		}
-		if len(nodes) == 0 || len(shortest) < len(nodes) {
-			nodes = shortest
+		out += "?"
+	}
+	out += ")"
+	return out
+}
+
+func (c *Cache) Files() ([]*File, error) {
+	rows, err := c.db.Query(`
+		SELECT path, data, mode
+		FROM files
+		ORDER BY path
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var files []*File
+	for rows.Next() {
+		var file File
+		if err := rows.Scan(&file.Path, &file.Data, &file.Mode); err != nil {
+			return nil, err
 		}
+		files = append(files, &file)
 	}
-	if len(nodes) == 0 {
-		return nil, fmt.Errorf("dag: no path between %q and %v", start, ends)
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
-	return nodes, nil
+	return files, nil
+}
+
+func (c *Cache) Links() ([]*Link, error) {
+	rows, err := c.db.Query(`
+		SELECT from_path, to_path
+		FROM links
+		ORDER BY from_path, to_path
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var links []*Link
+	for rows.Next() {
+		var link Link
+		if err := rows.Scan(&link.From, &link.To); err != nil {
+			return nil, err
+		}
+		links = append(links, &link)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return links, nil
+}
+
+// Print the DAG in a dot graph format. That you can paste in here:
+// https://dreampuf.github.io/GraphvizOnline
+func (c *Cache) Print(w io.Writer) error {
+	// Open the digraph
+	fmt.Fprintf(w, "digraph dag {\n")
+	// Print the nodes of the graph.
+	rows, err := c.db.Query(`
+		SELECT path
+		FROM files
+	`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var path string
+		if err := rows.Scan(&path); err != nil {
+			return err
+		}
+		fmt.Fprintf(w, "\t%[1]q\n", path)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	// Print the edges of the graph.
+	rows, err = c.db.Query(`
+		SELECT from_path, to_path
+		FROM links
+	`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var from, to string
+		if err := rows.Scan(&from, &to); err != nil {
+			return err
+		}
+		fmt.Fprintf(w, "\t%q -> %q\n", from, to)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	// Close the graph.
+	fmt.Fprintf(w, "}\n")
+	return nil
+}
+
+func (c *Cache) Close() error {
+	return c.db.Close()
 }

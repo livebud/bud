@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
-	"github.com/livebud/bud/internal/dag"
+	"github.com/livebud/bud/internal/dag2"
 )
 
 type File struct {
@@ -71,7 +71,7 @@ func getTransform(transformable *Transformable, platform Platform) (func(file *F
 }
 
 func load(platform Platform, transformables []*Transformable) (*transformer, error) {
-	graph := dag.New()
+	graph := dag2.New()
 	tmap := map[string][]func(file *File) error{}
 	froms := map[string]struct{}{}
 	// Build a dependency graph of how the transforms transform (from -> to)
@@ -135,7 +135,7 @@ type Map struct {
 
 // Transformer is specific to a platform
 type transformer struct {
-	graph   *dag.Graph
+	graph   *dag2.Graph
 	index   map[string]func(file *File) error
 	pathmap map[string]string
 }

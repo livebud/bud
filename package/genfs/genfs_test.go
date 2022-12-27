@@ -17,19 +17,33 @@ import (
 
 	"github.com/livebud/bud/package/gomod"
 
-	"github.com/livebud/bud/internal/fscache"
+	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/log/testlog"
-	"github.com/livebud/bud/package/virtual"
+	"github.com/livebud/bud/package/virt"
 )
+
+var discard = Discard{}
+
+type Discard struct{}
+
+func (Discard) Get(path string) (*virt.File, error) {
+	return nil, errors.New("not found")
+}
+func (Discard) Set(path string, file *virt.File) error {
+	return nil
+}
+func (Discard) Link(from string, toPatterns ...string) error {
+	return nil
+}
 
 func TestGenerateFile(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	gfs := genfs.New(cache, fsys, log)
 	gfs.GenerateFile("a.txt", func(fsys genfs.FS, file *genfs.File) error {
 		file.Data = []byte("a")
@@ -42,9 +56,9 @@ func TestGenerateFile(t *testing.T) {
 
 func TestGenerateDir(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.GenerateDir("bud", func(fsys genfs.FS, dir *genfs.Dir) error {
 		dir.GenerateDir("docs", func(fsys genfs.FS, dir *genfs.Dir) error {
@@ -79,9 +93,9 @@ func (t *svelte) GenerateFile(fs genfs.FS, file *genfs.File) error {
 
 func TestFS(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	gfs := genfs.New(cache, fsys, log)
 	gfs.FileGenerator("bud/public/tailwind/tailwind.css", &tailwind{})
 	gfs.FileGenerator("bud/view/index.svelte", &svelte{})
@@ -177,9 +191,9 @@ func view() func(fsys genfs.FS, dir *genfs.Dir) error {
 
 func TestViewFS(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.GenerateDir("bud/view", view())
 
@@ -235,9 +249,9 @@ func TestViewFS(t *testing.T) {
 
 func TestAll(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.GenerateDir("bud/view", view())
 
@@ -514,9 +528,9 @@ func TestAll(t *testing.T) {
 
 func TestDir(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.GenerateDir("bud/view", func(fsys genfs.FS, dir *genfs.Dir) error {
 		dir.GenerateDir("about", func(fsys genfs.FS, dir *genfs.Dir) error {
@@ -562,11 +576,11 @@ func TestDir(t *testing.T) {
 
 func TestReadFsys(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{
-		"a.txt": &virtual.File{Data: []byte("a")},
+	fsys := virt.Map{
+		"a.txt": &virt.File{Data: []byte("a")},
 	}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	code, err := fs.ReadFile(bfs, "a.txt")
 	is.NoErr(err)
@@ -575,9 +589,9 @@ func TestReadFsys(t *testing.T) {
 
 func TestGenerateFileError(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.GenerateFile("bud/main.go", func(fsys genfs.FS, file *genfs.File) error {
 		return fs.ErrNotExist
@@ -593,9 +607,9 @@ func TestGenerateFileError(t *testing.T) {
 
 func TestHTTP(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.GenerateDir("bud/view", func(fsys genfs.FS, dir *genfs.Dir) error {
 		dir.GenerateFile(dir.Relative(), func(fsys genfs.FS, file *genfs.File) error {
@@ -640,9 +654,9 @@ func rootless(fpath string) string {
 // Test inner file and rootless
 func TestTargetPath(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.GenerateDir("bud/view", func(fsys genfs.FS, dir *genfs.Dir) error {
 		dir.GenerateFile("about/about.svelte", func(fsys genfs.FS, file *genfs.File) error {
@@ -658,9 +672,9 @@ func TestTargetPath(t *testing.T) {
 
 func TestDynamicDir(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.GenerateDir("bud/view", func(fsys genfs.FS, dir *genfs.Dir) error {
 		doms := []string{"about/about.svelte", "index.svelte"}
@@ -686,9 +700,9 @@ func TestDynamicDir(t *testing.T) {
 
 func TestBases(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.GenerateDir("bud/view", func(fsys genfs.FS, dir *genfs.Dir) error {
 		return nil
@@ -706,9 +720,9 @@ func TestBases(t *testing.T) {
 
 func TestDirUnevenMerge(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.GenerateDir("bud/view", func(fsys genfs.FS, dir *genfs.Dir) error {
 		dir.GenerateDir("public", func(fsys genfs.FS, dir *genfs.Dir) error {
@@ -741,9 +755,9 @@ func TestDirUnevenMerge(t *testing.T) {
 // Add the view
 func TestAddGenerator(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.GenerateDir("bud/view", view())
 
@@ -792,9 +806,9 @@ func (c *commandGenerator) GenerateDir(fsys genfs.FS, dir *genfs.Dir) error {
 
 func TestFileGenerator(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.FileGenerator("bud/command/command.go", &commandGenerator{Input: "a"})
 	code, err := fs.ReadFile(bfs, "bud/command/command.go")
@@ -804,9 +818,9 @@ func TestFileGenerator(t *testing.T) {
 
 func TestDirGenerator(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.DirGenerator("bud/view", &commandGenerator{Input: "a"})
 	code, err := fs.ReadFile(bfs, "bud/view/index.svelte")
@@ -816,9 +830,9 @@ func TestDirGenerator(t *testing.T) {
 
 func TestDotReadDirEmpty(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.GenerateFile("bud/bfserate/main.go", func(fsys genfs.FS, file *genfs.File) error {
 		file.Data = []byte("package main")
@@ -835,9 +849,9 @@ func TestDotReadDirEmpty(t *testing.T) {
 
 func TestEmbedOpen(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.FileGenerator("bud/view/index.svelte", &genfs.Embed{
 		Data: []byte(`<h1>index</h1>`),
@@ -887,9 +901,9 @@ func TestEmbedOpen(t *testing.T) {
 
 func TestGoModGoMod(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.GenerateFile("go.mod", func(fsys genfs.FS, file *genfs.File) error {
 		file.Data = []byte("module app.com\nrequire mod.test/module v1.2.4")
@@ -906,9 +920,9 @@ func TestGoModGoMod(t *testing.T) {
 
 func TestGoModGoModEmbed(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.FileGenerator("go.mod", &genfs.Embed{
 		Data: []byte("module app.com\nrequire mod.test/module v1.2.4"),
@@ -1010,9 +1024,9 @@ func TestGoModGoModEmbed(t *testing.T) {
 
 func TestReadDirNotExists(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	reads := 0
 	bfs.GenerateFile("bud/controller/controller.go", func(fsys genfs.FS, file *genfs.File) error {
@@ -1032,9 +1046,9 @@ func TestReadDirNotExists(t *testing.T) {
 
 func TestReadRootNotExists(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	reads := 0
 	bfs.GenerateFile("controller.go", func(fsys genfs.FS, file *genfs.File) error {
@@ -1054,9 +1068,9 @@ func TestReadRootNotExists(t *testing.T) {
 
 func TestServeFile(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.ServeFile("duo/view", func(fsys genfs.FS, file *genfs.File) error {
 		file.Data = []byte(file.Target() + `'s data`)
@@ -1099,9 +1113,9 @@ func TestServeFile(t *testing.T) {
 
 func TestGenerateDirNotExists(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.GenerateDir("bud/public", func(fsys genfs.FS, dir *genfs.Dir) error {
 		return fs.ErrNotExist
@@ -1118,11 +1132,11 @@ func TestGenerateDirNotExists(t *testing.T) {
 // they're present in mergefs
 func TestGeneratorPriority(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{
-		"a.txt": &virtual.File{Data: []byte("a")},
+	fsys := virt.Map{
+		"a.txt": &virt.File{Data: []byte("a")},
 	}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.GenerateFile("a.txt", func(fsys genfs.FS, file *genfs.File) error {
 		file.Data = []byte("b")
@@ -1149,7 +1163,7 @@ func TestGlob(t *testing.T) {
 	is.NoErr(err)
 	fsys, err := gomod.Find(dir)
 	is.NoErr(err)
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.GenerateDir("bud/controller", func(fsys genfs.FS, dir *genfs.Dir) error {
 		results, err := fs.Glob(fsys, "controller/**.go")
@@ -1175,11 +1189,11 @@ func TestGlob(t *testing.T) {
 
 func TestSideBySideRoot(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Tree{
-		"a.txt": &virtual.File{Data: []byte("a")},
+	fsys := virt.Tree{
+		"a.txt": &virt.File{Data: []byte("a")},
 	}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	gfs := genfs.New(cache, fsys, log)
 	gfs.GenerateFile("b.txt", func(fsys genfs.FS, file *genfs.File) error {
 		file.Data = []byte("b")
@@ -1196,11 +1210,11 @@ func TestSideBySideRoot(t *testing.T) {
 
 func TestSideBySideDir(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Tree{
-		"app/a.txt": &virtual.File{Data: []byte("a")},
+	fsys := virt.Tree{
+		"app/a.txt": &virt.File{Data: []byte("a")},
 	}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	gfs := genfs.New(cache, fsys, log)
 	gfs.GenerateFile("app/b.txt", func(fsys genfs.FS, file *genfs.File) error {
 		file.Data = []byte("b")
@@ -1628,9 +1642,9 @@ func TestSideBySideDir(t *testing.T) {
 
 func TestCyclesOk(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.GenerateFile("a.txt", func(fsys genfs.FS, file *genfs.File) error {
 		is.NoErr(fsys.Watch("a.txt"))
@@ -1823,9 +1837,9 @@ func TestCyclesOk(t *testing.T) {
 
 func TestDirServeFile(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	bfs := genfs.New(cache, fsys, log)
 	bfs.GenerateDir("service", func(fsys genfs.FS, dir *genfs.Dir) error {
 		dir.ServeFile("transform", func(fsys genfs.FS, file *genfs.File) error {
@@ -1844,9 +1858,9 @@ func TestDirServeFile(t *testing.T) {
 
 func TestSeek(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virt.Map{}
 	log := testlog.New()
-	cache := fscache.Discard
+	cache := discard
 	gfs := genfs.New(cache, fsys, log)
 	gfs.GenerateFile("a.txt", func(fsys genfs.FS, file *genfs.File) error {
 		file.Data = []byte("ab")
@@ -1868,21 +1882,21 @@ func TestSeek(t *testing.T) {
 	// is.Equal(string(code), "a")
 }
 
-// func TestExternal(t *testing.T) {
-// 	is := is.New(t)
-// 	fsys := virtual.Map{}
-// 	log := testlog.New()
-// 	cache := fscache.Discard
-// 	bfs := genfs.New(cache, fsys, log)
-// 	bfs.GenerateDir("bud", func(_ genfs.FS, dir *genfs.Dir) error {
-// 		dir.GenerateExternal("app", func(_ genfs.FS, file *genfs.ExternalFile) error {
-// 			is.Equal(file.Target(), "bud/app")
-// 			return fsys.WriteFile(file.Target(), []byte("my app"), 0644)
-// 		})
-// 		return nil
-// 	})
-// 	is.NoErr(dsync.Dir(bfs, ".", fsys, "."))
-// 	code, err := fs.ReadFile(fsys, "bud/app")
-// 	is.NoErr(err)
-// 	is.Equal(string(code), "my app")
-// }
+func TestExternal(t *testing.T) {
+	is := is.New(t)
+	fsys := virt.Map{}
+	log := testlog.New()
+	cache := discard
+	bfs := genfs.New(cache, fsys, log)
+	bfs.GenerateDir("bud", func(_ genfs.FS, dir *genfs.Dir) error {
+		dir.GenerateExternal("app", func(_ genfs.FS, file *genfs.External) error {
+			is.Equal(file.Target(), "bud/app")
+			return fsys.WriteFile(file.Target(), []byte("my app"), 0644)
+		})
+		return nil
+	})
+	is.NoErr(dsync.Dir(bfs, ".", fsys, "."))
+	code, err := fs.ReadFile(fsys, "bud/app")
+	is.NoErr(err)
+	is.Equal(string(code), "my app")
+}

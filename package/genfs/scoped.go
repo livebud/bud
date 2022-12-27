@@ -2,8 +2,9 @@ package genfs
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
-	"path/filepath"
+	"path"
 
 	"github.com/livebud/bud/internal/glob"
 	"github.com/livebud/bud/internal/orderedset"
@@ -30,36 +31,29 @@ func (f *scopedFS) Open(name string) (fs.File, error) {
 
 // Watch the paths for changes
 func (f *scopedFS) Watch(patterns ...string) error {
-	for _, path := range patterns {
-		// Not a glob
-		if glob.Base(path) == path {
-			f.cache.Link(f.from, path)
-			continue
-		}
-		// Compile the pattern into a glob matcher
-		matcher, err := glob.Compile(path)
-		if err != nil {
-			return err
-		}
-		// Check for changes in the matched paths
-		f.cache.Check(f.from, func(path string) bool {
-			return matcher.Match(path)
-		})
+	return f.cache.Link(f.from, patterns...)
+}
+
+// ReadDir implements fs.ReadDirFS
+func (f *scopedFS) ReadDir(name string) ([]fs.DirEntry, error) {
+	des, err := fs.ReadDir(f.genfs, name)
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	// Link the directory to react to future changes
+	toPattern := fmt.Sprintf(`{%s,%s}`, name, path.Dir(name))
+	if err := f.cache.Link(f.from, toPattern); err != nil {
+		return nil, err
+	}
+	return des, nil
 }
 
 // Glob implements fs.GlobFS
 func (f *scopedFS) Glob(pattern string) (matches []string, err error) {
-	// Compile the pattern into a glob matcher
 	matcher, err := glob.Compile(pattern)
 	if err != nil {
 		return nil, err
 	}
-	// Check for changes in the matched paths
-	f.cache.Check(f.from, func(path string) bool {
-		return matcher.Match(path)
-	})
 	// Base is a minor optimization to avoid walking the entire tree
 	bases, err := glob.Bases(pattern)
 	if err != nil {
@@ -76,21 +70,12 @@ func (f *scopedFS) Glob(pattern string) (matches []string, err error) {
 		}
 		matches = append(matches, results...)
 	}
-	// Deduplicate the matches
-	return orderedset.Strings(matches...), nil
-}
-
-// ReadDir implements fs.ReadDirFS
-func (f *scopedFS) ReadDir(name string) ([]fs.DirEntry, error) {
-	// Check for directory changes
-	f.cache.Check(f.from, func(path string) bool {
-		return path == name || filepath.Dir(path) == name
-	})
-	des, err := fs.ReadDir(f.genfs, name)
-	if err != nil {
+	// Link the pattern to react to future changes
+	if err := f.cache.Link(f.from, pattern); err != nil {
 		return nil, err
 	}
-	return des, nil
+	// Deduplicate the matches
+	return orderedset.Strings(matches...), nil
 }
 
 func (f *scopedFS) glob(matcher glob.Matcher, base string) (matches []string, err error) {
