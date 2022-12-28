@@ -56,7 +56,7 @@ func (l *loader) Load(ctx context.Context) (state *State, err error) {
 	// Load the embeds
 	if l.flag.Embed {
 		// Add SSR
-		ssrCompiler := ssr.New(l.module, l.transform.SSR)
+		ssrCompiler := ssr.New(l.module, l.transform)
 		ssrCode, err := ssrCompiler.Compile(ctx, l.fsys)
 		if err != nil {
 			return nil, err
@@ -66,7 +66,7 @@ func (l *loader) Load(ctx context.Context) (state *State, err error) {
 			Data: ssrCode,
 		})
 		// Bundle client-side files
-		domCompiler := dom.New(l.module, l.transform.DOM)
+		domCompiler := dom.New(l.module, l.transform)
 		files, err := domCompiler.Compile(ctx, l.fsys)
 		if err != nil {
 			return nil, err

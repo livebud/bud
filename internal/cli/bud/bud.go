@@ -12,6 +12,7 @@ import (
 
 	"github.com/livebud/bud/internal/current"
 	"github.com/livebud/bud/internal/pubsub"
+	"github.com/livebud/bud/internal/shell"
 	"golang.org/x/mod/semver"
 
 	"github.com/livebud/bud/package/commander"
@@ -153,4 +154,17 @@ func EnsureVersionAlignment(ctx context.Context, module *gomod.Module, budVersio
 		return err
 	}
 	return nil
+}
+
+func Shell(in *Input, module *gomod.Module) *shell.Command {
+	cmd := &shell.Command{
+		Dir:    module.Directory(),
+		Stdin:  in.Stdin,
+		Stdout: in.Stdout,
+		Stderr: in.Stderr,
+		Env:    []string{},
+	}
+	cmd.Env = append(cmd.Env, "GOMODCACHE="+module.ModCache())
+	cmd.Env = append(cmd.Env, in.Env...)
+	return cmd
 }

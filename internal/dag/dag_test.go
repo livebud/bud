@@ -46,7 +46,7 @@ func TestGetNotFound(t *testing.T) {
 	is.Equal(file, nil)
 }
 
-func seed(is *is.I, cache *dag.Cache) {
+func seed(is *is.I, cache dag.Cache) {
 	is.NoErr(cache.Set("a.txt", &virt.File{
 		Data: []byte("a.txt"),
 		Mode: 0644,

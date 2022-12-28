@@ -10,6 +10,10 @@ type External struct {
 	target string
 }
 
+func (e *External) Path() string {
+	return e.target
+}
+
 func (e *External) Target() string {
 	return e.target
 }

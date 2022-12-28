@@ -14,11 +14,11 @@ import (
 	"github.com/livebud/bud/framework/web/webrt"
 	"github.com/livebud/bud/internal/bfs"
 	"github.com/livebud/bud/internal/cli/bud"
-	"github.com/livebud/bud/internal/exe"
 	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/gobuild"
 	"github.com/livebud/bud/internal/prompter"
 	"github.com/livebud/bud/internal/pubsub"
+	"github.com/livebud/bud/internal/shell"
 	"github.com/livebud/bud/internal/versions"
 	"github.com/livebud/bud/package/budhttp/budsvr"
 	"github.com/livebud/bud/package/gomod"
@@ -115,7 +115,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		log:   log,
 	}
 	// Setup the starter command
-	starter := &exe.Command{
+	starter := &shell.Command{
 		Stdin:  c.in.Stdin,
 		Stdout: c.in.Stdout,
 		Stderr: c.in.Stderr,
@@ -184,7 +184,7 @@ type appServer struct {
 	bfs      *bfs.FS
 	log      log.Log
 	module   *gomod.Module
-	starter  *exe.Command
+	starter  *shell.Command
 }
 
 // Run the app server

@@ -15,6 +15,7 @@ import (
 
 	"github.com/livebud/bud/framework/transform/transformrt"
 	"github.com/livebud/bud/framework/view/dom"
+	"github.com/livebud/bud/framework/view/nodemodules"
 	"github.com/livebud/bud/framework/view/ssr"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/pubsub"
@@ -37,7 +38,7 @@ func loadServer(bus pubsub.Client, dir string) (*httptest.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	transforms, err := transformrt.Load(svelte.NewTransformable(svelteCompiler))
+	transforms, err := transformrt.Default(log, svelteCompiler)
 	if err != nil {
 		return nil, err
 	}
@@ -46,9 +47,9 @@ func loadServer(bus pubsub.Client, dir string) (*httptest.Server, error) {
 		return nil, err
 	}
 	bfs := budfs.New(module, log)
-	bfs.FileServer("bud/view", dom.New(module, transforms.DOM))
-	bfs.FileServer("bud/node_modules", dom.NodeModules(module))
-	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms.SSR))
+	bfs.FileServer("bud/view", dom.New(module, transforms))
+	bfs.FileServer("bud/node_modules", nodemodules.New(module))
+	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms))
 	handler := budsvr.New(bfs, bus, log, vm)
 	return httptest.NewServer(handler), nil
 }

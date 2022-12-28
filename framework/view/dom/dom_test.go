@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/livebud/bud/framework/view/nodemodules"
+
 	"github.com/livebud/bud/package/budfs"
 
 	"github.com/livebud/bud/package/log/testlog"
@@ -34,9 +36,8 @@ func TestServeFile(t *testing.T) {
 	is.NoErr(err)
 	svelteCompiler, err := svelte.Load(vm)
 	is.NoErr(err)
-	transformer := transformrt.MustLoad(
-		svelte.NewTransformable(svelteCompiler),
-	)
+	transformer, err := transformrt.Default(log, svelteCompiler)
+	is.NoErr(err)
 	td := testdir.New(dir)
 	td.Files["view/index.svelte"] = `<h1>index</h1>`
 	td.Files["view/about/index.svelte"] = `<h2>about</h2>`
@@ -45,7 +46,7 @@ func TestServeFile(t *testing.T) {
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
 	bfs := budfs.New(module, log)
-	bfs.FileServer("bud/view", dom.New(module, transformer.DOM))
+	bfs.FileServer("bud/view", dom.New(module, transformer))
 	// Read the wrapped version of index.svelte with node_modules rewritten
 	code, err := fs.ReadFile(bfs, "bud/view/_index.svelte.js")
 	is.NoErr(err)
@@ -101,7 +102,7 @@ func TestNodeModules(t *testing.T) {
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
 	bfs := budfs.New(module, log)
-	bfs.FileServer("bud/node_modules", dom.NodeModules(module))
+	bfs.FileServer("bud/node_modules", nodemodules.New(module))
 	// Read the re-written node_modules
 	code, err := fs.ReadFile(bfs, "bud/node_modules/svelte/internal")
 	is.NoErr(err)
@@ -124,11 +125,12 @@ func TestGenerateDir(t *testing.T) {
 	is.NoErr(err)
 	svelteCompiler, err := svelte.Load(vm)
 	is.NoErr(err)
-	transformer := transformrt.MustLoad(svelte.NewTransformable(svelteCompiler))
+	transformer, err := transformrt.Default(log, svelteCompiler)
+	is.NoErr(err)
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
 	bfs := budfs.New(module, log)
-	bfs.DirGenerator("bud/view", dom.New(module, transformer.DOM))
+	bfs.DirGenerator("bud/view", dom.New(module, transformer))
 	des, err := fs.ReadDir(bfs, "bud/view")
 	is.NoErr(err)
 	is.Equal(len(des), 3)
@@ -180,9 +182,8 @@ func TestUpdateFile(t *testing.T) {
 	is.NoErr(err)
 	svelteCompiler, err := svelte.Load(vm)
 	is.NoErr(err)
-	transformer := transformrt.MustLoad(
-		svelte.NewTransformable(svelteCompiler),
-	)
+	transformer, err := transformrt.Default(log, svelteCompiler)
+	is.NoErr(err)
 	td := testdir.New(dir)
 	td.NodeModules["svelte"] = versions.Svelte
 	td.Files["view/Story.svelte"] = `<h2>Story</h2>`
@@ -197,7 +198,7 @@ func TestUpdateFile(t *testing.T) {
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
 	bfs := budfs.New(module, log)
-	bfs.FileServer("bud/view", dom.New(module, transformer.DOM))
+	bfs.FileServer("bud/view", dom.New(module, transformer))
 	// check entry
 	code, err := fs.ReadFile(bfs, "bud/view/_index.svelte.js")
 	is.NoErr(err)

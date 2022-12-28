@@ -1,4 +1,4 @@
-package exe
+package shell
 
 import (
 	"context"
@@ -17,6 +17,17 @@ type Command struct {
 	Stderr     io.Writer
 	Env        []string
 	ExtraFiles []*os.File
+}
+
+func (c *Command) Clone() *Command {
+	return &Command{
+		Dir:        c.Dir,
+		Stdin:      c.Stdin,
+		Stdout:     c.Stdout,
+		Stderr:     c.Stderr,
+		Env:        append([]string{}, c.Env...),
+		ExtraFiles: c.ExtraFiles,
+	}
 }
 
 func (c *Command) cmd(name string, args ...string) *exec.Cmd {

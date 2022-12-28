@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/internal/bfs"
+	budfs "github.com/livebud/bud/internal/budfs"
 	"github.com/livebud/bud/internal/cli/bud"
 	"github.com/livebud/bud/internal/versions"
 )
@@ -13,14 +13,9 @@ import (
 // New command for bud generate
 func New(bud *bud.Command, in *bud.Input) *Command {
 	return &Command{
-		bud: bud,
-		in:  in,
-		Flag: &framework.Flag{
-			Env:    in.Env,
-			Stderr: in.Stderr,
-			Stdin:  in.Stdin,
-			Stdout: in.Stdout,
-		},
+		bud:  bud,
+		in:   in,
+		Flag: new(framework.Flag),
 	}
 }
 
@@ -48,14 +43,13 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	// Load the filesystem
-	bfs, err := bfs.Load(c.Flag, log, module)
+	cmd := bud.Shell(c.in, module)
+	bfs, err := budfs.Load(cmd, c.Flag, module, log)
 	if err != nil {
 		return err
 	}
-	defer bfs.Close()
-	// Sync either the entire bud directory or the specified files
-	return bfs.Sync(selectBudDirs(c.Args)...)
+	defer bfs.Close(ctx)
+	return bfs.Sync(ctx, module, selectBudDirs(c.Args)...)
 }
 
 func selectBudDirs(patterns []string) (paths []string) {
