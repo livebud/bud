@@ -22,7 +22,7 @@ type Generator struct {
 }
 
 // GenerateFile serves node modules on demand
-func (g *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
+func (g *Generator) GenerateFileOld(fsys budfs.FS, file *budfs.File) error {
 	// If the name starts with node_modules, trim it to allow esbuild to do
 	// the resolving. e.g. node_modules/timeago.js => timeago.js
 	entryPoint := trimEntrypoint(file.Target())

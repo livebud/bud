@@ -7,6 +7,7 @@ import (
 	"github.com/livebud/bud/framework/transform/transformrt"
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/package/budfs"
+	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/gomod"
 )
 
@@ -34,8 +35,21 @@ type Generator struct {
 	transform *transformrt.Map
 }
 
-func (c *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
-	state, err := Load(fsys.Context(), fsys, c.module, c.transform, c.flag)
+func (c *Generator) GenerateFileOld(fsys budfs.FS, file *budfs.File) error {
+	state, err := Load(fsys, c.module, c.transform, c.flag)
+	if err != nil {
+		return err
+	}
+	code, err := Generate(state)
+	if err != nil {
+		return err
+	}
+	file.Data = code
+	return nil
+}
+
+func (c *Generator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
+	state, err := Load(fsys, c.module, c.transform, c.flag)
 	if err != nil {
 		return err
 	}

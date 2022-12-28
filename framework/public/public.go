@@ -33,7 +33,7 @@ type Generator struct {
 	module *gomod.Module
 }
 
-func (g *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
+func (g *Generator) GenerateFileOld(fsys budfs.FS, file *budfs.File) error {
 	state, err := Load(fsys, g.flag)
 	if err != nil {
 		return err

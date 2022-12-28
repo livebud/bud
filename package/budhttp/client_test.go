@@ -47,9 +47,9 @@ func loadServer(bus pubsub.Client, dir string) (*httptest.Server, error) {
 		return nil, err
 	}
 	bfs := budfs.New(module, log)
-	bfs.FileServer("bud/view", dom.New(module, transforms))
-	bfs.FileServer("bud/node_modules", nodemodules.New(module))
-	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms))
+	bfs.ServeFile("bud/view", (dom.New(module, transforms)).GenerateFileOld)
+	bfs.ServeFile("bud/node_modules", nodemodules.New(module).GenerateFileOld)
+	bfs.GenerateFile("bud/view/_ssr.js", ssr.New(module, transforms).GenerateFileOld)
 	handler := budsvr.New(bfs, bus, log, vm)
 	return httptest.NewServer(handler), nil
 }

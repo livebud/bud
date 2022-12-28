@@ -43,7 +43,7 @@ func TestSvelteHello(t *testing.T) {
 	is.NoErr(err)
 	bfs := budfs.New(module, log)
 	is.NoErr(err)
-	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer))
+	bfs.GenerateFile("bud/view/_ssr.js", (ssr.New(module, transformer)).GenerateFileOld)
 	// Read the wrapped version of index.svelte with node_modules rewritten
 	code, err := fs.ReadFile(bfs, "bud/view/_ssr.js")
 	is.NoErr(err)
@@ -100,7 +100,7 @@ func TestSvelteAwait(t *testing.T) {
 	is.NoErr(err)
 	bfs := budfs.New(module, log)
 	is.NoErr(err)
-	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer))
+	bfs.GenerateFile("bud/view/_ssr.js", (ssr.New(module, transformer)).GenerateFileOld)
 	// Read the wrapped version of index.svelte with node_modules rewritten
 	code, err := fs.ReadFile(bfs, "bud/view/_ssr.js")
 	is.NoErr(err)
@@ -199,7 +199,7 @@ func TestSvelteProps(t *testing.T) {
 	is.NoErr(err)
 	bfs := budfs.New(module, log)
 	is.NoErr(err)
-	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer))
+	bfs.GenerateFile("bud/view/_ssr.js", (ssr.New(module, transformer)).GenerateFileOld)
 	// Read the wrapped version of index.svelte with node_modules rewritten
 	code, err := fs.ReadFile(bfs, "bud/view/_ssr.js")
 	is.NoErr(err)
@@ -318,7 +318,7 @@ func TestSvelteLocalImports(t *testing.T) {
 	is.NoErr(err)
 	bfs := budfs.New(module, log)
 	is.NoErr(err)
-	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer))
+	bfs.GenerateFile("bud/view/_ssr.js", (ssr.New(module, transformer)).GenerateFileOld)
 	// Read the wrapped version of index.svelte with node_modules rewritten
 	code, err := fs.ReadFile(bfs, "bud/view/_ssr.js")
 	is.NoErr(err)
@@ -371,7 +371,7 @@ func TestUpdateFile(t *testing.T) {
 	is.NoErr(err)
 	bfs := budfs.New(module, log)
 	is.NoErr(err)
-	bfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transformer))
+	bfs.GenerateFile("bud/view/_ssr.js", (ssr.New(module, transformer)).GenerateFileOld)
 	// Read the wrapped version of index.svelte with node_modules rewritten
 	code, err := fs.ReadFile(bfs, "bud/view/_ssr.js")
 	is.NoErr(err)

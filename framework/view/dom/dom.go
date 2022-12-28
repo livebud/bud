@@ -2,7 +2,6 @@ package dom
 
 import (
 	"bytes"
-	"context"
 	_ "embed"
 	"fmt"
 	"io/fs"
@@ -36,7 +35,7 @@ type Generator struct {
 }
 
 // Compile into a list of  views for embedding
-func (c *Generator) Compile(ctx context.Context, fsys fs.FS) ([]esbuild.OutputFile, error) {
+func (c *Generator) Compile(fsys fs.FS) ([]esbuild.OutputFile, error) {
 	views, err := entrypoint.List(fsys, "view")
 	if err != nil {
 		return nil, err
@@ -95,7 +94,7 @@ func (c *Generator) Compile(ctx context.Context, fsys fs.FS) ([]esbuild.OutputFi
 
 // GenerateDir generates a directory of compiled files
 func (c *Generator) GenerateDir(fsys budfs.FS, dir *budfs.Dir) error {
-	files, err := c.Compile(fsys.Context(), fsys)
+	files, err := c.Compile(fsys)
 	if err != nil {
 		return err
 	}
@@ -108,7 +107,7 @@ func (c *Generator) GenerateDir(fsys budfs.FS, dir *budfs.Dir) error {
 }
 
 // GenerateFile generates a single file, used in development
-func (c *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
+func (c *Generator) GenerateFileOld(fsys budfs.FS, file *budfs.File) error {
 	// If the name starts with node_modules, trim it to allow esbuild to do
 	// the resolving. e.g. node_modules/livebud => livebud
 	entryPoint := trimEntrypoint(file.Target())

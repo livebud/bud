@@ -45,16 +45,16 @@ func Load(flag *framework.Flag, log log.Log, module *gomod.Module) (*FS, error) 
 	if err != nil {
 		return nil, err
 	}
-	fsys.FileGenerator("bud/internal/app/main.go", app.New(injector, module, flag))
-	fsys.FileGenerator("bud/internal/web/web.go", web.New(module, parser))
-	fsys.FileGenerator("bud/internal/web/controller/controller.go", controller.New(injector, module, parser))
-	fsys.FileGenerator("bud/internal/web/view/view.go", view.New(module, transforms, flag))
-	fsys.FileGenerator("bud/internal/web/public/public.go", public.New(flag, module))
-	fsys.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms))
-	fsys.FileServer("bud/view", dom.New(module, transforms))
-	fsys.FileServer("bud/node_modules", nodemodules.New(module))
-	fsys.FileGenerator("bud/internal/generator/transform/transform.go", transform.New(flag, injector, log, module, parser))
-	fsys.FileGenerator("bud/command/.generate/main.go", generator.New(fsys, flag, injector, log, module, parser))
+	fsys.GenerateFile("bud/internal/app/main.go", (app.New(injector, module, flag)).GenerateFileOld)
+	fsys.GenerateFile("bud/internal/web/web.go", (web.New(module, parser)).GenerateFileOld)
+	fsys.GenerateFile("bud/internal/web/controller/controller.go", (controller.New(injector, module, parser)).GenerateFileOld)
+	fsys.GenerateFile("bud/internal/web/view/view.go", (view.New(module, transforms, flag)).GenerateFileOld)
+	fsys.GenerateFile("bud/internal/web/public/public.go", (public.New(flag, module)).GenerateFileOld)
+	fsys.GenerateFile("bud/view/_ssr.js", (ssr.New(module, transforms)).GenerateFileOld)
+	fsys.ServeFile("bud/view", (dom.New(module, transforms)).GenerateFileOld)
+	fsys.ServeFile("bud/node_modules", (nodemodules.New(module)).GenerateFileOld)
+	fsys.GenerateFile("bud/internal/generator/transform/transform.go", (transform.New(flag, injector, log, module, parser)).GenerateFileOld)
+	fsys.GenerateFile("bud/command/.generate/main.go", (generator.New(fsys, flag, injector, log, module, parser)).GenerateFileOld)
 	return &FS{fsys, module}, nil
 }
 

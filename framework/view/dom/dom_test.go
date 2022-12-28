@@ -46,7 +46,7 @@ func TestServeFile(t *testing.T) {
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
 	bfs := budfs.New(module, log)
-	bfs.FileServer("bud/view", dom.New(module, transformer))
+	bfs.ServeFile("bud/view", (dom.New(module, transformer)).GenerateFileOld)
 	// Read the wrapped version of index.svelte with node_modules rewritten
 	code, err := fs.ReadFile(bfs, "bud/view/_index.svelte.js")
 	is.NoErr(err)
@@ -102,7 +102,7 @@ func TestNodeModules(t *testing.T) {
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
 	bfs := budfs.New(module, log)
-	bfs.FileServer("bud/node_modules", nodemodules.New(module))
+	bfs.ServeFile("bud/node_modules", (nodemodules.New(module)).GenerateFileOld)
 	// Read the re-written node_modules
 	code, err := fs.ReadFile(bfs, "bud/node_modules/svelte/internal")
 	is.NoErr(err)
@@ -198,7 +198,7 @@ func TestUpdateFile(t *testing.T) {
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
 	bfs := budfs.New(module, log)
-	bfs.FileServer("bud/view", dom.New(module, transformer))
+	bfs.ServeFile("bud/view", (dom.New(module, transformer)).GenerateFileOld)
 	// check entry
 	code, err := fs.ReadFile(bfs, "bud/view/_index.svelte.js")
 	is.NoErr(err)

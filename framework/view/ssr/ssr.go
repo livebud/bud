@@ -3,7 +3,6 @@ package ssr
 //go:generate go run github.com/evanw/esbuild/cmd/esbuild svelte.ts --outfile=svelte.js --log-level=warning --format=esm --bundle
 
 import (
-	"context"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -19,6 +18,7 @@ import (
 	"github.com/livebud/bud/internal/esmeta"
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/package/budfs"
+	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/gomod"
 )
 
@@ -47,7 +47,13 @@ type Generator struct {
 	transformer *transformrt.Map
 }
 
-func (c *Generator) Compile(ctx context.Context, fsys budfs.FS) ([]byte, error) {
+// TODO: remove once we replace budfs
+type fileSystem interface {
+	fs.FS
+	Watch(patterns ...string) error
+}
+
+func (c *Generator) Compile(fsys fileSystem) ([]byte, error) {
 	dir := c.module.Directory()
 	result := esbuild.Build(esbuild.BuildOptions{
 		EntryPointsAdvanced: []esbuild.EntryPoint{
@@ -98,8 +104,17 @@ func (c *Generator) Compile(ctx context.Context, fsys budfs.FS) ([]byte, error) 
 	return result.OutputFiles[0].Contents, nil
 }
 
-func (c *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
-	code, err := c.Compile(fsys.Context(), fsys)
+func (c *Generator) GenerateFileOld(fsys budfs.FS, file *budfs.File) error {
+	code, err := c.Compile(fsys)
+	if err != nil {
+		return err
+	}
+	file.Data = code
+	return nil
+}
+
+func (c *Generator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
+	code, err := c.Compile(fsys)
 	if err != nil {
 		return err
 	}

@@ -43,7 +43,7 @@ type Generator struct {
 }
 
 // GenerateFile connects to the remotefs and mounts the remote directory.
-func (g *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
+func (g *Generator) GenerateFileOld(fsys budfs.FS, file *budfs.File) error {
 	g.log.Debug("framework/generator: generating the main.go service containing the generators")
 	state, err := Load(fsys, g.injector, g.log, g.module, g.parser)
 	if err != nil {
