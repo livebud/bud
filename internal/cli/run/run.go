@@ -128,6 +128,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
+	defer webFile.Close()
 	// Inject that file into the starter's extrafiles
 	extrafile.Inject(&starter.ExtraFiles, &starter.Env, "WEB", webFile)
 	// Initialize the app server
