@@ -38,7 +38,7 @@ example.scratch.watch:
 
 example.hn:
 	@ # (cd example/hn && npm link ../../livebud)
-	@ go run main.go --log=debug -C example/hn generate bud/internal/generator bud/cmd/afs bud/afs
+	@ go run main.go -log=debug -C example/hn generate
 
 example.hn.embed:
 	@ (cd example/hn && npm link ../../livebud)

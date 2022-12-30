@@ -4,10 +4,14 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
+	"net"
 	"os"
 	"os/exec"
 	"strings"
 
+	"github.com/livebud/bud/package/budhttp/budsvr"
+	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log/levelfilter"
 
 	"github.com/livebud/bud/internal/current"
@@ -154,6 +158,24 @@ func EnsureVersionAlignment(ctx context.Context, module *gomod.Module, budVersio
 		return err
 	}
 	return nil
+}
+
+func BudListener(in *Input) (net.Listener, error) {
+	if in.BudLn != nil {
+		return in.BudLn, nil
+	}
+	return socket.Listen(":35729")
+}
+
+func StartBudServer(ctx context.Context, budln net.Listener, fsys fs.FS, log log.Log) (*budsvr.Server, error) {
+	bus := pubsub.New()
+	vm, err := v8.Load()
+	if err != nil {
+		return nil, err
+	}
+	budServer := budsvr.New(budln, bus, fsys, log, vm)
+	budServer.Start(ctx)
+	return budServer, nil
 }
 
 func Shell(in *Input, module *gomod.Module) *shell.Command {

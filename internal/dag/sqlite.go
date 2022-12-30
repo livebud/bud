@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -29,6 +31,10 @@ type Link struct {
 }
 
 func Load(fsys fs.FS, path string) (*DB, error) {
+	// Make the path directory
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return nil, err
+	}
 	// Open the SQLite database
 	db, err := sql.Open("sqlite3", path)
 	if err != nil {
@@ -73,6 +79,10 @@ func (c *DB) Set(path string, file *virt.File) error {
 	if _, err := c.db.Exec(`
 		INSERT INTO files (path, data, mode)
 		VALUES (?, ?, ?)
+		ON CONFLICT (path)
+		DO UPDATE SET
+			data = excluded.data,
+			mode = excluded.mode
 	`, file.Path, file.Data, file.Mode); err != nil {
 		return err
 	}
@@ -110,6 +120,8 @@ func (c *DB) Link(from string, toPatterns ...string) error {
 		}
 		sql.WriteString(`(?, ?)`)
 	}
+	// Do nothing if the link already exists.
+	sql.WriteString(` ON CONFLICT DO NOTHING`)
 	if _, err := c.db.Exec(sql.String(), params...); err != nil {
 		return err
 	}

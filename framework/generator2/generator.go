@@ -35,7 +35,6 @@ type Generator struct {
 
 // GenerateFile connects to the remotefs and mounts the remote directory.
 func (g *Generator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
-	fmt.Println("loading...", file.Target())
 	state, err := g.Load(fsys)
 	if err != nil {
 		return fmt.Errorf("framework/generator: unable to load. %w", err)

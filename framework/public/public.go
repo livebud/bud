@@ -5,6 +5,7 @@ import (
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/package/budfs"
+	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/gomod"
 
 	"github.com/livebud/bud/internal/gotemplate"
@@ -34,6 +35,19 @@ type Generator struct {
 }
 
 func (g *Generator) GenerateFileOld(fsys budfs.FS, file *budfs.File) error {
+	state, err := Load(fsys, g.flag)
+	if err != nil {
+		return err
+	}
+	code, err := Generate(state)
+	if err != nil {
+		return err
+	}
+	file.Data = code
+	return nil
+}
+
+func (g *Generator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
 	state, err := Load(fsys, g.flag)
 	if err != nil {
 		return err

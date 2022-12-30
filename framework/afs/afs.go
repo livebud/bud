@@ -79,7 +79,7 @@ func (l *loader) Load() (state *State, err error) {
 	l.imports.AddNamed("commander", "github.com/livebud/bud/package/commander")
 	l.imports.AddNamed("afsrt", "github.com/livebud/bud/framework/afs/afsrt")
 	l.imports.AddNamed("console", "github.com/livebud/bud/package/log/console")
-	l.imports.AddNamed("budfs", "github.com/livebud/bud/internal/budfs")
+	l.imports.AddNamed("genfs", "github.com/livebud/bud/package/genfs")
 	l.imports.AddNamed("parser", "github.com/livebud/bud/package/parser")
 	state.Imports = l.imports.List()
 	return state, nil

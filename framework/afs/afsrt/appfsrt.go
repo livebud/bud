@@ -29,9 +29,13 @@ func Logger(level string) (log.Log, error) {
 	return logger, nil
 }
 
-// BudFS creates a new filesystem
-func BudFS(module *gomod.Module, log log.Log) *genfs.FileSystem {
-	return genfs.New(dag.Discard, module, log)
+// GenFS creates a new filesystem
+func GenFS(module *gomod.Module, log log.Log) (*genfs.FileSystem, error) {
+	cache, err := dag.Load(module, module.Directory("bud/bud.db"))
+	if err != nil {
+		return nil, err
+	}
+	return genfs.New(cache, module, log), nil
 }
 
 // Serve the remote filesystem

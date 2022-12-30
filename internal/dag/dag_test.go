@@ -204,3 +204,44 @@ func TestConcurrentWrites(t *testing.T) {
 	}
 	testsub.Run(t, parent, child)
 }
+
+func TestUpsertLink(t *testing.T) {
+	is := is.New(t)
+	fsys := virt.Map{}
+	cache, err := dag.Load(fsys, dbPath)
+	is.NoErr(err)
+	defer cache.Close()
+	is.NoErr(cache.Link("a.txt", "b.txt"))
+	is.NoErr(cache.Link("a.txt", "b.txt"))
+	links, err := cache.Links()
+	is.NoErr(err)
+	is.Equal(len(links), 1)
+	is.Equal(links[0].From, "a.txt")
+	is.Equal(links[0].To, "b.txt")
+}
+
+func TestUpsertFile(t *testing.T) {
+	is := is.New(t)
+	fsys := virt.Map{}
+	cache, err := dag.Load(fsys, dbPath)
+	is.NoErr(err)
+	defer cache.Close()
+	is.NoErr(cache.Set("a.txt", &virt.File{
+		Data: []byte("a.txt"),
+		Mode: 0666,
+	}))
+	file, err := cache.Get("a.txt")
+	is.NoErr(err)
+	is.Equal(file.Path, "a.txt")
+	is.Equal(file.Data, []byte("a.txt"))
+	is.Equal(file.Mode, os.FileMode(0666))
+	is.NoErr(cache.Set("a.txt", &virt.File{
+		Data: []byte("aa.txt"),
+		Mode: 0644,
+	}))
+	file, err = cache.Get("a.txt")
+	is.NoErr(err)
+	is.Equal(file.Path, "a.txt")
+	is.Equal(file.Data, []byte("aa.txt"))
+	is.Equal(file.Mode, os.FileMode(0644))
+}

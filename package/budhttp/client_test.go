@@ -5,12 +5,15 @@ import (
 	"errors"
 	"io"
 	"io/fs"
-	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/livebud/bud/package/budfs"
+	"github.com/livebud/bud/internal/dag"
+
+	"github.com/livebud/bud/package/genfs"
+	"github.com/livebud/bud/package/socket"
+
 	"github.com/livebud/bud/package/log/testlog"
 
 	"github.com/livebud/bud/framework/transform/transformrt"
@@ -28,7 +31,7 @@ import (
 	"github.com/livebud/bud/package/svelte"
 )
 
-func loadServer(bus pubsub.Client, dir string) (*httptest.Server, error) {
+func loadServer(bus pubsub.Client, dir string) (*budsvr.Server, error) {
 	log := testlog.New()
 	vm, err := v8.Load()
 	if err != nil {
@@ -46,12 +49,19 @@ func loadServer(bus pubsub.Client, dir string) (*httptest.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	bfs := budfs.New(module, log)
-	bfs.ServeFile("bud/view", (dom.New(module, transforms)).GenerateFileOld)
-	bfs.ServeFile("bud/node_modules", nodemodules.New(module).GenerateFileOld)
-	bfs.GenerateFile("bud/view/_ssr.js", ssr.New(module, transforms).GenerateFileOld)
-	handler := budsvr.New(bfs, bus, log, vm)
-	return httptest.NewServer(handler), nil
+	budln, err := socket.Listen(":0")
+	if err != nil {
+		return nil, err
+	}
+	cache, err := dag.Load(module, ":memory:")
+	if err != nil {
+		return nil, err
+	}
+	gfs := genfs.New(cache, module, log)
+	gfs.FileServer("bud/view", dom.New(module, transforms))
+	gfs.FileServer("bud/node_modules", nodemodules.New(module))
+	gfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms))
+	return budsvr.New(budln, bus, gfs, log, vm), nil
 }
 
 func TestOpen(t *testing.T) {
@@ -72,8 +82,9 @@ func TestOpen(t *testing.T) {
 	bus := pubsub.New()
 	server, err := loadServer(bus, dir)
 	is.NoErr(err)
+	server.Start(ctx)
 	defer server.Close()
-	client, err := budhttp.Load(log, server.URL)
+	client, err := budhttp.Load(log, server.Address())
 	is.NoErr(err)
 
 	// Check the entrypoint
@@ -130,8 +141,9 @@ func TestOpen404(t *testing.T) {
 	bus := pubsub.New()
 	server, err := loadServer(bus, dir)
 	is.NoErr(err)
+	server.Start(ctx)
 	defer server.Close()
-	client, err := budhttp.Load(log, server.URL)
+	client, err := budhttp.Load(log, server.Address())
 	is.NoErr(err)
 	file, err := client.Open("public/favicon.ico")
 	is.True(errors.Is(err, fs.ErrNotExist))
@@ -148,8 +160,9 @@ func TestEvents(t *testing.T) {
 	ps := pubsub.New()
 	server, err := loadServer(ps, dir)
 	is.NoErr(err)
+	server.Start(ctx)
 	defer server.Close()
-	client, err := budhttp.Load(log, server.URL)
+	client, err := budhttp.Load(log, server.Address())
 	is.NoErr(err)
 	sub := ps.Subscribe("ready")
 	defer sub.Close()
@@ -173,8 +186,9 @@ func TestScript(t *testing.T) {
 	ps := pubsub.New()
 	server, err := loadServer(ps, dir)
 	is.NoErr(err)
+	server.Start(ctx)
 	defer server.Close()
-	client, err := budhttp.Load(log, server.URL)
+	client, err := budhttp.Load(log, server.Address())
 	is.NoErr(err)
 	err = client.Script("script.js", "function a() { return 1 }")
 	is.NoErr(err)
@@ -193,8 +207,9 @@ func TestScriptEval(t *testing.T) {
 	ps := pubsub.New()
 	server, err := loadServer(ps, dir)
 	is.NoErr(err)
+	server.Start(ctx)
 	defer server.Close()
-	client, err := budhttp.Load(log, server.URL)
+	client, err := budhttp.Load(log, server.Address())
 	is.NoErr(err)
 	err = client.Script("script.js", "function a() { return 1 }")
 	is.NoErr(err)

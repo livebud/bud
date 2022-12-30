@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/framework/web/webrt"
 	"github.com/livebud/bud/internal/bfs"
 	"github.com/livebud/bud/internal/cli/bud"
 	"github.com/livebud/bud/internal/pubsub"
@@ -51,12 +50,12 @@ func (c *Command) Run(ctx context.Context) error {
 		return err
 	}
 	bus := pubsub.New()
-	server := budsvr.New(bfs, bus, log, vm)
 	budln, err := socket.Listen(":35729")
 	if err != nil {
 		return err
 	}
 	defer budln.Close()
+	server := budsvr.New(budln, bus, bfs, log, vm)
 	log.Info("Listening on http://127.0.0.1:35729")
-	return webrt.Serve(ctx, budln, server)
+	return server.Listen(ctx)
 }

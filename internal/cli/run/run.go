@@ -3,8 +3,6 @@ package run
 import (
 	"context"
 	"io"
-	"io/fs"
-	"net"
 	"path/filepath"
 	"time"
 
@@ -108,12 +106,12 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		bus = pubsub.New()
 	}
 	// Initialize the bud server
-	budServer := &budServer{
-		budln: budln,
-		bus:   bus,
-		fsys:  bfs,
-		log:   log,
+	vm, err := v8.Load()
+	if err != nil {
+		return err
 	}
+	defer vm.Close()
+	budServer := budsvr.New(budln, bus, bfs, log, vm)
 	// Setup the starter command
 	starter := &shell.Command{
 		Stdin:  c.in.Stdin,
@@ -146,32 +144,12 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	// Start the servers
 	eg, ctx := errgroup.WithContext(ctx)
 	// Start the internal bud server
-	eg.Go(func() error { return budServer.Run(ctx) })
+	eg.Go(func() error { return budServer.Listen(ctx) })
 	// Start the internal app server
 	eg.Go(func() error { return appServer.Run(ctx) })
 	// Wait until either the hot or web server exits
 	err = eg.Wait()
 	log.Field("error", err).Debug("run: command finished")
-	return err
-}
-
-// budServer runs the bud development server
-type budServer struct {
-	budln net.Listener
-	bus   pubsub.Client
-	fsys  fs.FS
-	log   log.Log
-}
-
-// Run the bud server
-func (s *budServer) Run(ctx context.Context) error {
-	vm, err := v8.Load()
-	if err != nil {
-		return err
-	}
-	devServer := budsvr.New(s.fsys, s.bus, s.log, vm)
-	err = webrt.Serve(ctx, s.budln, devServer)
-	s.log.Field("error", err).Debug("run: bud server closed")
 	return err
 }
 
@@ -208,8 +186,9 @@ func (a *appServer) Run(ctx context.Context) error {
 		a.log.Debug("run: published event %q", "app:error")
 		return err
 	}
+	defer process.Close()
 	// Watch for changes
-	return watcher.Watch(ctx, a.dir, catchError(a.prompter, func(events []watcher.Event) error {
+	err = watcher.Watch(ctx, a.dir, catchError(a.prompter, func(events []watcher.Event) error {
 		// Trigger reloading
 		a.prompter.Reloading(events)
 		// Inform the bud filesystem of the changes
@@ -258,6 +237,15 @@ func (a *appServer) Run(ctx context.Context) error {
 		process = p
 		return nil
 	}))
+	if err != nil {
+		return err
+	}
+	// Close the final process. This process is most likely different than the
+	// deferred process.
+	if err := process.Close(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // logWrap wraps the watch function in a handler that logs the error instead of

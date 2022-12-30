@@ -43,13 +43,32 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	// Setup the listener
+	budln, err := bud.BudListener(c.in)
+	if err != nil {
+		return err
+	}
+	defer budln.Close()
+	// Setup the command shell
 	cmd := bud.Shell(c.in, module)
+	cmd.Env = append(cmd.Env, "BUD_LISTEN="+budln.Addr().String())
+	// Load the budfs
 	bfs, err := budfs.Load(cmd, c.Flag, module, log)
 	if err != nil {
 		return err
 	}
 	defer bfs.Close(ctx)
-	return bfs.Sync(ctx, module, selectBudDirs(c.Args)...)
+	// Start the server
+	budServer, err := bud.StartBudServer(ctx, budln, bfs, log)
+	if err != nil {
+		return err
+	}
+	defer budServer.Close()
+	// Sync the directories
+	if err := bfs.Sync(ctx, module, selectBudDirs(c.Args)...); err != nil {
+		return err
+	}
+	return nil
 }
 
 func selectBudDirs(patterns []string) (paths []string) {

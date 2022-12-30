@@ -51,6 +51,8 @@ type FileSystem struct {
 }
 
 var _ Generators = (*FileSystem)(nil)
+var _ fs.FS = (*FileSystem)(nil)
+var _ fs.ReadDirFS = (*FileSystem)(nil)
 
 func (f *FileSystem) GenerateFile(path string, fn func(fsys FS, file *File) error) {
 	fileg := &fileGenerator{f.cache, fn, f, path}
