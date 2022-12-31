@@ -2,17 +2,24 @@ package generator
 
 import (
 	"github.com/livebud/bud/internal/imports"
-	"github.com/livebud/bud/package/di"
 )
 
 type State struct {
 	Imports    []*imports.Import
-	Generators []*UserGenerator
-	Provider   *di.Provider
+	Generators []*CodeGenerator
 }
 
-type UserGenerator struct {
+type Type string
+
+const (
+	DirGenerator  Type = "DirGenerator"
+	FileGenerator Type = "FileGenerator"
+	FileServer    Type = "FileServer"
+)
+
+type CodeGenerator struct {
 	Import *imports.Import
-	Path   string
-	Pascal string
+	Type   Type   // Type of generator
+	Path   string // Path that triggers the generator (e.g. "bud/cmd/app/main.go")
+	Camel  string
 }

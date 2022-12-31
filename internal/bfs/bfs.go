@@ -12,7 +12,6 @@ import (
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/app"
 	"github.com/livebud/bud/framework/controller"
-	"github.com/livebud/bud/framework/generator"
 	"github.com/livebud/bud/framework/public"
 	"github.com/livebud/bud/framework/transform/transformrt"
 	transform "github.com/livebud/bud/framework/transform2"
@@ -54,7 +53,7 @@ func Load(flag *framework.Flag, log log.Log, module *gomod.Module) (*FS, error) 
 	fsys.ServeFile("bud/view", (dom.New(module, transforms)).GenerateFileOld)
 	fsys.ServeFile("bud/node_modules", (nodemodules.New(module)).GenerateFileOld)
 	fsys.GenerateFile("bud/internal/generator/transform/transform.go", (transform.New(flag, injector, log, module, parser)).GenerateFileOld)
-	fsys.GenerateFile("bud/command/.generate/main.go", (generator.New(fsys, flag, injector, log, module, parser)).GenerateFileOld)
+	// fsys.GenerateFile("bud/command/.generate/main.go", (generator.New(fsys, flag, injector, log, module, parser)).GenerateFileOld)
 	return &FS{fsys, module}, nil
 }
 

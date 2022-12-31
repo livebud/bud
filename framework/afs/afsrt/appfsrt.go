@@ -31,11 +31,11 @@ func Logger(level string) (log.Log, error) {
 
 // GenFS creates a new filesystem
 func GenFS(module *gomod.Module, log log.Log) (*genfs.FileSystem, error) {
-	cache, err := dag.Load(module, module.Directory("bud/bud.db"))
-	if err != nil {
-		return nil, err
-	}
-	return genfs.New(cache, module, log), nil
+	// cache, err := dag.Load(module, module.Directory("bud/bud.db"))
+	// if err != nil {
+	// 	return nil, err
+	// }
+	return genfs.New(dag.Discard, module, log), nil
 }
 
 // Serve the remote filesystem

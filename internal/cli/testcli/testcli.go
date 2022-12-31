@@ -66,6 +66,16 @@ func prependFlags(args []string) []string {
 func (c *CLI) Run(ctx context.Context, args ...string) (*Result, error) {
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
+	webln, err := socket.Listen(":0")
+	if err != nil {
+		return nil, err
+	}
+	defer webln.Close()
+	budln, err := socket.Listen(":0")
+	if err != nil {
+		return nil, err
+	}
+	defer budln.Close()
 	cli := cli.New(&bud.Input{
 		Dir:    c.dir,
 		Bus:    c.bus,
@@ -73,8 +83,10 @@ func (c *CLI) Run(ctx context.Context, args ...string) (*Result, error) {
 		Stdin:  c.Stdin,
 		Stdout: io.MultiWriter(os.Stdout, stdout),
 		Stderr: io.MultiWriter(os.Stderr, stderr),
+		BudLn:  budln,
+		WebLn:  webln,
 	})
-	err := cli.Run(ctx, prependFlags(args)...)
+	err = cli.Run(ctx, prependFlags(args)...)
 	return &Result{stdout, stderr}, err
 }
 

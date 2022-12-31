@@ -3,10 +3,10 @@ package build
 import (
 	"context"
 
+	"github.com/livebud/bud/internal/budfs"
+
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/internal/bfs"
 	"github.com/livebud/bud/internal/cli/bud"
-	"github.com/livebud/bud/internal/gobuild"
 	"github.com/livebud/bud/internal/versions"
 )
 
@@ -47,15 +47,30 @@ func (c *Command) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	bfs, err := bfs.Load(c.Flag, log, module)
+	// Setup the listener
+	budln, err := bud.BudListener(c.in)
 	if err != nil {
 		return err
 	}
-	defer bfs.Close()
-	// Generate the application
-	if err := bfs.Sync(); err != nil {
+	defer budln.Close()
+	// Setup the command shell
+	cmd := bud.Shell(c.in, module)
+	cmd.Env = append(cmd.Env, "BUD_LISTEN="+budln.Addr().String())
+	// Load the budfs
+	bfs, err := budfs.Load(cmd, c.Flag, module, log)
+	if err != nil {
 		return err
 	}
-	builder := gobuild.New(module)
-	return builder.Build(ctx, "bud/internal/app/main.go", "bud/app")
+	defer bfs.Close(ctx)
+	// Start the server
+	budServer, err := bud.StartBudServer(ctx, budln, bfs, log)
+	if err != nil {
+		return err
+	}
+	defer budServer.Close()
+	// Sync the generated files
+	if err := bfs.Sync(ctx, module); err != nil {
+		return err
+	}
+	return nil
 }

@@ -178,6 +178,21 @@ func StartBudServer(ctx context.Context, budln net.Listener, fsys fs.FS, log log
 	return budServer, nil
 }
 
+func BudServer() *budServer {
+	return &budServer{}
+}
+
+type budServer struct {
+}
+
+func (b *budServer) Start(ctx context.Context) error {
+	return nil
+}
+
+func (b *budServer) Close() error {
+	return nil
+}
+
 func Shell(in *Input, module *gomod.Module) *shell.Command {
 	cmd := &shell.Command{
 		Dir:    module.Directory(),

@@ -13,7 +13,7 @@ import (
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/afs"
-	generator "github.com/livebud/bud/framework/generator2"
+	generator "github.com/livebud/bud/framework/generator"
 	"github.com/livebud/bud/internal/dag"
 	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/shell"
@@ -129,12 +129,11 @@ func (f *fileSystem) Sync(ctx context.Context, writable virtual.FS, paths ...str
 		case generator.DirGenerator:
 			log.Debug("generate: adding remote dir generator %q", gen.Path)
 			gfs.GenerateDir(gen.Path, func(fsys genfs.FS, dir *genfs.Dir) error {
-				// subfs, err := fs.Sub(remotefs, dir.Path())
-				// if err != nil {
-				// 	return err
-				// }
-				return fmt.Errorf("TODO: implement dir.Mount(subfs)")
-				// return dir.Mount(subfs)
+				subfs, err := fs.Sub(remotefs, dir.Path())
+				if err != nil {
+					return err
+				}
+				return dir.Mount(subfs)
 			})
 		case generator.FileGenerator:
 			log.Debug("generate: adding remote file generator %q", gen.Path)
