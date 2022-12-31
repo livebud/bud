@@ -105,7 +105,7 @@ func (f *FileSystem) openFrom(previous string, target string) (fs.File, error) {
 		if err != nil {
 			return nil, formatError(err, "open %q", target)
 		}
-		return wrapFile(file, f, target), nil
+		return wrapFile(file, f, node.Path), nil
 	}
 	// Next try opening the file from the fallback filesystem
 	if file, err := f.fsys.Open(target); nil == err {
@@ -120,13 +120,13 @@ func (f *FileSystem) openFrom(previous string, target string) (fs.File, error) {
 			Path: target,
 			Mode: node.Mode.FileMode(),
 		})
-		return wrapFile(dir, f, target), nil
+		return wrapFile(dir, f, node.Path), nil
 	}
 	// Lastly, try finding a node by its prefix
 	node, found = f.tree.FindPrefix(target)
 	if found && node.Path != previous && node.Mode.IsDir() && node.Generator != nil {
 		if file, err := node.Generator.Generate(target); nil == err {
-			return wrapFile(file, f, target), nil
+			return wrapFile(file, f, node.Path), nil
 		} else if !errors.Is(err, fs.ErrNotExist) {
 			return nil, formatError(err, "open by prefix %q", target)
 		}
@@ -144,6 +144,8 @@ func (f *FileSystem) ReadDir(target string) ([]fs.DirEntry, error) {
 		}
 		// Run the directory generator
 		if node.Mode.IsGen() {
+			// Generate is expected to update the tree, that's why we don't use the
+			// returned file
 			if _, err := node.Generator.Generate(target); err != nil {
 				return nil, err
 			}

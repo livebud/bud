@@ -74,6 +74,39 @@ func (d *Dir) ExternalGenerator(path string, generator ExternalGenerator) {
 	d.GenerateExternal(path, generator.GenerateExternal)
 }
 
+type mountGenerator struct {
+	dir string
+	// genfs fs.FS
+	mount fs.FS
+}
+
+func (g *mountGenerator) Generate(target string) (fs.File, error) {
+	return g.mount.Open(relativePath(g.dir, target))
+}
+
+func (d *Dir) Mount(mount fs.FS) error {
+	err := fs.WalkDir(mount, ".", func(path string, de fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		// Don't overwrite the existing root directory
+		if path == "." {
+			return nil
+		}
+		fpath := gopath.Join(d.path, path)
+		mode := fsmode.Gen
+		if de.IsDir() {
+			mode = fsmode.GenDir
+		}
+		d.tree.Insert(fpath, mode, &mountGenerator{d.path, mount})
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("budfs: mount error. %w", err)
+	}
+	return nil
+}
+
 type DirGenerator interface {
 	GenerateDir(fsys FS, dir *Dir) error
 }
