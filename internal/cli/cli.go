@@ -63,6 +63,7 @@ func (c *CLI) Run(ctx context.Context, args ...string) error {
 		cli.Flag("embed", "embed assets").Bool(&cmd.Flag.Embed).Default(false)
 		cli.Flag("hot", "hot reloading").Bool(&cmd.Flag.Hot).Default(true)
 		cli.Flag("minify", "minify assets").Bool(&cmd.Flag.Minify).Default(false)
+		cli.Flag("open", "open browser on dev server startup").Bool(&cmd.OpenBrowser).Default(false)
 		cli.Flag("listen", "address to listen to").String(&cmd.Listen).Default(":3000")
 		cli.Run(cmd.Run)
 	}

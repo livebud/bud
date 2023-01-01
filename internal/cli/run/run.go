@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"golang.org/x/sync/errgroup"
-
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/web/webrt"
 	"github.com/livebud/bud/internal/bfs"
@@ -26,6 +24,8 @@ import (
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/package/watcher"
+	"github.com/pkg/browser"
+	"golang.org/x/sync/errgroup"
 )
 
 // New command for bud run.
@@ -48,8 +48,9 @@ type Command struct {
 	in  *bud.Input
 
 	// Flags
-	Flag   *framework.Flag
-	Listen string // Web listener address
+	Flag        *framework.Flag
+	Listen      string // Web listener address
+	OpenBrowser bool
 }
 
 // Run the run command. That's a mouthful.
@@ -150,6 +151,14 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	// Start the internal app server
 	eg.Go(func() error { return appServer.Run(ctx) })
 	// Wait until either the hot or web server exits
+
+	if !c.OpenBrowser {
+		err := browser.OpenURL("http://" + webln.Addr().String())
+		if err != nil {
+			return err
+		}
+	}
+
 	err = eg.Wait()
 	log.Field("error", err).Debug("run: command finished")
 	return err
