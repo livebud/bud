@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/virt"
 
 	"github.com/livebud/bud/internal/dag"
@@ -22,7 +23,8 @@ const dbPath = ":memory:"
 func TestSetGet(t *testing.T) {
 	is := is.New(t)
 	fsys := virt.Map{}
-	cache, err := dag.Load(fsys, dbPath)
+	log := testlog.New()
+	cache, err := dag.Load(fsys, log, dbPath)
 	is.NoErr(err)
 	defer cache.Close()
 	is.NoErr(cache.Set("a.txt", &virt.File{
@@ -38,7 +40,8 @@ func TestSetGet(t *testing.T) {
 func TestGetNotFound(t *testing.T) {
 	is := is.New(t)
 	fsys := virt.Map{}
-	cache, err := dag.Load(fsys, dbPath)
+	log := testlog.New()
+	cache, err := dag.Load(fsys, log, dbPath)
 	is.NoErr(err)
 	defer cache.Close()
 	file, err := cache.Get("a.txt")
@@ -80,7 +83,8 @@ func seed(is *is.I, cache dag.Cache) {
 func TestAncestors(t *testing.T) {
 	is := is.New(t)
 	fsys := virt.Map{}
-	cache, err := dag.Load(fsys, dbPath)
+	log := testlog.New()
+	cache, err := dag.Load(fsys, log, dbPath)
 	is.NoErr(err)
 	defer cache.Close()
 	seed(is, cache)
@@ -101,7 +105,8 @@ func TestAncestors(t *testing.T) {
 func TestDelete(t *testing.T) {
 	is := is.New(t)
 	fsys := virt.Map{}
-	cache, err := dag.Load(fsys, dbPath)
+	log := testlog.New()
+	cache, err := dag.Load(fsys, log, dbPath)
 	is.NoErr(err)
 	defer cache.Close()
 	seed(is, cache)
@@ -136,7 +141,8 @@ func TestDelete(t *testing.T) {
 func TestPrint(t *testing.T) {
 	is := is.New(t)
 	fsys := virt.Map{}
-	cache, err := dag.Load(fsys, dbPath)
+	log := testlog.New()
+	cache, err := dag.Load(fsys, log, dbPath)
 	is.NoErr(err)
 	defer cache.Close()
 	seed(is, cache)
@@ -162,7 +168,8 @@ func TestPrint(t *testing.T) {
 func TestManyWrites(t *testing.T) {
 	is := is.New(t)
 	fsys := virt.Map{}
-	cache, err := dag.Load(fsys, dbPath)
+	log := testlog.New()
+	cache, err := dag.Load(fsys, log, dbPath)
 	is.NoErr(err)
 	defer cache.Close()
 	for i := 0; i < 100; i++ {
@@ -177,7 +184,8 @@ func TestConcurrentWrites(t *testing.T) {
 	fsys := virt.Map{}
 	parent := func(t testing.TB, cmd *exec.Cmd) {
 		dbPath := filepath.Join(t.TempDir(), "test_concurrent_writes.db")
-		cache, err := dag.Load(fsys, dbPath)
+		log := testlog.New()
+		cache, err := dag.Load(fsys, log, dbPath)
 		is.NoErr(err)
 		defer cache.Close()
 		cmd.Stdout = os.Stdout
@@ -193,7 +201,8 @@ func TestConcurrentWrites(t *testing.T) {
 	}
 	child := func(t testing.TB) {
 		dbPath := os.Getenv("DBPATH")
-		cache, err := dag.Load(fsys, dbPath)
+		log := testlog.New()
+		cache, err := dag.Load(fsys, log, dbPath)
 		is.NoErr(err)
 		defer cache.Close()
 		for i := 100; i < 200; i++ {
@@ -208,7 +217,8 @@ func TestConcurrentWrites(t *testing.T) {
 func TestUpsertLink(t *testing.T) {
 	is := is.New(t)
 	fsys := virt.Map{}
-	cache, err := dag.Load(fsys, dbPath)
+	log := testlog.New()
+	cache, err := dag.Load(fsys, log, dbPath)
 	is.NoErr(err)
 	defer cache.Close()
 	is.NoErr(cache.Link("a.txt", "b.txt"))
@@ -223,7 +233,8 @@ func TestUpsertLink(t *testing.T) {
 func TestUpsertFile(t *testing.T) {
 	is := is.New(t)
 	fsys := virt.Map{}
-	cache, err := dag.Load(fsys, dbPath)
+	log := testlog.New()
+	cache, err := dag.Load(fsys, log, dbPath)
 	is.NoErr(err)
 	defer cache.Close()
 	is.NoErr(cache.Set("a.txt", &virt.File{
@@ -244,4 +255,14 @@ func TestUpsertFile(t *testing.T) {
 	is.Equal(file.Path, "a.txt")
 	is.Equal(file.Data, []byte("aa.txt"))
 	is.Equal(file.Mode, os.FileMode(0644))
+}
+
+func TestLinkNoTo(t *testing.T) {
+	is := is.New(t)
+	fsys := virt.Map{}
+	log := testlog.New()
+	cache, err := dag.Load(fsys, log, dbPath)
+	is.NoErr(err)
+	defer cache.Close()
+	is.NoErr(cache.Link("a.txt"))
 }

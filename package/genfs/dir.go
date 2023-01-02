@@ -127,9 +127,7 @@ type dirGenerator struct {
 
 func (d *dirGenerator) Generate(target string) (fs.File, error) {
 	if entry, err := d.cache.Get(d.path); err == nil {
-		_ = entry
-		// TODO: wrap the entry file in a virtualDir
-		return nil, fmt.Errorf("cache get not implemented yet")
+		return wrapFile(virt.Open(entry), d.genfs, d.path), nil
 	}
 	// Run the directory generator function
 	scopedFS := &scopedFS{d.cache, d.genfs, d.path}

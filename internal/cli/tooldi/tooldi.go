@@ -7,20 +7,19 @@ import (
 	"os"
 	"strings"
 
-	"github.com/livebud/bud/internal/cli/bud"
+	"github.com/livebud/bud/internal/config"
 	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/parser"
 )
 
-func New(bud *bud.Command, in *bud.Input) *Command {
-	return &Command{bud: bud, in: in}
+func New(provide config.Provide) *Command {
+	return &Command{provide: provide}
 }
 
 type Command struct {
-	bud          *bud.Command
-	in           *bud.Input
+	provide      config.Provide
 	Name         string
 	Target       string
 	Map          map[string]string
@@ -31,11 +30,11 @@ type Command struct {
 }
 
 func (c *Command) Run(ctx context.Context) error {
-	log, err := bud.Log(c.in.Stderr, c.bud.Log)
+	log, err := c.provide.Logger()
 	if err != nil {
 		return err
 	}
-	module, err := bud.Module(c.bud.Dir)
+	module, err := c.provide.Module()
 	if err != nil {
 		return err
 	}

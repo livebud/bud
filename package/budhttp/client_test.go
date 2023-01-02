@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/dag"
 
 	"github.com/livebud/bud/package/genfs"
@@ -32,6 +33,7 @@ import (
 )
 
 func loadServer(bus pubsub.Client, dir string) (*budsvr.Server, error) {
+	flag := new(framework.Flag)
 	log := testlog.New()
 	vm, err := v8.Load()
 	if err != nil {
@@ -53,7 +55,7 @@ func loadServer(bus pubsub.Client, dir string) (*budsvr.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	cache, err := dag.Load(module, ":memory:")
+	cache, err := dag.Load(module, log, ":memory:")
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +63,7 @@ func loadServer(bus pubsub.Client, dir string) (*budsvr.Server, error) {
 	gfs.FileServer("bud/view", dom.New(module, transforms))
 	gfs.FileServer("bud/node_modules", nodemodules.New(module))
 	gfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms))
-	return budsvr.New(budln, bus, gfs, log, vm), nil
+	return budsvr.New(budln, bus, flag, gfs, log, vm), nil
 }
 
 func TestOpen(t *testing.T) {

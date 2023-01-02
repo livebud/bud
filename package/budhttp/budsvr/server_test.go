@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/package/budhttp/budsvr"
@@ -25,7 +26,8 @@ func TestServerClose(t *testing.T) {
 	budln, err := socket.Listen(":0")
 	is.NoErr(err)
 	defer budln.Close()
-	server := budsvr.New(budln, bus, fsys, log, vm)
+	flag := new(framework.Flag)
+	server := budsvr.New(budln, bus, flag, fsys, log, vm)
 	server.Start(context.Background())
 	is.NoErr(server.Close())
 	is.NoErr(server.Close())
@@ -42,7 +44,8 @@ func TestServerCancel(t *testing.T) {
 	budln, err := socket.Listen(":0")
 	is.NoErr(err)
 	defer budln.Close()
-	server := budsvr.New(budln, bus, fsys, log, vm)
+	flag := new(framework.Flag)
+	server := budsvr.New(budln, bus, flag, fsys, log, vm)
 	ctx, cancel := context.WithCancel(context.Background())
 	server.Start(ctx)
 	cancel()
@@ -60,7 +63,8 @@ func TestServerListenCancel(t *testing.T) {
 	budln, err := socket.Listen(":0")
 	is.NoErr(err)
 	defer budln.Close()
-	server := budsvr.New(budln, bus, fsys, log, vm)
+	flag := new(framework.Flag)
+	server := budsvr.New(budln, bus, flag, fsys, log, vm)
 	eg := new(errgroup.Group)
 	ctx, cancel := context.WithCancel(context.Background())
 	called := 0
@@ -119,7 +123,8 @@ func TestServerCloseNoServe(t *testing.T) {
 	budln, err := socket.Listen(":0")
 	is.NoErr(err)
 	defer budln.Close()
-	server := budsvr.New(budln, bus, fsys, log, vm)
+	flag := new(framework.Flag)
+	server := budsvr.New(budln, bus, flag, fsys, log, vm)
 	is.NoErr(server.Close())
 	is.NoErr(server.Close())
 }
@@ -134,7 +139,8 @@ func TestServerWaitNoServe(t *testing.T) {
 	budln, err := socket.Listen(":0")
 	is.NoErr(err)
 	defer budln.Close()
-	server := budsvr.New(budln, bus, fsys, log, vm)
+	flag := new(framework.Flag)
+	server := budsvr.New(budln, bus, flag, fsys, log, vm)
 	is.NoErr(server.Wait())
 	is.NoErr(server.Wait())
 }

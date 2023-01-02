@@ -5,13 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"net"
 	"path"
 	"path/filepath"
 	"strings"
 
-	"github.com/livebud/bud/internal/errs"
+	"github.com/livebud/bud/package/budfs/mergefs"
 
 	"github.com/livebud/bud/framework"
+	"github.com/livebud/bud/internal/errs"
+
 	"github.com/livebud/bud/framework/afs"
 	generator "github.com/livebud/bud/framework/generator"
 	"github.com/livebud/bud/internal/dag"
@@ -33,11 +36,11 @@ type FileSystem interface {
 	Close(ctx context.Context) error
 }
 
-func Load(cmd *shell.Command, flag *framework.Flag, module *gomod.Module, log log.Log) (FileSystem, error) {
+func Load(budln net.Listener, cmd *shell.Command, flag *framework.Flag, module *gomod.Module, log log.Log) (FileSystem, error) {
 	// Load the cache
-	cache, err := dag.Load(module, module.Directory("bud/bud.db"))
+	cache, err := dag.Load(module, log, module.Directory("bud/bud.db"))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("bud: unable to load cache. %w", err)
 	}
 	fsys := virtual.Exclude(module, func(path string) bool {
 		return path == "bud" || strings.HasPrefix(path, "bud/")
@@ -47,22 +50,30 @@ func Load(cmd *shell.Command, flag *framework.Flag, module *gomod.Module, log lo
 	injector := di.New(gfs, log, module, parser)
 	generators := generator.New(log, module, parser)
 	gfs.FileGenerator("bud/internal/generator/generator.go", generators)
-	gfs.FileGenerator("bud/cmd/afs/main.go", afs.New(injector, log, module))
-	return &fileSystem{cache, cmd, gfs, generators, log, module, nil}, nil
+	gfs.FileGenerator("bud/cmd/afs/main.go", afs.New(flag, injector, log, module))
+	merged := gfs
+	return &fileSystem{cache, cmd, flag, gfs, generators, log, merged, module, nil}, nil
 }
 
 type fileSystem struct {
 	cache      dag.Cache
 	cmd        *shell.Command
-	fsys       fs.ReadDirFS
+	flag       *framework.Flag
+	genfs      fs.ReadDirFS
 	generators *generator.Generator
 	log        log.Log
+	merged     fs.FS
 	module     *gomod.Module
 
 	remotefs *remotefs.Process // starts as nil
 }
 
 func (f *fileSystem) Refresh(ctx context.Context, paths ...string) error {
+	// TODO: optimize later
+	if err := f.cache.Reset(); err != nil {
+		fmt.Println("Unable to reset", paths, err)
+		return err
+	}
 	return nil
 }
 
@@ -93,7 +104,7 @@ func (f *fileSystem) Sync(ctx context.Context, writable virtual.FS, paths ...str
 		return err
 	}
 	// Sync the files
-	if err := dsync.To(f.fsys, f.module, "bud", dsync.WithSkip(skips...), dsync.WithLog(log)); err != nil {
+	if err := dsync.To(f.genfs, f.module, "bud", dsync.WithSkip(skips...), dsync.WithLog(log)); err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
@@ -111,60 +122,18 @@ func (f *fileSystem) Sync(ctx context.Context, writable virtual.FS, paths ...str
 	if err := f.cmd.Run(ctx, "go", "build", "-mod=mod", "-o="+afsBinPath, afsMainPath); err != nil {
 		return err
 	}
-	remotefs, err := (*remotefs.Command)(f.cmd).Start(ctx, "bud/afs")
+	remotefs, err := (*remotefs.Command)(f.cmd).Start(ctx, "bud/afs", f.flag.Flags()...)
 	if err != nil {
 		return err
 	}
 	f.remotefs = remotefs
-	// Proxy all application generators through the remote filesystem
-	state, err := f.generators.Load(f.fsys)
-	if err != nil {
-		return err
-	}
-	// Create an new genfs that uses the remote filesystem. A fresh genfs is
-	// created everytime to handle generator changes.
-	gfs := genfs.New(f.cache, virtual.Tree{}, log)
-	for _, gen := range state.Generators {
-		switch gen.Type {
-		case generator.DirGenerator:
-			log.Debug("generate: adding remote dir generator %q", gen.Path)
-			gfs.GenerateDir(gen.Path, func(fsys genfs.FS, dir *genfs.Dir) error {
-				subfs, err := fs.Sub(remotefs, dir.Path())
-				if err != nil {
-					return err
-				}
-				return dir.Mount(subfs)
-			})
-		case generator.FileGenerator:
-			log.Debug("generate: adding remote file generator %q", gen.Path)
-			gfs.GenerateFile(gen.Path, func(fsys genfs.FS, file *genfs.File) error {
-				code, err := fs.ReadFile(remotefs, file.Target())
-				if err != nil {
-					return err
-				}
-				file.Data = code
-				return nil
-			})
-		case generator.FileServer:
-			log.Debug("generate: adding remote file server %q", gen.Path)
-			gfs.ServeFile(gen.Path, func(fsys genfs.FS, file *genfs.File) error {
-				code, err := fs.ReadFile(remotefs, file.Target())
-				if err != nil {
-					return err
-				}
-				file.Data = code
-				return nil
-			})
-		default:
-			return fmt.Errorf("afs: unknown type of generator %q", gen.Type)
-		}
-	}
+	f.merged = mergefs.Merge(f.genfs, remotefs)
 	// Skip over the afs files we just generated
 	skips = append(skips, func(name string, isDir bool) bool {
 		return isAFSPath(name)
 	})
 	// Sync the app files again with the remote filesystem
-	if err := dsync.To(gfs, f.module, "bud", dsync.WithSkip(skips...), dsync.WithLog(log)); err != nil {
+	if err := dsync.To(remotefs, f.module, "bud", dsync.WithSkip(skips...), dsync.WithLog(log)); err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
@@ -187,16 +156,17 @@ func (f *fileSystem) Sync(ctx context.Context, writable virtual.FS, paths ...str
 
 // Open implements fs.FS by proxying to genfs. This is needed for bud server.
 func (f *fileSystem) Open(name string) (fs.File, error) {
-	return f.fsys.Open(name)
+	return f.merged.Open(name)
 }
 
 // ReadDir implements fs.ReadDirFS by proxying to genfs. This is needed for
 // bud server.
 func (f *fileSystem) ReadDir(name string) ([]fs.DirEntry, error) {
-	return f.fsys.ReadDir(name)
+	return fs.ReadDir(f.merged, name)
 }
 
 func (f *fileSystem) Close(ctx context.Context) (err error) {
+	errs.Join(f.cache.Close())
 	// Close the remote filesystem if we opened it
 	if f.remotefs != nil {
 		err = errs.Join(err, f.remotefs.Close())
@@ -222,7 +192,8 @@ const (
 func isAFSPath(fpath string) bool {
 	return fpath == afsBinPath ||
 		isWithin(afsGeneratorDir, fpath) ||
-		isWithin(afsMainDir, fpath)
+		isWithin(afsMainDir, fpath) ||
+		fpath == "bud/cmd" // TODO: remove once we move app over to cmd/app/main.go
 }
 
 func needsAFSBinary(paths []string) bool {

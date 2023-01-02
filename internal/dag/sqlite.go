@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/package/genfs"
+	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/virt"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -30,15 +31,15 @@ type Link struct {
 	To   string
 }
 
-func Load(fsys fs.FS, path string) (*DB, error) {
+func Load(fsys fs.FS, log log.Log, dbPath string) (*DB, error) {
 	// Make the path directory
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
 		return nil, err
 	}
 	// Open the SQLite database
-	db, err := sql.Open("sqlite3", path)
+	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dag/sqlite: unable to open %q. %w", dbPath, err)
 	}
 
 	// Create the files and links tables.
@@ -49,7 +50,7 @@ func Load(fsys fs.FS, path string) (*DB, error) {
 			mode INTEGER
 		)
 	`); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dag/sqlite: unable to create files table. %w", err)
 	}
 	if _, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS links (
@@ -60,32 +61,37 @@ func Load(fsys fs.FS, path string) (*DB, error) {
 			PRIMARY KEY(from_path, to_path)
 		)
 	`); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dag/sqlite: unable to create links table. %w", err)
 	}
 
-	return &DB{fsys, db}, nil
+	return &DB{fsys, db, log, dbPath}, nil
 }
 
 type DB struct {
-	fsys fs.FS
-	db   *sql.DB
+	fsys   fs.FS
+	db     *sql.DB
+	log    log.Log
+	dbPath string
 }
 
 var _ genfs.Cache = (*DB)(nil)
+var _ Cache = (*DB)(nil)
 
 func (c *DB) Set(path string, file *virt.File) error {
 	file.Path = path
 	// Insert the file into the files table.
-	if _, err := c.db.Exec(`
+	const sql = `
 		INSERT INTO files (path, data, mode)
 		VALUES (?, ?, ?)
 		ON CONFLICT (path)
 		DO UPDATE SET
-			data = excluded.data,
-			mode = excluded.mode
-	`, file.Path, file.Data, file.Mode); err != nil {
-		return err
+			data = EXCLUDED.data,
+			mode = EXCLUDED.mode
+	`
+	if _, err := c.db.Exec(sql, file.Path, file.Data, file.Mode); err != nil {
+		return fmt.Errorf("dag/sqlite: unable to set file %q. %w", path, err)
 	}
+	c.log.Debug("dag/sqlite: set file %q", path)
 	return nil
 }
 
@@ -100,12 +106,17 @@ func (c *DB) Get(path string) (*virt.File, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("%w %q", ErrNotFound, path)
 		}
-		return nil, err
+		return nil, fmt.Errorf("dag/sqlite: unable to get file %q. %w", path, err)
 	}
+	c.log.Debug("dag/sqlite: get file %q", path)
 	return file, nil
 }
 
 func (c *DB) Link(from string, toPatterns ...string) error {
+	// Ignore incomplete links
+	if len(toPatterns) == 0 {
+		return nil
+	}
 	params := make([]interface{}, len(toPatterns)*2)
 	for i, to := range toPatterns {
 		params[i*2] = from
@@ -123,8 +134,9 @@ func (c *DB) Link(from string, toPatterns ...string) error {
 	// Do nothing if the link already exists.
 	sql.WriteString(` ON CONFLICT DO NOTHING`)
 	if _, err := c.db.Exec(sql.String(), params...); err != nil {
-		return err
+		return fmt.Errorf("dag/sqlite: unable to link files %q %v. %w", from, toPatterns, err)
 	}
+	c.log.Debug("dag/sqlite: linked file %q -> %v", from, toPatterns)
 	return nil
 }
 
@@ -140,7 +152,7 @@ func (c *DB) Ancestors(paths ...string) (deps []string, err error) {
 		`
 		rows, err := c.db.Query(sql, paths[i])
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("dag/sqlite: unable get ancestors for %v for %q db. %w", paths, c.dbPath, err)
 		}
 		defer rows.Close()
 		for rows.Next() {
@@ -185,7 +197,7 @@ func (c *DB) Delete(paths ...string) error {
 	`
 	_, err = c.db.Exec(sql, params...)
 	if err != nil {
-		return err
+		return fmt.Errorf("dag/sqlite: unable delete files for %v. %w", paths, err)
 	}
 
 	// Delete all links to these paths
@@ -196,7 +208,7 @@ func (c *DB) Delete(paths ...string) error {
 	`
 	_, err = c.db.Exec(sql, append(params, params...)...)
 	if err != nil {
-		return err
+		return fmt.Errorf("dag/sqlite: unable delete links for %v. %w", paths, err)
 	}
 
 	return nil
@@ -316,7 +328,7 @@ func (c *DB) Reset() error {
 		DELETE FROM links;
 	`)
 	if err != nil {
-		return err
+		return fmt.Errorf("dag/sqlite: unable reset files and links. %w", err)
 	}
 	return nil
 }

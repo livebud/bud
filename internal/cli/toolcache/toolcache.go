@@ -4,21 +4,29 @@ import (
 	"context"
 	"os"
 
-	"github.com/livebud/bud/internal/cli/bud"
+	"github.com/livebud/bud/internal/config"
 )
 
-func New(bud *bud.Command) *Command {
-	return &Command{bud: bud}
+func New(provide config.Provide) *Command {
+	return &Command{provide: provide}
 }
 
 type Command struct {
-	bud *bud.Command
+	provide config.Provide
 }
 
 func (c *Command) Run(ctx context.Context) error {
-	module, err := bud.Module(c.bud.Dir)
+	module, err := c.provide.Module()
 	if err != nil {
 		return err
 	}
-	return os.RemoveAll(module.Directory("bud", ".cache"))
+	// Remove the old cache
+	if err := os.RemoveAll(module.Directory("bud", ".cache")); err != nil {
+		return err
+	}
+	// Remove the new SQLite cache
+	if err := os.RemoveAll(module.Directory("bud", "bud.db")); err != nil {
+		return err
+	}
+	return nil
 }

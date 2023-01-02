@@ -7,56 +7,48 @@ import (
 	"os"
 	"path"
 
-	"golang.org/x/tools/txtar"
+	"github.com/livebud/bud/internal/config"
 
-	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/internal/bfs"
-	"github.com/livebud/bud/internal/cli/bud"
+	"golang.org/x/tools/txtar"
 )
 
-func New(bud *bud.Command, in *bud.Input) *Command {
-	return &Command{
-		bud: bud,
-		in:  in,
-		Flag: &framework.Flag{
-			Env:    in.Env,
-			Stderr: in.Stderr,
-			Stdin:  in.Stdin,
-			Stdout: in.Stdout,
-		},
-	}
+func New(provide config.Provide) *Command {
+	return &Command{provide: provide}
 }
 
 type Command struct {
-	bud  *bud.Command
-	in   *bud.Input
-	Flag *framework.Flag
-	Dir  string
+	provide config.Provide
+	Dir     string
 }
 
 func (c *Command) Run(ctx context.Context) error {
-	log, err := bud.Log(c.in.Stderr, c.bud.Log)
+	module, err := c.provide.Module()
 	if err != nil {
 		return err
 	}
-	dir := path.Clean(c.Dir)
-	module, err := bud.Module(path.Join(c.bud.Dir, dir))
+	budsvr, err := c.provide.BudServer()
 	if err != nil {
 		return err
 	}
-	bfs, err := bfs.Load(c.Flag, log, module)
+	defer budsvr.Close()
+	budfs, err := c.provide.BudFileSystem()
 	if err != nil {
 		return err
 	}
-	defer bfs.Close()
+	defer budfs.Close(ctx)
+	// Sync the directories
+	if err := budfs.Sync(ctx, module); err != nil {
+		return err
+	}
 	ar := new(txtar.Archive)
-	err = fs.WalkDir(bfs, dir, func(path string, de fs.DirEntry, err error) error {
+	dir := path.Clean(c.Dir)
+	err = fs.WalkDir(budfs, dir, func(path string, de fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		} else if de.IsDir() {
 			return nil
 		}
-		code, err := fs.ReadFile(bfs, path)
+		code, err := fs.ReadFile(budfs, path)
 		if err != nil {
 			return err
 		}

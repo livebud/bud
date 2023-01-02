@@ -199,11 +199,12 @@ func TestUpdateGenerator(t *testing.T) {
 			"github.com/livebud/bud/package/genfs"
 		)
 		type Generator struct {}
-		func (g *Generator) GenerateDir(fsys genfs.FS, dir *genfs.Dir) {
+		func (g *Generator) GenerateDir(fsys genfs.FS, dir *genfs.Dir) error {
 			dir.GenerateFile("tailwind.css", func(fsys genfs.FS, file *genfs.File) error {
 				file.Data = []byte("/** tailwind **/")
 				return nil
 			})
+			return nil
 		}
 	`
 	is.NoErr(td.Write(ctx))
@@ -224,15 +225,16 @@ func TestUpdateGenerator(t *testing.T) {
 		)
 		type Generator struct {
 		}
-		func (g *Generator) GenerateDir(fsys genfs.FS, dir *genfs.Dir) {
+		func (g *Generator) GenerateDir(fsys genfs.FS, dir *genfs.Dir) error {
 			dir.GenerateFile("tailwind.css", func(fsys genfs.FS, file *genfs.File) error {
-				file.Data = []byte("/** tailwind **/")
+				file.Data = []byte("/** tailwind2 **/")
 				return nil
 			})
 			dir.GenerateFile("preflight.css", func(fsys genfs.FS, file *genfs.File) error {
 				file.Data = []byte("/** preflight **/")
 				return nil
 			})
+			return nil
 		}
 	`)), 0644))
 	// Wait for the app to be ready again
@@ -249,7 +251,7 @@ func TestUpdateGenerator(t *testing.T) {
 	is.Equal(string(data), "/** tailwind2 **/")
 }
 
-func TestRemoveGenerator(t *testing.T) {
+func TestDeleteGenerator(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
@@ -260,11 +262,12 @@ func TestRemoveGenerator(t *testing.T) {
 			"github.com/livebud/bud/package/genfs"
 		)
 		type Generator struct {}
-		func (g *Generator) GenerateDir(fsys genfs.FS, dir *genfs.Dir) {
+		func (g *Generator) GenerateDir(fsys genfs.FS, dir *genfs.Dir) error {
 			dir.GenerateFile("tailwind.css", func(fsys genfs.FS, file *genfs.File) error {
 				file.Data = []byte("/** tailwind **/")
 				return nil
 			})
+			return nil
 		}
 	`
 	is.NoErr(td.Write(ctx))
@@ -284,7 +287,8 @@ func TestRemoveGenerator(t *testing.T) {
 			"github.com/livebud/bud/package/genfs"
 		)
 		type Generator struct {}
-		func (g *Generator) GenerateDir(fsys genfs.FS, dir *genfs.Dir) {
+		func (g *Generator) GenerateDir(fsys genfs.FS, dir *genfs.Dir) error {
+			return nil
 		}
 	`)), 0644))
 	// Wait for the app to be ready again

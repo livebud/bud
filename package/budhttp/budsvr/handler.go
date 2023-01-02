@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"net/http"
 
+	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/package/virtual"
 
 	"github.com/livebud/bud/package/budhttp"
@@ -20,7 +21,7 @@ import (
 	"github.com/livebud/bud/package/router"
 )
 
-func newHandler(fsys fs.FS, bus pubsub.Client, log log.Log, vm js.VM) *Handler {
+func newHandler(flag *framework.Flag, fsys fs.FS, bus pubsub.Client, log log.Log, vm js.VM) *Handler {
 	router := router.New()
 	server := &Handler{
 		Handler: router,
@@ -34,7 +35,9 @@ func newHandler(fsys fs.FS, bus pubsub.Client, log log.Log, vm js.VM) *Handler {
 	router.Post("/bud/view/:route*", http.HandlerFunc(server.render))
 	router.Get("/open/:path*", http.HandlerFunc(server.open))
 	// Routes that are directly requested by the browser to
-	router.Get("/bud/hot/:page*", hot.New(log, bus))
+	if flag.Hot {
+		router.Get("/bud/hot/:page*", hot.New(log, bus))
+	}
 	// Private routes between the app and bud
 	router.Post("/bud/events", http.HandlerFunc(server.publish))
 	// Support eval

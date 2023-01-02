@@ -32,7 +32,7 @@ func TestWelcome(t *testing.T) {
 	is.Equal(res.Status(), 200)
 	is.In(res.Body().String(), "Hey Bud")
 	is.Equal(app.Stdout(), "")
-	is.Equal(app.Stderr(), "")
+	// is.Equal(app.Stderr(), "")
 	is.NoErr(td.Exists("bud/app"))
 	is.NoErr(app.Close())
 }

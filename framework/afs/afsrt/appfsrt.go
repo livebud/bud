@@ -2,11 +2,14 @@ package afsrt
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"os"
+	"strings"
 
 	"github.com/livebud/bud/internal/dag"
 	"github.com/livebud/bud/package/genfs"
+	"github.com/livebud/bud/package/virt"
 
 	"golang.org/x/sync/errgroup"
 
@@ -31,11 +34,14 @@ func Logger(level string) (log.Log, error) {
 
 // GenFS creates a new filesystem
 func GenFS(module *gomod.Module, log log.Log) (*genfs.FileSystem, error) {
-	// cache, err := dag.Load(module, module.Directory("bud/bud.db"))
-	// if err != nil {
-	// 	return nil, err
-	// }
-	return genfs.New(dag.Discard, module, log), nil
+	fsys := virt.Exclude(module, func(path string) bool {
+		return path == "bud" || strings.HasPrefix(path, "bud/")
+	})
+	cache, err := dag.Load(module, log, module.Directory("bud/bud.db"))
+	if err != nil {
+		return nil, fmt.Errorf("afs: unable to load cache. %w", err)
+	}
+	return genfs.New(cache, fsys, log), nil
 }
 
 // Serve the remote filesystem

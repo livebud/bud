@@ -7,46 +7,38 @@ import (
 	"os"
 	"path"
 
-	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/internal/bfs"
-	"github.com/livebud/bud/internal/cli/bud"
+	"github.com/livebud/bud/internal/config"
 )
 
-func New(bud *bud.Command, in *bud.Input) *Command {
-	return &Command{
-		bud: bud,
-		in:  in,
-		Flag: &framework.Flag{
-			Env:    in.Env,
-			Stderr: in.Stderr,
-			Stdin:  in.Stdin,
-			Stdout: in.Stdout,
-		},
-	}
+func New(provide config.Provide) *Command {
+	return &Command{provide: provide}
 }
 
 type Command struct {
-	bud  *bud.Command
-	in   *bud.Input
-	Flag *framework.Flag
-	Path string
+	provide config.Provide
+	Path    string
 }
 
 func (c *Command) Run(ctx context.Context) error {
-	log, err := bud.Log(c.in.Stderr, c.bud.Log)
+	module, err := c.provide.Module()
 	if err != nil {
 		return err
 	}
-	module, err := bud.Module(c.bud.Dir)
+	budsvr, err := c.provide.BudServer()
 	if err != nil {
 		return err
 	}
-	bfs, err := bfs.Load(c.Flag, log, module)
+	defer budsvr.Close()
+	budfs, err := c.provide.BudFileSystem()
 	if err != nil {
 		return err
 	}
-	defer bfs.Close()
-	code, err := fs.ReadFile(bfs, path.Clean(c.Path))
+	defer budfs.Close(ctx)
+	// Sync the directories
+	if err := budfs.Sync(ctx, module); err != nil {
+		return err
+	}
+	code, err := fs.ReadFile(budfs, path.Clean(c.Path))
 	if err != nil {
 		return err
 	}

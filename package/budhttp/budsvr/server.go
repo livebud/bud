@@ -6,20 +6,23 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
+	"os"
 
+	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/pubsub"
+	"github.com/livebud/bud/internal/sig"
 	"github.com/livebud/bud/package/js"
 	"github.com/livebud/bud/package/log"
 	"golang.org/x/sync/errgroup"
 )
 
 // New development server
-func New(budln net.Listener, bus pubsub.Client, fsys fs.FS, log log.Log, vm js.VM) *Server {
+func New(budln net.Listener, bus pubsub.Client, flag *framework.Flag, fsys fs.FS, log log.Log, vm js.VM) *Server {
 	return &Server{
 		ln: budln,
 		s: &http.Server{
 			Addr:    budln.Addr().String(),
-			Handler: newHandler(fsys, bus, log, vm),
+			Handler: newHandler(flag, fsys, bus, log, vm),
 		},
 		eg: new(errgroup.Group),
 	}
@@ -34,8 +37,8 @@ type Server struct {
 // Shutdown the server gracefully unless we receive an interrupt signal, then
 // force an immediate shutdown.
 func (s *Server) shutdown() error {
-	// forceCtx := sig.Trap(context.Background(), os.Interrupt)
-	return s.s.Shutdown(context.Background())
+	forceCtx := sig.Trap(context.Background(), os.Interrupt)
+	return s.s.Shutdown(forceCtx)
 }
 
 func (s *Server) serve() error {

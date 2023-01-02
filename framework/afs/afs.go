@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 
+	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/internal/imports"
@@ -23,11 +24,12 @@ func Generate(state *State) ([]byte, error) {
 	return generator.Generate(state)
 }
 
-func New(injector *di.Injector, log log.Log, module *gomod.Module) *Generator {
-	return &Generator{injector, log, module}
+func New(flag *framework.Flag, injector *di.Injector, log log.Log, module *gomod.Module) *Generator {
+	return &Generator{flag, injector, log, module}
 }
 
 type Generator struct {
+	flag     *framework.Flag
 	injector *di.Injector
 	log      log.Log
 	module   *gomod.Module

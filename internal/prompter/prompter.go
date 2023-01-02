@@ -23,7 +23,6 @@ package prompter
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 	"time"
@@ -67,12 +66,12 @@ type Prompter struct {
 
 // Clear line with cursor on.
 func clearLine() {
-	fmt.Fprint(os.Stderr, "\033[0K")
+	// fmt.Fprint(os.Stderr, "\033[0K")
 }
 
 // Move cursor up 1 line.
 func moveCursorUp() {
-	fmt.Fprint(os.Stderr, "\033[1A")
+	// fmt.Fprint(os.Stderr, "\033[1A")
 }
 
 func (p *Prompter) startTimer() {
