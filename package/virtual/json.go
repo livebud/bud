@@ -7,7 +7,7 @@ import (
 )
 
 func MarshalJSON(file fs.File) ([]byte, error) {
-	entry, err := from(file)
+	entry, err := From(file)
 	if err != nil {
 		return nil, err
 	}
@@ -29,14 +29,14 @@ func (f *jsonEntry) Open() fs.File {
 		for i, entry := range f.Entries {
 			entries[i] = entry
 		}
-		return &entryDir{&Dir{
+		return &openDir{&File{
 			Path:    f.Path,
 			Mode:    f.Mode,
 			ModTime: f.ModTime,
 			Entries: entries,
 		}, 0}
 	}
-	return &entryFile{&File{
+	return &openFile{&File{
 		Path:    f.Path,
 		Data:    f.Data,
 		Mode:    f.Mode,

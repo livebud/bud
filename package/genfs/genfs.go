@@ -6,9 +6,8 @@ import (
 	"io/fs"
 	"strings"
 
-	"github.com/livebud/bud/internal/fsmode"
 	"github.com/livebud/bud/package/log"
-	"github.com/livebud/bud/package/virt"
+	"github.com/livebud/bud/package/virtual"
 )
 
 type Generators interface {
@@ -23,8 +22,8 @@ type Generators interface {
 }
 
 type Cache interface {
-	Get(path string) (*virt.File, error)
-	Set(path string, file *virt.File) error
+	Get(path string) (*virtual.File, error)
+	Set(path string, file *virtual.File) error
 	Link(from string, toPatterns ...string) error
 }
 
@@ -56,7 +55,7 @@ var _ fs.ReadDirFS = (*FileSystem)(nil)
 
 func (f *FileSystem) GenerateFile(path string, fn func(fsys FS, file *File) error) {
 	fileg := &fileGenerator{f.cache, fn, f, path}
-	f.tree.Insert(path, fsmode.Gen, fileg)
+	f.tree.Insert(path, modeGen, fileg)
 }
 
 func (f *FileSystem) FileGenerator(path string, generator FileGenerator) {
@@ -65,7 +64,7 @@ func (f *FileSystem) FileGenerator(path string, generator FileGenerator) {
 
 func (f *FileSystem) GenerateDir(path string, fn func(fsys FS, dir *Dir) error) {
 	dirg := &dirGenerator{f.cache, fn, f, path, f.tree}
-	f.tree.Insert(path, fsmode.GenDir, dirg)
+	f.tree.Insert(path, modeGenDir, dirg)
 }
 
 func (f *FileSystem) DirGenerator(path string, generator DirGenerator) {
@@ -74,7 +73,7 @@ func (f *FileSystem) DirGenerator(path string, generator DirGenerator) {
 
 func (f *FileSystem) ServeFile(dir string, fn func(fsys FS, file *File) error) {
 	server := &fileServer{f.cache, fn, f, dir}
-	f.tree.Insert(dir, fsmode.GenDir, server)
+	f.tree.Insert(dir, modeGenDir, server)
 }
 
 func (f *FileSystem) FileServer(dir string, server FileServer) {
@@ -83,7 +82,7 @@ func (f *FileSystem) FileServer(dir string, server FileServer) {
 
 func (f *FileSystem) GenerateExternal(path string, fn func(fsys FS, file *External) error) {
 	fileg := &externalGenerator{f.cache, fn, f, path}
-	f.tree.Insert(path, fsmode.Gen, fileg)
+	f.tree.Insert(path, modeGen, fileg)
 }
 func (f *FileSystem) ExternalGenerator(path string, generator ExternalGenerator) {
 	f.GenerateExternal(path, generator.GenerateExternal)
@@ -116,7 +115,7 @@ func (f *FileSystem) openFrom(previous string, target string) (fs.File, error) {
 	// Next, if we did find a generator node above, return it now. It'll be a
 	// filler directory, not a generator.
 	if found && node.Mode.IsDir() {
-		dir := virt.Open(&virt.File{
+		dir := virtual.Open(&virtual.File{
 			Path: target,
 			Mode: node.Mode.FileMode(),
 		})

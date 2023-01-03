@@ -13,7 +13,7 @@ import (
 
 	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/log"
-	"github.com/livebud/bud/package/virt"
+	"github.com/livebud/bud/package/virtual"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -31,7 +31,7 @@ type Link struct {
 	To   string
 }
 
-func Load(fsys fs.FS, log log.Log, dbPath string) (*DB, error) {
+func Load(log log.Log, dbPath string) (*DB, error) {
 	// Make the path directory
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
 		return nil, err
@@ -64,11 +64,10 @@ func Load(fsys fs.FS, log log.Log, dbPath string) (*DB, error) {
 		return nil, fmt.Errorf("dag/sqlite: unable to create links table. %w", err)
 	}
 
-	return &DB{fsys, db, log, dbPath}, nil
+	return &DB{db, log, dbPath}, nil
 }
 
 type DB struct {
-	fsys   fs.FS
 	db     *sql.DB
 	log    log.Log
 	dbPath string
@@ -77,7 +76,7 @@ type DB struct {
 var _ genfs.Cache = (*DB)(nil)
 var _ Cache = (*DB)(nil)
 
-func (c *DB) Set(path string, file *virt.File) error {
+func (c *DB) Set(path string, file *virtual.File) error {
 	file.Path = path
 	// Insert the file into the files table.
 	const sql = `
@@ -95,13 +94,13 @@ func (c *DB) Set(path string, file *virt.File) error {
 	return nil
 }
 
-func (c *DB) Get(path string) (*virt.File, error) {
+func (c *DB) Get(path string) (*virtual.File, error) {
 	row := c.db.QueryRow(`
 		SELECT path, data, mode
 		FROM files
 		WHERE path = ?
 	`, path)
-	file := new(virt.File)
+	file := new(virtual.File)
 	if err := row.Scan(&file.Path, &file.Data, &file.Mode); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("%w %q", ErrNotFound, path)
@@ -199,6 +198,7 @@ func (c *DB) Delete(paths ...string) error {
 	if err != nil {
 		return fmt.Errorf("dag/sqlite: unable delete files for %v. %w", paths, err)
 	}
+	c.log.Debug("dag/sqlite: deleted files %v", paths)
 
 	// Delete all links to these paths
 	sql = `

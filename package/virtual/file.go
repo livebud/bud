@@ -4,19 +4,20 @@ import (
 	"io"
 	"io/fs"
 	"path"
+	"strconv"
+	"strings"
 	"time"
 )
 
-// File struct
 type File struct {
 	Path    string
 	Data    []byte
 	Mode    fs.FileMode
 	ModTime time.Time
+	Entries []fs.DirEntry
 }
 
 var _ fs.DirEntry = (*File)(nil)
-var _ Entry = (*File)(nil)
 
 // Name of the entry. Implements the fs.DirEntry interface.
 func (f *File) Name() string {
@@ -37,29 +38,52 @@ func (f *File) Type() fs.FileMode {
 func (f *File) Info() (fs.FileInfo, error) {
 	return &fileInfo{
 		path:    f.Path,
-		mode:    f.Mode &^ fs.ModeDir,
+		mode:    f.Mode,
 		modTime: f.ModTime,
 		size:    int64(len(f.Data)),
 	}, nil
 }
 
-func (f *File) open() fs.File {
-	return &entryFile{f, 0}
+// Embed as a string literal.
+// https://github.com/go-bindata/go-bindata/blob/26949cc13d95310ffcc491c325da869a5aafce8f/stringwriter.go#L18-L36
+func (f *File) Embed() string {
+	const lowerHex = "0123456789abcdef"
+	if len(f.Data) == 0 {
+		return ""
+	}
+	s := new(strings.Builder)
+	buf := []byte(`\x00`)
+	for _, b := range f.Data {
+		buf[2] = lowerHex[b/16]
+		buf[3] = lowerHex[b%16]
+		s.Write(buf)
+	}
+	return s.String()
 }
 
-type entryFile struct {
+// Stamp helps quickly determine if a file has changed.
+func (f *File) Stamp() (stamp string, err error) {
+	mtime := f.ModTime.UnixNano()
+	mode := f.Mode
+	size := len(f.Data)
+	stamp = strconv.Itoa(int(size)) + ":" + mode.String() + ":" + strconv.Itoa(int(mtime))
+	return stamp, nil
+}
+
+type openFile struct {
 	*File
 	offset int64
 }
 
-var _ io.ReadSeeker = (*entryFile)(nil)
-var _ fs.File = (*entryFile)(nil)
+var _ fs.File = (*openFile)(nil)
+var _ io.ReadSeeker = (*openFile)(nil)
+var _ fs.DirEntry = (*openFile)(nil)
 
-func (f *entryFile) Close() error {
+func (f *openFile) Close() error {
 	return nil
 }
 
-func (f *entryFile) Read(b []byte) (int, error) {
+func (f *openFile) Read(b []byte) (int, error) {
 	if f.offset >= int64(len(f.Data)) {
 		return 0, io.EOF
 	}
@@ -71,11 +95,11 @@ func (f *entryFile) Read(b []byte) (int, error) {
 	return n, nil
 }
 
-func (f *entryFile) Stat() (fs.FileInfo, error) {
+func (f *openFile) Stat() (fs.FileInfo, error) {
 	return f.Info()
 }
 
-func (f *entryFile) Seek(offset int64, whence int) (int64, error) {
+func (f *openFile) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case 0:
 		// offset += 0

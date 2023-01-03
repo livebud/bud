@@ -55,7 +55,7 @@ func loadServer(bus pubsub.Client, dir string) (*budsvr.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	cache, err := dag.Load(module, log, ":memory:")
+	cache, err := dag.Load(log, ":memory:")
 	if err != nil {
 		return nil, err
 	}

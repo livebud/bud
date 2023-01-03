@@ -15,7 +15,7 @@ type Service struct {
 	fsys fs.FS
 }
 
-func (s *Service) Open(path string, vfile *virtual.Entry) error {
+func (s *Service) Open(path string, vfile *virtual.File) error {
 	file, err := s.fsys.Open(path)
 	if err != nil {
 		return err
@@ -44,7 +44,7 @@ func (s *Service) Open(path string, vfile *virtual.Entry) error {
 			}
 		}
 		// Return a directory
-		*vfile = &virtual.Dir{
+		*vfile = virtual.File{
 			Path:    path,
 			ModTime: stat.ModTime(),
 			Mode:    stat.Mode(),
@@ -56,7 +56,7 @@ func (s *Service) Open(path string, vfile *virtual.Entry) error {
 	if err != nil {
 		return err
 	}
-	*vfile = &virtual.File{
+	*vfile = virtual.File{
 		Path:    path,
 		Data:    data,
 		ModTime: stat.ModTime(),

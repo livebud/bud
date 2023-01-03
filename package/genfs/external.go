@@ -3,7 +3,7 @@ package genfs
 import (
 	"io/fs"
 
-	"github.com/livebud/bud/package/virt"
+	"github.com/livebud/bud/package/virtual"
 )
 
 type External struct {
@@ -45,7 +45,7 @@ func (e *externalGenerator) Generate(target string) (fs.File, error) {
 	if err := e.fn(scoped, file); err != nil {
 		return nil, err
 	}
-	vfile := &virt.File{
+	vfile := &virtual.File{
 		Path: target,
 		Mode: file.Mode(),
 	}

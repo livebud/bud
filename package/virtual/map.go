@@ -23,7 +23,7 @@ func (fsys Map) Open(path string) (fs.File, error) {
 	// Found a file or directory
 	file.Path = path
 	if !file.IsDir() {
-		return &entryFile{file, 0}, nil
+		return &openFile{file, 0}, nil
 	}
 	// The following logic is based on "testing/fstest".MapFS.Open
 	// Directory, possibly synthesized.
@@ -69,25 +69,25 @@ func (fsys Map) Open(path string) (fs.File, error) {
 		delete(need, fi.Name())
 	}
 	for path := range need {
-		dir := &Dir{path, fs.ModeDir, time.Time{}, nil}
+		dir := &File{path, nil, fs.ModeDir, time.Time{}, nil}
 		list = append(list, dir)
 	}
 	sort.Slice(list, func(i, j int) bool {
 		return list[i].Name() < list[j].Name()
 	})
 	// Return the synthesized entries as a directory.
-	return &entryDir{&Dir{path, fs.ModeDir, time.Time{}, list}, 0}, nil
+	return &openDir{&File{path, nil, fs.ModeDir, time.Time{}, list}, 0}, nil
 }
 
 // Mkdir create a directory.
 func (fsys Map) MkdirAll(path string, perm fs.FileMode) error {
-	fsys[path] = &File{path, nil, perm | fs.ModeDir, time.Time{}}
+	fsys[path] = &File{path, nil, perm | fs.ModeDir, time.Time{}, nil}
 	return nil
 }
 
 // WriteFile writes a file
 func (fsys Map) WriteFile(path string, data []byte, perm fs.FileMode) error {
-	fsys[path] = &File{path, data, perm, time.Time{}}
+	fsys[path] = &File{path, data, perm, time.Time{}, nil}
 	return nil
 }
 

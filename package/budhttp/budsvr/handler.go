@@ -9,11 +9,11 @@ import (
 	"net/http"
 
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/package/virtual"
 
 	"github.com/livebud/bud/package/budhttp"
 	"github.com/livebud/bud/package/hot"
 	"github.com/livebud/bud/package/log"
+	"github.com/livebud/bud/package/virtual"
 
 	"github.com/livebud/bud/internal/pubsub"
 

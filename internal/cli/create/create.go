@@ -85,8 +85,6 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		if err != nil {
 			return err
 		}
-		// fmt.Println("found", c.budModule.Directory())
-		// return fmt.Errorf("don't continue")
 	}
 	// Load the template state
 	state, err := c.Load()

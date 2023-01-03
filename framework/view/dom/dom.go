@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/genfs"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
@@ -94,70 +93,15 @@ func (c *Generator) Compile(fsys fs.FS) ([]esbuild.OutputFile, error) {
 }
 
 // GenerateDir generates a directory of compiled files
-func (c *Generator) GenerateDir(fsys budfs.FS, dir *budfs.Dir) error {
+func (c *Generator) GenerateDir(fsys genfs.FS, dir *genfs.Dir) error {
 	files, err := c.Compile(fsys)
 	if err != nil {
 		return err
 	}
 	for _, file := range files {
-		dir.FileGenerator(file.Path, &budfs.EmbedFile{
+		dir.FileGenerator(file.Path, &genfs.Embed{
 			Data: file.Contents,
 		})
-	}
-	return nil
-}
-
-// GenerateFile generates a single file, used in development
-func (c *Generator) GenerateFileOld(fsys budfs.FS, file *budfs.File) error {
-	// If the name starts with node_modules, trim it to allow esbuild to do
-	// the resolving. e.g. node_modules/livebud => livebud
-	entryPoint := trimEntrypoint(file.Target())
-	// Check that the entrypoint exists, ignoring generated files to avoid
-	// infinite recursion
-	if !strings.HasPrefix(entryPoint, "bud/") {
-		if _, err := fs.Stat(fsys, entryPoint); err != nil {
-			return err
-		}
-	}
-	// Run esbuild
-	result := esbuild.Build(esbuild.BuildOptions{
-		EntryPoints:   []string{entryPoint},
-		AbsWorkingDir: c.module.Directory(),
-		Format:        esbuild.FormatESModule,
-		Platform:      esbuild.PlatformBrowser,
-		// Add "import" condition to support svelte/internal
-		// https://esbuild.github.io/api/#how-conditions-work
-		Conditions: []string{"browser", "default", "import"},
-		Metafile:   true,
-		Bundle:     true,
-		Plugins: append([]esbuild.Plugin{
-			domPlugin(fsys, c.module),
-			domExternalizePlugin(),
-		}, c.transformer.DOM.Plugins()...),
-	})
-	if len(result.Errors) > 0 {
-		msgs := esbuild.FormatMessages(result.Errors, esbuild.FormatMessagesOptions{
-			Color:         true,
-			Kind:          esbuild.ErrorMessage,
-			TerminalWidth: 80,
-		})
-		return fmt.Errorf(strings.Join(msgs, "\n"))
-	}
-	// if err := esmeta.Link2(dfs, result.Metafile); err != nil {
-	// 	return nil, err
-	// }
-	code := result.OutputFiles[0].Contents
-	// Replace require statements and updates the path on imports
-	code = replaceDependencyPaths(code)
-	file.Data = code
-	// Link the dependencies
-	metafile, err := esmeta.Parse(result.Metafile)
-	if err != nil {
-		return err
-	}
-	// Watch the dependencies for changes
-	if err := fsys.Watch(metafile.Dependencies()...); err != nil {
-		return err
 	}
 	return nil
 }

@@ -1,4 +1,4 @@
-package goroot
+package gomod
 
 import (
 	"bytes"
@@ -7,22 +7,11 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 )
-
-var goroot string
-var once sync.Once
-
-// Find returns the GOROOT value, taking into account binaries built with
-// -trimpath.
-func Find() string {
-	once.Do(func() { goroot = find() })
-	return goroot
-}
 
 // This function is a heavily modified version of the following:
 // https://github.com/golang/go/blob/89044b6d423a07bea3b6f80210f780e859dd2700/src/cmd/go/internal/cfg/cfg.go#L369
-func find() string {
+func findGoRoot() string {
 	if env := os.Getenv("GOROOT"); env != "" {
 		return filepath.Clean(env)
 	}

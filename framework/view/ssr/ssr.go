@@ -17,7 +17,6 @@ import (
 	"github.com/livebud/bud/internal/entrypoint"
 	"github.com/livebud/bud/internal/esmeta"
 	"github.com/livebud/bud/internal/gotemplate"
-	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/gomod"
 )
@@ -102,15 +101,6 @@ func (c *Generator) Compile(fsys fileSystem) ([]byte, error) {
 		return nil, err
 	}
 	return result.OutputFiles[0].Contents, nil
-}
-
-func (c *Generator) GenerateFileOld(fsys budfs.FS, file *budfs.File) error {
-	code, err := c.Compile(fsys)
-	if err != nil {
-		return err
-	}
-	file.Data = code
-	return nil
 }
 
 func (c *Generator) GenerateFile(fsys genfs.FS, file *genfs.File) error {

@@ -126,8 +126,6 @@ var coreGenerators = []struct {
 		Path:   "bud/node_modules",
 		Type:   FileServer,
 	},
-	// TODO: node_modules
-	// TODO: generator
 	// TODO: transform
 }
 
@@ -145,40 +143,3 @@ func (l *loader) loadCoreGenerators() (generators []*CodeGenerator) {
 	}
 	return generators
 }
-
-// func (l *loader) loadProvider(generators []*GeneratorState) *di.Provider {
-// 	structFields := make([]*di.StructField, len(generators))
-// 	for i, generator := range generators {
-// 		structFields[i] = &di.StructField{
-// 			Name:   generator.Pascal,
-// 			Import: generator.Import.Path,
-// 			Type:   "*Generator",
-// 		}
-// 	}
-// 	provider, err := l.injector.Wire(&di.Function{
-// 		Name:    "loadGenerators",
-// 		Target:  l.module.Import("bud/command/generate"),
-// 		Imports: l.imports,
-// 		Params: []*di.Param{
-// 			{Import: "github.com/livebud/bud/package/log", Type: "Log"},
-// 			{Import: "github.com/livebud/bud/package/gomod", Type: "*Module"},
-// 			{Import: "context", Type: "Context"},
-// 		},
-// 		Results: []di.Dependency{
-// 			&di.Struct{
-// 				Import: l.module.Import("bud/command/generate"),
-// 				Type:   "*Generator",
-// 				Fields: structFields,
-// 			},
-// 			&di.Error{},
-// 		},
-// 	})
-// 	if err != nil {
-// 		l.Bail(err)
-// 	}
-// 	// Add generated imports
-// 	for _, imp := range provider.Imports {
-// 		l.imports.AddNamed(imp.Name, imp.Path)
-// 	}
-// 	return provider
-// }

@@ -10,7 +10,6 @@ import (
 	"github.com/livebud/bud/internal/budfs"
 	"github.com/livebud/bud/internal/config"
 	"github.com/livebud/bud/internal/extrafile"
-	"github.com/livebud/bud/internal/gobuild"
 	"github.com/livebud/bud/internal/prompter"
 	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/internal/shell"
@@ -92,7 +91,6 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	// Initialize the app server
 	appServer := &appServer{
 		dir:      module.Directory(),
-		builder:  gobuild.New(module),
 		prompter: prompter,
 		bus:      bus,
 		budfs:    budfs,
@@ -115,7 +113,6 @@ func (c *Command) Run(ctx context.Context) (err error) {
 // appServer runs the generated web application
 type appServer struct {
 	dir      string
-	builder  *gobuild.Builder
 	prompter *prompter.Prompter
 	bus      pubsub.Client
 	budfs    budfs.FileSystem
@@ -128,12 +125,6 @@ type appServer struct {
 func (a *appServer) Run(ctx context.Context) error {
 	// Generate the app
 	if err := a.budfs.Sync(ctx, a.module); err != nil {
-		a.bus.Publish("app:error", []byte(err.Error()))
-		a.log.Debug("run: published event %q", "app:error")
-		return err
-	}
-	// Build the app
-	if err := a.builder.Build(ctx, "bud/internal/app/main.go", "bud/app"); err != nil {
 		a.bus.Publish("app:error", []byte(err.Error()))
 		a.log.Debug("run: published event %q", "app:error")
 		return err

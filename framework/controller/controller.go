@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"github.com/livebud/bud/internal/gotemplate"
-	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/gomod"
@@ -35,19 +34,6 @@ type Generator struct {
 	injector *di.Injector
 	module   *gomod.Module
 	parser   *parser.Parser
-}
-
-func (g *Generator) GenerateFileOld(fsys budfs.FS, file *budfs.File) error {
-	state, err := Load(fsys, g.injector, g.module, g.parser)
-	if err != nil {
-		return fmt.Errorf("framework/controller: unable to load. %w", err)
-	}
-	code, err := Generate(state)
-	if err != nil {
-		return err
-	}
-	file.Data = code
-	return nil
 }
 
 func (g *Generator) GenerateFile(fsys genfs.FS, file *genfs.File) error {

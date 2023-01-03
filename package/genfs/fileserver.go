@@ -3,7 +3,7 @@ package genfs
 import (
 	"io/fs"
 
-	"github.com/livebud/bud/package/virt"
+	"github.com/livebud/bud/package/virtual"
 )
 
 type FileServer interface {
@@ -27,18 +27,16 @@ var _ generator = (*fileServer)(nil)
 
 func (f *fileServer) Generate(target string) (fs.File, error) {
 	if file, err := f.cache.Get(target); err == nil {
-		return virt.Open(file), nil
+		return virtual.Open(file), nil
 	}
 	// Always return an empty directory if we request the root
 	if f.path == target {
-		return virt.Open(&virt.File{
+		return virtual.Open(&virtual.File{
 			Path: f.path,
 			Mode: fs.ModeDir,
 		}), nil
 	}
-	scopedFS := &scopedFS{f.cache, f.genfs, f.path}
-	// File differs slightly than others because g.node.Path() is the directory
-	// path, but we want the target path for serving files.
+	scopedFS := &scopedFS{f.cache, f.genfs, target}
 	file := &File{nil, f.path, target}
 	// g.fsys.log.Fields(log.Fields{
 	// 	"target": target,
@@ -47,7 +45,7 @@ func (f *fileServer) Generate(target string) (fs.File, error) {
 	if err := f.fn(scopedFS, file); err != nil {
 		return nil, err
 	}
-	vfile := &virt.File{
+	vfile := &virtual.File{
 		Path: target,
 		Mode: fs.FileMode(0),
 		Data: file.Data,
@@ -55,5 +53,5 @@ func (f *fileServer) Generate(target string) (fs.File, error) {
 	if err := f.cache.Set(target, vfile); err != nil {
 		return nil, err
 	}
-	return virt.Open(vfile), nil
+	return virtual.Open(vfile), nil
 }

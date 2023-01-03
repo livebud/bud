@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/livebud/bud/package/budfs/mergefs"
+	"github.com/livebud/bud/internal/mergefs"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/errs"
@@ -38,7 +38,7 @@ type FileSystem interface {
 
 func Load(budln net.Listener, cmd *shell.Command, flag *framework.Flag, module *gomod.Module, log log.Log) (FileSystem, error) {
 	// Load the cache
-	cache, err := dag.Load(module, log, module.Directory("bud/bud.db"))
+	cache, err := dag.Load(log, module.Directory("bud/bud.db"))
 	if err != nil {
 		return nil, fmt.Errorf("bud: unable to load cache. %w", err)
 	}

@@ -32,10 +32,10 @@ func TestEmptyBuild(t *testing.T) {
 	is.NoErr(td.Write(ctx))
 	cli := testcli.New(dir)
 	is.NoErr(td.NotExists("bud/internal/web/public"))
-	_, err := cli.Run(ctx, "build")
+	result, err := cli.Run(ctx, "build")
 	is.NoErr(err)
-	// is.In(result.Stdout(), "")
-	// is.Equal(result.Stderr(), "")
+	is.In(result.Stdout(), "")
+	is.Equal(result.Stderr(), "")
 	// Empty builds don't generate public files
 	is.NoErr(td.NotExists("bud/internal/web/public"))
 }

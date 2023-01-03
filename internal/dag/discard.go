@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/livebud/bud/package/genfs"
-	"github.com/livebud/bud/package/virt"
+	"github.com/livebud/bud/package/virtual"
 )
 
 var Discard = discard{}
@@ -14,11 +14,11 @@ type discard struct{}
 var _ genfs.Cache = (*discard)(nil)
 var _ Cache = (*discard)(nil)
 
-func (discard) Get(path string) (*virt.File, error) {
+func (discard) Get(path string) (*virtual.File, error) {
 	return nil, errors.New("not found")
 }
 
-func (discard) Set(path string, file *virt.File) error {
+func (discard) Set(path string, file *virtual.File) error {
 	return nil
 }
 
