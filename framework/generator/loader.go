@@ -2,6 +2,7 @@ package generator
 
 import (
 	"io/fs"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -11,54 +12,37 @@ import (
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/internal/valid"
-	"github.com/livebud/bud/package/budfs"
-	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/parser"
 	"github.com/matthewmueller/gotext"
 )
 
-func Load(fsys budfs.FS, injector *di.Injector, log log.Log, module *gomod.Module, parser *parser.Parser) (*State, error) {
-	return (&loader{
-		injector: injector,
-		log:      log,
-		module:   module,
-		parser:   parser,
-		imports:  imports.New(),
-	}).Load(fsys)
-}
-
 type loader struct {
-	injector *di.Injector
-	log      log.Log
-	module   *gomod.Module
-	parser   *parser.Parser
-	imports  *imports.Set
+	log     log.Log
+	module  *gomod.Module
+	parser  *parser.Parser
+	imports *imports.Set
 	bail.Struct
 }
 
-func (l *loader) Load(bfs budfs.FS) (state *State, err error) {
+func (l *loader) Load(fsys fs.FS) (state *State, err error) {
 	defer l.Recover2(&err, "generator")
 	state = new(State)
-	state.Generators = l.loadGenerators(bfs)
+	state.Generators = l.loadGenerators(fsys)
+	state.Generators = append(state.Generators, l.loadCoreGenerators()...)
 	if len(state.Generators) == 0 {
 		return nil, fs.ErrNotExist
 	}
-	state.Provider = l.loadProvider(state.Generators)
-	l.imports.AddStd("context", "os", "errors")
+	l.imports.AddStd("io/fs")
+	l.imports.AddNamed("genfs", "github.com/livebud/bud/package/genfs")
 	l.imports.AddNamed("gomod", "github.com/livebud/bud/package/gomod")
 	l.imports.AddNamed("log", "github.com/livebud/bud/package/log")
-	l.imports.AddNamed("console", "github.com/livebud/bud/package/log/console")
-	l.imports.AddNamed("levelfilter", "github.com/livebud/bud/package/log/levelfilter")
-	l.imports.AddNamed("commander", "github.com/livebud/bud/package/commander")
-	l.imports.AddNamed("remotefs", "github.com/livebud/bud/package/remotefs")
-	l.imports.AddNamed("budfs", "github.com/livebud/bud/package/budfs")
 	state.Imports = l.imports.List()
 	return state, nil
 }
 
-func (l *loader) loadGenerators(bfs budfs.FS) (generators []*UserGenerator) {
-	generatorDirs, err := finder.Find(bfs, "{generator/**.go,bud/internal/generator/**.go}", func(path string, isDir bool) (entries []string) {
+func (l *loader) loadGenerators(fsys fs.FS) (generators []*CodeGenerator) {
+	generatorDirs, err := finder.Find(fsys, "{generator/**.go,bud/internal/generator/*/**.go}", func(path string, isDir bool) (entries []string) {
 		if !isDir && valid.GoFile(path) {
 			entries = append(entries, filepath.Dir(path))
 		}
@@ -78,7 +62,7 @@ func (l *loader) loadGenerators(bfs budfs.FS) (generators []*UserGenerator) {
 		if s := pkg.Struct("Generator"); s == nil {
 			l.log.Debug("framework/generator: skipping package because there's no Generator struct")
 			continue
-		} else if s.Method("Register") == nil {
+		} else if s.Method("GenerateDir") == nil {
 			l.log.Debug("framework/generator: skipping package because Generator has no Register function")
 			continue
 		}
@@ -87,49 +71,75 @@ func (l *loader) loadGenerators(bfs budfs.FS) (generators []*UserGenerator) {
 			Path: importPath,
 		}
 		rootlessGenerator := strings.TrimPrefix(generatorDir, "generator/")
-		generators = append(generators, &UserGenerator{
+		generators = append(generators, &CodeGenerator{
 			Import: imp,
-			Path:   rootlessGenerator,
-			Pascal: gotext.Pascal(rootlessGenerator),
+			Type:   DirGenerator,
+			Path:   path.Join("bud", "generator", rootlessGenerator),
+			Camel:  gotext.Camel(rootlessGenerator),
 		})
 	}
-	// Final check in case we didn't find any valid generators
 	return generators
 }
 
-func (l *loader) loadProvider(generators []*UserGenerator) *di.Provider {
-	structFields := make([]*di.StructField, len(generators))
-	for i, generator := range generators {
-		structFields[i] = &di.StructField{
-			Name:   generator.Pascal,
-			Import: generator.Import.Path,
-			Type:   "*Generator",
-		}
-	}
-	provider, err := l.injector.Wire(&di.Function{
-		Name:    "loadGenerators",
-		Target:  l.module.Import("bud/command/generate"),
-		Imports: l.imports,
-		Params: []*di.Param{
-			{Import: "github.com/livebud/bud/package/log", Type: "Log"},
-			{Import: "github.com/livebud/bud/package/gomod", Type: "*Module"},
-			{Import: "context", Type: "Context"},
-		},
-		Results: []di.Dependency{
-			&di.Struct{
-				Import: l.module.Import("bud/command/generate"),
-				Type:   "*Generator",
-				Fields: structFields,
+var coreGenerators = []struct {
+	Import string
+	Path   string
+	Type   Type
+}{
+	{
+		Import: "github.com/livebud/bud/framework/app",
+		Path:   "bud/internal/app/main.go",
+		Type:   FileGenerator,
+	},
+	{
+		Import: "github.com/livebud/bud/framework/web",
+		Path:   "bud/internal/web/web.go",
+		Type:   FileGenerator,
+	},
+	{
+		Import: "github.com/livebud/bud/framework/controller",
+		Path:   "bud/internal/web/controller/controller.go",
+		Type:   FileGenerator,
+	},
+	{
+		Import: "github.com/livebud/bud/framework/view",
+		Path:   "bud/internal/web/view/view.go",
+		Type:   FileGenerator,
+	},
+	{
+		Import: "github.com/livebud/bud/framework/public",
+		Path:   "bud/internal/web/public/public.go",
+		Type:   FileGenerator,
+	},
+	{
+		Import: "github.com/livebud/bud/framework/view/ssr",
+		Path:   "bud/view/_ssr.js",
+		Type:   FileGenerator,
+	},
+	{
+		Import: "github.com/livebud/bud/framework/view/dom",
+		Path:   "bud/view",
+		Type:   FileServer,
+	},
+	{
+		Import: "github.com/livebud/bud/framework/view/nodemodules",
+		Path:   "bud/node_modules",
+		Type:   FileServer,
+	},
+	// TODO: transform
+}
+
+func (l *loader) loadCoreGenerators() (generators []*CodeGenerator) {
+	for _, generator := range coreGenerators {
+		generators = append(generators, &CodeGenerator{
+			Import: &imports.Import{
+				Name: l.imports.Add(generator.Import),
+				Path: generator.Import,
 			},
-			&di.Error{},
-		},
-	})
-	if err != nil {
-		l.Bail(err)
+			Path:  generator.Path,
+			Type:  generator.Type,
+			Camel: gotext.Camel(path.Base(generator.Import)),
+		})
 	}
-	// Add generated imports
-	for _, imp := range provider.Imports {
-		l.imports.AddNamed(imp.Name, imp.Path)
-	}
-	return provider
+	return generators
 }

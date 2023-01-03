@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/internal/bail"
-	"github.com/livebud/bud/internal/cli/bud"
+	"github.com/livebud/bud/internal/config"
 	"github.com/livebud/bud/internal/embedded"
 	"github.com/livebud/bud/internal/scaffold"
 	"github.com/livebud/bud/internal/versions"
@@ -16,12 +16,11 @@ import (
 	"golang.org/x/mod/modfile"
 )
 
-func New(bud *bud.Command, in *bud.Input) *Command {
+func New() *Command {
 	return &Command{}
 }
 
 type Command struct {
-	Log    string
 	Dir    string
 	Module string
 	Dev    bool
@@ -82,7 +81,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	// If we're linking to the development version of Bud, we need to
 	// find Bud's go.mod file.
 	if c.Dev {
-		c.budModule, err = bud.BudModule()
+		c.budModule, err = config.BudModule()
 		if err != nil {
 			return err
 		}

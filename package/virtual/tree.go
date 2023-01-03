@@ -21,7 +21,7 @@ func (fsys Tree) Open(path string) (fs.File, error) {
 		// Can be either a file or a empty directory
 		file.Path = path
 		if !file.IsDir() {
-			return &entryFile{file, 0}, nil
+			return &openFile{file, 0}, nil
 		}
 	}
 
@@ -69,26 +69,26 @@ func (fsys Tree) Open(path string) (fs.File, error) {
 		delete(need, fi.Name())
 	}
 	for path := range need {
-		dir := &Dir{path, fs.ModeDir, time.Time{}, nil}
+		dir := &File{path, nil, fs.ModeDir, time.Time{}, nil}
 		list = append(list, dir)
 	}
 	sort.Slice(list, func(i, j int) bool {
 		return list[i].Name() < list[j].Name()
 	})
 	// Return the synthesized entries as a directory.
-	return &entryDir{&Dir{path, fs.ModeDir, time.Time{}, list}, 0}, nil
+	return &openDir{&File{path, nil, fs.ModeDir, time.Time{}, list}, 0}, nil
 }
 
 // Mkdir create a directory.
 func (t Tree) MkdirAll(path string, perm fs.FileMode) error {
-	t[path] = &File{path, nil, perm | fs.ModeDir, time.Time{}}
+	t[path] = &File{path, nil, perm | fs.ModeDir, time.Time{}, nil}
 	return nil
 }
 
 // WriteFile writes a file
 // TODO: WriteFile should fail if path.Dir(name) doesn't exist
 func (t Tree) WriteFile(path string, data []byte, perm fs.FileMode) error {
-	t[path] = &File{path, data, perm, time.Time{}}
+	t[path] = &File{path, data, perm, time.Time{}, nil}
 	return nil
 }
 

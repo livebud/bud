@@ -3,7 +3,6 @@ package ssr
 //go:generate go run github.com/evanw/esbuild/cmd/esbuild svelte.ts --outfile=svelte.js --log-level=warning --format=esm --bundle
 
 import (
-	"context"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -18,7 +17,7 @@ import (
 	"github.com/livebud/bud/internal/entrypoint"
 	"github.com/livebud/bud/internal/esmeta"
 	"github.com/livebud/bud/internal/gotemplate"
-	"github.com/livebud/bud/package/budfs"
+	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/gomod"
 )
 
@@ -38,16 +37,22 @@ func (res *Response) Write(w http.ResponseWriter) {
 	w.Write([]byte(res.Body))
 }
 
-func New(module *gomod.Module, transformer transformrt.Transformer) *Compiler {
-	return &Compiler{module, transformer}
+func New(module *gomod.Module, transformer *transformrt.Map) *Generator {
+	return &Generator{module, transformer}
 }
 
-type Compiler struct {
+type Generator struct {
 	module      *gomod.Module
-	transformer transformrt.Transformer
+	transformer *transformrt.Map
 }
 
-func (c *Compiler) Compile(ctx context.Context, fsys budfs.FS) ([]byte, error) {
+// TODO: remove once we replace budfs
+type fileSystem interface {
+	fs.FS
+	Watch(patterns ...string) error
+}
+
+func (c *Generator) Compile(fsys fileSystem) ([]byte, error) {
 	dir := c.module.Directory()
 	result := esbuild.Build(esbuild.BuildOptions{
 		EntryPointsAdvanced: []esbuild.EntryPoint{
@@ -73,7 +78,7 @@ func (c *Compiler) Compile(ctx context.Context, fsys budfs.FS) ([]byte, error) {
 			jsxTransformPlugin(fsys, dir),
 			sveltePlugin(fsys, dir),
 			svelteRuntimePlugin(fsys, dir),
-		}, c.transformer.Plugins()...),
+		}, c.transformer.SSR.Plugins()...),
 	})
 	if len(result.Errors) > 0 {
 		msgs := esbuild.FormatMessages(result.Errors, esbuild.FormatMessagesOptions{
@@ -98,8 +103,8 @@ func (c *Compiler) Compile(ctx context.Context, fsys budfs.FS) ([]byte, error) {
 	return result.OutputFiles[0].Contents, nil
 }
 
-func (c *Compiler) GenerateFile(fsys budfs.FS, file *budfs.File) error {
-	code, err := c.Compile(fsys.Context(), fsys)
+func (c *Generator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
+	code, err := c.Compile(fsys)
 	if err != nil {
 		return err
 	}

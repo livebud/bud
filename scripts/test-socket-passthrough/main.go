@@ -10,7 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/livebud/bud/internal/exe"
+	"github.com/livebud/bud/internal/shell"
 
 	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/package/socket"
@@ -46,7 +46,7 @@ func run(ctx context.Context) error {
 		return err
 	}
 	extrafile.Inject(&cmd.ExtraFiles, &cmd.Env, "APP", appFile)
-	process, err := exe.Start(ctx, cmd)
+	process, err := shell.Start(ctx, cmd)
 	if err != nil {
 		return err
 	}

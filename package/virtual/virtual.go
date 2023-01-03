@@ -1,6 +1,8 @@
 package virtual
 
-import "io/fs"
+import (
+	"io/fs"
+)
 
 type FS interface {
 	fs.FS
@@ -10,10 +12,9 @@ type FS interface {
 	Sub(path string) (FS, error)
 }
 
-type Entry interface {
-	open() fs.File
-}
-
-func New(entry Entry) fs.File {
-	return entry.open()
+func Open(f *File) fs.File {
+	if f.Mode.IsDir() {
+		return &openDir{f, 0}
+	}
+	return &openFile{f, 0}
 }

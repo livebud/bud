@@ -9,12 +9,12 @@ import (
 	"net/http"
 
 	"github.com/livebud/bud/package/js"
+	"github.com/livebud/bud/package/virtual"
 
 	"github.com/livebud/bud/framework/view/ssr"
 	"github.com/livebud/bud/internal/urlx"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/socket"
-	"github.com/livebud/bud/package/virtual"
 )
 
 type Client interface {

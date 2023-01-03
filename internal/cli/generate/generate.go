@@ -4,58 +4,41 @@ import (
 	"context"
 	"strings"
 
-	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/internal/bfs"
-	"github.com/livebud/bud/internal/cli/bud"
-	"github.com/livebud/bud/internal/versions"
+	"github.com/livebud/bud/internal/config"
 )
 
 // New command for bud generate
-func New(bud *bud.Command, in *bud.Input) *Command {
-	return &Command{
-		bud: bud,
-		in:  in,
-		Flag: &framework.Flag{
-			Env:    in.Env,
-			Stderr: in.Stderr,
-			Stdin:  in.Stdin,
-			Stdout: in.Stdout,
-		},
-	}
+func New(provide config.Provide) *Command {
+	return &Command{provide: provide}
 }
 
 // Command for running bud generate
 type Command struct {
-	bud  *bud.Command
-	in   *bud.Input
-	Flag *framework.Flag
-	Args []string
+	provide config.Provide
+	Args    []string
 }
 
 // Run the generate command
 func (c *Command) Run(ctx context.Context) error {
-	// Find go.mod
-	module, err := bud.Module(c.bud.Dir)
+	module, err := c.provide.Module()
 	if err != nil {
 		return err
 	}
-	// Ensure we have version alignment between the CLI and the runtime
-	if err := bud.EnsureVersionAlignment(ctx, module, versions.Bud); err != nil {
-		return err
-	}
-	// Setup the logger
-	log, err := bud.Log(c.in.Stderr, c.bud.Log)
+	budsvr, err := c.provide.BudServer()
 	if err != nil {
 		return err
 	}
-	// Load the filesystem
-	bfs, err := bfs.Load(c.Flag, log, module)
+	defer budsvr.Close()
+	budfs, err := c.provide.BudFileSystem()
 	if err != nil {
 		return err
 	}
-	defer bfs.Close()
-	// Sync either the entire bud directory or the specified files
-	return bfs.Sync(selectBudDirs(c.Args)...)
+	defer budfs.Close(ctx)
+	// Sync the directories
+	if err := budfs.Sync(ctx, module, selectBudDirs(c.Args)...); err != nil {
+		return err
+	}
+	return nil
 }
 
 func selectBudDirs(patterns []string) (paths []string) {

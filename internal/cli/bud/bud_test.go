@@ -2,12 +2,7 @@ package bud_test
 
 import (
 	"context"
-	"errors"
-	"os"
 	"testing"
-
-	"github.com/livebud/bud/internal/cli/bud"
-	"github.com/livebud/bud/package/gomod"
 
 	"github.com/livebud/bud/internal/cli/testcli"
 	"github.com/livebud/bud/internal/is"
@@ -117,25 +112,6 @@ func TestOutsideModuleHelp(t *testing.T) {
 	))
 }
 
-func TestVersionAlignment(t *testing.T) {
-	is := is.New(t)
-	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.Modules["github.com/livebud/bud"] = "v0.1.7"
-	is.NoErr(td.Write(ctx))
-	module, err := gomod.Find(dir)
-	is.NoErr(err)
-	err = bud.EnsureVersionAlignment(ctx, module, "0.1.8")
-	is.NoErr(err)
-	modFile, err := os.ReadFile(td.Path("go.mod"))
-	is.NoErr(err)
-	module, err = gomod.Parse(td.Path("go.mod"), modFile)
-	is.NoErr(err)
-	version := module.File().Require("github.com/livebud/bud")
-	is.Equal(version.Version, "v0.1.8")
-}
-
 // TODO: This test might go away at some point. Right now testcli isn't setup
 // to run `bud build`, then start the built process. It's setup for running
 // commands to completion and `bud run`. This is alright because `bud run`
@@ -160,14 +136,4 @@ func TestBuildRunAlignment(t *testing.T) {
 	is.In(runResult.Stdout(), "run")
 	is.In(runResult.Stdout(), "--minify")
 	is.In(runResult.Stdout(), "--embed")
-}
-
-func TestGoVersion(t *testing.T) {
-	is := is.New(t)
-	is.NoErr(bud.CheckGoVersion("go1.17"))
-	is.NoErr(bud.CheckGoVersion("go1.18"))
-	is.True(errors.Is(bud.CheckGoVersion("go1.16"), bud.ErrMinGoVersion))
-	is.True(errors.Is(bud.CheckGoVersion("go1.16.5"), bud.ErrMinGoVersion))
-	is.True(errors.Is(bud.CheckGoVersion("go1.8"), bud.ErrMinGoVersion))
-	is.NoErr(bud.CheckGoVersion("abc123"))
 }

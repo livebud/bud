@@ -1,4 +1,4 @@
-package main
+package generator
 
 {{- if $.Imports }}
 
@@ -9,56 +9,18 @@ import (
 )
 {{- end }}
 
-// main entrypoint
-func main() {
-	ctx := context.Background()
-	if err := run(ctx); err != nil {
-		if errors.Is(err, context.Canceled) {
-			return
-		}
-		console.Error(err.Error())
-		os.Exit(1)
-	}
-}
-
-func run(ctx context.Context) error {
-	cli := commander.New("generate")
-	cli.Run(generate)
-	return cli.Parse(ctx, os.Args[1:])
-}
-
-func generate(ctx context.Context) error {
-	{{/* TODO: configurable logger */}}
-	log := log.New(levelfilter.New(console.New(os.Stderr), log.InfoLevel))
-	module, err := gomod.Find(".")
-	if err != nil {
-		return err
-	}
-	generators, err := {{ $.Provider.Name }}(
-		{{- if $.Provider.Variable "context.Context" }}ctx,{{ end }}
-		{{- if $.Provider.Variable "github.com/livebud/bud/package/gomod.*Module" }}module,{{ end }}
-		{{- if $.Provider.Variable "github.com/livebud/bud/package/log.Log" }}log,{{ end }}
-	)
-	if err != nil {
-		return err
-	}
-	bfs := budfs.New(module, log)
-	dir := bfs.Dir()
+func New(
+	fsys *genfs.FileSystem,
+	module *gomod.Module,
+	log log.Log,
 	{{- range $generator := $.Generators }}
-	log.Debug("framework/generator: registering {{ $generator.Path }}")
-	generators.{{ $generator.Pascal }}.Register(dir)
+	{{ $generator.Camel }} *{{ $generator.Import.Name }}.Generator,
 	{{- end }}
-	log.Debug("framework/generator: serving remote directory")
-	return remotefs.ServeFrom(ctx, bfs, "")
-}
-
-{{/* Provider that creates a function for initializing Generator */}}
-{{ $.Provider.Function }}
-
-{{/* Generator needs to be synced with *di.Provider */}}
-// Generator is a struct of generators
-type Generator struct {
+) FS {
 	{{- range $generator := $.Generators }}
-	{{ $generator.Pascal }} *{{ $generator.Import.Name }}.Generator
+	fsys.{{ $generator.Type }}(`{{ $generator.Path }}`, {{ $generator.Camel }})
 	{{- end }}
+	return fsys
 }
+
+type FS = fs.FS

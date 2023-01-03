@@ -2,7 +2,6 @@ package dom
 
 import (
 	"bytes"
-	"context"
 	_ "embed"
 	"fmt"
 	"io/fs"
@@ -10,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/livebud/bud/package/budfs"
+	"github.com/livebud/bud/package/genfs"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/livebud/bud/framework/transform/transformrt"
@@ -26,64 +25,17 @@ var template string
 // generator
 var generator = gotemplate.MustParse("dom.gotext", template)
 
-// Serve node_modules
-// TODO: migrate to it's own package
-func NodeModules(module *gomod.Module) budfs.FileGenerator {
-	plugins := []esbuild.Plugin{
-		domExternalizePlugin(),
-	}
-	return budfs.GenerateFile(func(fsys budfs.FS, file *budfs.File) error {
-		// If the name starts with node_modules, trim it to allow esbuild to do
-		// the resolving. e.g. node_modules/timeago.js => timeago.js
-		entryPoint := trimEntrypoint(file.Target())
-		result := esbuild.Build(esbuild.BuildOptions{
-			EntryPoints:   []string{entryPoint},
-			AbsWorkingDir: module.Directory(),
-			Format:        esbuild.FormatESModule,
-			Platform:      esbuild.PlatformBrowser,
-			// Add "import" condition to support svelte/internal
-			// https://esbuild.github.io/api/#how-conditions-work
-			Conditions: []string{"browser", "default", "import"},
-			Metafile:   true,
-			Bundle:     true,
-			Plugins:    plugins,
-		})
-		if len(result.Errors) > 0 {
-			msgs := esbuild.FormatMessages(result.Errors, esbuild.FormatMessagesOptions{
-				Color:         true,
-				Kind:          esbuild.ErrorMessage,
-				TerminalWidth: 80,
-			})
-			return fmt.Errorf(strings.Join(msgs, "\n"))
-		}
-		content := result.OutputFiles[0].Contents
-		// Replace require statements and updates the path on imports
-		code := replaceDependencyPaths(content)
-		file.Data = code
-		// Link the dependencies
-		metafile, err := esmeta.Parse(result.Metafile)
-		if err != nil {
-			return err
-		}
-		// Watch the dependencies for changes
-		if err := fsys.Watch(metafile.Dependencies()...); err != nil {
-			return err
-		}
-		return nil
-	})
+func New(module *gomod.Module, transformer *transformrt.Map) *Generator {
+	return &Generator{module, transformer}
 }
 
-func New(module *gomod.Module, transformer transformrt.Transformer) *Compiler {
-	return &Compiler{module, transformer}
-}
-
-type Compiler struct {
+type Generator struct {
 	module      *gomod.Module
-	transformer transformrt.Transformer
+	transformer *transformrt.Map
 }
 
 // Compile into a list of  views for embedding
-func (c *Compiler) Compile(ctx context.Context, fsys fs.FS) ([]esbuild.OutputFile, error) {
+func (c *Generator) Compile(fsys fs.FS) ([]esbuild.OutputFile, error) {
 	views, err := entrypoint.List(fsys, "view")
 	if err != nil {
 		return nil, err
@@ -118,7 +70,7 @@ func (c *Compiler) Compile(ctx context.Context, fsys fs.FS) ([]esbuild.OutputFil
 		MinifyWhitespace:  true,
 		Plugins: append([]esbuild.Plugin{
 			domPlugin(fsys, c.module),
-		}, c.transformer.Plugins()...),
+		}, c.transformer.DOM.Plugins()...),
 		Write: false,
 	})
 	if len(result.Errors) > 0 {
@@ -141,21 +93,21 @@ func (c *Compiler) Compile(ctx context.Context, fsys fs.FS) ([]esbuild.OutputFil
 }
 
 // GenerateDir generates a directory of compiled files
-func (c *Compiler) GenerateDir(fsys budfs.FS, dir *budfs.Dir) error {
-	files, err := c.Compile(fsys.Context(), fsys)
+func (c *Generator) GenerateDir(fsys genfs.FS, dir *genfs.Dir) error {
+	files, err := c.Compile(fsys)
 	if err != nil {
 		return err
 	}
 	for _, file := range files {
-		dir.FileGenerator(file.Path, &budfs.EmbedFile{
+		dir.FileGenerator(file.Path, &genfs.Embed{
 			Data: file.Contents,
 		})
 	}
 	return nil
 }
 
-// GenerateFile generates a single file, used in development
-func (c *Compiler) GenerateFile(fsys budfs.FS, file *budfs.File) error {
+// ServeFile generates a single file, used in development
+func (c *Generator) ServeFile(fsys genfs.FS, file *genfs.File) error {
 	// If the name starts with node_modules, trim it to allow esbuild to do
 	// the resolving. e.g. node_modules/livebud => livebud
 	entryPoint := trimEntrypoint(file.Target())
@@ -180,7 +132,7 @@ func (c *Compiler) GenerateFile(fsys budfs.FS, file *budfs.File) error {
 		Plugins: append([]esbuild.Plugin{
 			domPlugin(fsys, c.module),
 			domExternalizePlugin(),
-		}, c.transformer.Plugins()...),
+		}, c.transformer.DOM.Plugins()...),
 	})
 	if len(result.Errors) > 0 {
 		msgs := esbuild.FormatMessages(result.Errors, esbuild.FormatMessagesOptions{

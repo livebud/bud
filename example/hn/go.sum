@@ -15,6 +15,7 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/evanw/esbuild v0.14.11 h1:bw50N4v70Dqf/B6Wn+3BM6BVttz4A6tHn8m8Ydj9vxk=
 github.com/evanw/esbuild v0.14.11/go.mod h1:GG+zjdi59yh3ehDn4ZWfPcATxjPDUH53iU4ZJbp7dkY=
+github.com/fatih/structtag v1.2.0 h1:/OdNE99OxoI/PqaW/SuSK9uxxT3f/tcSZgon/ssNSx4=
 github.com/fatih/structtag v1.2.0/go.mod h1:mBJUNpUnHmRKrKlQQlmCrh5PuhftFbNv8Ys4/aAZl94=
 github.com/fsnotify/fsnotify v1.5.1/go.mod h1:T3375wBYaZdLLcVNkcVbzGHY7f1l/uK5T5Ai1i3InKU=
 github.com/gedex/inflector v0.0.0-20170307190818-16278e9db813 h1:Uc+IZ7gYqAf/rSGFplbWBSHaGolEQlNLgMgSE3ccnIQ=
@@ -50,6 +51,8 @@ github.com/matthewmueller/hackernews v0.3.0/go.mod h1:LLJX9jtOV7MNmPN0AWn2E9Rg4z
 github.com/matthewmueller/text v0.0.0-20201215225457-a00346c71bb3/go.mod h1:vtPaEU72VzARd4tSSzHIX7DddCEamoO2X4ozlrdmtNY=
 github.com/matthewmueller/text v0.0.0-20210424201111-ec1e4af8dfe8 h1:XTmVlF7P9bpSNkLFlxpNlhig0kaVJ5mO4D3yK2CYjmM=
 github.com/matthewmueller/text v0.0.0-20210424201111-ec1e4af8dfe8/go.mod h1:vtPaEU72VzARd4tSSzHIX7DddCEamoO2X4ozlrdmtNY=
+github.com/mattn/go-sqlite3 v1.14.16 h1:yOQRA0RpS5PFz/oikGwBEqvAWhWg5ufRz4ETLjwpU1Y=
+github.com/mattn/go-sqlite3 v1.14.16/go.mod h1:2eHXhiwb8IkHr+BDWZGa96P6+rkvnG63S2DGjv9HUNg=
 github.com/otiai10/copy v1.7.0/go.mod h1:rmRl6QPdJj6EiUqXQ/4Nn2lLXoNQjFCQbbNrxgc/t3U=
 github.com/otiai10/curr v0.0.0-20150429015615-9b4961190c95/go.mod h1:9qAhocn7zKJG+0mI8eUu6xqkFDYS2kb2saOteoSB3cE=
 github.com/otiai10/curr v1.0.0/go.mod h1:LskTG5wDwr8Rs+nNQ+1LlxRjAtTZZjtJW4rMXl6j4vs=

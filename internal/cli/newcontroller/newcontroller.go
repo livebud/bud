@@ -10,20 +10,19 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/internal/bail"
-	"github.com/livebud/bud/internal/cli/bud"
+	"github.com/livebud/bud/internal/config"
 	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/internal/scaffold"
 	"github.com/matthewmueller/gotext"
 	"github.com/matthewmueller/text"
 )
 
-func New(bud *bud.Command, in *bud.Input) *Command {
-	return &Command{bud: bud, in: in}
+func New(provide config.Provide) *Command {
+	return &Command{provide: provide}
 }
 
 type Command struct {
-	bud *bud.Command
-	in  *bud.Input
+	provide config.Provide
 
 	Path    string
 	Actions []string
@@ -121,7 +120,7 @@ func (c *Command) Load() (state *State, err error) {
 
 // Scaffold the files from state
 func (c *Command) Scaffold(state *State) error {
-	module, err := bud.Module(c.bud.Dir)
+	module, err := c.provide.Module()
 	if err != nil {
 		return err
 	}

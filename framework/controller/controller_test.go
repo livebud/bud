@@ -1984,7 +1984,6 @@ func TestSameNestedName(t *testing.T) {
 
 		"/users"
 	`)
-	is.NoErr(app.Close())
 	res, err = app.Get("/admins/10/users")
 	is.NoErr(err)
 	res.Diff(`

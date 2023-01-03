@@ -4,8 +4,6 @@ import (
 	"io/fs"
 	"testing"
 
-	"github.com/livebud/bud/internal/fsmode"
-
 	"github.com/livebud/bud/internal/is"
 )
 
@@ -28,11 +26,11 @@ var fg = &treeGenerator{"f"}
 func TestTreeInsert(t *testing.T) {
 	is := is.New(t)
 	n := newTree()
-	n.Insert("a", fsmode.Gen, ag)
-	n.Insert("b", fsmode.GenDir, bg)
-	n.Insert("b/c", fsmode.GenDir, cg)
-	n.Insert("b/c/e", fsmode.Gen, eg)
-	n.Insert("b/c/f", fsmode.Gen, fg)
+	n.Insert("a", modeGen, ag)
+	n.Insert("b", modeGenDir, bg)
+	n.Insert("b/c", modeGenDir, cg)
+	n.Insert("b/c/e", modeGen, eg)
+	n.Insert("b/c/f", modeGen, fg)
 	expect := `. mode=d-
 ├── a mode=-g generator=a
 └── b mode=dg generator=b
@@ -46,10 +44,10 @@ func TestTreeInsert(t *testing.T) {
 func TestTreeFiller(t *testing.T) {
 	is := is.New(t)
 	n := newTree()
-	n.Insert("a", fsmode.Gen, ag)
-	n.Insert("b/c/e", fsmode.Gen, eg)
-	n.Insert("b/c/f", fsmode.Gen, fg)
-	n.Insert("b/c", fsmode.GenDir, cg)
+	n.Insert("a", modeGen, ag)
+	n.Insert("b/c/e", modeGen, eg)
+	n.Insert("b/c/f", modeGen, fg)
+	n.Insert("b/c", modeGenDir, cg)
 	expect := `. mode=d-
 ├── a mode=-g generator=a
 └── b mode=d-
@@ -63,11 +61,11 @@ func TestTreeFiller(t *testing.T) {
 func TestTreeFindPrefix(t *testing.T) {
 	s := is.New(t)
 	n := newTree()
-	n.Insert("a", fsmode.Gen, ag)
-	n.Insert("b", fsmode.GenDir, bg)
-	n.Insert("b/c", fsmode.GenDir, cg)
-	n.Insert("b/c/e", fsmode.Gen, eg)
-	n.Insert("b/c/f", fsmode.Gen, fg)
+	n.Insert("a", modeGen, ag)
+	n.Insert("b", modeGenDir, bg)
+	n.Insert("b/c", modeGenDir, cg)
+	n.Insert("b/c/e", modeGen, eg)
+	n.Insert("b/c/f", modeGen, fg)
 	f, ok := n.FindPrefix("a")
 	s.True(ok)
 	s.Equal(f.Path, "a")
@@ -93,11 +91,11 @@ func TestTreeFindPrefix(t *testing.T) {
 func TestTreeDelete(t *testing.T) {
 	is := is.New(t)
 	n := newTree()
-	n.Insert("a", fsmode.Gen, ag)
-	n.Insert("b", fsmode.GenDir, bg)
-	n.Insert("b/c", fsmode.GenDir, cg)
-	n.Insert("b/c/e", fsmode.Gen, eg)
-	n.Insert("b/c/f", fsmode.Gen, fg)
+	n.Insert("a", modeGen, ag)
+	n.Insert("b", modeGenDir, bg)
+	n.Insert("b/c", modeGenDir, cg)
+	n.Insert("b/c/e", modeGen, eg)
+	n.Insert("b/c/f", modeGen, fg)
 	n.Delete("b/c")
 	expect := `. mode=d-
 ├── a mode=-g generator=a
@@ -109,8 +107,8 @@ func TestTreeDelete(t *testing.T) {
 func TestTreeFillerDirNowGeneratorFile(t *testing.T) {
 	is := is.New(t)
 	n := newTree()
-	n.Insert("bud/node_modules", fsmode.GenDir, ag)
-	n.Insert("bud/node_modules/runtime/hot", fsmode.Gen, bg)
+	n.Insert("bud/node_modules", modeGenDir, ag)
+	n.Insert("bud/node_modules/runtime/hot", modeGen, bg)
 	node, ok := n.FindPrefix("bud/node_modules/runtime/svelte")
 	is.True(ok)
 	is.Equal(node.Path, "bud/node_modules/runtime")
@@ -118,19 +116,19 @@ func TestTreeFillerDirNowGeneratorFile(t *testing.T) {
 	parent, ok := n.Find("bud/node_modules/runtime")
 	is.True(ok)
 	is.True(parent.Mode.IsDir())
-	n.Insert("bud/node_modules/runtime", fsmode.Gen, cg)
+	n.Insert("bud/node_modules/runtime", modeGen, cg)
 	// Check that parent is a file
 	parent, ok = n.Find("bud/node_modules/runtime")
 	is.True(ok)
-	is.Equal(parent.Mode, fsmode.Gen)
+	is.Equal(parent.Mode, modeGen)
 }
 
 func TestTreeGeneratorAndDirectory(t *testing.T) {
 	is := is.New(t)
 	n := newTree()
-	n.Insert("bud/node_modules", fsmode.GenDir, ag)
-	n.Insert("bud/node_modules/runtime", fsmode.Gen, bg)
-	n.Insert("bud/node_modules/runtime/hot", fsmode.Gen, cg)
+	n.Insert("bud/node_modules", modeGenDir, ag)
+	n.Insert("bud/node_modules/runtime", modeGen, bg)
+	n.Insert("bud/node_modules/runtime/hot", modeGen, cg)
 	node, ok := n.FindPrefix("bud/node_modules/runtime")
 	is.True(ok)
 	is.Equal(node.Path, "bud/node_modules/runtime")
@@ -168,7 +166,7 @@ func TestTreeGeneratorAndDirectory(t *testing.T) {
 // func TestTreeGenerate(t *testing.T) {
 // 	is := is.New(t)
 // 	n := newTree()
-// 	n.Insert("bud/node_modules", fsmode.GenDir, &nodeModule{})
+// 	n.Insert("bud/node_modules", modeGenDir, &nodeModule{})
 // 	err := fstest.TestFS(n, "bud/node_modules/runtime")
 // 	is.NoErr(err)
 // }
@@ -225,7 +223,7 @@ func TestTreeGeneratorAndDirectory(t *testing.T) {
 // 	is := is.New(t)
 // 	n := newTree()
 // 	count := 0
-// 	n.Insert("controller/controller.go", fsmode.Gen, generate(func(target string) (fs.File, error) {
+// 	n.Insert("controller/controller.go", modeGen, generate(func(target string) (fs.File, error) {
 // 		count++
 // 		return nil, fs.ErrNotExist
 // 	}))

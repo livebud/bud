@@ -5,8 +5,7 @@ import (
 	"io/fs"
 	gopath "path"
 
-	"github.com/livebud/bud/internal/fsmode"
-	"github.com/livebud/bud/package/virt"
+	"github.com/livebud/bud/package/virtual"
 )
 
 type Dir struct {
@@ -38,7 +37,7 @@ func (d *Dir) Mode() fs.FileMode {
 func (d *Dir) GenerateFile(path string, fn func(fsys FS, file *File) error) {
 	fpath := gopath.Join(d.path, path)
 	fileg := &fileGenerator{d.cache, fn, d.genfs, fpath}
-	d.tree.Insert(fpath, fsmode.Gen, fileg)
+	d.tree.Insert(fpath, modeGen, fileg)
 }
 
 func (d *Dir) FileGenerator(path string, generator FileGenerator) {
@@ -48,7 +47,7 @@ func (d *Dir) FileGenerator(path string, generator FileGenerator) {
 func (d *Dir) GenerateDir(path string, fn func(fsys FS, dir *Dir) error) {
 	fpath := gopath.Join(d.path, path)
 	dirg := &dirGenerator{d.cache, fn, d.genfs, fpath, d.tree}
-	d.tree.Insert(fpath, fsmode.GenDir, dirg)
+	d.tree.Insert(fpath, modeGenDir, dirg)
 }
 
 func (d *Dir) DirGenerator(path string, generator DirGenerator) {
@@ -58,7 +57,7 @@ func (d *Dir) DirGenerator(path string, generator DirGenerator) {
 func (d *Dir) ServeFile(path string, fn func(fsys FS, file *File) error) {
 	fpath := gopath.Join(d.path, path)
 	server := &fileServer{d.cache, fn, d.genfs, fpath}
-	d.tree.Insert(fpath, fsmode.GenDir, server)
+	d.tree.Insert(fpath, modeGenDir, server)
 }
 
 func (d *Dir) FileServer(path string, server FileServer) {
@@ -68,10 +67,43 @@ func (d *Dir) FileServer(path string, server FileServer) {
 func (d *Dir) GenerateExternal(path string, fn func(fsys FS, file *External) error) {
 	fpath := gopath.Join(d.path, path)
 	fileg := &externalGenerator{d.cache, fn, d.genfs, fpath}
-	d.tree.Insert(fpath, fsmode.Gen, fileg)
+	d.tree.Insert(fpath, modeGen, fileg)
 }
 func (d *Dir) ExternalGenerator(path string, generator ExternalGenerator) {
 	d.GenerateExternal(path, generator.GenerateExternal)
+}
+
+type mountGenerator struct {
+	dir string
+	// genfs fs.FS
+	mount fs.FS
+}
+
+func (g *mountGenerator) Generate(target string) (fs.File, error) {
+	return g.mount.Open(relativePath(g.dir, target))
+}
+
+func (d *Dir) Mount(mount fs.FS) error {
+	err := fs.WalkDir(mount, ".", func(path string, de fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		// Don't overwrite the existing root directory
+		if path == "." {
+			return nil
+		}
+		fpath := gopath.Join(d.path, path)
+		mode := modeGen
+		if de.IsDir() {
+			mode = modeGenDir
+		}
+		d.tree.Insert(fpath, mode, &mountGenerator{d.path, mount})
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("budfs: mount error. %w", err)
+	}
+	return nil
 }
 
 type DirGenerator interface {
@@ -94,9 +126,7 @@ type dirGenerator struct {
 
 func (d *dirGenerator) Generate(target string) (fs.File, error) {
 	if entry, err := d.cache.Get(d.path); err == nil {
-		_ = entry
-		// TODO: wrap the entry file in a virtualDir
-		return nil, fmt.Errorf("cache get not implemented yet")
+		return wrapFile(virtual.Open(entry), d.genfs, d.path), nil
 	}
 	// Run the directory generator function
 	scopedFS := &scopedFS{d.cache, d.genfs, d.path}
@@ -108,7 +138,7 @@ func (d *dirGenerator) Generate(target string) (fs.File, error) {
 	if d.path != target {
 		return d.genfs.openFrom(d.path, target)
 	}
-	entry := &virt.File{
+	entry := &virtual.File{
 		Path:    d.path,
 		Mode:    fs.ModeDir,
 		Entries: nil, // Entries get filled in on-demand.
@@ -118,5 +148,5 @@ func (d *dirGenerator) Generate(target string) (fs.File, error) {
 		return nil, err
 	}
 	// Return the virtual directory
-	return wrapFile(virt.Open(entry), d.genfs, d.path), nil
+	return wrapFile(virtual.Open(entry), d.genfs, d.path), nil
 }

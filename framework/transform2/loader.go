@@ -3,13 +3,15 @@ package transform
 import (
 	"fmt"
 	"io/fs"
+	"path/filepath"
 	"strings"
+
+	"github.com/livebud/bud/package/finder"
 
 	"github.com/livebud/bud/package/di"
 
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/imports"
-	"github.com/livebud/bud/internal/scan"
 	"github.com/livebud/bud/internal/valid"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log"
@@ -59,12 +61,11 @@ func (l *loader) Load(fsys fs.FS) (state *State, err error) {
 }
 
 func (l *loader) loadTransformers(fsys fs.FS) (transformers []*Transformer) {
-	transformDirs, err := scan.List(fsys, "transform", func(de fs.DirEntry) bool {
-		if de.IsDir() {
-			return valid.Dir(de.Name())
-		} else {
-			return valid.GoFile(de.Name())
+	transformDirs, err := finder.Find(fsys, "transform/**.go", func(path string, isDir bool) (entries []string) {
+		if !isDir && valid.GoFile(path) {
+			entries = append(entries, filepath.Dir(path))
 		}
+		return entries
 	})
 	if err != nil {
 		l.Bail(err)

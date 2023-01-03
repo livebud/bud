@@ -5,9 +5,9 @@ import (
 	"io/fs"
 
 	"github.com/livebud/bud/internal/errs"
-	"github.com/livebud/bud/internal/exe"
 	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/once"
+	"github.com/livebud/bud/internal/shell"
 	"github.com/livebud/bud/package/socket"
 )
 
@@ -15,7 +15,7 @@ const defaultPrefix = "BUD_REMOTEFS"
 
 // Command helps you launch a remotefs server and connect to it with the
 // remotefs client
-type Command exe.Command
+type Command shell.Command
 
 func (c *Command) Start(ctx context.Context, name string, args ...string) (*Process, error) {
 	var closer once.Closer
@@ -36,7 +36,7 @@ func (c *Command) Start(ctx context.Context, name string, args ...string) (*Proc
 	// Inject the file listener into the subprocess
 	extrafile.Inject(&c.ExtraFiles, &c.Env, defaultPrefix, file)
 	// Start the subprocess
-	process, err := (*exe.Command)(c).Start(ctx, name, args...)
+	process, err := (*shell.Command)(c).Start(ctx, name, args...)
 	if err != nil {
 		err = errs.Join(err, closer.Close())
 		return nil, err
@@ -57,7 +57,7 @@ func (c *Command) Start(ctx context.Context, name string, args ...string) (*Proc
 type Process struct {
 	client  *Client
 	closer  *once.Closer
-	process *exe.Process
+	process *shell.Process
 	addr    string
 }
 

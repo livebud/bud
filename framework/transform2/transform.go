@@ -5,8 +5,8 @@ import (
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/gotemplate"
-	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/di"
+	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/parser"
@@ -38,7 +38,8 @@ type Generator struct {
 	process *remotefs.Process
 }
 
-func (g *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
+// TODO: Switch to a core generator that serves transforms for other generators
+func (g *Generator) ServeFile(fsys genfs.FS, file *genfs.File) error {
 	g.log.Debug("framework/transform: generating the main.go service containing the generators")
 	state, err := Load(fsys, g.injector, g.log, g.module, g.parser)
 	if err != nil {

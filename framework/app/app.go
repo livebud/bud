@@ -4,8 +4,8 @@ import (
 	_ "embed"
 
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/package/budfs"
 	"github.com/livebud/bud/package/di"
+	"github.com/livebud/bud/package/genfs"
 
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/package/gomod"
@@ -30,7 +30,7 @@ type Generator struct {
 	module   *gomod.Module
 }
 
-func (g *Generator) GenerateFile(fsys budfs.FS, file *budfs.File) error {
+func (g *Generator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
 	state, err := Load(fsys, g.injector, g.module, g.flag)
 	if err != nil {
 		return err

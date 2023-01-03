@@ -10,7 +10,6 @@ import (
 
 	"github.com/cespare/xxhash"
 	"github.com/livebud/bud/internal/gois"
-	"github.com/livebud/bud/internal/goroot"
 	"github.com/livebud/bud/package/virtual"
 )
 
@@ -103,7 +102,7 @@ func (m *Module) ResolveImport(directory string) (importPath string, err error) 
 }
 
 // dir containing the standard libraries
-var stdDir = filepath.Join(goroot.Find(), "src")
+var stdDir = filepath.Join(findGoRoot(), "src")
 
 // ResolveDirectory resolves an import to an absolute path
 func (m *Module) ResolveDirectory(importPath string) (directory string, err error) {

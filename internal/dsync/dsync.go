@@ -5,8 +5,10 @@ import (
 	"io/fs"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/livebud/bud/internal/dsync/set"
+	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/vfs"
 )
 
@@ -14,6 +16,7 @@ type skipFunc = func(name string, isDir bool) bool
 
 type option struct {
 	Skip skipFunc
+	log  log.Log
 	rel  func(spath string) (string, error)
 }
 
@@ -27,6 +30,12 @@ type Option func(o *option)
 func WithSkip(skips ...skipFunc) Option {
 	return func(o *option) {
 		o.Skip = composeSkips(skips)
+	}
+}
+
+func WithLog(log log.Log) Option {
+	return func(o *option) {
+		o.log = log
 	}
 }
 
@@ -56,16 +65,21 @@ func Rel(sdir, tdir string) func(path string) (string, error) {
 func Dir(sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string, options ...Option) error {
 	opt := &option{
 		Skip: func(name string, isDir bool) bool { return false },
+		log:  log.Discard,
 		rel:  Rel(sdir, tdir),
 	}
 	for _, option := range options {
 		option(opt)
 	}
+	opt.log = opt.log.Field("package", "dsync")
+	opt.log.Debug("syncing")
+	now := time.Now()
 	ops, err := diff(opt, sfs, sdir, tfs, tdir)
 	if err != nil {
 		return err
 	}
-	err = apply(sfs, tfs, ops)
+	err = apply(opt, sfs, tfs, ops)
+	opt.log.Field("duration", time.Since(now)).Debug("synced")
 	return err
 }
 
@@ -106,6 +120,7 @@ func (o Op) String() string {
 }
 
 func diff(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string) (ops []Op, err error) {
+	log := opt.log.Field("fn", "diff")
 	sourceEntries, err := fs.ReadDir(sfs, sdir)
 	if err != nil {
 		return nil, err
@@ -115,29 +130,10 @@ func diff(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string
 		return nil, err
 	}
 	// Create the source set from the source entries
-	sourceSet := set.NewWithSize(len(sourceEntries))
-	for _, de := range sourceEntries {
-		// Ensure all sources actually exist
-		if _, err := de.Info(); err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				continue
-			}
-			return nil, err
-		}
-		sourceSet.Add(de)
-	}
+	sourceSet := set.New(sourceEntries...)
 	// Create a target set from the target entries
-	targetSet := set.NewWithSize(len(targetEntries))
-	for _, de := range targetEntries {
-		// Ensure all sources actually exist
-		if _, err := de.Info(); err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				continue
-			}
-			return nil, err
-		}
-		targetSet.Add(de)
-	}
+	targetSet := set.New(targetEntries...)
+	// Compute the operations
 	creates := set.Difference(sourceSet, targetSet)
 	deletes := set.Difference(targetSet, sourceSet)
 	updates := set.Intersection(sourceSet, targetSet)
@@ -156,6 +152,9 @@ func diff(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string
 	ops = append(ops, createOps...)
 	ops = append(ops, deleteOps...)
 	ops = append(ops, childOps...)
+	for _, op := range ops {
+		log.Debug("op: %s %q", op.Type, op.Path)
+	}
 	return ops, nil
 }
 
@@ -253,16 +252,18 @@ func updateOps(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir s
 		if sourceStamp == targetStamp {
 			continue
 		}
+		rel, err := opt.rel(spath)
+		if err != nil {
+			return nil, err
+		}
 		data, err := fs.ReadFile(sfs, spath)
 		if err != nil {
 			// Don't error out on files that don't exist
 			if errors.Is(err, fs.ErrNotExist) {
+				// The file no longer exists, delete it
+				ops = append(ops, Op{DeleteType, rel, nil})
 				continue
 			}
-			return nil, err
-		}
-		rel, err := opt.rel(spath)
-		if err != nil {
 			return nil, err
 		}
 		ops = append(ops, Op{UpdateType, rel, data})
@@ -270,10 +271,12 @@ func updateOps(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir s
 	return ops, nil
 }
 
-func apply(sfs fs.FS, tfs vfs.ReadWritable, ops []Op) error {
+func apply(opt *option, sfs fs.FS, tfs vfs.ReadWritable, ops []Op) error {
+	log := opt.log.Field("fn", "apply")
 	for _, op := range ops {
 		switch op.Type {
 		case CreateType:
+			log.Debug("creating %q", op.Path)
 			dir := filepath.Dir(op.Path)
 			if err := tfs.MkdirAll(dir, 0755); err != nil {
 				return err
@@ -282,10 +285,12 @@ func apply(sfs fs.FS, tfs vfs.ReadWritable, ops []Op) error {
 				return err
 			}
 		case UpdateType:
+			log.Debug("updating %q", op.Path)
 			if err := tfs.WriteFile(op.Path, op.Data, 0644); err != nil {
 				return err
 			}
 		case DeleteType:
+			log.Debug("removing %q", op.Path)
 			if err := tfs.RemoveAll(op.Path); err != nil {
 				return err
 			}

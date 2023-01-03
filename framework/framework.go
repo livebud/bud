@@ -1,16 +1,20 @@
 package framework
 
-import "io"
+import (
+	"strconv"
+)
 
 // Flag is used by many of the framework generators
 type Flag struct {
 	Embed  bool
 	Minify bool
 	Hot    bool
+}
 
-	// Comes from *bud.Input
-	Stdin  io.Reader
-	Stdout io.Writer
-	Stderr io.Writer
-	Env    []string
+func (f *Flag) Flags() []string {
+	return []string{
+		"--embed=" + strconv.FormatBool(f.Embed),
+		"--minify=" + strconv.FormatBool(f.Minify),
+		"--hot=" + strconv.FormatBool(f.Hot),
+	}
 }

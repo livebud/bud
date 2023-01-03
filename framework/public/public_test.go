@@ -140,6 +140,7 @@ func TestGetChangeGet(t *testing.T) {
 	favicon2 := []byte{0x00, 0x00, 0x01}
 	td.BFiles["public/favicon.ico"] = favicon2
 	is.NoErr(td.Write(ctx))
+	is.NoErr(app.Ready(ctx))
 	is.NoErr(td.Exists("bud/internal/web/public/public.go"))
 	res, err = app.Get("/favicon.ico")
 	is.NoErr(err)
@@ -168,6 +169,7 @@ func TestEmbedFavicon(t *testing.T) {
 	favicon2 := []byte{0x00, 0x00, 0x01}
 	td.BFiles["public/favicon.ico"] = favicon2
 	is.NoErr(td.Write(ctx))
+	is.NoErr(app.Ready(ctx))
 	// Favicon shouldn't have changed
 	res, err = app.Get("/favicon.ico")
 	is.NoErr(err)

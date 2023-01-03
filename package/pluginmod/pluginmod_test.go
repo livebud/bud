@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/livebud/bud/package/budfs/mergefs"
+	"github.com/livebud/bud/internal/mergefs"
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testdir"

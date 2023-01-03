@@ -6,7 +6,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/livebud/bud/internal/fsmode"
 	"github.com/xlab/treeprint"
 )
 
@@ -24,7 +23,7 @@ func newTree() *tree {
 			Generator: nil,
 			Path:      ".",
 			Name:      ".",
-			Mode:      fsmode.Dir,
+			Mode:      modeDir,
 			parent:    nil,
 		},
 	}
@@ -35,9 +34,9 @@ type tree struct {
 }
 
 type node struct {
-	Path string      // path from root
-	Name string      // basename
-	Mode fsmode.Mode // mode of the file
+	Path string // path from root
+	Name string // basename
+	Mode mode   // mode of the file
 
 	Generator generator
 	children  map[string]*node
@@ -54,7 +53,7 @@ func (n *node) Children() (children []*node) {
 	return children
 }
 
-func (t *tree) Insert(fpath string, mode fsmode.Mode, generator generator) {
+func (t *tree) Insert(fpath string, mode mode, generator generator) {
 	segments := strings.Split(fpath, "/")
 	last := len(segments) - 1
 	name := segments[last]
@@ -88,7 +87,7 @@ func (t *tree) mkdirAll(segments []string) *node {
 				Generator: nil,
 				Path:      path.Join(parent.Path, segment),
 				Name:      segment,
-				Mode:      fsmode.Dir,
+				Mode:      modeDir,
 				parent:    parent,
 			}
 			parent.children[segment] = child

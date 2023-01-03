@@ -39,7 +39,14 @@ func (l *listener) File() (*os.File, error) {
 }
 
 func (l *listener) Close() error {
-	return l.Listener.Close()
+	if err := l.Listener.Close(); err != nil {
+		// Ignore errors where the listener has been closed already. This can occur
+		// when the server is shutdown before the listener is closed.
+		if !errors.Is(err, net.ErrClosed) {
+			return err
+		}
+	}
+	return nil
 }
 
 // Listen on a path or port

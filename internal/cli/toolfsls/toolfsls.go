@@ -8,47 +8,38 @@ import (
 	"path"
 	"sort"
 
-	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/internal/bfs"
-	"github.com/livebud/bud/internal/cli/bud"
+	"github.com/livebud/bud/internal/config"
 )
 
-func New(bud *bud.Command, in *bud.Input) *Command {
-	return &Command{
-		bud: bud,
-		in:  in,
-		Flag: &framework.Flag{
-			Env:    in.Env,
-			Stderr: in.Stderr,
-			Stdin:  in.Stdin,
-			Stdout: in.Stdout,
-		},
-	}
+func New(provide config.Provide) *Command {
+	return &Command{provide: provide}
 }
 
 type Command struct {
-	bud  *bud.Command
-	in   *bud.Input
-	Flag *framework.Flag
-	Dir  string
+	provide config.Provide
+	Dir     string
 }
 
 func (c *Command) Run(ctx context.Context) error {
-	log, err := bud.Log(c.in.Stdout, c.bud.Log)
+	module, err := c.provide.Module()
 	if err != nil {
 		return err
 	}
-	dir := path.Clean(c.Dir)
-	module, err := bud.Module(path.Join(c.bud.Dir, dir))
+	budsvr, err := c.provide.BudServer()
 	if err != nil {
 		return err
 	}
-	bfs, err := bfs.Load(c.Flag, log, module)
+	defer budsvr.Close()
+	budfs, err := c.provide.BudFileSystem()
 	if err != nil {
 		return err
 	}
-	defer bfs.Close()
-	des, err := fs.ReadDir(bfs, dir)
+	defer budfs.Close(ctx)
+	// Sync the directories
+	if err := budfs.Sync(ctx, module); err != nil {
+		return err
+	}
+	des, err := fs.ReadDir(budfs, path.Clean(c.Dir))
 	if err != nil {
 		return err
 	}

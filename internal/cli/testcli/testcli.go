@@ -16,7 +16,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/lithammer/dedent"
-	"github.com/livebud/bud/internal/cli/bud"
+	"github.com/livebud/bud/internal/config"
 	"github.com/livebud/bud/internal/once"
 	"github.com/livebud/bud/internal/pubsub"
 	"github.com/matthewmueller/diff"
@@ -66,15 +66,27 @@ func prependFlags(args []string) []string {
 func (c *CLI) Run(ctx context.Context, args ...string) (*Result, error) {
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	cli := cli.New(&bud.Input{
+	webln, err := socket.Listen(":0")
+	if err != nil {
+		return nil, err
+	}
+	defer webln.Close()
+	budln, err := socket.Listen(":0")
+	if err != nil {
+		return nil, err
+	}
+	defer budln.Close()
+	cli := cli.New(&config.Config{
 		Dir:    c.dir,
-		Bus:    c.bus,
+		PubSub: c.bus,
 		Env:    c.Env.List(),
 		Stdin:  c.Stdin,
 		Stdout: io.MultiWriter(os.Stdout, stdout),
 		Stderr: io.MultiWriter(os.Stderr, stderr),
+		BudLn:  budln,
+		WebLn:  webln,
 	})
-	err := cli.Run(ctx, prependFlags(args)...)
+	err = cli.Run(ctx, prependFlags(args)...)
 	return &Result{stdout, stderr}, err
 }
 
@@ -125,13 +137,13 @@ func (c *CLI) Start(ctx context.Context, args ...string) (*Client, error) {
 	// Setup the CLI
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	cli := cli.New(&bud.Input{
+	cli := cli.New(&config.Config{
 		Dir:    c.dir,
 		Env:    c.Env.List(),
 		Stdin:  c.Stdin,
 		Stdout: io.MultiWriter(os.Stdout, stdout),
 		Stderr: io.MultiWriter(os.Stderr, stderr),
-		Bus:    c.bus,
+		PubSub: c.bus,
 		WebLn:  webln,
 		BudLn:  budln,
 	})

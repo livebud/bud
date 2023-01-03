@@ -13,7 +13,6 @@ import (
 
 func init() {
 	gob.Register(&virtual.File{})
-	gob.Register(&virtual.Dir{})
 	gob.Register(&virtual.DirEntry{})
 }
 
@@ -42,21 +41,21 @@ func (c *Client) WithContext(ctx context.Context) *Client {
 }
 
 func (c *Client) Open(name string) (fs.File, error) {
-	entry := new(virtual.Entry)
-	if err := c.rpc.Call(c.ctx, "remotefs.Open", name, entry); err != nil {
-		if isNotExist(err) {
+	file := new(virtual.File)
+	if err := c.rpc.Call(c.ctx, "remotefs.Open", name, file); err != nil {
+		if isNotExist(err) && isNotWire(err) {
 			return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
 		}
 		return nil, err
 	}
-	return virtual.New(*entry), nil
+	return virtual.Open(file), nil
 }
 
 func (c *Client) ReadDir(name string) (des []fs.DirEntry, err error) {
 	vdes := new([]fs.DirEntry)
 	err = c.rpc.Call(c.ctx, "remotefs.ReadDir", name, &vdes)
 	if err != nil {
-		if isNotExist(err) {
+		if isNotExist(err) && isNotWire(err) {
 			return nil, &fs.PathError{Op: "readdir", Path: name, Err: fs.ErrNotExist}
 		}
 		return nil, err
@@ -73,4 +72,10 @@ func (c *Client) Close() error {
 func isNotExist(err error) bool {
 	return strings.HasSuffix(err.Error(), fs.ErrNotExist.Error()) ||
 		strings.HasSuffix(err.Error(), "no such file or directory")
+}
+
+// Dependency injection errors often pose as fs.ErrNotExist, but we don't want
+// to treat them as such.
+func isNotWire(err error) bool {
+	return !strings.Contains(err.Error(), "unable to wire")
 }
