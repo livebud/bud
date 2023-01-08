@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/internal/bail"
-	"github.com/livebud/bud/internal/config"
 	"github.com/livebud/bud/internal/embedded"
 	"github.com/livebud/bud/internal/scaffold"
 	"github.com/livebud/bud/internal/versions"
