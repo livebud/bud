@@ -1,4 +1,4 @@
-package shell_test
+package sh_test
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/livebud/bud/internal/is"
-	"github.com/livebud/bud/internal/shell"
+	"github.com/livebud/bud/internal/sh"
 	"github.com/livebud/bud/internal/sig"
 	"github.com/livebud/bud/internal/testsub"
 )
@@ -19,7 +19,7 @@ func TestCancel(t *testing.T) {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		ctx, cancel := context.WithCancel(context.Background())
-		p, err := shell.Start(ctx, cmd)
+		p, err := sh.Start(ctx, cmd)
 		is.NoErr(err)
 		time.Sleep(100 * time.Millisecond)
 		cancel()
@@ -37,7 +37,7 @@ func TestDone(t *testing.T) {
 	parent := func(t testing.TB, cmd *exec.Cmd) {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		p, err := shell.Start(context.Background(), cmd)
+		p, err := sh.Start(context.Background(), cmd)
 		is.NoErr(err)
 		is.NoErr(p.Wait())
 	}
@@ -52,7 +52,7 @@ func TestDoneError(t *testing.T) {
 	parent := func(t testing.TB, cmd *exec.Cmd) {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		p, err := shell.Start(context.Background(), cmd)
+		p, err := sh.Start(context.Background(), cmd)
 		is.NoErr(err)
 		err = p.Wait()
 		is.True(err != nil)
@@ -71,7 +71,7 @@ func TestRun(t *testing.T) {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		ctx := context.Background()
-		is.NoErr(shell.Run(ctx, cmd))
+		is.NoErr(sh.Run(ctx, cmd))
 	}
 	child := func(t testing.TB) {
 		time.Sleep(100 * time.Millisecond)
@@ -85,7 +85,7 @@ func TestRunError(t *testing.T) {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		ctx := context.Background()
-		is.NoErr(shell.Run(ctx, cmd))
+		is.NoErr(sh.Run(ctx, cmd))
 	}
 	child := func(t testing.TB) {
 		time.Sleep(100 * time.Millisecond)
@@ -99,7 +99,7 @@ func TestCloseWaitWait(t *testing.T) {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		ctx := context.Background()
-		p, err := shell.Start(ctx, cmd)
+		p, err := sh.Start(ctx, cmd)
 		is.NoErr(err)
 		is.NoErr(p.Close())
 		is.NoErr(p.Wait())

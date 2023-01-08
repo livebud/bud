@@ -11,6 +11,7 @@
 <style>
   .list {
     display: flex;
+    flex-direction: column;
     align-items: center;
     padding: 10px;
   }

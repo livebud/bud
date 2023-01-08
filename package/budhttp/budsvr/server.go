@@ -22,7 +22,7 @@ func New(budln net.Listener, bus pubsub.Client, flag *framework.Flag, fsys fs.FS
 		ln: budln,
 		s: &http.Server{
 			Addr:    budln.Addr().String(),
-			Handler: newHandler(flag, fsys, bus, log, vm),
+			Handler: NewHandler(flag, fsys, bus, log, vm),
 		},
 		eg: new(errgroup.Group),
 	}

@@ -21,7 +21,8 @@ import (
 	"github.com/livebud/bud/package/router"
 )
 
-func newHandler(flag *framework.Flag, fsys fs.FS, bus pubsub.Client, log log.Log, vm js.VM) *Handler {
+// TODO: update this signature
+func NewHandler(flag *framework.Flag, fsys fs.FS, bus pubsub.Client, log log.Log, vm js.VM) *Handler {
 	router := router.New()
 	server := &Handler{
 		Handler: router,

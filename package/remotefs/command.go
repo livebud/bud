@@ -5,17 +5,46 @@ import (
 	"io/fs"
 
 	"github.com/livebud/bud/internal/errs"
-	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/once"
-	"github.com/livebud/bud/internal/shell"
+	"github.com/livebud/bud/internal/sh"
 	"github.com/livebud/bud/package/socket"
 )
 
 const defaultPrefix = "BUD_REMOTEFS"
 
+func Start(ctx context.Context, cmd *sh.Command, ln socket.Listener, name string, args ...string) (*Process, error) {
+	var closer once.Closer
+	// Turn the listener into a file to be passed to the subprocess
+	file, err := ln.File()
+	if err != nil {
+		err = errs.Join(err, closer.Close())
+		return nil, err
+	}
+	closer.Add(file.Close)
+	// Inject the file listener into the subprocess
+	cmd.Inject(defaultPrefix, file)
+	// Start the subprocess
+	process, err := cmd.Start(ctx, name, args...)
+	if err != nil {
+		err = errs.Join(err, closer.Close())
+		return nil, err
+	}
+	closer.Add(process.Close)
+	// Dial the subprocess and return a client
+	addr := ln.Addr().String()
+	client, err := Dial(ctx, addr)
+	if err != nil {
+		err = errs.Join(err, closer.Close())
+		return nil, err
+	}
+	closer.Add(client.Close)
+	// Return the process
+	return &Process{client, &closer, process, addr}, nil
+}
+
 // Command helps you launch a remotefs server and connect to it with the
 // remotefs client
-type Command shell.Command
+type Command sh.Command
 
 func (c *Command) Start(ctx context.Context, name string, args ...string) (*Process, error) {
 	var closer once.Closer
@@ -34,9 +63,9 @@ func (c *Command) Start(ctx context.Context, name string, args ...string) (*Proc
 	}
 	closer.Add(file.Close)
 	// Inject the file listener into the subprocess
-	extrafile.Inject(&c.ExtraFiles, &c.Env, defaultPrefix, file)
+	(*sh.Command)(c).Inject(defaultPrefix, file)
 	// Start the subprocess
-	process, err := (*shell.Command)(c).Start(ctx, name, args...)
+	process, err := (*sh.Command)(c).Start(ctx, name, args...)
 	if err != nil {
 		err = errs.Join(err, closer.Close())
 		return nil, err
@@ -57,7 +86,7 @@ func (c *Command) Start(ctx context.Context, name string, args ...string) (*Proc
 type Process struct {
 	client  *Client
 	closer  *once.Closer
-	process *shell.Process
+	process *sh.Process
 	addr    string
 }
 

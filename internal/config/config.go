@@ -13,7 +13,7 @@ import (
 	"github.com/livebud/bud/internal/current"
 	"github.com/livebud/bud/internal/prompter"
 	"github.com/livebud/bud/internal/pubsub"
-	"github.com/livebud/bud/internal/shell"
+	"github.com/livebud/bud/internal/sh"
 	"github.com/livebud/bud/package/budhttp/budsvr"
 	"github.com/livebud/bud/package/gomod"
 	v8 "github.com/livebud/bud/package/js/v8"
@@ -27,7 +27,7 @@ import (
 type Provide interface {
 	Module() (*gomod.Module, error)
 	Logger() (*log.Logger, error)
-	Command() *shell.Command
+	Command() *sh.Command
 	BudFileSystem() (budfs.FileSystem, error)
 	BudServer() (*budsvr.Server, error)
 	BudListener() (socket.Listener, error)
@@ -100,9 +100,9 @@ func (c *Config) Logger() (*log.Logger, error) {
 	return c.logger, nil
 }
 
-func (c *Config) Command() *shell.Command {
+func (c *Config) Command() *sh.Command {
 	// Create a clean command everytime
-	return &shell.Command{
+	return &sh.Command{
 		Dir:    c.Dir,
 		Stdin:  c.Stdin,
 		Stdout: c.Stdout,

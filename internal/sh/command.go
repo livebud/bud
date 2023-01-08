@@ -1,4 +1,4 @@
-package shell
+package sh
 
 import (
 	"context"
@@ -7,26 +7,27 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/livebud/bud/internal/extrafile"
+
 	"github.com/livebud/bud/internal/once"
 )
 
 type Command struct {
-	Dir        string
-	Stdin      io.Reader
-	Stdout     io.Writer
-	Stderr     io.Writer
-	Env        []string
-	ExtraFiles []*os.File
+	Dir    string
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
+	Env    []string
+	extras []*os.File
 }
 
 func (c *Command) Clone() *Command {
 	return &Command{
-		Dir:        c.Dir,
-		Stdin:      c.Stdin,
-		Stdout:     c.Stdout,
-		Stderr:     c.Stderr,
-		Env:        append([]string{}, c.Env...),
-		ExtraFiles: c.ExtraFiles,
+		Dir:    c.Dir,
+		Stdin:  c.Stdin,
+		Stdout: c.Stdout,
+		Stderr: c.Stderr,
+		Env:    append([]string{}, c.Env...),
 	}
 }
 
@@ -37,8 +38,12 @@ func (c *Command) cmd(name string, args ...string) *exec.Cmd {
 	cmd.Stderr = c.Stderr
 	cmd.Env = c.Env
 	cmd.Dir = c.Dir
-	cmd.ExtraFiles = c.ExtraFiles
+	cmd.ExtraFiles = c.extras
 	return cmd
+}
+
+func (c *Command) Inject(prefix string, files ...*os.File) {
+	extrafile.Inject(&c.extras, &c.Env, prefix, files...)
 }
 
 func (c *Command) Run(ctx context.Context, name string, args ...string) error {

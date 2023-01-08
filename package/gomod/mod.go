@@ -126,7 +126,11 @@ func parse(opt *option, path string, data []byte) (*Module, error) {
 // Absolute traverses up the filesystem until it finds a directory
 // containing go.mod or returns an error trying.
 func Absolute(dir string) (abs string, err error) {
-	dir, err = absolute(dir)
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		return "", err
+	}
+	dir, err = absolute(absDir)
 	if err != nil {
 		return "", err
 	}
@@ -153,7 +157,7 @@ func absolute(dir string) (abs string, err error) {
 		if nextDir == dir {
 			return "", ErrFileNotFound
 		}
-		return absolute(filepath.Dir(dir))
+		return absolute(nextDir)
 	}
 	return filepath.EvalSymlinks(dir)
 }

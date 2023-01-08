@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/internal/mergefs"
+	"github.com/livebud/bud/internal/sh"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/errs"
@@ -19,7 +20,6 @@ import (
 	generator "github.com/livebud/bud/framework/generator"
 	"github.com/livebud/bud/internal/dag"
 	"github.com/livebud/bud/internal/dsync"
-	"github.com/livebud/bud/internal/shell"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/gomod"
@@ -36,7 +36,7 @@ type FileSystem interface {
 	Close(ctx context.Context) error
 }
 
-func Load(budln net.Listener, cmd *shell.Command, flag *framework.Flag, module *gomod.Module, log log.Log) (FileSystem, error) {
+func Load(budln net.Listener, cmd *sh.Command, flag *framework.Flag, module *gomod.Module, log log.Log) (FileSystem, error) {
 	// Load the cache
 	cache, err := dag.Load(log, module.Directory("bud/bud.db"))
 	if err != nil {
@@ -50,14 +50,14 @@ func Load(budln net.Listener, cmd *shell.Command, flag *framework.Flag, module *
 	injector := di.New(gfs, log, module, parser)
 	generators := generator.New(log, module, parser)
 	gfs.FileGenerator("bud/internal/generator/generator.go", generators)
-	gfs.FileGenerator("bud/cmd/afs/main.go", afs.New(flag, injector, log, module))
+	gfs.FileGenerator("bud/cmd/afs/main.go", afs.New(flag.Config(), injector, log, module))
 	merged := gfs
 	return &fileSystem{cache, cmd, flag, gfs, generators, log, merged, module, nil}, nil
 }
 
 type fileSystem struct {
 	cache      dag.Cache
-	cmd        *shell.Command
+	cmd        *sh.Command
 	flag       *framework.Flag
 	genfs      fs.ReadDirFS
 	generators *generator.Generator

@@ -9,10 +9,9 @@ import (
 
 	"github.com/livebud/bud/internal/budfs"
 	"github.com/livebud/bud/internal/config"
-	"github.com/livebud/bud/internal/extrafile"
 	"github.com/livebud/bud/internal/prompter"
 	"github.com/livebud/bud/internal/pubsub"
-	"github.com/livebud/bud/internal/shell"
+	"github.com/livebud/bud/internal/sh"
 	"github.com/livebud/bud/internal/versions"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log"
@@ -87,7 +86,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	}
 	defer webFile.Close()
 	// Inject that file into the starter's extrafiles
-	extrafile.Inject(&starter.ExtraFiles, &starter.Env, "WEB", webFile)
+	starter.Inject("WEB", webFile)
 	// Initialize the app server
 	appServer := &appServer{
 		dir:      module.Directory(),
@@ -118,7 +117,7 @@ type appServer struct {
 	budfs    budfs.FileSystem
 	log      log.Log
 	module   *gomod.Module
-	starter  *shell.Command
+	starter  *sh.Command
 }
 
 // Run the app server

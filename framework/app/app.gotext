@@ -56,7 +56,7 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	budClient, err := budhttp.Try(log, os.Getenv("BUD_LISTEN"))
+	budClient, err := budhttp.Try(log, os.Getenv("BUD_DEV_URL"))
 	if err != nil {
 		return err
 	}
