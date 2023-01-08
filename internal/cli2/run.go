@@ -3,10 +3,17 @@ package cli
 import (
 	"context"
 	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/livebud/bud/framework/afs"
+	"github.com/livebud/bud/framework/generator"
 	"github.com/livebud/bud/internal/prompter"
+	"github.com/livebud/bud/package/di"
+	"github.com/livebud/bud/package/genfs"
+	"github.com/livebud/bud/package/parser"
 	"github.com/livebud/bud/package/remotefs"
+	"github.com/livebud/bud/package/virtual"
 	"github.com/livebud/bud/package/watcher"
 
 	v8 "github.com/livebud/bud/package/js/v8"
@@ -16,6 +23,7 @@ import (
 )
 
 func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
+	cfg := &in.Config
 	cmd := c.Command.Clone()
 
 	// Find go.mod
@@ -40,8 +48,6 @@ func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
 	defer webLn.Close()
 	log.Info("Listening on http://" + webLn.Addr().String())
 
-	prompter := c.prompter(webLn)
-
 	// Load the database
 	db, err := c.openDatabase(log, module)
 	if err != nil {
@@ -65,14 +71,14 @@ func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
 	defer vm.Close()
 
 	// Start the file server listener
-	fileLn, err := c.listenFile(":0")
+	afsLn, err := c.listenAFS(":0")
 	if err != nil {
 		return err
 	}
-	defer fileLn.Close()
+	defer afsLn.Close()
 	log.Debug("run: file server is listening on http://" + devLn.Addr().String())
 
-	remoteClient, err := remotefs.Dial(ctx, fileLn.Addr().String())
+	remoteClient, err := remotefs.Dial(ctx, afsLn.Addr().String())
 	if err != nil {
 		return err
 	}
@@ -80,17 +86,62 @@ func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
 
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
-		err := c.serveDev(ctx, &in.Config, remoteClient, devLn, log, vm)
+		err := c.serveDev(ctx, cfg, remoteClient, devLn, log, vm)
 		return err
 	})
 
-	// Run the generator
-	// TODO: inline sync along with remotefs
-	budfs := c.budfs(&in.Config, cmd, db, fileLn, log, module)
-	if err := budfs.Sync(ctx); err != nil {
+	// Setup genfs
+	fsys := virtual.Exclude(module, func(path string) bool {
+		return path == "bud" || strings.HasPrefix(path, "bud/")
+	})
+	genfs := genfs.New(db, fsys, log)
+	parser := parser.New(genfs, module)
+	injector := di.New(genfs, log, module, parser)
+	genfs.FileGenerator("bud/internal/generator/generator.go", generator.New(log, module, parser))
+	genfs.FileGenerator("bud/cmd/afs/main.go", afs.New(cfg, injector, log, module))
+
+	// Reset the cache
+	// TODO: optimize later
+	if err := db.Reset(); err != nil {
 		return err
 	}
-	defer budfs.Close()
+
+	// Generate afs
+	if err := c.generateAFS(genfs, log, module); err != nil {
+		return err
+	}
+
+	// Build the afs binary
+	if err := cmd.Run(ctx, "go", "build", "-mod=mod", "-o="+afsBinPath, afsMainPath); err != nil {
+		return err
+	}
+
+	// Load the *os.File for afsLn
+	afsFile, err := afsLn.File()
+	if err != nil {
+		return err
+	}
+	defer afsFile.Close()
+
+	// Inject the file under the AFS prefix
+	cmd.Inject("AFS", afsFile)
+
+	// Start afs
+	afsProcess, err := cmd.Start(ctx, module.Directory("bud", "afs"))
+	if err != nil {
+		return err
+	}
+	defer afsProcess.Close()
+
+	// Generate the app
+	if err := c.generateApp(remoteClient, log, module); err != nil {
+		return err
+	}
+
+	// Build the application binary
+	if err := cmd.Run(ctx, "go", "build", "-mod=mod", "-o="+appBinPath, appMainPath); err != nil {
+		return err
+	}
 
 	// Get the file descriptor for the web listener
 	webFile, err := webLn.File()
@@ -98,18 +149,23 @@ func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
 		return err
 	}
 	defer webFile.Close()
+
 	// Inject that file under the WEB prefix
 	cmd.Inject("WEB", webFile)
 
-	if !in.Watch {
-		return cmd.Run(ctx, filepath.Join("bud", "app"))
-	}
-
-	process, err := cmd.Start(ctx, filepath.Join("bud", "app"))
+	// Start the app
+	appProcess, err := cmd.Start(ctx, filepath.Join("bud", "app"))
 	if err != nil {
 		return err
 	}
-	defer process.Close()
+	defer appProcess.Close()
+
+	if !in.Watch {
+		return appProcess.Wait()
+	}
+
+	// Setup the prompter
+	prompter := c.prompter(webLn)
 
 	// Watch for changes
 	err = watcher.Watch(ctx, module.Directory(), catchError(prompter, func(events []watcher.Event) error {
@@ -121,7 +177,9 @@ func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
 			log.Debug("run: file path changed %q", event.Path)
 			changes[i] = event.Path
 		}
-		if err := budfs.Refresh(ctx, changes...); err != nil {
+		// Refresh the cache
+		// TODO: optimize later
+		if err := db.Reset(); err != nil {
 			return err
 		}
 		// Check if we can incrementally reload
@@ -133,22 +191,26 @@ func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
 			// Publish the app:ready event
 			c.Bus.Publish("app:ready", nil)
 			log.Debug("run: published event %q", "app:ready")
-			// prompter.SuccessReload()
+			prompter.SuccessReload()
 			return nil
 		}
 		now := time.Now()
 		log.Debug("run: restarting the process")
-		if err := process.Close(); err != nil {
+		if err := appProcess.Close(); err != nil {
 			return err
 		}
 		c.Bus.Publish("backend:update", nil)
 		log.Debug("run: published event %q", "backend:update")
 		// Generate the app
-		if err := budfs.Sync(ctx); err != nil {
+		if err := c.generateApp(remoteClient, log, module); err != nil {
+			return err
+		}
+		// Build the application binary
+		if err := cmd.Run(ctx, "go", "build", "-mod=mod", "-o="+appBinPath, appMainPath); err != nil {
 			return err
 		}
 		// Restart the process
-		p, err := process.Restart(ctx)
+		p, err := appProcess.Restart(ctx)
 		if err != nil {
 			c.Bus.Publish("app:error", nil)
 			log.Debug("run: published event %q", "app:error")
@@ -156,15 +218,16 @@ func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
 		}
 		prompter.SuccessReload()
 		log.Debug("restarted the process in %s", time.Since(now))
-		process = p
+		appProcess = p
 		return nil
 	}))
 	if err != nil {
 		return err
 	}
+
 	// Close the final process. This process is most likely different than the
 	// deferred process.
-	if err := process.Close(); err != nil {
+	if err := appProcess.Close(); err != nil {
 		return err
 	}
 

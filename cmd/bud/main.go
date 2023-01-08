@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 
 	cli "github.com/livebud/bud/internal/cli2"
@@ -16,10 +15,8 @@ import (
 func main() {
 	if err := run(); err != nil {
 		console.Error(err.Error())
-		fmt.Println("exited with error")
 		os.Exit(1)
 	}
-	fmt.Println("exited successfully")
 	os.Exit(0)
 }
 

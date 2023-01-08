@@ -2,10 +2,14 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"io"
 	"io/fs"
 	"net"
+	"path/filepath"
+	"strings"
 
+	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/prompter"
 
 	"github.com/livebud/bud/internal/sh"
@@ -69,9 +73,9 @@ func (c *CLI) listenDev(addr string) (socket.Listener, error) {
 	return ln, err
 }
 
-func (c *CLI) listenFile(addr string) (socket.Listener, error) {
-	if c.FileListener != nil {
-		return c.FileListener, nil
+func (c *CLI) listenAFS(addr string) (socket.Listener, error) {
+	if c.AFSListener != nil {
+		return c.AFSListener, nil
 	}
 	return socket.ListenUp(addr, 5)
 }
@@ -90,4 +94,90 @@ func (c *CLI) serveDev(ctx context.Context, cfg *bud.Config, remotefs fs.FS, ln 
 	handler := budsvr.NewHandler(flag, remotefs, c.Bus, log, vm)
 	// TODO: replace with something else
 	return webrt.Serve(ctx, ln, handler)
+}
+
+func (c *CLI) generateAFS(genfs fs.FS, log log.Log, module *gomod.Module) error {
+
+	skips := []func(name string, isDir bool) bool{}
+	// Skip hidden files and directories
+	skips = append(skips, func(name string, isDir bool) bool {
+		base := filepath.Base(name)
+		return base[0] == '_' || base[0] == '.'
+	})
+	// Skip files we want to carry over
+	skips = append(skips, func(name string, isDir bool) bool {
+		switch name {
+		case "bud/bud.db", "bud/afs", "bud/app":
+			return true
+		default:
+			return false
+		}
+	})
+
+	if err := dsync.To(genfs, module, "bud", dsync.WithSkip(skips...), dsync.WithLog(log)); err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *CLI) generateApp(remotefs fs.FS, log log.Log, module *gomod.Module) error {
+	skips := []func(name string, isDir bool) bool{}
+	// Skip hidden files and directories
+	skips = append(skips, func(name string, isDir bool) bool {
+		base := filepath.Base(name)
+		return base[0] == '_' || base[0] == '.'
+	})
+	// Skip files we want to carry over
+	skips = append(skips, func(name string, isDir bool) bool {
+		switch name {
+		case "bud/bud.db", "bud/afs", "bud/app":
+			return true
+		default:
+			return false
+		}
+	})
+	// Skip over the afs files we just generated
+	skips = append(skips, func(name string, isDir bool) bool {
+		return isAFSPath(name)
+	})
+
+	// Sync the app files again with the remote filesystem
+	if err := dsync.To(remotefs, module, "bud", dsync.WithSkip(skips...), dsync.WithLog(log)); err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+	}
+
+	return nil
+}
+
+const (
+	// internal/generator
+	afsGeneratorDir = "bud/internal/generator"
+
+	// cmd/afs
+	afsMainPath = "bud/cmd/afs/main.go"
+	afsMainDir  = "bud/cmd/afs"
+	afsBinPath  = "bud/afs"
+
+	// cmd/app
+	appMainPath = "bud/internal/app/main.go"
+	appBinPath  = "bud/app"
+)
+
+func isAFSPath(fpath string) bool {
+	return fpath == afsBinPath ||
+		isWithin(afsGeneratorDir, fpath) ||
+		isWithin(afsMainDir, fpath) ||
+		fpath == "bud/cmd" // TODO: remove once we move app over to cmd/app/main.go
+}
+
+func isWithin(parent, child string) bool {
+	if parent == child {
+		return true
+	}
+	return strings.HasPrefix(child, parent)
 }

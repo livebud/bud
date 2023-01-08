@@ -36,10 +36,10 @@ type CLI struct {
 	Log string
 
 	// Passed in for testing
-	Bus          pubsub.Client
-	WebListener  socket.Listener
-	DevListener  socket.Listener
-	FileListener socket.Listener
+	Bus         pubsub.Client
+	WebListener socket.Listener
+	DevListener socket.Listener
+	AFSListener socket.Listener
 }
 
 func (c *CLI) Parse(ctx context.Context, args ...string) error {

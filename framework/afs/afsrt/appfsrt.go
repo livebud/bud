@@ -68,9 +68,9 @@ func Serve(ctx context.Context, log log.Log, fsys fs.FS, path string) error {
 }
 
 func listen(log log.Log, path string) (socket.Listener, error) {
-	files := extrafile.Load("BUD_REMOTEFS")
+	files := extrafile.Load("AFS")
 	if len(files) > 0 {
-		log.Debug("afs: serving from BUD_REMOTEFS file listener passed in from the parent process")
+		log.Debug("afs: serving from AFS file listener passed in from the parent process")
 		return socket.From(files[0])
 	}
 	ln, err := socket.ListenUp(path, 5)

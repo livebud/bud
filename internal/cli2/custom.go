@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/livebud/bud/package/commander"
 )
@@ -16,6 +15,6 @@ func (c *CLI) runCustom(ctx context.Context, in *custom) error {
 	if in.Help || len(in.Args) == 0 {
 		return commander.Usage()
 	}
-	fmt.Println("running custom with args", in.Args)
-	return nil
+	// TODO: generate the app and run a custom command
+	return commander.Usage()
 }
