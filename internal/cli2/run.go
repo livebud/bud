@@ -85,6 +85,7 @@ func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
 	})
 
 	// Run the generator
+	// TODO: inline sync along with remotefs
 	budfs := c.budfs(&in.Config, cmd, db, fileLn, log, module)
 	if err := budfs.Sync(ctx); err != nil {
 		return err
