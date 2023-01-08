@@ -38,7 +38,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		return err
 	}
 	// Ensure we have version alignment between the CLI and the runtime
-	if err := config.EnsureVersionAlignment(ctx, module, versions.Bud); err != nil {
+	if err := versions.AlignRuntime(ctx, module, versions.Bud); err != nil {
 		return err
 	}
 	// Setup the logger

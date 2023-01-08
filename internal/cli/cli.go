@@ -36,7 +36,7 @@ type CLI struct {
 
 func (c *CLI) Run(ctx context.Context, args ...string) error {
 	// Check that we have a valid Go version
-	if err := config.CheckGoVersion(runtime.Version()); err != nil {
+	if err := versions.CheckGo(runtime.Version()); err != nil {
 		return err
 	}
 
