@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/livebud/bud/internal/config"
 	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/versions"
 
@@ -39,8 +38,8 @@ func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
 	}
 	cmd.Env = append(cmd.Env, "GOMODCACHE="+module.ModCache())
 
-	// TODO: add config alignment check
-	if err := config.EnsureVersionAlignment(ctx, module, versions.Bud); err != nil {
+	// Align the runtime
+	if err := versions.AlignRuntime(ctx, module, versions.Bud); err != nil {
 		return err
 	}
 

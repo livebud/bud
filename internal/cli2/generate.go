@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	"github.com/livebud/bud"
-	"github.com/livebud/bud/internal/config"
 	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/versions"
 	"github.com/livebud/bud/package/remotefs"
@@ -25,8 +24,8 @@ func (c *CLI) Generate(ctx context.Context, in *bud.Generate) error {
 	}
 	cmd.Env = append(cmd.Env, "GOMODCACHE="+module.ModCache())
 
-	// TODO: add config alignment check
-	if err := config.EnsureVersionAlignment(ctx, module, versions.Bud); err != nil {
+	// Align the runtime
+	if err := versions.AlignRuntime(ctx, module, versions.Bud); err != nil {
 		return err
 	}
 
