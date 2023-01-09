@@ -13,6 +13,7 @@ func (c *Closer) Add(fn func() error) {
 	c.closes = append(c.closes, fn)
 }
 
+// Closer implements io.Closer
 func (c *Closer) Close() (err error) {
 	return c.once.Do(func() error {
 		for i := len(c.closes) - 1; i >= 0; i-- {

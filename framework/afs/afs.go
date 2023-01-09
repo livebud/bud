@@ -90,8 +90,6 @@ func (l *loader) Load() (state *State, err error) {
 func (l *loader) loadProvider() *di.Provider {
 	jsVM := di.ToType("github.com/livebud/bud/package/js", "VM")
 	// TODO: the public generator should be able to configure this
-	publicFS := di.ToType("github.com/livebud/bud/framework/public/publicrt", "FS")
-	viewFS := di.ToType("github.com/livebud/bud/framework/view/viewrt", "FS")
 	provider, err := l.injector.Wire(&di.Function{
 		Name:    "loadGeneratorFS",
 		Imports: l.imports,
@@ -107,9 +105,7 @@ func (l *loader) loadProvider() *di.Provider {
 			{Import: "github.com/livebud/bud/package/budhttp", Type: "Client"},
 		},
 		Aliases: di.Aliases{
-			publicFS: di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
-			viewFS:   di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
-			jsVM:     di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
+			jsVM: di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
 		},
 		Results: []di.Dependency{
 			di.ToType(l.module.Import("bud/internal/generator"), "FS"),

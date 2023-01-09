@@ -28,6 +28,7 @@ func (c *Command) Clone() *Command {
 		Stdout: c.Stdout,
 		Stderr: c.Stderr,
 		Env:    append([]string{}, c.Env...),
+		extras: append([]*os.File{}, c.extras...),
 	}
 }
 

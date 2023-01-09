@@ -2,9 +2,15 @@ package cli
 
 import (
 	"context"
+	"errors"
+	"io/fs"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/livebud/bud/internal/config"
+	"github.com/livebud/bud/internal/dsync"
+	"github.com/livebud/bud/internal/versions"
 
 	"github.com/livebud/bud/framework/afs"
 	"github.com/livebud/bud/framework/generator"
@@ -27,12 +33,16 @@ func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
 	cmd := c.Command.Clone()
 
 	// Find go.mod
-	module, err := c.module(cmd)
+	module, err := c.module()
 	if err != nil {
 		return err
 	}
+	cmd.Env = append(cmd.Env, "GOMODCACHE="+module.ModCache())
 
 	// TODO: add config alignment check
+	if err := config.EnsureVersionAlignment(ctx, module, versions.Bud); err != nil {
+		return err
+	}
 
 	// Setup the logger
 	log, err := c.logger()
@@ -70,23 +80,9 @@ func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
 	}
 	defer vm.Close()
 
-	// Start the file server listener
-	afsLn, err := c.listenAFS(":0")
-	if err != nil {
-		return err
-	}
-	defer afsLn.Close()
-	log.Debug("run: file server is listening on http://" + devLn.Addr().String())
-
-	remoteClient, err := remotefs.Dial(ctx, afsLn.Addr().String())
-	if err != nil {
-		return err
-	}
-	defer remoteClient.Close()
-
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
-		err := c.serveDev(ctx, cfg, remoteClient, devLn, log, vm)
+		err := c.serveDev(ctx, cfg, devLn, log)
 		return err
 	})
 
@@ -100,21 +96,46 @@ func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
 	genfs.FileGenerator("bud/internal/generator/generator.go", generator.New(log, module, parser))
 	genfs.FileGenerator("bud/cmd/afs/main.go", afs.New(cfg, injector, log, module))
 
+	// Generate AFS
+	skips := []func(name string, isDir bool) bool{}
+	// Skip hidden files and directories
+	skips = append(skips, func(name string, isDir bool) bool {
+		base := filepath.Base(name)
+		return base[0] == '_' || base[0] == '.'
+	})
+	// Skip files we want to carry over
+	skips = append(skips, func(name string, isDir bool) bool {
+		switch name {
+		case "bud/bud.db", "bud/afs", "bud/app":
+			return true
+		default:
+			return false
+		}
+	})
+	if err := dsync.To(genfs, module, "bud", dsync.WithSkip(skips...), dsync.WithLog(log)); err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+	}
+	// Build the afs binary
+	if err := cmd.Run(ctx, "go", "build", "-mod=mod", "-o="+afsBinPath, afsMainPath); err != nil {
+		return err
+	}
+
 	// Reset the cache
 	// TODO: optimize later
 	if err := db.Reset(); err != nil {
 		return err
 	}
 
-	// Generate afs
-	if err := c.generateAFS(genfs, log, module); err != nil {
+	// Start the file server listener
+	afsLn, err := c.listenAFS(":0")
+	if err != nil {
 		return err
 	}
-
-	// Build the afs binary
-	if err := cmd.Run(ctx, "go", "build", "-mod=mod", "-o="+afsBinPath, afsMainPath); err != nil {
-		return err
-	}
+	defer afsLn.Close()
+	cmd.Env = append(cmd.Env, "BUD_AFS_URL="+afsLn.Addr().String())
+	log.Debug("run: afs server is listening on http://" + afsLn.Addr().String())
 
 	// Load the *os.File for afsLn
 	afsFile, err := afsLn.File()
@@ -133,9 +154,22 @@ func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
 	}
 	defer afsProcess.Close()
 
-	// Generate the app
-	if err := c.generateApp(remoteClient, log, module); err != nil {
+	remoteClient, err := remotefs.Dial(ctx, afsLn.Addr().String())
+	if err != nil {
 		return err
+	}
+	defer remoteClient.Close()
+
+	// Generate the app
+	// Skip over the afs files we just generated
+	skips = append(skips, func(name string, isDir bool) bool {
+		return isAFSPath(name)
+	})
+	// Sync the app files again with the remote filesystem
+	if err := dsync.To(remoteClient, module, "bud", dsync.WithSkip(skips...), dsync.WithLog(log)); err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
 	}
 
 	// Build the application binary
@@ -202,8 +236,10 @@ func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
 		c.Bus.Publish("backend:update", nil)
 		log.Debug("run: published event %q", "backend:update")
 		// Generate the app
-		if err := c.generateApp(remoteClient, log, module); err != nil {
-			return err
+		if err := dsync.To(remoteClient, module, "bud", dsync.WithSkip(skips...), dsync.WithLog(log)); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				return err
+			}
 		}
 		// Build the application binary
 		if err := cmd.Run(ctx, "go", "build", "-mod=mod", "-o="+appBinPath, appMainPath); err != nil {

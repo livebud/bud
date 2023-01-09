@@ -68,6 +68,17 @@ func (c *CLI) Parse(ctx context.Context, args ...string) error {
 		cmd.Run(func(ctx context.Context) error { return c.Run(ctx, in) })
 	}
 
+	{ // $ bud generate
+		in := new(bud.Generate)
+		cmd := cmd.Command("generate", "generate the code")
+		cmd.Flag("embed", "embed assets").Bool(&in.Embed).Default(false)
+		cmd.Flag("hot", "hot reloading").Bool(&in.Hot).Default(true)
+		cmd.Flag("minify", "minify assets").Bool(&in.Minify).Default(false)
+		cmd.Flag("listen-dev", "dev address to listen to").String(&in.DevAddress).Default(":0")
+		cmd.Args("packages").Strings(&in.Packages)
+		cmd.Run(func(ctx context.Context) error { return c.Generate(ctx, in) })
+	}
+
 	// Parse the arguments
 	if err := cmd.Parse(ctx, args); err != nil {
 		// Treat cancellation as a non-error

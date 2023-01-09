@@ -29,7 +29,8 @@ type Creator interface {
 
 type Generate struct {
 	Config
-	Packages []string
+	DevAddress string
+	Packages   []string
 }
 
 type Generator interface {

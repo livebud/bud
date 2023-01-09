@@ -2,38 +2,37 @@ package cli
 
 import (
 	"context"
-	"errors"
 	"io"
-	"io/fs"
 	"net"
-	"path/filepath"
 	"strings"
 
-	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/prompter"
-
-	"github.com/livebud/bud/internal/sh"
 
 	"github.com/livebud/bud"
 	"github.com/livebud/bud/framework"
+	"github.com/livebud/bud/framework/afs"
+	"github.com/livebud/bud/framework/generator"
 	"github.com/livebud/bud/framework/web/webrt"
 	"github.com/livebud/bud/internal/dag"
 	"github.com/livebud/bud/package/budhttp/budsvr"
+	"github.com/livebud/bud/package/di"
+	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/gomod"
-	"github.com/livebud/bud/package/js"
+	v8 "github.com/livebud/bud/package/js/v8"
+	"github.com/livebud/bud/package/parser"
 	"github.com/livebud/bud/package/socket"
+	"github.com/livebud/bud/package/virtual"
 
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/log/console"
 	"github.com/livebud/bud/package/log/levelfilter"
 )
 
-func (c *CLI) module(cmd *sh.Command) (*gomod.Module, error) {
+func (c *CLI) module() (*gomod.Module, error) {
 	module, err := gomod.Find(c.Dir)
 	if err != nil {
 		return nil, err
 	}
-	cmd.Env = append(cmd.Env, "GOMODCACHE="+module.ModCache())
 	return module, nil
 }
 
@@ -84,74 +83,34 @@ func (c *CLI) openDatabase(log log.Log, module *gomod.Module) (*dag.DB, error) {
 	return dag.Load(log, module.Directory("bud", "bud.db"))
 }
 
-func (c *CLI) serveDev(ctx context.Context, cfg *bud.Config, remotefs fs.FS, ln socket.Listener, log log.Log, vm js.VM) error {
+func (c *CLI) serveDev(ctx context.Context, cfg *bud.Config, ln socket.Listener, log log.Log) error {
+	vm, err := v8.Load()
+	if err != nil {
+		return err
+	}
+	defer vm.Close()
+
 	// TODO: replace with *bud.Config
 	flag := &framework.Flag{
 		Embed:  cfg.Embed,
 		Minify: cfg.Minify,
 		Hot:    cfg.Hot,
 	}
-	handler := budsvr.NewHandler(flag, remotefs, c.Bus, log, vm)
+	handler := budsvr.NewHandler(flag, virtual.Map{}, c.Bus, log, vm)
 	// TODO: replace with something else
 	return webrt.Serve(ctx, ln, handler)
 }
 
-func (c *CLI) generateAFS(genfs fs.FS, log log.Log, module *gomod.Module) error {
-
-	skips := []func(name string, isDir bool) bool{}
-	// Skip hidden files and directories
-	skips = append(skips, func(name string, isDir bool) bool {
-		base := filepath.Base(name)
-		return base[0] == '_' || base[0] == '.'
+func (c *CLI) genfs(cfg *bud.Config, db *dag.DB, log log.Log, module *gomod.Module) *genfs.FileSystem {
+	fsys := virtual.Exclude(module, func(path string) bool {
+		return path == "bud" || strings.HasPrefix(path, "bud/")
 	})
-	// Skip files we want to carry over
-	skips = append(skips, func(name string, isDir bool) bool {
-		switch name {
-		case "bud/bud.db", "bud/afs", "bud/app":
-			return true
-		default:
-			return false
-		}
-	})
-
-	if err := dsync.To(genfs, module, "bud", dsync.WithSkip(skips...), dsync.WithLog(log)); err != nil {
-		if !errors.Is(err, fs.ErrNotExist) {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (c *CLI) generateApp(remotefs fs.FS, log log.Log, module *gomod.Module) error {
-	skips := []func(name string, isDir bool) bool{}
-	// Skip hidden files and directories
-	skips = append(skips, func(name string, isDir bool) bool {
-		base := filepath.Base(name)
-		return base[0] == '_' || base[0] == '.'
-	})
-	// Skip files we want to carry over
-	skips = append(skips, func(name string, isDir bool) bool {
-		switch name {
-		case "bud/bud.db", "bud/afs", "bud/app":
-			return true
-		default:
-			return false
-		}
-	})
-	// Skip over the afs files we just generated
-	skips = append(skips, func(name string, isDir bool) bool {
-		return isAFSPath(name)
-	})
-
-	// Sync the app files again with the remote filesystem
-	if err := dsync.To(remotefs, module, "bud", dsync.WithSkip(skips...), dsync.WithLog(log)); err != nil {
-		if !errors.Is(err, fs.ErrNotExist) {
-			return err
-		}
-	}
-
-	return nil
+	genfs := genfs.New(db, fsys, log)
+	parser := parser.New(genfs, module)
+	injector := di.New(genfs, log, module, parser)
+	genfs.FileGenerator("bud/internal/generator/generator.go", generator.New(log, module, parser))
+	genfs.FileGenerator("bud/cmd/afs/main.go", afs.New(cfg, injector, log, module))
+	return genfs
 }
 
 const (
