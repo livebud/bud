@@ -5,30 +5,18 @@ import (
 	"errors"
 	"io/fs"
 	"path/filepath"
-	"strings"
 	"time"
 
-	"github.com/livebud/bud/internal/dsync"
+	"github.com/livebud/bud/internal/once"
 	"github.com/livebud/bud/internal/versions"
 
-	"github.com/livebud/bud/framework/afs"
-	"github.com/livebud/bud/framework/generator"
 	"github.com/livebud/bud/internal/prompter"
-	"github.com/livebud/bud/package/di"
-	"github.com/livebud/bud/package/genfs"
-	"github.com/livebud/bud/package/parser"
-	"github.com/livebud/bud/package/remotefs"
-	"github.com/livebud/bud/package/virtual"
 	"github.com/livebud/bud/package/watcher"
 
-	v8 "github.com/livebud/bud/package/js/v8"
-
 	"github.com/livebud/bud"
-	"golang.org/x/sync/errgroup"
 )
 
 func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
-	cfg := &in.Config
 	cmd := c.Command.Clone()
 
 	// Find go.mod
@@ -64,117 +52,96 @@ func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
 	}
 	defer db.Close()
 
-	// Listen on the dev address
-	devLn, err := c.listenDev(in.DevAddress)
-	if err != nil {
-		return err
-	}
-	defer devLn.Close()
-	cmd.Env = append(cmd.Env, "BUD_DEV_URL="+devLn.Addr().String())
-	log.Debug("run: dev server is listening on http://" + devLn.Addr().String())
-
-	vm, err := v8.Load()
-	if err != nil {
-		return err
-	}
-	defer vm.Close()
-
-	eg, ctx := errgroup.WithContext(ctx)
-	eg.Go(func() error {
-		err := c.serveDev(ctx, cfg, devLn, log)
-		return err
-	})
-
-	// Setup genfs
-	fsys := virtual.Exclude(module, func(path string) bool {
-		return path == "bud" || strings.HasPrefix(path, "bud/")
-	})
-	genfs := genfs.New(db, fsys, log)
-	parser := parser.New(genfs, module)
-	injector := di.New(genfs, log, module, parser)
-	genfs.FileGenerator("bud/internal/generator/generator.go", generator.New(log, module, parser))
-	genfs.FileGenerator("bud/cmd/afs/main.go", afs.New(cfg, injector, log, module))
-
-	// Generate AFS
-	skips := []func(name string, isDir bool) bool{}
-	// Skip hidden files and directories
-	skips = append(skips, func(name string, isDir bool) bool {
-		base := filepath.Base(name)
-		return base[0] == '_' || base[0] == '.'
-	})
-	// Skip files we want to carry over
-	skips = append(skips, func(name string, isDir bool) bool {
-		switch name {
-		case "bud/bud.db", "bud/afs", "bud/app":
-			return true
-		default:
-			return false
-		}
-	})
-	if err := dsync.To(genfs, module, "bud", dsync.WithSkip(skips...), dsync.WithLog(log)); err != nil {
-		if !errors.Is(err, fs.ErrNotExist) {
-			return err
-		}
-	}
-	// Build the afs binary
-	if err := cmd.Run(ctx, "go", "build", "-mod=mod", "-o="+afsBinPath, afsMainPath); err != nil {
-		return err
-	}
-
-	// Reset the cache
-	// TODO: optimize later
-	if err := db.Reset(); err != nil {
-		return err
-	}
-
 	// Start the file server listener
 	afsLn, err := c.listenAFS(":0")
 	if err != nil {
 		return err
 	}
 	defer afsLn.Close()
-	cmd.Env = append(cmd.Env, "BUD_AFS_URL="+afsLn.Addr().String())
 	log.Debug("run: afs server is listening on http://" + afsLn.Addr().String())
 
-	// Load the *os.File for afsLn
-	afsFile, err := afsLn.File()
+	// Listen on the dev address
+	devLn, err := c.listenDev(in.DevAddress)
 	if err != nil {
 		return err
 	}
-	defer afsFile.Close()
+	defer devLn.Close()
 
-	// Inject the file under the AFS prefix
-	cmd.Inject("AFS", afsFile)
+	budfs := &budFS{afsLn, c, db, devLn, log, module, once.Closer{}}
+	defer budfs.Close()
 
-	// Start afs
-	afsProcess, err := cmd.Start(ctx, module.Directory("bud", "afs"))
-	if err != nil {
+	// Syncing bud
+	if err := budfs.Sync(ctx, &in.Config); err != nil {
 		return err
 	}
-	defer afsProcess.Close()
 
-	remoteClient, err := remotefs.Dial(ctx, afsLn.Addr().String())
-	if err != nil {
-		return err
-	}
-	defer remoteClient.Close()
+	// // Load the database
+	// db, err := c.openDatabase(log, module)
+	// if err != nil {
+	// 	return err
+	// }
+	// defer db.Close()
 
-	// Generate the app
-	// Skip over the afs files we just generated
-	skips = append(skips, func(name string, isDir bool) bool {
-		return isAFSPath(name)
-	})
-	// Sync the app files again with the remote filesystem
-	if err := dsync.To(remoteClient, module, "bud", dsync.WithSkip(skips...), dsync.WithLog(log)); err != nil {
-		if !errors.Is(err, fs.ErrNotExist) {
-			return err
-		}
-	}
+	// // Listen on the dev address
+	// devLn, err := c.listenDev(in.DevAddress)
+	// if err != nil {
+	// 	return err
+	// }
+	// defer devLn.Close()
+	// log.Debug("run: dev server is listening on http://" + devLn.Addr().String())
+	// // Start the dev server
+	// eg, ctx := errgroup.WithContext(ctx)
+	// eg.Go(func() error { return c.serveDev(ctx, cfg, devLn, log) })
 
-	// Build the application binary
-	if err := cmd.Run(ctx, "go", "build", "-mod=mod", "-o="+appBinPath, appMainPath); err != nil {
-		return err
-	}
+	// // Generate the AFS
+	// genfs := c.genfs(cfg, db, log, module)
+	// if err := c.generateAFS(ctx, cmd, genfs, log, module); err != nil {
+	// 	return err
+	// }
+
+	// // Reset the cache
+	// // TODO: optimize later
+	// if err := db.Reset(); err != nil {
+	// 	return err
+	// }
+
+	// // Start the file server listener
+	// afsLn, err := c.listenAFS(":0")
+	// if err != nil {
+	// 	return err
+	// }
+	// defer afsLn.Close()
+	// log.Debug("run: afs server is listening on http://" + afsLn.Addr().String())
+
+	// // Load the *os.File for afsLn
+	// afsFile, err := afsLn.File()
+	// if err != nil {
+	// 	return err
+	// }
+	// defer afsFile.Close()
+
+	// // Remote client
+	// remoteClient, err := remotefs.Dial(ctx, afsLn.Addr().String())
+	// if err != nil {
+	// 	return err
+	// }
+	// defer remoteClient.Close()
+
+	// // Inject the file under the AFS prefix
+	// cmd.Inject("AFS", afsFile)
+
+	// // Start the application file server
+	// cmd.Env = append(cmd.Env, "BUD_DEV_URL="+devLn.Addr().String())
+	// afsProcess, err := c.startAFS(ctx, cmd, module)
+	// if err != nil {
+	// 	return err
+	// }
+	// defer afsProcess.Close()
+
+	// // Build the application
+	// if err := c.buildApp(ctx, remoteClient, cmd, log, module); err != nil {
+	// 	return err
+	// }
 
 	// Get the file descriptor for the web listener
 	webFile, err := webLn.File()
@@ -187,6 +154,14 @@ func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
 	cmd.Inject("WEB", webFile)
 
 	// Start the app
+	cmd.Env = append(cmd.Env, "BUD_AFS_URL="+afsLn.Addr().String())
+	if err := expectEnv(cmd.Env, "BUD_AFS_URL"); err != nil {
+		return err
+	}
+	cmd.Env = append(cmd.Env, "BUD_DEV_URL="+devLn.Addr().String())
+	if err := expectEnv(cmd.Env, "BUD_DEV_URL"); err != nil {
+		return err
+	}
 	appProcess, err := cmd.Start(ctx, filepath.Join("bud", "app"))
 	if err != nil {
 		return err
@@ -212,7 +187,7 @@ func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
 		}
 		// Refresh the cache
 		// TODO: optimize later
-		if err := db.Reset(); err != nil {
+		if err := budfs.Refresh(ctx, changes...); err != nil {
 			return err
 		}
 		// Check if we can incrementally reload
@@ -235,14 +210,10 @@ func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
 		c.Bus.Publish("backend:update", nil)
 		log.Debug("run: published event %q", "backend:update")
 		// Generate the app
-		if err := dsync.To(remoteClient, module, "bud", dsync.WithSkip(skips...), dsync.WithLog(log)); err != nil {
+		if err := budfs.Sync(ctx, &in.Config); err != nil {
 			if !errors.Is(err, fs.ErrNotExist) {
 				return err
 			}
-		}
-		// Build the application binary
-		if err := cmd.Run(ctx, "go", "build", "-mod=mod", "-o="+appBinPath, appMainPath); err != nil {
-			return err
 		}
 		// Restart the process
 		p, err := appProcess.Restart(ctx)
@@ -266,7 +237,7 @@ func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
 		return err
 	}
 
-	return eg.Wait()
+	return nil
 }
 
 // logWrap wraps the watch function in a handler that logs the error instead of

@@ -2,17 +2,23 @@ package cli
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
+	"io/fs"
 	"net"
+	"path/filepath"
 	"strings"
 
+	"github.com/livebud/bud/internal/dsync"
+	"github.com/livebud/bud/internal/once"
 	"github.com/livebud/bud/internal/prompter"
+	"github.com/livebud/bud/internal/sh"
 
 	"github.com/livebud/bud"
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/afs"
 	"github.com/livebud/bud/framework/generator"
-	"github.com/livebud/bud/framework/web/webrt"
 	"github.com/livebud/bud/internal/dag"
 	"github.com/livebud/bud/package/budhttp/budsvr"
 	"github.com/livebud/bud/package/di"
@@ -20,6 +26,7 @@ import (
 	"github.com/livebud/bud/package/gomod"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/parser"
+	"github.com/livebud/bud/package/remotefs"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/package/virtual"
 
@@ -83,12 +90,17 @@ func (c *CLI) openDatabase(log log.Log, module *gomod.Module) (*dag.DB, error) {
 	return dag.Load(log, module.Directory("bud", "bud.db"))
 }
 
-func (c *CLI) serveDev(ctx context.Context, cfg *bud.Config, ln socket.Listener, log log.Log) error {
+func (c *CLI) startDev(ctx context.Context, cfg *bud.Config, ln socket.Listener, log log.Log) (io.Closer, error) {
+	var closer once.Closer
+
 	vm, err := v8.Load()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer vm.Close()
+	closer.Add(func() error {
+		vm.Close()
+		return nil
+	})
 
 	// TODO: replace with *bud.Config
 	flag := &framework.Flag{
@@ -96,9 +108,10 @@ func (c *CLI) serveDev(ctx context.Context, cfg *bud.Config, ln socket.Listener,
 		Minify: cfg.Minify,
 		Hot:    cfg.Hot,
 	}
-	handler := budsvr.NewHandler(flag, virtual.Map{}, c.Bus, log, vm)
-	// TODO: replace with something else
-	return webrt.Serve(ctx, ln, handler)
+	server := budsvr.New(ln, c.Bus, flag, virtual.Map{}, log, vm)
+	server.Start(ctx)
+	closer.Add(server.Close)
+	return &closer, nil
 }
 
 func (c *CLI) genfs(cfg *bud.Config, db *dag.DB, log log.Log, module *gomod.Module) *genfs.FileSystem {
@@ -111,6 +124,80 @@ func (c *CLI) genfs(cfg *bud.Config, db *dag.DB, log log.Log, module *gomod.Modu
 	genfs.FileGenerator("bud/internal/generator/generator.go", generator.New(log, module, parser))
 	genfs.FileGenerator("bud/cmd/afs/main.go", afs.New(cfg, injector, log, module))
 	return genfs
+}
+
+func expectEnv(env []string, key string) error {
+	for _, keyValue := range env {
+		if strings.HasPrefix(keyValue, key+"=") {
+			return nil
+		}
+	}
+	return fmt.Errorf("%q is missing from the environment", key)
+}
+
+var afsSkips = []func(name string, isDir bool) bool{
+	// Skip hidden files and directories
+	func(name string, isDir bool) bool {
+		base := filepath.Base(name)
+		return base[0] == '_' || base[0] == '.'
+	},
+	// Skip files we want to carry over
+	func(name string, isDir bool) bool {
+		switch name {
+		case "bud/bud.db", "bud/afs", "bud/app":
+			return true
+		default:
+			return false
+		}
+	},
+}
+
+var appSkips = append(afsSkips,
+	// Skip over the afs files we just generated
+	func(name string, isDir bool) bool {
+		return isAFSPath(name)
+	},
+)
+
+// Generate AFS
+func (c *CLI) generateAFS(ctx context.Context, cmd *sh.Command, fsys *genfs.FileSystem, log log.Log, module *gomod.Module) error {
+	if err := dsync.To(fsys, module, "bud", dsync.WithSkip(afsSkips...), dsync.WithLog(log)); err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+	}
+	// Build the afs binary
+	if err := cmd.Run(ctx, "go", "build", "-mod=mod", "-o="+afsBinPath, afsMainPath); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *CLI) startAFS(ctx context.Context, cmd *sh.Command, module *gomod.Module) (*sh.Process, error) {
+	// Ensure the command has the BUD_DEV_URL environment variable
+	if err := expectEnv(cmd.Env, "BUD_DEV_URL"); err != nil {
+		return nil, err
+	}
+	// Ensure the command has the AFS_FDS_START environment variable
+	if err := expectEnv(cmd.Env, "AFS_FDS_START"); err != nil {
+		return nil, err
+	}
+	// Start afs
+	return cmd.Start(ctx, module.Directory("bud", "afs"))
+}
+
+func (c *CLI) buildApp(ctx context.Context, remoteClient *remotefs.Client, cmd *sh.Command, log log.Log, module *gomod.Module) error {
+	// Sync the app files again with the remote filesystem
+	if err := dsync.To(remoteClient, module, "bud", dsync.WithSkip(appSkips...), dsync.WithLog(log)); err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+	}
+	// Build the application binary
+	if err := cmd.Run(ctx, "go", "build", "-mod=mod", "-o="+appBinPath, appMainPath); err != nil {
+		return err
+	}
+	return nil
 }
 
 const (
