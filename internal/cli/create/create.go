@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/internal/bail"
-	"github.com/livebud/bud/internal/config"
 	"github.com/livebud/bud/internal/embedded"
 	"github.com/livebud/bud/internal/scaffold"
 	"github.com/livebud/bud/internal/versions"
@@ -81,7 +80,7 @@ func (c *Command) Run(ctx context.Context) (err error) {
 	// If we're linking to the development version of Bud, we need to
 	// find Bud's go.mod file.
 	if c.Dev {
-		c.budModule, err = config.BudModule()
+		c.budModule, err = mod.FindBudModule()
 		if err != nil {
 			return err
 		}
