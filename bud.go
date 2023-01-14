@@ -2,17 +2,40 @@ package bud
 
 import (
 	"context"
+	"io"
 	"strconv"
+
+	"github.com/livebud/bud/internal/pubsub"
+	"github.com/livebud/bud/package/socket"
 )
 
 type Config struct {
+	Dir string
+	Log string
+
 	Embed  bool
 	Hot    bool
 	Minify bool
+
+	ListenWeb string
+	ListenDev string
+	ListenAFS string
+
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
+	Env    []string
+
+	// Used for testing
+	Bus         pubsub.Client
+	WebListener socket.Listener
+	DevListener socket.Listener
+	AFSListener socket.Listener
 }
 
 func (c *Config) Flags() []string {
 	return []string{
+		"--log=" + strconv.Quote(c.Log),
 		"--embed=" + strconv.FormatBool(c.Embed),
 		"--minify=" + strconv.FormatBool(c.Minify),
 		"--hot=" + strconv.FormatBool(c.Hot),

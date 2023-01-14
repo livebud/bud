@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/package/genfs"
+	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/virtual"
 	_ "github.com/mattn/go-sqlite3"
@@ -29,6 +30,10 @@ type File struct {
 type Link struct {
 	From string
 	To   string
+}
+
+func From(log log.Log, module *gomod.Module) (*DB, error) {
+	return Load(log, module.Directory("bud", "bud.db"))
 }
 
 func Load(log log.Log, dbPath string) (*DB, error) {

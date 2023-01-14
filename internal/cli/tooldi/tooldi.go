@@ -45,12 +45,12 @@ func (c *Command) Run(ctx context.Context) error {
 	fn := &di.Function{
 		Hoist: c.Hoist,
 	}
-	target, err := c.toDependency(module, c.Target)
+	target, err := c.toImportPath(module, c.Target)
 	if err != nil {
 		return err
 	}
-	fn.Target = target.ImportPath()
-	fn.Name = target.TypeName()
+	fn.Target = target
+	fn.Name = c.Name
 	fn.Aliases = di.Aliases{}
 	// Add the type mapping
 	for from, to := range c.Map {
@@ -94,7 +94,7 @@ func (c *Command) Run(ctx context.Context) error {
 	if c.Verbose {
 		fmt.Println(node.Print())
 	}
-	provider := node.Generate(imports.New(), c.Name, fn.Target)
+	provider := node.Generate(imports.New(), fn.Name, fn.Target)
 	fmt.Fprintln(os.Stdout, provider.File())
 	return nil
 }

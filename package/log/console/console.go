@@ -7,10 +7,13 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/livebud/bud/package/log/levelfilter"
+
 	"github.com/go-logfmt/logfmt"
 
 	"github.com/livebud/bud/internal/ansi"
 	"github.com/livebud/bud/internal/stacktrace"
+	"github.com/livebud/bud/package/config"
 	log "github.com/livebud/bud/package/log"
 )
 
@@ -55,6 +58,18 @@ var prefixes = func() [6]string {
 func New(w io.Writer) log.Handler {
 	return &console{w: w}
 }
+
+// From config
+func From(c *config.Config) (Log, error) {
+	level, err := log.ParseLevel(c.Log)
+	if err != nil {
+		return nil, err
+	}
+	logger := log.New(levelfilter.New(New(c.Stderr), level))
+	return logger, nil
+}
+
+type Log = log.Log
 
 // console logger
 type console struct {

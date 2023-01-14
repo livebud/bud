@@ -13,8 +13,23 @@ import (
 	"github.com/livebud/bud/internal/sig"
 	"github.com/livebud/bud/package/js"
 	"github.com/livebud/bud/package/log"
+	"github.com/livebud/bud/package/virtual"
 	"golang.org/x/sync/errgroup"
 )
+
+func New2(bus pubsub.Client, flag *framework.Flag, log log.Log, vm js.VM) *Server2 {
+	return &Server2{&http.Server{
+		Handler: NewHandler(flag, virtual.Map{}, bus, log, vm),
+	}}
+}
+
+type Server2 struct {
+	s *http.Server
+}
+
+func (s *Server2) Serve(ln net.Listener) error {
+	return s.s.Serve(ln)
+}
 
 // New development server
 func New(budln net.Listener, bus pubsub.Client, flag *framework.Flag, fsys fs.FS, log log.Log, vm js.VM) *Server {

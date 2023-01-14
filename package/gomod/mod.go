@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/livebud/bud/internal/current"
+	"github.com/livebud/bud/package/config"
 	"github.com/livebud/bud/package/modcache"
 	"github.com/livebud/bud/package/virtual"
 	"golang.org/x/mod/modfile"
@@ -137,15 +137,6 @@ func Absolute(dir string) (abs string, err error) {
 	return filepath.Abs(dir)
 }
 
-// FindBudModule finds the go.mod for bud itself
-func FindBudModule() (*Module, error) {
-	dirname, err := current.Directory()
-	if err != nil {
-		return nil, err
-	}
-	return Find(dirname)
-}
-
 func absolute(dir string) (abs string, err error) {
 	path := filepath.Join(dir, "go.mod")
 	// Check if this path exists, otherwise recursively traverse towards root
@@ -160,4 +151,9 @@ func absolute(dir string) (abs string, err error) {
 		return absolute(nextDir)
 	}
 	return filepath.EvalSymlinks(dir)
+}
+
+// From config
+func From(c *config.Config) (*Module, error) {
+	return Find(c.Dir)
 }

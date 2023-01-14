@@ -4,7 +4,16 @@ import (
 	"strconv"
 
 	"github.com/livebud/bud"
+	"github.com/livebud/bud/package/config"
 )
+
+func From(c *config.Config) *Flag {
+	return &Flag{
+		Embed:  c.Embed,
+		Minify: c.Minify,
+		Hot:    c.Hot,
+	}
+}
 
 // Flag is used by many of the framework generators
 type Flag struct {

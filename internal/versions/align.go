@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/livebud/bud/internal/current"
+
 	"github.com/livebud/bud/package/gomod"
 )
 
@@ -18,8 +20,12 @@ func AlignRuntime(ctx context.Context, module *gomod.Module, budVersion string) 
 		if modfile.Replace(`github.com/livebud/bud`) != nil {
 			return nil
 		}
+		currentDir, err := current.Directory()
+		if err != nil {
+			return err
+		}
 		// Best effort attempt to replace bud with the latest version.
-		budModule, err := gomod.FindBudModule()
+		budModule, err := gomod.Find(currentDir)
 		if err != nil {
 			return nil
 		}
