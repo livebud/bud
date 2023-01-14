@@ -61,7 +61,7 @@ func (c *Command) Serve(ctx context.Context) (err error) {
 	parser := parser.New(gfs, module)
 	injector := di.New(gfs, log, module, parser)
 	_ = injector
-	budClient, err := budhttp.Try(log, os.Getenv("BUD_LISTEN"))
+	budClient, err := budhttp.Try(log, os.Getenv("BUD_DEV_URL"))
 	if err != nil {
 		return err
 	}

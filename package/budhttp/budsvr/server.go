@@ -6,11 +6,9 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
-	"os"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/pubsub"
-	"github.com/livebud/bud/internal/sig"
 	"github.com/livebud/bud/package/js"
 	"github.com/livebud/bud/package/log"
 	"golang.org/x/sync/errgroup"
@@ -34,11 +32,10 @@ type Server struct {
 	eg *errgroup.Group
 }
 
-// Shutdown the server gracefully unless we receive an interrupt signal, then
-// force an immediate shutdown.
-func (s *Server) shutdown() error {
-	forceCtx := sig.Trap(context.Background(), os.Interrupt)
-	return s.s.Shutdown(forceCtx)
+// Close the server immediately since it's a dev server
+func (s *Server) close() error {
+	err := s.s.Close()
+	return err
 }
 
 func (s *Server) serve() error {
@@ -55,7 +52,7 @@ func (s *Server) Start(ctx context.Context) {
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.Go(func() error {
 		<-ctx.Done()
-		return s.shutdown()
+		return s.close()
 	})
 	eg.Go(func() error {
 		return s.serve()
@@ -82,7 +79,7 @@ func (s *Server) Listen(ctx context.Context) error {
 
 // Shutdown the server gracefully
 func (s *Server) Close() error {
-	if err := s.shutdown(); err != nil {
+	if err := s.close(); err != nil {
 		return err
 	}
 	return s.Wait()
