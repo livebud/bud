@@ -6,6 +6,7 @@ import (
 	"github.com/livebud/bud"
 	"github.com/livebud/bud/internal/dag"
 	"github.com/livebud/bud/internal/once"
+	"github.com/livebud/bud/internal/sh"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/remotefs"
@@ -23,7 +24,13 @@ type budFS struct {
 }
 
 func (f *budFS) Sync(ctx context.Context, cfg *bud.Config) error {
-	cmd := f.cli.Command.Clone()
+	cmd := &sh.Command{
+		Dir:    f.cli.Dir,
+		Env:    f.cli.Env,
+		Stdin:  f.cli.Stdin,
+		Stdout: f.cli.Stdout,
+		Stderr: f.cli.Stderr,
+	}
 
 	// Start the dev server
 	f.log.Debug("run: dev server is listening on http://" + f.devLn.Addr().String())

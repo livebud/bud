@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/livebud/bud/internal/once"
+	"github.com/livebud/bud/internal/sh"
 	"github.com/livebud/bud/internal/versions"
 
 	"github.com/livebud/bud/internal/prompter"
@@ -17,7 +18,13 @@ import (
 )
 
 func (c *CLI) Run(ctx context.Context, in *bud.Run) error {
-	cmd := c.Command.Clone()
+	cmd := &sh.Command{
+		Dir:    c.Dir,
+		Env:    c.Env,
+		Stdin:  c.Stdin,
+		Stdout: c.Stdout,
+		Stderr: c.Stderr,
+	}
 
 	// Find go.mod
 	module, err := c.module()

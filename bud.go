@@ -52,6 +52,10 @@ type Run struct {
 	DevAddress string
 }
 
+type Run2 struct {
+	Watch bool
+}
+
 type Runner interface {
 	Run(context.Context, *Run) error
 }
