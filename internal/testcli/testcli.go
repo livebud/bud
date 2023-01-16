@@ -102,19 +102,19 @@ func (r *Result) Stdout() string {
 	return r.stdout.String()
 }
 
-func (r *Result) Stderr() string {
-	lines := strings.Split(r.stderr.String(), "\n")
-	out := make([]string, 0, len(lines))
-	for _, line := range lines {
+func (r *Result) Stderr() (stderr string) {
+	scanner := bufio.NewScanner(r.stderr)
+	for scanner.Scan() {
+		line := scanner.Text()
 		// Ignore the "ld: warning: -no_pie is deprecated when targeting new OS versions"
 		// that occurs on older MacOS versions in CI
 		// e.g. https://github.com/livebud/bud/actions/runs/3927344955/jobs/6713881867
 		if strings.HasPrefix(line, "ld: warning:") {
 			continue
 		}
-		out = append(out, line)
+		stderr += line + "\n"
 	}
-	return strings.Join(out, "\n")
+	return stderr
 }
 
 func listen(path string) (socket.Listener, *http.Client, error) {
