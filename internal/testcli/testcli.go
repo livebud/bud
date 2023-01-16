@@ -112,6 +112,7 @@ func (r *Result) Stderr() (stderr string) {
 		// that occurs on older MacOS versions in CI
 		// e.g. https://github.com/livebud/bud/actions/runs/3927344955/jobs/6713881867
 		if strings.HasPrefix(line, "ld: warning:") {
+			scanner.Scan() // Skip a newline
 			continue
 		}
 		stderr += line + "\n"
