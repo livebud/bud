@@ -111,8 +111,8 @@ func (r *Result) Stderr() (stderr string) {
 		// Ignore the "ld: warning: -no_pie is deprecated when targeting new OS versions"
 		// that occurs on older MacOS versions in CI
 		// e.g. https://github.com/livebud/bud/actions/runs/3927344955/jobs/6713881867
-		if strings.HasPrefix(line, "ld: warning:") {
-			scanner.Scan() // Skip a newline
+		if strings.HasPrefix(line, "ld: warning:") ||
+			strings.HasPrefix(line, "# command-line-arguments") {
 			continue
 		}
 		stderr += line + "\n"
