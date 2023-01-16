@@ -67,3 +67,36 @@ func TestModfileAutoQuote(t *testing.T) {
 	actual = modfile.AutoQuote(`github.com/livebud/bud with spaces`)
 	is.Equal(actual, `"github.com/livebud/bud with spaces"`)
 }
+
+func TestCreateSeesWelcome(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	err := td.Write(ctx)
+	is.NoErr(err)
+	cli := testcli.New(dir)
+	is.NoErr(td.NotExists(".gitignore"))
+	result, err := cli.Run(ctx, "create", dir)
+	is.NoErr(err)
+	is.Equal(result.Stdout(), "")
+	is.In(result.Stderr(), "Ready")
+
+	// Start the app
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	// Test the index page
+	res, err := app.Get("/")
+	is.NoErr(err)
+	is.Equal(res.Status(), 200)
+	is.In(res.Body().String(), "Hey Bud")
+	is.In(res.Body().String(), "Hey Bud") // should work multiple times
+	// Test the client-side JS
+	res, err = app.Get("/bud/view/_index.svelte.js")
+	is.NoErr(err)
+	is.Equal(res.Status(), 200)
+	is.In(res.Body().String(), "Hey Bud")
+	is.Equal(app.Stdout(), "")
+	is.NoErr(td.Exists("bud/app"))
+	is.NoErr(app.Close())
+}
