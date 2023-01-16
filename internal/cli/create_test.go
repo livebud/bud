@@ -32,7 +32,6 @@ func TestCreateOutsideGoPath(t *testing.T) {
 	is.NoErr(td.NotExists(".gitignore"))
 	result, err := cli.Run(ctx, "create", dir)
 	is.NoErr(err)
-	// is.Equal(result.Stdout(), "")
 	is.Equal(result.Stderr(), "")
 	is.NoErr(td.Exists(".gitignore"))
 	is.NoErr(td.Exists("go.sum"))

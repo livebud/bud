@@ -43,6 +43,9 @@ import (
 //go:embed new_controller/*.gotext create/*.gotext
 var embedFS embed.FS
 
+// TODO: figuring out how the resource lifecycle should be managed. Ideally
+// the closer is optional, and if it is not passed in, the CLI will manage the
+// resources.
 func New(closer closer) *CLI {
 	return &CLI{
 		".",
@@ -85,9 +88,7 @@ type CLI struct {
 	Stderr io.Writer
 	Env    []string
 
-	// An optional closer can be passed in to control when the resources are
-	// closed from outside the CLI. If nil, each CLI command will
-	// Otherwise each command will initialize a closer and own the resources.
+	// Closer is used to manage resources
 	Closer closer
 
 	// Used for testing
