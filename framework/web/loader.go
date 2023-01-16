@@ -53,7 +53,11 @@ func (l *loader) Load() (state *State, err error) {
 	l.imports.AddNamed("webrt", "github.com/livebud/bud/framework/web/webrt")
 	l.imports.AddNamed("router", "github.com/livebud/bud/package/router")
 	// Show the welcome page if we don't have any web resources
-	if len(webDirs) == 0 {
+	showWelcome, err := shouldShowWelcome(l.fsys, webDirs)
+	if err != nil {
+		return nil, err
+	}
+	if showWelcome {
 		const importPath = "github.com/livebud/bud/framework/web/welcome"
 		state.Resources = append(state.Resources, &Resource{
 			Camel: "welcome",
@@ -62,8 +66,6 @@ func (l *loader) Load() (state *State, err error) {
 				Path: importPath,
 			},
 		})
-		state.Imports = l.imports.List()
-		return state, nil
 	}
 	// Load the resources
 	for _, webDir := range webDirs {
@@ -84,4 +86,20 @@ func (l *loader) loadResource(webDir string) (resource *Resource) {
 	packageName := path.Base(webDir)
 	resource.Camel = gotext.Camel(packageName)
 	return resource
+}
+
+func shouldShowWelcome(fsys fs.FS, webDirs []string) (bool, error) {
+	if len(webDirs) == 0 {
+		return true, nil
+	} else if len(webDirs) > 1 || webDirs[0] != "bud/internal/web/public" {
+		return false, nil
+	}
+	paths, err := fs.Glob(fsys, "public/**")
+	if err != nil {
+		return false, err
+	}
+	if len(paths) == 1 && paths[0] == "public/favicon.ico" {
+		return true, nil
+	}
+	return false, nil
 }

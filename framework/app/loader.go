@@ -40,10 +40,10 @@ func (l *loader) Load() (state *State, err error) {
 	state = new(State)
 	l.imports.AddStd("os", "context", "errors")
 	l.imports.AddNamed("commander", "github.com/livebud/bud/package/commander")
-	l.imports.AddNamed("budhttp", "github.com/livebud/bud/package/budhttp")
 	l.imports.AddNamed("console", "github.com/livebud/bud/package/log/console")
 	l.imports.AddNamed("levelfilter", "github.com/livebud/bud/package/log/levelfilter")
 	l.imports.AddNamed("log", "github.com/livebud/bud/package/log")
+	l.imports.AddNamed("budhttp", "github.com/livebud/bud/package/budhttp")
 	l.imports.Add(l.module.Import("bud/internal/web"))
 	state.Provider = l.loadProvider()
 	state.Flag = l.flag
@@ -64,6 +64,7 @@ func (l *loader) loadProvider() *di.Provider {
 			{Import: "github.com/livebud/bud/package/log", Type: "Log"},
 			{Import: "github.com/livebud/bud/package/gomod", Type: "*Module"},
 			{Import: "github.com/livebud/bud/package/budhttp", Type: "Client"},
+			{Import: "github.com/livebud/bud/package/remotefs", Type: "*Client"},
 			{Import: "context", Type: "Context"},
 		},
 		Results: []di.Dependency{
@@ -71,8 +72,8 @@ func (l *loader) loadProvider() *di.Provider {
 			&di.Error{},
 		},
 		Aliases: di.Aliases{
-			publicFS: di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
-			viewFS:   di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
+			publicFS: di.ToType("github.com/livebud/bud/package/remotefs", "*Client"),
+			viewFS:   di.ToType("github.com/livebud/bud/package/remotefs", "*Client"),
 			jsVM:     di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
 		},
 	}

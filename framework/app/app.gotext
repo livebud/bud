@@ -56,10 +56,16 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	budClient, err := budhttp.Try(log, os.Getenv("BUD_LISTEN"))
+	budClient, err := budhttp.Try(log, os.Getenv("BUD_DEV_URL"))
 	if err != nil {
 		return err
 	}
+	{{- if $.Provider.Variable "github.com/livebud/bud/package/remotefs.*Client" }}
+	remoteClient, err := remotefs.Dial(ctx, os.Getenv("BUD_AFS_URL"))
+	if err != nil {
+		return err
+	}
+	{{- end }}
 	{{- if $.Provider.Variable "github.com/livebud/bud/package/gomod.*Module" }}
 	// Load the module dependency
 	{{- if $.Flag.Embed }}
@@ -81,6 +87,7 @@ func (a *App) Run(ctx context.Context) error {
 		{{- if $.Provider.Variable "context.Context" }}ctx,{{ end }}
 		{{- if $.Provider.Variable "github.com/livebud/bud/package/gomod.*Module" }}module,{{ end }}
 		{{- if $.Provider.Variable "github.com/livebud/bud/package/log.Log" }}log,{{ end }}
+		{{- if $.Provider.Variable "github.com/livebud/bud/package/remotefs.*Client" }}remoteClient,{{ end }}
 	)
 	if err != nil {
 		budClient.Publish("app:error", []byte(err.Error()))

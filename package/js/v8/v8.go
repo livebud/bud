@@ -130,8 +130,9 @@ func (vm *VM) Eval(path, expr string) (string, error) {
 	return value.String(), nil
 }
 
-func (vm *VM) Close() {
+func (vm *VM) Close() error {
 	vm.context.Close()
 	vm.isolate.TerminateExecution()
 	vm.isolate.Dispose()
+	return nil
 }

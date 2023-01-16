@@ -11,3 +11,11 @@ var favicon []byte
 func Favicon() []byte {
 	return favicon
 }
+
+//go:embed gitignore.txt
+var gitignore []byte
+
+// Gitignore returns the gitignore data
+func Gitignore() []byte {
+	return gitignore
+}

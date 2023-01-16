@@ -5,8 +5,8 @@ import (
 	"errors"
 	"os"
 
-	"github.com/livebud/bud/internal/cli"
-	"github.com/livebud/bud/internal/config"
+	cli "github.com/livebud/bud/internal/cli"
+	"github.com/livebud/bud/internal/once"
 	"github.com/livebud/bud/package/log/console"
 )
 
@@ -14,7 +14,8 @@ import (
 
 // main is bud's entrypoint
 func main() {
-	if err := run(); err != nil {
+	ctx := context.Background()
+	if err := run(ctx); err != nil {
 		console.Error(err.Error())
 		os.Exit(1)
 	}
@@ -22,11 +23,13 @@ func main() {
 }
 
 // Run the CLI with the default configuration and return any resulting errors.
-func run() error {
+func run(ctx context.Context) error {
+	closer := new(once.Closer)
+	defer closer.Close()
 	// Initialize the CLI
-	cli := cli.New(config.New())
+	cli := cli.New(closer)
 	// Run the cli
-	if err := cli.Run(context.Background(), os.Args[1:]...); err != nil {
+	if err := cli.Parse(ctx, os.Args[1:]...); err != nil {
 		if errors.Is(err, context.Canceled) {
 			return nil
 		}

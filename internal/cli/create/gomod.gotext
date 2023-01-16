@@ -1,6 +1,6 @@
 module {{ $.Name }}
 
-go {{ $.Version}}
+go {{ $.GoVersion }}
 
 {{- if $.Requires }}
 

@@ -1,7 +1,9 @@
-package web_test
+package cli_test
 
 import (
+	"bytes"
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/livebud/bud/internal/is"
@@ -9,18 +11,19 @@ import (
 	"github.com/livebud/bud/internal/testdir"
 )
 
-func TestEmptyBuild(t *testing.T) {
+func TestToolV8(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)
-	is.NoErr(td.Write(ctx))
 	cli := testcli.New(dir)
-	is.NoErr(td.NotExists("bud/internal/web"))
-	result, err := cli.Run(ctx, "build")
+	cli.Stdin = bytes.NewBufferString("2+2")
+	result, err := cli.Run(ctx, "tool", "v8")
 	is.NoErr(err)
-	is.Equal(result.Stdout(), "")
 	is.Equal(result.Stderr(), "")
-	// Empty builds generate the web directory
-	is.NoErr(td.Exists("bud/internal/web"))
+	is.Equal(strings.TrimSpace(result.Stdout()), "4")
+	is.NoErr(td.NotExists(
+		"bud/internal/app",
+		"bud/app",
+	))
 }

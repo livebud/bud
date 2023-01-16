@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/livebud/bud/internal/cli/testcli"
 	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/internal/testcli"
 	"github.com/livebud/bud/internal/testdir"
 )
 
