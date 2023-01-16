@@ -103,7 +103,9 @@ func (r *Result) Stdout() string {
 }
 
 func (r *Result) Stderr() (stderr string) {
-	scanner := bufio.NewScanner(r.stderr)
+	// New reader to allow multiple scans
+	reader := bytes.NewBufferString(r.stderr.String())
+	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		line := scanner.Text()
 		// Ignore the "ld: warning: -no_pie is deprecated when targeting new OS versions"
