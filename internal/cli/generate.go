@@ -10,6 +10,7 @@ import (
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/dsync"
+	"github.com/livebud/bud/internal/versions"
 	"github.com/livebud/bud/package/log"
 )
 
@@ -45,6 +46,11 @@ func (c *CLI) Generate(ctx context.Context, in *Generate) (err error) {
 	// Find the module if not already provided
 	module, err := c.findModule()
 	if err != nil {
+		return err
+	}
+
+	// Ensure the runtime is the same as the bud version
+	if err := versions.AlignRuntime(ctx, module, versions.Bud); err != nil {
 		return err
 	}
 
