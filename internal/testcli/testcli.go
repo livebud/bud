@@ -103,7 +103,18 @@ func (r *Result) Stdout() string {
 }
 
 func (r *Result) Stderr() string {
-	return r.stderr.String()
+	lines := strings.Split(r.stderr.String(), "\n")
+	out := make([]string, 0, len(lines))
+	for _, line := range lines {
+		// Ignore the "ld: warning: -no_pie is deprecated when targeting new OS versions"
+		// that occurs on older MacOS versions in CI
+		// e.g. https://github.com/livebud/bud/actions/runs/3927344955/jobs/6713881867
+		if strings.HasPrefix(line, "ld: warning:") {
+			continue
+		}
+		out = append(out, line)
+	}
+	return strings.Join(out, "\n")
 }
 
 func listen(path string) (socket.Listener, *http.Client, error) {
