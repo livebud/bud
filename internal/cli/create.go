@@ -4,12 +4,14 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 
+	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/gotemplate"
 
 	"github.com/livebud/bud/internal/embedded"
@@ -20,7 +22,6 @@ import (
 )
 
 type Create struct {
-	Dir    string
 	Module string
 	Dev    bool
 }
@@ -52,8 +53,13 @@ type createPackage struct {
 func (c *CLI) Create(ctx context.Context, in *Create) error {
 	var files []*virtual.File
 
+	log, err := c.loadLog()
+	if err != nil {
+		return err
+	}
+
 	// Get the absolute directory
-	absDir, err := filepath.Abs(in.Dir)
+	absDir, err := filepath.Abs(c.Dir)
 	if err != nil {
 		return err
 	}
@@ -92,6 +98,7 @@ func (c *CLI) Create(ctx context.Context, in *Create) error {
 		if err := os.WriteFile(abspath, file.Data, 0644); err != nil {
 			return err
 		}
+		log.Info("Created: %s", file.Path)
 	}
 
 	// Download the dependencies in go.mod to GOMODCACHE
@@ -100,9 +107,12 @@ func (c *CLI) Create(ctx context.Context, in *Create) error {
 	if err := c.command(absDir, "go", "mod", "download", "all").Run(); err != nil {
 		return err
 	}
+	log.Info("Installed: go modules")
 
 	// Install node_modules
 	npmInstall := c.command(absDir, "npm", "install", "--no-audit", "--loglevel=error", "--no-progress", "--save")
+	// Stdout is ignored because there's still "added 1 package" output despite setting log levels
+	npmInstall.Stdout = io.Discard
 	if err := npmInstall.Run(); err != nil {
 		return err
 	}
@@ -114,11 +124,22 @@ func (c *CLI) Create(ctx context.Context, in *Create) error {
 		}
 		// Link node_modules
 		npmLink := c.command(absDir, "npm", "link", "--no-audit", "--loglevel=error", "livebud", budModule.Directory("livebud"))
+		// Stdout is ignored because there's still "added 1 package" output despite setting log levels
+		npmLink.Stdout = io.Discard
 		if err := npmLink.Run(); err != nil {
 			return err
 		}
 	}
+	log.Info("Installed: node modules")
 
+	if err := c.Generate(ctx, &Generate{
+		Flag: &framework.Flag{},
+	}); err != nil {
+		return err
+	}
+	log.Info("Generated: bud")
+
+	log.Info("Ready: %s", c.Dir)
 	return nil
 }
 

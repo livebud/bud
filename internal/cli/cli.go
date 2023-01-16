@@ -132,7 +132,7 @@ func (c *CLI) Parse(ctx context.Context, args ...string) error {
 		cli := cli.Command("create", "create a new app")
 		cli.Flag("dev", "link to the development version").Short('D').Bool(&in.Dev).Default(versions.Bud == "latest")
 		cli.Flag("module", "module path for go.mod").String(&in.Module).Optional()
-		cli.Arg("dir").String(&in.Dir)
+		cli.Arg("dir").String(&c.Dir)
 		cli.Run(func(ctx context.Context) error { return c.Create(ctx, in) })
 	}
 
