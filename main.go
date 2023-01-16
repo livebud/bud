@@ -5,7 +5,8 @@ import (
 	"errors"
 	"os"
 
-	cli "github.com/livebud/bud/internal/cli2"
+	cli "github.com/livebud/bud/internal/cli"
+	"github.com/livebud/bud/internal/once"
 	"github.com/livebud/bud/package/log/console"
 )
 
@@ -23,8 +24,10 @@ func main() {
 
 // Run the CLI with the default configuration and return any resulting errors.
 func run(ctx context.Context) error {
+	closer := new(once.Closer)
+	defer closer.Close()
 	// Initialize the CLI
-	cli := cli.New()
+	cli := cli.New(closer)
 	// Run the cli
 	if err := cli.Parse(ctx, os.Args[1:]...); err != nil {
 		if errors.Is(err, context.Canceled) {

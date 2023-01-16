@@ -56,12 +56,10 @@ func (a *App) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	{{- if $.Provider.Variable "github.com/livebud/bud/package/budhttp.Client" }}
 	budClient, err := budhttp.Try(log, os.Getenv("BUD_DEV_URL"))
 	if err != nil {
 		return err
 	}
-	{{- end }}
 	{{- if $.Provider.Variable "github.com/livebud/bud/package/remotefs.*Client" }}
 	remoteClient, err := remotefs.Dial(ctx, os.Getenv("BUD_AFS_URL"))
 	if err != nil {
