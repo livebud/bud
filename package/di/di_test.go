@@ -3,7 +3,6 @@ package di_test
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -75,7 +74,6 @@ func runTest(t testing.TB, test Test) {
 	}
 	provider := node.Generate(imports.New(), test.Function.Name, test.Function.Target)
 	code := provider.File()
-	fmt.Println(code)
 	// TODO: provide a module method for doing this, module.ResolveDirectory
 	// also stats the final dir, which doesn't exist yet.
 	targetDir := module.Directory(strings.TrimPrefix(test.Function.Target, module.Import()))
