@@ -112,9 +112,9 @@ func TestInterfaceLookup(t *testing.T) {
 }
 
 // TODO: replace txtar with testdir
-func TestAliasLookup(t *testing.T) {
+func TestAliasPassthrough(t *testing.T) {
 	is := is.New(t)
-	testfile, err := txtar.ParseFile("testdata/alias-lookup.txt")
+	testfile, err := txtar.ParseFile("testdata/alias-passthrough.txt")
 	is.NoErr(err)
 	dir := t.TempDir()
 	err = vfs.Write(dir, testfile)
@@ -132,7 +132,7 @@ func TestAliasLookup(t *testing.T) {
 	is.Equal(alias.Name(), "Middleware")
 	def, err := alias.Definition()
 	is.NoErr(err)
-	is.Equal(def.Name(), "Middleware")
+	is.Equal(def.Name(), "Interface")
 	pkg = def.Package()
 	is.Equal(pkg.Name(), "public")
 	alias = pkg.Alias("Middleware")
@@ -221,24 +221,7 @@ func TestGenerate(t *testing.T) {
 	// Visit real dependencies from the virtual package
 	def, err := field.Definition()
 	is.NoErr(err)
-	is.Equal(def.Name(), "Answer")
-	pkg = def.Package()
-	is.Equal(pkg.Name(), "plugin")
-	importPath, err := pkg.Import()
-	is.NoErr(err)
-	is.Equal(importPath, "github.com/livebud/bud-test-plugin")
-	alias := pkg.Alias("Answer")
-	is.True(alias != nil)
-	is.Equal(alias.Name(), "Answer")
-	def, err = alias.Definition()
-	is.NoErr(err)
-	is.Equal(def.Name(), "Answer")
-	pkg = def.Package()
-	is.Equal(pkg.Name(), "plugin")
-	importPath, err = pkg.Import()
-	is.NoErr(err)
-	is.Equal(importPath, "github.com/livebud/bud-test-nested-plugin")
-	alias = pkg.Alias("Answer")
-	is.True(alias != nil)
-	is.Equal(alias.Name(), "Answer")
+	// This traverse through packages to get at the final `type Answer = string`
+	is.Equal(def.Name(), "string")
+	is.True(def.Kind() == parser.KindBuiltin)
 }
