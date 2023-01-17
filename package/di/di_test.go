@@ -3,6 +3,7 @@ package di_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -74,6 +75,7 @@ func runTest(t testing.TB, test Test) {
 	}
 	provider := node.Generate(imports.New(), test.Function.Name, test.Function.Target)
 	code := provider.File()
+	fmt.Println(code)
 	// TODO: provide a module method for doing this, module.ResolveDirectory
 	// also stats the final dir, which doesn't exist yet.
 	targetDir := module.Directory(strings.TrimPrefix(test.Function.Target, module.Import()))
@@ -2409,6 +2411,106 @@ func TestHoistable(t *testing.T) {
 				type Web struct {
 					Session *Session
 					DB *DB
+				}
+			`,
+		},
+	})
+}
+
+func TestV8Alias(t *testing.T) {
+	runTest(t, Test{
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []*di.Param{},
+			Results: []di.Dependency{
+				di.ToType("app.com/web", "*Controller"),
+				&di.Error{},
+			},
+			Aliases: di.Aliases{
+				di.ToType("app.com/js", "VM"): di.ToType("app.com/js/v8", "*VM"),
+			},
+		},
+		Expect: `
+			&web.Controller{VM: &js.VM{}}
+		`,
+		Files: map[string]string{
+			"go.mod":  goMod,
+			"main.go": mainGoWithErr,
+			"js/vm.go": `
+				package js
+				type VM interface {
+					Eval(expr string) (string, error)
+				}
+			`,
+			"js/v8/v8.go": `
+				package js
+				func Load() (*VM, error) {
+					return &VM{}, nil
+				}
+				type VM struct {}
+				func (v *VM) Eval(expr string) (string, error) {
+					return "v8", nil
+				}
+			`,
+			"web/web.go": `
+				package web
+				import "app.com/js"
+				func Load(vm js.VM) *Controller {
+					return &Controller{vm}
+				}
+				type Controller struct {
+					VM js.VM
+				}
+			`,
+		},
+	})
+}
+
+func TestAliasBack(t *testing.T) {
+	runTest(t, Test{
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []*di.Param{},
+			Results: []di.Dependency{
+				di.ToType("app.com/web", "*Controller"),
+				&di.Error{},
+			},
+			Aliases: di.Aliases{
+				di.ToType("app.com/log", "Log"): di.ToType("app.com/log/console", "Log"),
+			},
+		},
+		Expect: `
+			&web.Controller{log: &console.console{}}
+		`,
+		Files: map[string]string{
+			"go.mod":  goMod,
+			"main.go": mainGoWithErr,
+			"log/log.go": `
+				package log
+				type Log interface {
+					Log(msg string)
+				}
+			`,
+			"log/console/console.go": `
+				package console
+				import "app.com/log"
+				func Load() (Log, error) {
+					return &console{}, nil
+				}
+				type console struct{}
+				func (c *console) Log(msg string) {}
+				type Log = log.Log
+			`,
+			"web/web.go": `
+				package web
+				import "app.com/log"
+				func Load(log log.Log) *Controller {
+					return &Controller{log}
+				}
+				type Controller struct {
+					log log.Log
 				}
 			`,
 		},

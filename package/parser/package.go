@@ -48,6 +48,16 @@ func (pkg *Package) Files() []*File {
 	return pkg.files
 }
 
+// File finds a file in the list
+func (pkg *Package) File(name string) *File {
+	for _, file := range pkg.files {
+		if file.node.Name.Name == name {
+			return file
+		}
+	}
+	return nil
+}
+
 // Module returns the module or fails
 func (pkg *Package) Module() *gomod.Module {
 	return pkg.parser.module

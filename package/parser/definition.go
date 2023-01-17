@@ -14,51 +14,54 @@ func (pkg *Package) definition(name string) (decl Declaration, err error) {
 		return builtin(name), nil
 	}
 	err = fmt.Errorf("parser: unable to find declaration for %q in %q", name, pkg.Name())
+	var file *File
 	var ts *ast.TypeSpec
-	for _, file := range pkg.Files() {
-		file := file
-		ast.Inspect(pkg.node, func(node ast.Node) bool {
-			switch n := node.(type) {
-			case *ast.TypeSpec:
-				// TODO: handle type declarations (e.g. type A string)
-				if n.Assign == 0 {
-					ts = n
-					return true
-				}
-				decl = &Alias{
-					file: file,
-					ts:   n,
-				}
-				err = nil
-				return false
-			case *ast.StructType:
-				if ts == nil || ts.Name.Name != name {
-					return true
-				}
-				decl = &Struct{
-					file: file,
-					ts:   ts,
-					node: n,
-				}
-				err = nil
-				return false
-			case *ast.InterfaceType:
-				if ts == nil || ts.Name.Name != name {
-					return true
-				}
-				decl = &Interface{
-					file: file,
-					ts:   ts,
-					node: n,
-				}
-				err = nil
-				return false
-			// TODO: support const and var
-			case *ast.ValueSpec:
-			}
+	ast.Inspect(pkg.node, func(node ast.Node) bool {
+		switch n := node.(type) {
+		case *ast.File:
+			file = pkg.File(n.Name.Name)
 			return true
-		})
-	}
+		case *ast.TypeSpec:
+			// TODO: handle type declarations (e.g. type A string)
+			if n.Assign == 0 {
+				ts = n
+				return true
+			} else if n.Name.Name != name {
+				return true
+			}
+			alias := &Alias{
+				file: file,
+				ts:   n,
+			}
+			decl, err = alias.Definition()
+			return false
+		case *ast.StructType:
+			if ts == nil || ts.Name.Name != name {
+				return true
+			}
+			decl = &Struct{
+				file: file,
+				ts:   ts,
+				node: n,
+			}
+			err = nil
+			return false
+		case *ast.InterfaceType:
+			if ts == nil || ts.Name.Name != name {
+				return true
+			}
+			decl = &Interface{
+				file: file,
+				ts:   ts,
+				node: n,
+			}
+			err = nil
+			return false
+		// TODO: support const and var
+		case *ast.ValueSpec:
+		}
+		return true
+	})
 	return decl, err
 }
 
@@ -80,6 +83,7 @@ func (b builtin) Directory() string {
 }
 
 // Package for builtin is blank
+// TODO: there should probably be a built-in package
 func (b builtin) Package() *Package {
 	return nil
 }
