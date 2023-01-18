@@ -3,6 +3,7 @@ package public_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testcli"
@@ -140,7 +141,9 @@ func TestGetChangeGet(t *testing.T) {
 	favicon2 := []byte{0x00, 0x00, 0x01}
 	td.BFiles["public/favicon.ico"] = favicon2
 	is.NoErr(td.Write(ctx))
-	is.NoErr(app.Ready(ctx))
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	is.NoErr(td.Exists("bud/internal/web/public/public.go"))
 	res, err = app.Get("/favicon.ico")
 	is.NoErr(err)
@@ -169,7 +172,9 @@ func TestEmbedFavicon(t *testing.T) {
 	favicon2 := []byte{0x00, 0x00, 0x01}
 	td.BFiles["public/favicon.ico"] = favicon2
 	is.NoErr(td.Write(ctx))
-	is.NoErr(app.Ready(ctx))
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
 	// Favicon shouldn't have changed
 	res, err = app.Get("/favicon.ico")
 	is.NoErr(err)

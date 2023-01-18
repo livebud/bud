@@ -5,7 +5,10 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testcli"
@@ -381,4 +384,45 @@ func TestNewControllerCustom(t *testing.T) {
 	is.Equal(err.Error(), `new controller: invalid action "custom", expected "index", "new", "create", "show", "edit", "update" or "delete"`)
 	is.Equal(result.Stdout(), "")
 	is.Equal(result.Stderr(), "")
+}
+
+func TestNewControllerRemoveViewDir(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.NodeModules["svelte"] = versions.Svelte
+	err := td.Write(ctx)
+	is.NoErr(err)
+	cli := testcli.New(dir)
+	result, err := cli.Run(ctx, "new", "controller", "/", "index")
+	is.NoErr(err)
+	is.Equal(result.Stdout(), "")
+	is.Equal(result.Stderr(), "")
+	is.NoErr(td.Exists("controller/controller.go"))
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	res, err := app.Get("/")
+	is.NoErr(err)
+	is.In(res.Body().String(), `<h1>Resource Index</h1>`)
+
+	// Remove the view directory
+	is.NoErr(os.RemoveAll(filepath.Join(dir, "view")))
+
+	// Wait for the app to be ready again
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
+
+	res, err = app.Get("/")
+	is.NoErr(err)
+	is.NoErr(res.Diff(`
+		HTTP/1.1 200 OK
+		Content-Type: application/json
+
+		[]
+	`))
+
+	is.NoErr(app.Close())
 }

@@ -168,7 +168,15 @@ func (c *CLI) Start(ctx context.Context, args ...string) (*Client, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	eg, ctx := errgroup.WithContext(ctx)
 	// Start running the CLI
-	eg.Go(func() error { return cli.Parse(ctx, prependFlags(args)...) })
+	eg.Go(func() error {
+		err := cli.Parse(ctx, prependFlags(args)...)
+		// Close down any cli resources
+		err = errs.Join(err, closer.Close())
+		// Close down test resources
+		err = errs.Join(err, devLn.Close())
+		err = errs.Join(err, webLn.Close())
+		return err
+	})
 	// App provides helpers and controls for the running CLI
 	client := &Client{
 		eg:     eg,
@@ -183,17 +191,13 @@ func (c *CLI) Start(ctx context.Context, args ...string) (*Client, error) {
 			// Cancel the CLI
 			cancel()
 			// Wait for CLI to finish
-			err = errs.Join(err, eg.Wait())
-			err = errs.Join(err, closer.Close())
-			// Close down test resources
-			err = errs.Join(err, devLn.Close())
-			err = errs.Join(err, webLn.Close())
-			return err
+			return eg.Wait()
 		},
 	}
 	// Wait for the client to be ready
 	if err := client.Ready(ctx); err != nil {
-		return nil, err
+		err = errs.Join(err, client.Close())
+		return nil, fmt.Errorf("client failed getting ready: %w", err)
 	}
 	return client, nil
 }
@@ -224,6 +228,10 @@ func (c *Client) Stderr() string {
 // Close the app down
 func (c *Client) Close() error {
 	return c.once.Do(c.close)
+}
+
+func (c *Client) Wait() error {
+	return c.eg.Wait()
 }
 
 // Hot connects to the event stream

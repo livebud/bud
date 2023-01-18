@@ -14,10 +14,11 @@ import (
 	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/virtual"
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/mattn/go-sqlite3"
 )
 
-var ErrNotFound = fmt.Errorf("dag: file not found")
+var ErrNotFound = fmt.Errorf("dag/sqlite: file not found")
+var ErrDatabaseMoved = fmt.Errorf("dag/sqlite: database moved")
 
 type File struct {
 	Path  string
@@ -328,6 +329,9 @@ func (c *DB) Reset() error {
 		DELETE FROM links;
 	`)
 	if err != nil {
+		if errDatabaseMoved(err) {
+			return ErrDatabaseMoved
+		}
 		return fmt.Errorf("dag/sqlite: unable reset files and links. %w", err)
 	}
 	return nil
@@ -335,4 +339,12 @@ func (c *DB) Reset() error {
 
 func (c *DB) Close() error {
 	return c.db.Close()
+}
+
+func errDatabaseMoved(err error) bool {
+	serr, ok := err.(sqlite3.Error)
+	if !ok {
+		return false
+	}
+	return int(serr.ExtendedCode) == int(sqlite3.ErrReadonlyDbMoved)
 }

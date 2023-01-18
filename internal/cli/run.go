@@ -2,8 +2,11 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"path/filepath"
 	"time"
+
+	"github.com/livebud/bud/internal/dag"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/prompter"
@@ -85,6 +88,10 @@ func (c *CLI) Run(ctx context.Context, in *Run) error {
 			changes[i] = event.Path
 		}
 		if err := db.Delete(changes...); err != nil {
+			if errors.Is(err, dag.ErrDatabaseMoved) {
+				log.Error("run: bud/bud.db no longer exists")
+				return watcher.Stop
+			}
 			return err
 		}
 		// Check if we can incrementally reload
@@ -108,6 +115,10 @@ func (c *CLI) Run(ctx context.Context, in *Run) error {
 		log.Debug("run: published event %q", "backend:update")
 		// Generate the app
 		if err := c.Generate(ctx, generate); err != nil {
+			if errors.Is(err, dag.ErrDatabaseMoved) {
+				log.Error("run: bud/bud.db no longer exists")
+				return watcher.Stop
+			}
 			return err
 		}
 		// Restart the process
@@ -138,6 +149,9 @@ func (c *CLI) Run(ctx context.Context, in *Run) error {
 func catchError(prompter *prompter.Prompter, fn func(events []watcher.Event) error) func(events []watcher.Event) error {
 	return func(events []watcher.Event) error {
 		if err := fn(events); err != nil {
+			if errors.Is(err, watcher.Stop) {
+				return err
+			}
 			prompter.FailReload(err.Error())
 		}
 		return nil
