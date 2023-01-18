@@ -88,7 +88,7 @@ var coreGenerators = []struct {
 }{
 	{
 		Import: "github.com/livebud/bud/framework/app",
-		Path:   "bud/internal/app/main.go",
+		Path:   "bud/cmd/app/main.go",
 		Type:   FileGenerator,
 	},
 	{

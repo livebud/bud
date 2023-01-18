@@ -90,7 +90,7 @@ go run main.go -C hello build
 Sometimes you want to hack on the generated code in `bud/`, but if you run `bud run` any changes you make will be overridden. To avoid this, you can call your app's `main.go` file directly:
 
 ```sh
-go run bud/internal/app/main.go
+go run bud/cmd/app/main.go
 ```
 
 You may encounter an error like this:
@@ -108,7 +108,7 @@ bud tool bs
 This will start a bud server. Next, restart your app server and pass the bud server address in as an environment variable:
 
 ```
-BUD_LISTEN=<bud server address> go run bud/internal/app/main.go
+BUD_LISTEN=<bud server address> go run bud/cmd/app/main.go
 ```
 
 Finally, reload the page and you should be good to go. Happy hacking!
