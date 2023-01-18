@@ -24,7 +24,7 @@ const (
 	afsBinPath  = "bud/afs"
 
 	// cmd/app
-	appMainPath = "bud/internal/app/main.go"
+	appMainPath = "bud/cmd/app/main.go"
 	appBinPath  = "bud/app"
 )
 
@@ -227,8 +227,7 @@ func only(log log.Log, dirs ...string) func(name string, isDir bool) bool {
 func isAFSPath(fpath string) bool {
 	return fpath == afsBinPath ||
 		isWithin(afsGeneratorDir, fpath) ||
-		isWithin(afsMainDir, fpath) ||
-		fpath == "bud/cmd" // TODO: remove once we move app over to cmd/app/main.go
+		isWithin(afsMainDir, fpath)
 }
 
 func isWithin(parent, child string) bool {

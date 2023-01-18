@@ -23,7 +23,7 @@ func TestToolV8(t *testing.T) {
 	is.Equal(result.Stderr(), "")
 	is.Equal(strings.TrimSpace(result.Stdout()), "4")
 	is.NoErr(td.NotExists(
-		"bud/internal/app",
+		"bud/cmd/app",
 		"bud/app",
 	))
 }

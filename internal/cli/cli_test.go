@@ -40,7 +40,7 @@ func TestChdir(t *testing.T) {
 	is.Equal(result.Stdout(), "")
 	is.Equal(result.Stderr(), "")
 	is.NoErr(td.Exists(
-		"bud/internal/app",
+		"bud/cmd/app",
 		"bud/app",
 	))
 }
@@ -83,7 +83,7 @@ func TestOutsideModule(t *testing.T) {
 	is.In(result.Stdout(), "  tool")
 	is.In(result.Stdout(), "  version")
 	is.NoErr(td.NotExists(
-		"bud/internal/app",
+		"bud/cmd/app",
 		"bud/app",
 	))
 }
@@ -107,7 +107,7 @@ func TestOutsideModuleHelp(t *testing.T) {
 	is.In(result.Stdout(), "  tool")
 	is.In(result.Stdout(), "  version")
 	is.NoErr(td.NotExists(
-		"bud/internal/app",
+		"bud/cmd/app",
 		"bud/app",
 	))
 }
