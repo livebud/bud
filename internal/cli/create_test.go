@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testcli"
@@ -98,5 +99,95 @@ func TestCreateSeesWelcome(t *testing.T) {
 	is.In(res.Body().String(), "Hey Bud")
 	is.Equal(app.Stdout(), "")
 	is.NoErr(td.Exists("bud/app"))
+	is.NoErr(app.Close())
+}
+
+func TestCreateRemoveBudGraceful(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	err := td.Write(ctx)
+	is.NoErr(err)
+	cli := testcli.New(dir)
+	is.NoErr(td.NotExists(".gitignore"))
+	result, err := cli.Run(ctx, "create", dir)
+	is.NoErr(err)
+	is.Equal(result.Stdout(), "")
+	is.In(result.Stderr(), "Ready")
+
+	// Start the app
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	// Test the index page
+	res, err := app.Get("/")
+	is.NoErr(err)
+	is.Equal(res.Status(), 200)
+	is.In(res.Body().String(), "Hey Bud")
+	is.NoErr(td.Exists("bud/app"))
+	is.NoErr(td.Exists("bud/afs"))
+	is.NoErr(td.Exists("bud/bud.db"))
+
+	// Remove the bud directory
+	is.NoErr(os.RemoveAll(filepath.Join(dir, "bud")))
+	is.NoErr(td.NotExists("bud/app"))
+	is.NoErr(td.NotExists("bud/afs"))
+	is.NoErr(td.NotExists("bud/bud.db"))
+
+	// Wait for the app to shutdown gracefully
+	is.NoErr(app.Wait())
+
+	// New startup should be graceful
+	app, err = cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	// Test the index page
+	res, err = app.Get("/")
+	is.NoErr(err)
+	is.Equal(res.Status(), 200)
+	is.In(res.Body().String(), "Hey Bud")
+	is.NoErr(td.Exists("bud/app"))
+	is.NoErr(td.Exists("bud/afs"))
+	is.NoErr(td.Exists("bud/bud.db"))
+	is.NoErr(app.Close())
+}
+
+func TestCreateRemovePublicGraceful(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	err := td.Write(ctx)
+	is.NoErr(err)
+	cli := testcli.New(dir)
+	is.NoErr(td.NotExists(".gitignore"))
+	result, err := cli.Run(ctx, "create", dir)
+	is.NoErr(err)
+	is.Equal(result.Stdout(), "")
+	is.In(result.Stderr(), "Ready")
+
+	// Start the app
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+
+	// Test the favicon
+	res, err := app.Get("/favicon.ico")
+	is.NoErr(err)
+	is.Equal(res.Status(), 200)
+	is.NoErr(td.Exists("public/favicon.ico"))
+
+	// Remove the public directory
+	is.NoErr(os.RemoveAll(filepath.Join(dir, "public")))
+	is.NoErr(td.NotExists("bud/public"))
+
+	// Wait for the app to recover
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
+
+	res, err = app.Get("/favicon.ico")
+	is.NoErr(err)
+	is.Equal(res.Status(), 404)
+
 	is.NoErr(app.Close())
 }
