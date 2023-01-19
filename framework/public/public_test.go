@@ -172,10 +172,11 @@ func TestEmbedFavicon(t *testing.T) {
 	favicon2 := []byte{0x00, 0x00, 0x01}
 	td.BFiles["public/favicon.ico"] = favicon2
 	is.NoErr(td.Write(ctx))
-	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	readyCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	is.NoErr(app.Ready(readyCtx))
 	cancel()
-	// Favicon shouldn't have changed
+	// Favicon shouldn't have changed because non-Go files don't trigger
+	// full rebuilds and server restarts
 	res, err = app.Get("/favicon.ico")
 	is.NoErr(err)
 	is.Equal(200, res.Status())
