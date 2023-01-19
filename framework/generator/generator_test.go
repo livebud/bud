@@ -24,7 +24,7 @@ func TestGenerators(t *testing.T) {
 			"github.com/livebud/bud/package/genfs"
 		)
 		type Generator struct {}
-		func (g *Generator) GenerateDir(fsys genfs.FS, dir *genfs.Dir) error {
+		func (g *Generator) Generate(fsys genfs.FS, dir *genfs.Dir) error {
 			dir.GenerateFile("tailwind.css", func(fsys genfs.FS, file *genfs.File) error {
 				file.Data = []byte("/** tailwind **/")
 				return nil
@@ -58,7 +58,7 @@ func TestGenerators(t *testing.T) {
 		type Generator struct {
 			Markdoc *markdoc.Compiler
 		}
-		func (g *Generator) GenerateDir(fsys genfs.FS, dir *genfs.Dir) error {
+		func (g *Generator) Generate(fsys genfs.FS, dir *genfs.Dir) error {
 			dir.ServeFile(".", g.compile)
 			dir.GenerateFile("markdoc.go", g.generate)
 			return nil
@@ -70,7 +70,7 @@ func TestGenerators(t *testing.T) {
 			}
 			out := "package markdoc "
 			for _, md := range mds {
-				data, err := fs.ReadFile(fsys, path.Join("bud/generator/markdoc", md))
+				data, err := fs.ReadFile(fsys, path.Join("bud/internal/markdoc", md))
 				if err != nil {
 					return err
 				}
@@ -92,14 +92,14 @@ func TestGenerators(t *testing.T) {
 			return nil
 		}
 	`
-	td.Files["generator/web/viewer/viewer.go"] = `
+	td.Files["generator/frontend/viewer/viewer.go"] = `
 		package viewer
 		import (
 			"github.com/livebud/bud/package/genfs"
 		)
 		type Generator struct {
 		}
-		func (g *Generator) GenerateDir(fsys genfs.FS, dir *genfs.Dir) error {
+		func (g *Generator) Generate(fsys genfs.FS, dir *genfs.Dir) error {
 			dir.GenerateFile("viewer.go", func(fsys genfs.FS, file *genfs.File) error {
 				file.Data = []byte("package viewer")
 				return nil
@@ -111,26 +111,25 @@ func TestGenerators(t *testing.T) {
 	cli := testcli.New(dir)
 	_, err := cli.Run(ctx, "build", "--embed=false")
 	is.NoErr(err)
-	is.NoErr(td.Exists("bud/generator/tailwind/tailwind.css"))
-	is.NoErr(td.Exists("bud/generator/tailwind/preflight.css"))
-	is.NoErr(td.Exists("bud/generator/markdoc/markdoc.go"))
-	is.NoErr(td.Exists("bud/generator/web/viewer/viewer.go"))
-	data, err := os.ReadFile(td.Path("bud/generator/tailwind/tailwind.css"))
+	is.NoErr(td.Exists("bud/internal/tailwind/tailwind.css"))
+	is.NoErr(td.Exists("bud/internal/tailwind/preflight.css"))
+	is.NoErr(td.Exists("bud/internal/markdoc/markdoc.go"))
+	is.NoErr(td.Exists("bud/internal/frontend/viewer/viewer.go"))
+	data, err := os.ReadFile(td.Path("bud/internal/tailwind/tailwind.css"))
 	is.NoErr(err)
 	is.Equal(string(data), "/** tailwind **/")
-	data, err = os.ReadFile(td.Path("bud/generator/tailwind/preflight.css"))
+	data, err = os.ReadFile(td.Path("bud/internal/tailwind/preflight.css"))
 	is.NoErr(err)
 	is.Equal(string(data), "/** preflight **/")
-	data, err = os.ReadFile(td.Path("bud/generator/markdoc/markdoc.go"))
+	data, err = os.ReadFile(td.Path("bud/internal/markdoc/markdoc.go"))
 	is.NoErr(err)
 	is.Equal(string(data), "package markdoc # About # About # Index # Index ")
-	data, err = os.ReadFile(td.Path("bud/generator/web/viewer/viewer.go"))
+	data, err = os.ReadFile(td.Path("bud/internal/frontend/viewer/viewer.go"))
 	is.NoErr(err)
 	is.Equal(string(data), "package viewer")
 }
 
 func TestMissingGenerator(t *testing.T) {
-	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
@@ -146,8 +145,7 @@ func TestMissingGenerator(t *testing.T) {
 	is.NoErr(td.NotExists("bud/command/generate/main"))
 }
 
-func TestMissingGenerateDirMethod(t *testing.T) {
-	t.SkipNow()
+func TestMissingMatchingMethod(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
@@ -155,7 +153,7 @@ func TestMissingGenerateDirMethod(t *testing.T) {
 	td.Files["generator/web/transform/transform.go"] = `
 		package transform
 		type Generator struct {}
-		func (g *Generator) Generate() error { return nil }
+		func (g *Generator) generate() error { return nil }
 	`
 	is.NoErr(td.Write(ctx))
 	cli := testcli.New(dir)
@@ -175,7 +173,7 @@ func TestSyntaxError(t *testing.T) {
 			"github.com/livebud/bud/package/genfs"
 		)
 		type Generator struct {}
-		func (g *Generator) GenerateDir(fsys genfs.FS, dir *genfs.Dir) error {
+		func (g *Generator) Generate(fsys genfs.FS, dir *genfs.Dir) error {
 			"ok"
 		}
 	`
@@ -189,7 +187,6 @@ func TestSyntaxError(t *testing.T) {
 }
 
 func TestUpdateGenerator(t *testing.T) {
-	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
@@ -200,7 +197,7 @@ func TestUpdateGenerator(t *testing.T) {
 			"github.com/livebud/bud/package/genfs"
 		)
 		type Generator struct {}
-		func (g *Generator) GenerateDir(fsys genfs.FS, dir *genfs.Dir) error {
+		func (g *Generator) Generate(fsys genfs.FS, dir *genfs.Dir) error {
 			dir.GenerateFile("tailwind.css", func(fsys genfs.FS, file *genfs.File) error {
 				file.Data = []byte("/** tailwind **/")
 				return nil
@@ -214,7 +211,7 @@ func TestUpdateGenerator(t *testing.T) {
 	is.NoErr(err)
 	defer app.Close()
 	// Check for tailwind
-	data, err := os.ReadFile(td.Path("bud/generator/tailwind/tailwind.css"))
+	data, err := os.ReadFile(td.Path("bud/internal/tailwind/tailwind.css"))
 	is.NoErr(err)
 	is.Equal(string(data), "/** tailwind **/")
 	// Update generator
@@ -226,7 +223,7 @@ func TestUpdateGenerator(t *testing.T) {
 		)
 		type Generator struct {
 		}
-		func (g *Generator) GenerateDir(fsys genfs.FS, dir *genfs.Dir) error {
+		func (g *Generator) Generate(fsys genfs.FS, dir *genfs.Dir) error {
 			dir.GenerateFile("tailwind.css", func(fsys genfs.FS, file *genfs.File) error {
 				file.Data = []byte("/** tailwind2 **/")
 				return nil
@@ -243,17 +240,16 @@ func TestUpdateGenerator(t *testing.T) {
 	is.NoErr(app.Ready(readyCtx))
 	cancel()
 	// Check for preflight
-	data, err = os.ReadFile(td.Path("bud/generator/tailwind/preflight.css"))
+	data, err = os.ReadFile(td.Path("bud/internal/tailwind/preflight.css"))
 	is.NoErr(err)
 	is.Equal(string(data), "/** preflight **/")
 	// Check that tailwind has been updated
-	data, err = os.ReadFile(td.Path("bud/generator/tailwind/tailwind.css"))
+	data, err = os.ReadFile(td.Path("bud/internal/tailwind/tailwind.css"))
 	is.NoErr(err)
 	is.Equal(string(data), "/** tailwind2 **/")
 }
 
 func TestDeleteGenerator(t *testing.T) {
-	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
@@ -264,7 +260,7 @@ func TestDeleteGenerator(t *testing.T) {
 			"github.com/livebud/bud/package/genfs"
 		)
 		type Generator struct {}
-		func (g *Generator) GenerateDir(fsys genfs.FS, dir *genfs.Dir) error {
+		func (g *Generator) Generate(fsys genfs.FS, dir *genfs.Dir) error {
 			dir.GenerateFile("tailwind.css", func(fsys genfs.FS, file *genfs.File) error {
 				file.Data = []byte("/** tailwind **/")
 				return nil
@@ -278,7 +274,7 @@ func TestDeleteGenerator(t *testing.T) {
 	is.NoErr(err)
 	defer app.Close()
 	// Check for tailwind
-	data, err := os.ReadFile(td.Path("bud/generator/tailwind/tailwind.css"))
+	data, err := os.ReadFile(td.Path("bud/internal/tailwind/tailwind.css"))
 	is.NoErr(err)
 	is.Equal(string(data), "/** tailwind **/")
 	// Update generator
@@ -289,7 +285,7 @@ func TestDeleteGenerator(t *testing.T) {
 			"github.com/livebud/bud/package/genfs"
 		)
 		type Generator struct {}
-		func (g *Generator) GenerateDir(fsys genfs.FS, dir *genfs.Dir) error {
+		func (g *Generator) Generate(fsys genfs.FS, dir *genfs.Dir) error {
 			return nil
 		}
 	`)), 0644))
@@ -298,7 +294,71 @@ func TestDeleteGenerator(t *testing.T) {
 	is.NoErr(app.Ready(readyCtx))
 	cancel()
 	// Check that tailwind has been updated
-	data, err = os.ReadFile(td.Path("bud/generator/tailwind/tailwind.css"))
+	data, err = os.ReadFile(td.Path("bud/internal/tailwind/tailwind.css"))
 	is.True(os.IsNotExist(err))
 	is.Equal(data, nil)
 }
+
+func TestChangeGenerator(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.Files["generator/tailwind/tailwind.go"] = `
+		package tailwind
+		import (
+			"github.com/livebud/bud/package/genfs"
+		)
+		type Generator struct {}
+		func (g *Generator) Generate(fsys genfs.FS, dir *genfs.Dir) error {
+			dir.GenerateFile("tailwind.css", func(fsys genfs.FS, file *genfs.File) error {
+				file.Data = []byte("/** tailwind **/")
+				return nil
+			})
+			return nil
+		}
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	// Check for tailwind
+	data, err := os.ReadFile(td.Path("bud/internal/tailwind/tailwind.css"))
+	is.NoErr(err)
+	is.Equal(string(data), "/** tailwind **/")
+	// Update generator
+	generatorFile := filepath.Join(dir, "generator", "tailwind", "tailwind.go")
+	is.NoErr(os.WriteFile(generatorFile, []byte(dedent.Dedent(`
+		package tailwind
+		import (
+			"github.com/livebud/bud/package/genfs"
+		)
+		type Generator struct {}
+		func (g *Generator) Generate(fsys genfs.FS, dir *genfs.Dir) error {
+			dir.GenerateFile("preflight.css", func(fsys genfs.FS, file *genfs.File) error {
+				file.Data = []byte("/** preflight **/")
+				return nil
+			})
+			return nil
+		}
+	`)), 0644))
+	// Wait for the app to be ready again
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
+	// Check that tailwind has been updated
+	data, err = os.ReadFile(td.Path("bud/internal/tailwind/tailwind.css"))
+	is.True(os.IsNotExist(err))
+	is.Equal(data, nil)
+	// Check for preflight
+	data, err = os.ReadFile(td.Path("bud/internal/tailwind/preflight.css"))
+	is.NoErr(err)
+	is.Equal(string(data), "/** preflight **/")
+}
+
+// TODO: test for package generators
+// TODO: test for command generators
+// TODO: test for generator servers
+// TODO: test for nested generator generator (e.g. bud/generator/transpile)
+// TODO: test for nested web generators (e.g. bud/generator/web/graphql/routing.go)

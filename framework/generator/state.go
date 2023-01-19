@@ -5,21 +5,17 @@ import (
 )
 
 type State struct {
-	Imports    []*imports.Import
-	Generators []*CodeGenerator
+	Imports        []*imports.Import
+	FileGenerators []*CodeGenerator
+	FileServers    []*CodeGenerator
+	GenerateDirs   []*CodeGenerator
+	ServeFiles     []*CodeGenerator
 }
 
 type Type string
 
-const (
-	DirGenerator  Type = "DirGenerator"
-	FileGenerator Type = "FileGenerator"
-	FileServer    Type = "FileServer"
-)
-
 type CodeGenerator struct {
 	Import *imports.Import
-	Type   Type   // Type of generator
 	Path   string // Path that triggers the generator (e.g. "bud/cmd/app/main.go")
 	Camel  string
 }
