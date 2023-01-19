@@ -6,6 +6,16 @@ Get the latest release of Bud by running the following in your terminal:
 curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
 ```
 
+## v0.2.6
+
+This is a very big release. From the outside, not much has changed, but the internals have been [almost entirely re-written](https://github.com/livebud/bud/pull/347).
+
+This feels like the right architecture for the next couple of years. You can expect smaller release cycles with more rigorous change logs going forward.
+
+Unfortunately I can't account for all the user-facing changes from this large release. I'm not aware of any breaking changes, but a lot of code shifted.
+
+Please give the upgrade a go and open an issue if you run into anything!
+
 ## v0.2.5
 
 - Implement filesystem caching (#281)
