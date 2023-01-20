@@ -11,6 +11,7 @@ import (
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testcli"
 	"github.com/livebud/bud/internal/testdir"
+	"github.com/livebud/bud/internal/versions"
 	"golang.org/x/mod/modfile"
 )
 
@@ -190,4 +191,32 @@ func TestCreateRemovePublicGraceful(t *testing.T) {
 	is.Equal(res.Status(), 404)
 
 	is.NoErr(app.Close())
+}
+
+func TestReleaseVersionOk(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	err := td.Write(ctx)
+	is.NoErr(err)
+	cli := testcli.New(dir)
+	is.NoErr(td.NotExists(".gitignore"))
+	priorVersion := versions.Bud
+	versions.Bud = "0.2.6"
+	defer func() {
+		versions.Bud = priorVersion
+	}()
+	result, err := cli.Run(ctx, "create", "--dev=false", dir)
+	is.NoErr(err)
+	is.Equal(result.Stdout(), "")
+	is.In(result.Stderr(), "Ready")
+	is.NoErr(td.Exists(".gitignore"))
+	is.NoErr(td.Exists("go.sum"))
+	is.NoErr(td.Exists("package.json"))
+	is.NoErr(td.Exists("package-lock.json"))
+	is.Equal(fileFirstLine(filepath.Join(dir, "go.mod")), "module change.me\n")
+	gomod, err := os.ReadFile(filepath.Join(dir, "go.mod"))
+	is.NoErr(err)
+	is.In(string(gomod), "github.com/livebud/bud v0.2.6")
 }

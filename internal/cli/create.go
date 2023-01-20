@@ -165,7 +165,7 @@ func (c *CLI) createGoMod(in *Create, absDir string) (*virtual.File, error) {
 	// Add the required runtime
 	runtime := &createRequire{
 		Import:  "github.com/livebud/bud",
-		Version: versions.Bud,
+		Version: "v" + versions.Bud,
 	}
 	if in.Dev && versions.Bud == "latest" {
 		runtime.Version = "v0.0.0"
