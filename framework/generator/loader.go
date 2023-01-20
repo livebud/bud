@@ -94,13 +94,14 @@ func (l *loader) load(fsys fs.FS) (state *State, err error) {
 	for _, generator := range coreFileGenerators {
 		if !exists[generator.Path] {
 			exists[generator.Path] = true
+			name := l.imports.Add(generator.Import)
 			state.FileGenerators = append(state.FileGenerators, &CodeGenerator{
 				Import: &imports.Import{
-					Name: l.imports.Add(generator.Import),
+					Name: name,
 					Path: generator.Import,
 				},
 				Path:  generator.Path,
-				Camel: gotext.Camel(path.Base(generator.Import)),
+				Camel: gotext.Camel(name),
 			})
 		}
 	}
@@ -109,13 +110,14 @@ func (l *loader) load(fsys fs.FS) (state *State, err error) {
 	for _, generator := range coreFileServers {
 		if !exists[generator.Path] {
 			exists[generator.Path] = true
+			name := l.imports.Add(generator.Import)
 			state.FileServers = append(state.FileServers, &CodeGenerator{
 				Import: &imports.Import{
-					Name: l.imports.Add(generator.Import),
+					Name: name,
 					Path: generator.Import,
 				},
 				Path:  generator.Path,
-				Camel: gotext.Camel(path.Base(generator.Import)),
+				Camel: gotext.Camel(name),
 			})
 		}
 	}
@@ -147,13 +149,14 @@ func (l *loader) load(fsys fs.FS) (state *State, err error) {
 			generatorPath := path.Join("bud", "internal", key)
 			if !exists[generatorPath] {
 				exists[generatorPath] = true
+				name := l.imports.Add(importPath)
 				state.GenerateDirs = append(state.GenerateDirs, &CodeGenerator{
 					Import: &imports.Import{
-						Name: l.imports.Add(importPath),
+						Name: name,
 						Path: importPath,
 					},
 					Path:  generatorPath,
-					Camel: gotext.Camel(key),
+					Camel: gotext.Camel(name),
 				})
 			}
 		}
@@ -163,13 +166,14 @@ func (l *loader) load(fsys fs.FS) (state *State, err error) {
 			generatorPath := path.Join("bud", "internal", key)
 			if !exists[generatorPath] {
 				exists[generatorPath] = true
+				name := l.imports.Add(importPath)
 				state.ServeFiles = append(state.ServeFiles, &CodeGenerator{
 					Import: &imports.Import{
-						Name: l.imports.Add(importPath),
+						Name: name,
 						Path: importPath,
 					},
 					Path:  generatorPath,
-					Camel: gotext.Camel(key),
+					Camel: gotext.Camel(name),
 				})
 			}
 		}
@@ -179,13 +183,14 @@ func (l *loader) load(fsys fs.FS) (state *State, err error) {
 			generatorPath := path.Join("bud", "cmd", key)
 			if !exists[generatorPath] {
 				exists[importPath] = true
+				name := l.imports.Add(importPath)
 				state.GenerateDirs = append(state.GenerateDirs, &CodeGenerator{
 					Import: &imports.Import{
-						Name: l.imports.Add(importPath),
+						Name: name,
 						Path: importPath,
 					},
 					Path:  generatorPath,
-					Camel: gotext.Camel(key),
+					Camel: gotext.Camel(name),
 				})
 			}
 		}
@@ -195,13 +200,14 @@ func (l *loader) load(fsys fs.FS) (state *State, err error) {
 			generatorPath := path.Join("bud", "pkg", key)
 			if !exists[generatorPath] {
 				exists[importPath] = true
+				name := l.imports.Add(importPath)
 				state.GenerateDirs = append(state.GenerateDirs, &CodeGenerator{
 					Import: &imports.Import{
-						Name: l.imports.Add(importPath),
+						Name: name,
 						Path: importPath,
 					},
 					Path:  generatorPath,
-					Camel: gotext.Camel(key),
+					Camel: gotext.Camel(name),
 				})
 			}
 		}

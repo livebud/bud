@@ -35,7 +35,7 @@ func New(
 	fsys.FileServer(`{{ $generator.Path }}`, {{ $generator.Camel }})
 	{{- end }}
 	{{- range $generator := $.GenerateDirs }}
-	fsys.GenerateDir(`{{ $generator.Path }}`, {{ $generator.Camel }}.Generate)
+	fsys.GenerateDir(`{{ $generator.Path }}`, {{ $generator.Camel }}.{{ $generator.Method }})
 	{{- end }}
 	{{- range $generator := $.ServeFiles }}
 	fsys.ServeFile(`{{ $generator.Path }}`, {{ $generator.Camel }}.Serve)
