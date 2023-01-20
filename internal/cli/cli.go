@@ -490,6 +490,7 @@ func (c *CLI) startAFS(ctx context.Context, flag *framework.Flag, module *gomod.
 			return nil, err
 		}
 		c.afsProcess = p
+		c.Closer.Add(c.afsProcess.Close)
 		return c.afsProcess, nil
 	}
 	// Initialize the command
