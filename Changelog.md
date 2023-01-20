@@ -6,6 +6,10 @@ Get the latest release of Bud by running the following in your terminal:
 curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
 ```
 
+## v0.2.7
+
+- Fixed a small regression in `bud create` (#360)
+
 ## v0.2.6
 
 This is a very big release. From the outside, not much has changed, but the internals have been [almost entirely re-written](https://github.com/livebud/bud/pull/347).
