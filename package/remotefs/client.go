@@ -3,6 +3,7 @@ package remotefs
 import (
 	"context"
 	"encoding/gob"
+	"errors"
 	"io/fs"
 	"strings"
 
@@ -64,7 +65,13 @@ func (c *Client) ReadDir(name string) (des []fs.DirEntry, err error) {
 }
 
 func (c *Client) Close() error {
-	return c.rpc.Close()
+	if err := c.rpc.Close(); err != nil {
+		// Ignore errors that occur because the server is already closed.
+		if !errors.Is(err, rpc.ErrShutdown) {
+			return err
+		}
+	}
+	return nil
 }
 
 // isNotExist is needed because the error has been serialized and passed between

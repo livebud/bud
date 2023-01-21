@@ -397,6 +397,9 @@ func (c *CLI) listenAFS(listenAFS string) (socket.Listener, error) {
 }
 
 func (c *CLI) listenFileAFS(afsLn socket.Listener) (*os.File, error) {
+	if c.afsFile != nil {
+		return c.afsFile, nil
+	}
 	fileAFS, err := afsLn.File()
 	if err != nil {
 		return nil, err
@@ -455,7 +458,11 @@ func (c *CLI) listenWebFile(webLn socket.Listener) (*os.File, error) {
 
 func (c *CLI) dialAFS(ctx context.Context, afsLn net.Listener) (*remotefs.Client, error) {
 	if c.afsClient != nil {
-		return c.afsClient, nil
+		// For some reason the RPC client needs to be recycled when the RPC server
+		// shuts down.
+		if err := c.afsClient.Close(); err != nil {
+			return nil, err
+		}
 	}
 	afsClient, err := remotefs.Dial(ctx, afsLn.Addr().String())
 	if err != nil {
@@ -478,6 +485,12 @@ func (c *CLI) command(dir string, name string, args ...string) *exec.Cmd {
 
 func (c *CLI) startAFS(ctx context.Context, flag *framework.Flag, module *gomod.Module, afsFile *os.File, devLn net.Listener) (*shell.Process, error) {
 	if c.afsProcess != nil {
+		p, err := c.afsProcess.Restart(ctx)
+		if err != nil {
+			return nil, err
+		}
+		c.afsProcess = p
+		c.Closer.Add(c.afsProcess.Close)
 		return c.afsProcess, nil
 	}
 	// Initialize the command

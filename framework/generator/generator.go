@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/fs"
 
-	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/package/genfs"
@@ -49,6 +48,6 @@ func (g *Generator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
 
 // Load the generators
 func (g *Generator) Load(fsys fs.FS) (*State, error) {
-	loader := &loader{g.log, g.module, g.parser, imports.New(), bail.Struct{}}
+	loader := &loader{g.log, g.module, g.parser, imports.New()}
 	return loader.Load(fsys)
 }

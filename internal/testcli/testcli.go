@@ -187,7 +187,7 @@ func (c *CLI) Start(ctx context.Context, args ...string) (*Client, error) {
 		webc:   webc,
 		hotc:   budc,
 		// Close function
-		close: func() (err error) {
+		close: func() error {
 			// Cancel the CLI
 			cancel()
 			// Wait for CLI to finish

@@ -15,12 +15,30 @@ func New(
 	fsys *genfs.FileSystem,
 	module *gomod.Module,
 	log log.Log,
-	{{- range $generator := $.Generators }}
+	{{- range $generator := $.FileGenerators }}
+	{{ $generator.Camel }} *{{ $generator.Import.Name }}.Generator,
+	{{- end }}
+	{{- range $generator := $.FileServers }}
+	{{ $generator.Camel }} *{{ $generator.Import.Name }}.Generator,
+	{{- end }}
+	{{- range $generator := $.GenerateDirs }}
+	{{ $generator.Camel }} *{{ $generator.Import.Name }}.Generator,
+	{{- end }}
+	{{- range $generator := $.ServeFiles }}
 	{{ $generator.Camel }} *{{ $generator.Import.Name }}.Generator,
 	{{- end }}
 ) FS {
-	{{- range $generator := $.Generators }}
-	fsys.{{ $generator.Type }}(`{{ $generator.Path }}`, {{ $generator.Camel }})
+	{{- range $generator := $.FileGenerators }}
+	fsys.FileGenerator(`{{ $generator.Path }}`, {{ $generator.Camel }})
+	{{- end }}
+	{{- range $generator := $.FileServers }}
+	fsys.FileServer(`{{ $generator.Path }}`, {{ $generator.Camel }})
+	{{- end }}
+	{{- range $generator := $.GenerateDirs }}
+	fsys.GenerateDir(`{{ $generator.Path }}`, {{ $generator.Camel }}.{{ $generator.Method }})
+	{{- end }}
+	{{- range $generator := $.ServeFiles }}
+	fsys.ServeFile(`{{ $generator.Path }}`, {{ $generator.Camel }}.Serve)
 	{{- end }}
 	return fsys
 }
