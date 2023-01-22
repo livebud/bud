@@ -2,6 +2,7 @@ package genfs
 
 import (
 	"io/fs"
+	"path"
 
 	"github.com/livebud/bud/package/virtual"
 )
@@ -25,6 +26,11 @@ func (f *File) Relative() string {
 
 func (f *File) Path() string {
 	return f.path
+}
+
+// Ext returns the extension to the target file path (e.g. `.svelte`)
+func (f *File) Ext() string {
+	return path.Ext(f.target)
 }
 
 func (f *File) Mode() fs.FileMode {

@@ -17,6 +17,7 @@ import (
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/afs"
 	"github.com/livebud/bud/framework/generator"
+	"github.com/livebud/bud/framework/transpiler"
 	"github.com/livebud/bud/internal/current"
 	"github.com/livebud/bud/internal/dag"
 	"github.com/livebud/bud/internal/extrafile"
@@ -350,6 +351,7 @@ func (c *CLI) genFS(cache genfs.Cache, flag *framework.Flag, log log.Log, module
 	genfs := genfs.New(cache, fsys, log)
 	parser := parser.New(genfs, module)
 	injector := di.New(genfs, log, module, parser)
+	genfs.FileGenerator("bud/internal/generator/transpiler/transpiler.go", transpiler.New(flag, log, module, parser))
 	genfs.FileGenerator("bud/internal/generator/generator.go", generator.New(log, module, parser))
 	genfs.FileGenerator("bud/cmd/afs/main.go", afs.New(flag, injector, log, module))
 	return genfs

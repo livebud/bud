@@ -79,7 +79,7 @@ func (l *loader) Load(fsys fs.FS) (state *State, err error) {
 func (l *loader) load(fsys fs.FS) (state *State, err error) {
 	state = new(State)
 	generatorDirs, err := finder.Find(fsys, "{generator/**.go,bud/internal/generator/*/*.go}", func(path string, isDir bool) (entries []string) {
-		if !isDir && valid.GoFile(path) {
+		if !isDir && valid.GoFile(path) && !isUserDefinedInternalGenerator(path) {
 			entries = append(entries, filepath.Dir(path))
 		}
 		return entries
@@ -142,7 +142,8 @@ func (l *loader) load(fsys fs.FS) (state *State, err error) {
 			l.log.Debug("framework/generator: skipping package because there's no Generator struct")
 			continue
 		}
-		key := strings.TrimPrefix(generatorDir, "generator/")
+		key := strings.TrimPrefix(generatorDir, "bud/internal/")
+		key = strings.TrimPrefix(key, "generator/")
 
 		// Support generating directories into the bud/internal directory
 		if generator.Method("Generate") != nil {
@@ -218,4 +219,10 @@ func (l *loader) load(fsys fs.FS) (state *State, err error) {
 	l.imports.AddNamed("log", "github.com/livebud/bud/package/log")
 	state.Imports = l.imports.List()
 	return state, nil
+}
+
+// Ignore packages in $APP/generator/generator/... because they're meant for
+// internal generators, not user-defined generators.
+func isUserDefinedInternalGenerator(path string) bool {
+	return strings.HasPrefix(path, "generator/generator/")
 }
