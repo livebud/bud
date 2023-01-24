@@ -139,6 +139,16 @@ func (pkg *Package) Functions() (fns []*Function) {
 	return fns
 }
 
+// Functions returns all the functions in a package
+func (pkg *Package) Function(name string) (fn *Function) {
+	for _, file := range pkg.Files() {
+		if fn = file.Function(name); fn != nil {
+			return fn
+		}
+	}
+	return nil
+}
+
 // PublicFunctions returns all public functions in the package
 func (pkg *Package) PublicFunctions() (fns []*Function) {
 	for _, file := range pkg.Files() {

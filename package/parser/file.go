@@ -114,6 +114,24 @@ func (f *File) Functions() (fns []*Function) {
 	return fns
 }
 
+// Function returns a function by name
+func (f *File) Function(name string) *Function {
+	for _, decl := range f.node.Decls {
+		fn, ok := decl.(*ast.FuncDecl)
+		if !ok {
+			continue
+		} else if fn.Name.Name != name {
+			continue
+		}
+		return &Function{
+			pkg:  f.pkg,
+			file: f,
+			node: fn,
+		}
+	}
+	return nil
+}
+
 // Structs returns all the structs in a file
 func (f *File) Structs() (stcts []*Struct) {
 	for _, decl := range f.node.Decls {

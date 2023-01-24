@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/livebud/bud/internal/gois"
 	"github.com/livebud/bud/internal/valid"
 
 	"github.com/livebud/bud/internal/bail"
@@ -333,7 +334,7 @@ func (l *loader) loadType(dt parser.Type, dec parser.Declaration) string {
 		l.Bail(err)
 	}
 	// Standard library
-	if strings.HasPrefix(importPath, "std/") {
+	if gois.StdLib(importPath) {
 		dt := parser.Requalify(dt, imports.AssumedName(importPath))
 		return dt.String()
 	}

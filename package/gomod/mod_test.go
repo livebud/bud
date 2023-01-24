@@ -146,7 +146,11 @@ func TestModuleFindStdlib(t *testing.T) {
 	is.NoErr(err)
 	imp, err := module.ResolveImport(module.Directory())
 	is.NoErr(err)
-	is.Equal(imp, "std")
+	is.Equal(imp, ".")
+	dir := module.Directory("net/http")
+	expected := filepath.Join(build.Default.GOROOT, "src", "net", "http")
+	is.Equal(dir, expected)
+	is.Equal(module.Import("net/http"), "net/http")
 }
 
 func TestFindNested(t *testing.T) {

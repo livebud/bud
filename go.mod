@@ -6,7 +6,6 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/ajg/form v1.5.2-0.20200323032839-9aeb3cf462e1
 	github.com/albertorestifo/dijkstra v0.0.0-20160910063646-aba76f725f72
-	github.com/armon/go-radix v1.0.0
 	github.com/aybabtme/rgbterm v0.0.0-20170906152045-cc83f3b3ce59
 	github.com/bep/debounce v1.2.1
 	github.com/cespare/xxhash v1.1.0
@@ -20,6 +19,7 @@ require (
 	github.com/keegancsmith/rpc v1.3.0
 	github.com/lithammer/dedent v1.1.0
 	github.com/livebud/bud-test-plugin v0.0.9
+	github.com/livebud/transpiler v0.0.1
 	github.com/matthewmueller/diff v0.0.0-20220104030700-cb2fe910d90c
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac
 	github.com/matthewmueller/text v0.0.0-20210424201111-ec1e4af8dfe8
@@ -29,7 +29,6 @@ require (
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/timewasted/go-accept-headers v0.0.0-20130320203746-c78f304b1b09
 	github.com/xlab/treeprint v1.1.0
-	github.com/xo/dburl v0.13.0
 	go.kuoruan.net/v8go-polyfills v0.5.1-0.20220727011656-c74c5b408ebd
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
@@ -41,6 +40,7 @@ require (
 
 require (
 	github.com/BurntSushi/toml v0.4.1 // indirect
+	github.com/RyanCarrier/dijkstra v1.1.0 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/gedex/inflector v0.0.0-20170307190818-16278e9db813 // indirect
 	github.com/google/go-cmp v0.5.6 // indirect

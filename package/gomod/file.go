@@ -17,8 +17,13 @@ type File struct {
 }
 
 // Import returns the module's import path (e.g. github.com/livebud/bud)
-func (f *File) Import(subpaths ...string) string {
-	return path.Join(append([]string{f.file.Module.Mod.Path}, subpaths...)...)
+func (f *File) Import(subPaths ...string) string {
+	modulePath := f.file.Module.Mod.Path
+	subPath := path.Join(subPaths...)
+	if modulePath == "std" {
+		return subPath
+	}
+	return path.Join(modulePath, subPath)
 }
 
 func (f *File) AddRequire(importPath, version string) error {
