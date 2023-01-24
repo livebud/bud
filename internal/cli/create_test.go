@@ -194,6 +194,9 @@ func TestCreateRemovePublicGraceful(t *testing.T) {
 }
 
 func TestReleaseVersionOk(t *testing.T) {
+	if versions.Bud == "latest" {
+		t.Skip("Skipping release version test for latest")
+	}
 	is := is.New(t)
 	ctx := context.Background()
 	dir := t.TempDir()
@@ -202,11 +205,6 @@ func TestReleaseVersionOk(t *testing.T) {
 	is.NoErr(err)
 	cli := testcli.New(dir)
 	is.NoErr(td.NotExists(".gitignore"))
-	priorVersion := versions.Bud
-	versions.Bud = "0.2.6"
-	defer func() {
-		versions.Bud = priorVersion
-	}()
 	result, err := cli.Run(ctx, "create", "--dev=false", dir)
 	is.NoErr(err)
 	is.Equal(result.Stdout(), "")
@@ -218,5 +216,5 @@ func TestReleaseVersionOk(t *testing.T) {
 	is.Equal(fileFirstLine(filepath.Join(dir, "go.mod")), "module change.me\n")
 	gomod, err := os.ReadFile(filepath.Join(dir, "go.mod"))
 	is.NoErr(err)
-	is.In(string(gomod), "github.com/livebud/bud v0.2.6")
+	is.In(string(gomod), "github.com/livebud/bud v"+versions.Bud)
 }
