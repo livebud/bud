@@ -143,17 +143,12 @@ func tryFunction(fn *parser.Function, importPath, dataType string) (*function, e
 	}
 	for _, result := range results {
 		rt := result.Type()
-		name := result.Name()
-		if name == "" {
-			name = parser.TypeName(rt)
-		}
 		// Most likely the error type
 		if gois.Builtin(rt.String()) {
 			function.Results = append(function.Results, &Type{
 				Import: importPath,
 				Type:   rt.String(),
 				kind:   parser.KindBuiltin,
-				name:   name,
 			})
 			continue
 		}
@@ -174,7 +169,6 @@ func tryFunction(fn *parser.Function, importPath, dataType string) (*function, e
 			Import: importPath,
 			Type:   unqualified.String(),
 			kind:   def.Kind(),
-			name:   name,
 		})
 		continue
 	}
