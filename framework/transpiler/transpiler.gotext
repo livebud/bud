@@ -1,0 +1,33 @@
+package transpiler
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+// Load the transpiler
+func Load(
+	{{- range $transpiler := $.Transpilers }}
+	{{ $transpiler.Camel }} *{{ $transpiler.Import.Name }}.Transpiler,
+	{{- end }}
+) *Generator {
+	tr := transpiler.New()
+	{{- range $transpiler := $.Transpilers }}
+	{{- range $method := $transpiler.Methods }}
+	tr.Add(`{{ $method.From }}`, `{{ $method.To }}`, {{ $transpiler.Camel }}.{{ $method.Pascal }})
+	{{- end }}
+	{{- end }}
+	return &Generator{tr}
+}
+
+type Generator struct {
+	tr transpiler.Interface
+}
+
+func (g *Generator) Serve(fsys genfs.FS, file *genfs.File) error {
+	return transpiler.Serve(g.tr, fsys, file)
+}
