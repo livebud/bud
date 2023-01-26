@@ -3,14 +3,20 @@ package transpiler
 import (
 	_ "embed"
 	"io/fs"
+	"path/filepath"
+	"strings"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/internal/valid"
+	"github.com/livebud/bud/package/finder"
 	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/parser"
+	"github.com/matthewmueller/gotext"
+	"github.com/matthewmueller/text"
 )
 
 //go:embed transpiler.gotext
@@ -37,10 +43,14 @@ type State struct {
 
 type Transpiler struct {
 	Import  *imports.Import
-	FromExt string
-	ToExt   string
-	Method  string
 	Camel   string
+	Methods []*Method
+}
+
+type Method struct {
+	Pascal string // Method name in pascal
+	From   string // From extension
+	To     string // To extension
 }
 
 func (g *Generator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
@@ -56,42 +66,70 @@ func (g *Generator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
 	return nil
 }
 
-// file.Data = []byte(`
-// package transpiler
-// import (
-// 	"github.com/livebud/bud/package/genfs"
-// 	"github.com/livebud/bud/runtime/transpiler"
-// 	"app.com/transpiler/doubler"
-// 	"io/fs"
-// )
-// func Load(doubler *doubler.Transpiler) *Generator {
-// 	tr := transpiler.New()
-// 	tr.Add(".svelte", ".svelte", doubler.SvelteToSvelte)
-// 	return &Generator{tr}
-// }
-// type Generator struct {
-// 	tr transpiler.Interface
-// }
-// func (g *Generator) Serve(fsys genfs.FS, file *genfs.File) error {
-// 	toExt, inputPath := transpiler.SplitRoot(file.Relative())
-// 	input, err := fs.ReadFile(fsys, inputPath)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	output, err := g.tr.Transpile(file.Ext(), toExt, input)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	file.Data = output
-// 	return nil
-// }
-// `)
-
 func (g *Generator) Load(fsys fs.FS) (*State, error) {
 	state := new(State)
-	imports := imports.New()
-	imports.AddNamed("genfs", "github.com/livebud/bud/package/genfs")
-	imports.AddNamed("transpiler", "github.com/livebud/bud/runtime/transpiler")
-	state.Imports = imports.List()
+	imset := imports.New()
+
+	// Load the transpilers
+	transpilerDirs, err := finder.Find(fsys, "{transpiler/**.go}", func(path string, isDir bool) (entries []string) {
+		if !isDir && valid.GoFile(path) {
+			entries = append(entries, filepath.Dir(path))
+		}
+		return entries
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Load the custom transpilers
+	for _, transpilerDir := range transpilerDirs {
+		// Parse the transpiler package
+		pkg, err := g.parser.Parse(transpilerDir)
+		if err != nil {
+			return nil, err
+		}
+		stct := pkg.Struct("Transpiler")
+		importPath := g.module.Import(transpilerDir)
+		if stct == nil {
+			g.log.Warn("No Transpiler struct in %q. Skipping.", importPath)
+			continue
+		}
+		importName := imset.Add(importPath)
+		state.Transpilers = append(state.Transpilers, &Transpiler{
+			Import: &imports.Import{
+				Name: importName,
+				Path: importPath,
+			},
+			Camel:   gotext.Camel(strings.TrimPrefix(transpilerDir, "transpiler/")),
+			Methods: loadMethods(stct),
+		})
+	}
+	if len(state.Transpilers) == 0 {
+		return nil, fs.ErrNotExist
+	}
+
+	// Setup the imports
+	imset.AddNamed("genfs", "github.com/livebud/bud/package/genfs")
+	imset.AddNamed("transpiler", "github.com/livebud/bud/runtime/transpiler")
+	state.Imports = imset.List()
+
 	return state, nil
+}
+
+func loadMethods(stct *parser.Struct) (methods []*Method) {
+	for _, method := range stct.Methods() {
+		if method.Private() {
+			continue
+		}
+		parts := strings.SplitN(text.Lower(text.Space(method.Name())), " to ", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		methods = append(methods, &Method{
+			Pascal: gotext.Pascal(method.Name()),
+			From:   "." + text.Dot(parts[0]),
+			To:     "." + text.Dot(parts[1]),
+		})
+	}
+	return methods
 }

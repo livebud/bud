@@ -17,7 +17,9 @@ func Load(
 ) *Generator {
 	tr := transpiler.New()
 	{{- range $transpiler := $.Transpilers }}
-	tr.Add(`{{ $transpiler.FromExt }}`, `{{ $transpiler.ToExt }}`, {{ $transpiler.Camel }}.{{ $transpiler.Method }})
+	{{- range $method := $transpiler.Methods }}
+	tr.Add(`{{ $method.From }}`, `{{ $method.To }}`, {{ $transpiler.Camel }}.{{ $method.Pascal }})
+	{{- end }}
 	{{- end }}
 	return &Generator{tr}
 }
