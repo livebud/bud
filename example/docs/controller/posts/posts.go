@@ -4,11 +4,32 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/livebud/bud/example/docs/controller"
 	"github.com/livebud/bud/framework/controller/controllerrt/request"
 	"github.com/livebud/bud/package/log/console"
+	"github.com/livebud/bud/package/viewer"
 )
 
+// func NewViewer(svelteViewer *svelte.Viewer) *Viewer {
+// 	return &Viewer{}
+// }
+
+type SvelteViewer struct{}
+type HTMLViewer struct{}
+
+type Viewer struct {
+}
+
+func New(layoutFrame *controller.Controller, viewer *Viewer) *Controller {
+	return &Controller{
+		layoutFrame: layoutFrame,
+		viewer:      viewer,
+	}
+}
+
 type Controller struct {
+	layoutFrame *controller.Controller
+	viewer      *Viewer
 }
 
 type Post struct {
@@ -86,7 +107,37 @@ func (c *Controller) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(layout, frame, postsFrame, postsPage)
+	// This part should happen concurrently
+	title, style := c.layoutFrame.Layout(&layout.Theme)
+	layoutProps := viewer.Props{
+		"title": title,
+		"style": style,
+	}
+	categories := c.layoutFrame.Frame()
+	frame0Props := viewer.Props{
+		"categories": categories,
+	}
+	likes := c.Frame(postsFrame.ID)
+	frame1Props := viewer.Props{
+		"likes": likes,
+	}
+	post, err := c.show(postsPage.ID)
+	if err != nil {
+		console.Err(err, "unable to show post")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	pageProps := viewer.Props{
+		"post": post,
+	}
+	// Once done, we come back together for rendering
+	_ = layoutProps
+	_ = frame0Props
+	_ = frame1Props
+	_ = pageProps
+	fmt.Println("got post", post)
+	// c.Post()
+	// fmt.Println(layout, frame, postsFrame, postsPage)
 	// _, _, _, _ = Layout, Frame, PostsFrame, PostsPage
 	w.Write([]byte("Hello world!!!"))
 }

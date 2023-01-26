@@ -6,15 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
-	"path"
 	"strings"
+
+	"github.com/livebud/bud/runtime/transpiler"
 
 	"github.com/livebud/bud/internal/gotemplate"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
-	"github.com/livebud/bud/framework/transform2/transformrt"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/js"
 	"github.com/livebud/bud/package/log"
@@ -22,16 +21,15 @@ import (
 	"github.com/livebud/bud/package/viewer"
 )
 
-func New(fsys fs.FS, log log.Log, module *gomod.Module, transformer *transformrt.Transformer, vm js.VM) *Viewer {
-	return &Viewer{fsys, log, module, transformer, vm}
+func New(log log.Log, module *gomod.Module, transpiler transpiler.Interface, vm js.VM) *Viewer {
+	return &Viewer{log, module, transpiler, vm}
 }
 
 type Viewer struct {
-	fsys        fs.FS
-	log         log.Log
-	module      *gomod.Module
-	transformer *transformrt.Transformer
-	vm          js.VM
+	log        log.Log
+	module     *gomod.Module
+	transpiler transpiler.Interface
+	vm         js.VM
 }
 
 var _ viewer.Viewer = (*Viewer)(nil)
@@ -163,14 +161,14 @@ func (v *Viewer) ssrSvelteTransform() esbuild.Plugin {
 				return result, nil
 			})
 			epb.OnLoad(esbuild.OnLoadOptions{Filter: `.*`, Namespace: `svelte`}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
-				code, err := v.transformer.Transform(v.fsys, path.Join("ssr.js", args.Path))
-				if err != nil {
-					return result, err
-				}
-				contents := string(code)
-				result.ResolveDir = v.module.Directory()
-				result.Contents = &contents
-				result.Loader = esbuild.LoaderJS
+				// code, err := v.transformer.Transform(v.fsys, path.Join("ssr.js", args.Path))
+				// if err != nil {
+				// 	return result, err
+				// }
+				// contents := string(code)
+				// result.ResolveDir = v.module.Directory()
+				// result.Contents = &contents
+				// result.Loader = esbuild.LoaderJS
 				return result, nil
 			})
 		},
@@ -294,14 +292,14 @@ func (v *Viewer) domSvelteTransform() esbuild.Plugin {
 				return result, nil
 			})
 			epb.OnLoad(esbuild.OnLoadOptions{Filter: `.*`, Namespace: `svelte`}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
-				code, err := v.transformer.Transform(v.fsys, path.Join("js", args.Path))
-				if err != nil {
-					return result, err
-				}
-				contents := string(code)
-				result.ResolveDir = v.module.Directory()
-				result.Contents = &contents
-				result.Loader = esbuild.LoaderJS
+				// code, err := v.transformer.Transform(v.fsys, path.Join("js", args.Path))
+				// if err != nil {
+				// 	return result, err
+				// }
+				// contents := string(code)
+				// result.ResolveDir = v.module.Directory()
+				// result.Contents = &contents
+				// result.Loader = esbuild.LoaderJS
 				return result, nil
 			})
 		},

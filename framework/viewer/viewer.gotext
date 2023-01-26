@@ -1,0 +1,26 @@
+package viewer
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+// View
+func New(
+
+) *Handler {
+	return &Handler{
+	}
+}
+
+// Handler for handling requests
+type Handler struct {
+}
+
+func (h *Handler) Register(r *router.Router) {
+	println("registering!")
+}

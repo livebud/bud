@@ -11,7 +11,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/livebud/bud/framework/transform2/transformrt"
+	"github.com/livebud/bud/runtime/transpiler"
+
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/router"
@@ -21,7 +22,6 @@ import (
 	"github.com/livebud/bud/internal/is"
 
 	v8 "github.com/livebud/bud/package/js/v8"
-	svelteCompiler "github.com/livebud/bud/package/svelte"
 	"github.com/livebud/bud/package/viewer/svelte"
 )
 
@@ -127,35 +127,36 @@ func loadViewer(t testing.TB, fsys fs.FS) *svelte.Viewer {
 	log := testlog.New()
 	vm, err := v8.Load()
 	is.NoErr(err)
-	compiler, err := svelteCompiler.Load(vm)
-	is.NoErr(err)
-	transformer := transformrt.Load(log,
-		&transformrt.Transform{
-			From: ".svelte",
-			To:   ".ssr.js",
-			Func: func(file *transformrt.File) error {
-				ssr, err := compiler.SSR(file.Path(), file.Data)
-				if err != nil {
-					return err
-				}
-				file.Data = []byte(ssr.JS)
-				return nil
-			},
-		},
-		&transformrt.Transform{
-			From: ".svelte",
-			To:   ".js",
-			Func: func(file *transformrt.File) error {
-				dom, err := compiler.DOM(file.Path(), file.Data)
-				if err != nil {
-					return err
-				}
-				file.Data = []byte(dom.JS)
-				return nil
-			},
-		},
-	)
-	return svelte.New(fsys, log, module, transformer, vm)
+	// compiler, err := svelteCompiler.Load(vm)
+	// is.NoErr(err)
+	tr := transpiler.New()
+	// transformer := transformrt.Load(log,
+	// 	&transformrt.Transform{
+	// 		From: ".svelte",
+	// 		To:   ".ssr.js",
+	// 		Func: func(file *transformrt.File) error {
+	// 			ssr, err := compiler.SSR(file.Path(), file.Data)
+	// 			if err != nil {
+	// 				return err
+	// 			}
+	// 			file.Data = []byte(ssr.JS)
+	// 			return nil
+	// 		},
+	// 	},
+	// 	&transformrt.Transform{
+	// 		From: ".svelte",
+	// 		To:   ".js",
+	// 		Func: func(file *transformrt.File) error {
+	// 			dom, err := compiler.DOM(file.Path(), file.Data)
+	// 			if err != nil {
+	// 				return err
+	// 			}
+	// 			file.Data = []byte(dom.JS)
+	// 			return nil
+	// 		},
+	// 	},
+	// )
+	return svelte.New(fsys, log, module, tr, vm)
 }
 
 func TestServeViewSSR(t *testing.T) {
