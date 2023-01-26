@@ -2466,7 +2466,6 @@ func TestV8Alias(t *testing.T) {
 }
 
 func TestAliasBack(t *testing.T) {
-	t.Skip("TODO: finish up after")
 	runTest(t, Test{
 		Function: &di.Function{
 			Name:   "Load",

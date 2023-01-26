@@ -279,7 +279,7 @@ func TestAliasLookupModule(t *testing.T) {
 	def, err := params[0].Definition()
 	is.NoErr(err)
 	is.Equal(def.Name(), "Transpiler")
-	is.Equal(def.Kind(), parser.KindAlias)
+	is.Equal(def.Kind(), parser.KindStruct)
 	pkg = def.Package()
 	is.Equal(pkg.Name(), "transpiler")
 	importPath, err := pkg.Import()

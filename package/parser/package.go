@@ -121,7 +121,6 @@ const (
 	KindBuiltin Kind = 1 + iota
 	KindStruct
 	KindInterface
-	KindAlias
 )
 
 // Declaration interface
