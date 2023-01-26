@@ -33,7 +33,14 @@ func (pkg *Package) definition(name string) (decl Declaration, err error) {
 				file: file,
 				ts:   n,
 			}
-			decl, err = alias.Definition()
+			resolved, err2 := alias.Definition()
+			if err2 != nil {
+				err = err2
+				return false
+			}
+			alias.kind = resolved.Kind()
+			decl = alias
+			err = nil
 			return false
 		case *ast.StructType:
 			if ts == nil || ts.Name.Name != name {

@@ -127,15 +127,15 @@ func tryStruct(stct *parser.Struct, dataType string) (*Struct, error) {
 		if gois.Builtin(ft.String()) {
 			return nil, ErrNoMatch
 		}
-		importPath, err := parser.ImportPath(ft)
-		if err != nil {
-			return nil, err
-		}
-		t := parser.Unqualify(ft)
 		def, err := field.Definition()
 		if err != nil {
 			return nil, err
 		}
+		importPath, err := def.Package().Import()
+		if err != nil {
+			return nil, err
+		}
+		t := parser.Unqualify(ft)
 		pkg := def.Package()
 		module := pkg.Module()
 		decl.Fields = append(decl.Fields, &StructField{

@@ -12,10 +12,6 @@ type Function struct {
 	node *ast.FuncDecl
 }
 
-type filer interface {
-	File() *File
-}
-
 // Package returns the package containing this function
 func (fn *Function) Package() *Package {
 	return fn.pkg

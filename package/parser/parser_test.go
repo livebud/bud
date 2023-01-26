@@ -3,12 +3,14 @@ package parser_test
 import (
 	"context"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 
 	"github.com/livebud/bud/internal/dag"
 	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/log/testlog"
+	"github.com/livebud/bud/package/virtual"
 
 	"github.com/livebud/bud/package/modcache"
 	"github.com/livebud/bud/package/parser"
@@ -112,9 +114,9 @@ func TestInterfaceLookup(t *testing.T) {
 }
 
 // TODO: replace txtar with testdir
-func TestAliasPassthrough(t *testing.T) {
+func TestAliasLookup(t *testing.T) {
 	is := is.New(t)
-	testfile, err := txtar.ParseFile("testdata/alias-passthrough.txt")
+	testfile, err := txtar.ParseFile("testdata/alias-lookup.txt")
 	is.NoErr(err)
 	dir := t.TempDir()
 	err = vfs.Write(dir, testfile)
@@ -132,7 +134,7 @@ func TestAliasPassthrough(t *testing.T) {
 	is.Equal(alias.Name(), "Middleware")
 	def, err := alias.Definition()
 	is.NoErr(err)
-	is.Equal(def.Name(), "Interface")
+	is.Equal(def.Name(), "Middleware")
 	pkg = def.Package()
 	is.Equal(pkg.Name(), "public")
 	alias = pkg.Alias("Middleware")
@@ -182,7 +184,7 @@ func TestNetHTTP(t *testing.T) {
 	pkg = def.Package()
 	imp, err := pkg.Import()
 	is.NoErr(err)
-	is.Equal(imp, "std/net/http")
+	is.Equal(imp, "net/http")
 	stct = def.Package().Struct("Request")
 	is.True(stct != nil)
 	is.Equal(stct.Name(), "Request")
@@ -221,7 +223,79 @@ func TestGenerate(t *testing.T) {
 	// Visit real dependencies from the virtual package
 	def, err := field.Definition()
 	is.NoErr(err)
-	// This traverse through packages to get at the final `type Answer = string`
-	is.Equal(def.Name(), "string")
-	is.True(def.Kind() == parser.KindBuiltin)
+	is.Equal(def.Name(), "Answer")
+	pkg = def.Package()
+	is.Equal(pkg.Name(), "plugin")
+	importPath, err := pkg.Import()
+	is.NoErr(err)
+	is.Equal(importPath, "github.com/livebud/bud-test-plugin")
+	alias := pkg.Alias("Answer")
+	is.True(alias != nil)
+	is.Equal(alias.Name(), "Answer")
+	def, err = alias.Definition()
+	is.NoErr(err)
+	is.Equal(def.Name(), "Answer")
+	pkg = def.Package()
+	is.Equal(pkg.Name(), "plugin")
+	importPath, err = pkg.Import()
+	is.NoErr(err)
+	is.Equal(importPath, "github.com/livebud/bud-test-nested-plugin")
+	alias = pkg.Alias("Answer")
+	is.True(alias != nil)
+	is.Equal(alias.Name(), "Answer")
+}
+
+func TestAliasLookupModule(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	version := "v0.0.1"
+	td.Modules["github.com/livebud/transpiler"] = version
+	is.NoErr(td.Write(ctx))
+	module, err := gomod.Find(dir)
+	is.NoErr(err)
+	fsys := virtual.Tree{
+		"bud/transpiler/transpiler.go": &virtual.File{Data: []byte(`
+			package transpiler
+			import "app.com/runtime/transpiler"
+			func New(tr *transpiler.Transpiler) {}
+		`)},
+		"runtime/transpiler/transpiler.go": &virtual.File{Data: []byte(`
+			package transpiler
+			import "github.com/livebud/transpiler"
+			type Transpiler = transpiler.Transpiler
+		`)},
+	}
+	p := parser.New(fsys, module)
+	pkg, err := p.Parse("bud/transpiler")
+	is.NoErr(err)
+	is.Equal(pkg.Name(), "transpiler")
+	newFn := pkg.Function("New")
+	is.True(newFn != nil)
+	params := newFn.Params()
+	is.Equal(len(params), 1)
+	is.Equal(params[0].Name(), "tr")
+	def, err := params[0].Definition()
+	is.NoErr(err)
+	is.Equal(def.Name(), "Transpiler")
+	is.Equal(def.Kind(), parser.KindStruct)
+	pkg = def.Package()
+	is.Equal(pkg.Name(), "transpiler")
+	importPath, err := pkg.Import()
+	is.NoErr(err)
+	is.Equal(importPath, "app.com/runtime/transpiler")
+	alias := def.Package().Alias("Transpiler")
+	is.True(alias != nil)
+	is.Equal(alias.Name(), "Transpiler")
+	def, err = alias.Definition()
+	is.NoErr(err)
+	is.Equal(def.Name(), "Transpiler")
+	is.Equal(def.Kind(), parser.KindStruct)
+	pkg = def.Package()
+	is.Equal(pkg.Name(), "transpiler")
+	importPath, err = pkg.Import()
+	is.NoErr(err)
+	is.Equal(importPath, "github.com/livebud/transpiler")
+	is.Equal(pkg.Directory(), path.Join(module.ModCache(), "github.com/livebud/transpiler@"+version))
 }

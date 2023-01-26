@@ -19,9 +19,13 @@ type Type interface {
 	node() ast.Expr
 }
 
+type filer interface {
+	File() *File
+}
+
 // Get the expression
 // https://golang.org/ref/spec#Types
-func getType(f Fielder, x ast.Expr) Type {
+func getType(f filer, x ast.Expr) Type {
 	switch t := x.(type) {
 	case *ast.Ident:
 		return &IdentType{f, t}
@@ -203,7 +207,7 @@ func FullName(t Type) string {
 
 // StarType struct
 type StarType struct {
-	f Fielder
+	f filer
 	n *ast.StarExpr
 }
 
@@ -262,7 +266,7 @@ func (t *StarType) Unqualify() Type {
 
 // IdentType struct
 type IdentType struct {
-	f Fielder
+	f filer
 	n *ast.Ident
 }
 
@@ -313,7 +317,7 @@ func (t *IdentType) Name() string {
 
 // SelectorType struct
 type SelectorType struct {
-	f Fielder
+	f filer
 	n *ast.SelectorExpr
 }
 
@@ -403,7 +407,7 @@ func (t *SelectorType) definition() (Declaration, error) {
 
 // ArrayType struct
 type ArrayType struct {
-	f Fielder
+	f filer
 	n *ast.ArrayType
 }
 
@@ -468,7 +472,7 @@ func (t *ArrayType) Definition() (Declaration, error) {
 
 // StructType struct
 type StructType struct {
-	f Fielder
+	f filer
 	n *ast.StructType
 }
 
@@ -486,7 +490,7 @@ func (t *StructType) node() ast.Expr {
 
 // FuncType struct
 type FuncType struct {
-	f Fielder
+	f filer
 	n *ast.FuncType
 }
 
@@ -504,7 +508,7 @@ func (t *FuncType) node() ast.Expr {
 
 // InterfaceType struct
 type InterfaceType struct {
-	f Fielder
+	f filer
 	n *ast.InterfaceType
 }
 
@@ -522,7 +526,7 @@ func (t *InterfaceType) node() ast.Expr {
 
 // SliceExpr struct
 type SliceExpr struct {
-	f Fielder
+	f filer
 	n *ast.SliceExpr
 }
 
@@ -540,7 +544,7 @@ func (t *SliceExpr) node() ast.Expr {
 
 // MapType struct
 type MapType struct {
-	f Fielder
+	f filer
 	n *ast.MapType
 }
 
@@ -558,7 +562,7 @@ func (t *MapType) node() ast.Expr {
 
 // ChanType struct
 type ChanType struct {
-	f Fielder
+	f filer
 	n *ast.ChanType
 }
 
@@ -576,7 +580,7 @@ func (t *ChanType) node() ast.Expr {
 
 // Ellipsis struct
 type EllipsisType struct {
-	f Fielder
+	f filer
 	n *ast.Ellipsis
 }
 

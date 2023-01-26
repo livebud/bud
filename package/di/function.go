@@ -121,17 +121,21 @@ func tryFunction(fn *parser.Function, importPath, dataType string) (*function, e
 		if gois.Builtin(pt.String()) {
 			return nil, ErrNoMatch
 		}
-		imPath, err := parser.ImportPath(pt)
+		def, err := param.Definition()
+		if err != nil {
+			importPath, err := parser.ImportPath(pt)
+			if err != nil {
+				return nil, err
+			}
+			return nil, fmt.Errorf("di: unable to find definition for param %q.%s in %q.%s. %w", importPath, parser.Unqualify(pt).String(), importPath, dataType, err)
+		}
+		importPath, err := def.Package().Import()
 		if err != nil {
 			return nil, err
 		}
-		def, err := param.Definition()
-		if err != nil {
-			return nil, fmt.Errorf("di: unable to find definition for param %q.%s in %q.%s . %w", imPath, parser.Unqualify(pt).String(), importPath, dataType, err)
-		}
 		module := def.Package().Module()
 		function.Params = append(function.Params, &Type{
-			Import: imPath,
+			Import: importPath,
 			Type:   parser.Unqualify(pt).String(),
 			kind:   def.Kind(),
 			module: module,
@@ -139,24 +143,32 @@ func tryFunction(fn *parser.Function, importPath, dataType string) (*function, e
 	}
 	for _, result := range results {
 		rt := result.Type()
-		name := result.Name()
-		if name == "" {
-			name = parser.TypeName(rt)
-		}
-		imPath, err := parser.ImportPath(rt)
-		if err != nil {
-			return nil, err
+		// Most likely the error type
+		if gois.Builtin(rt.String()) {
+			function.Results = append(function.Results, &Type{
+				Import: importPath,
+				Type:   rt.String(),
+				kind:   parser.KindBuiltin,
+			})
+			continue
 		}
 		def, err := result.Definition()
 		if err != nil {
-			return nil, fmt.Errorf("di: unable to find definition for result %q.%s in %q.%s . %w", imPath, parser.Unqualify(rt).String(), importPath, dataType, err)
+			importPath, err := parser.ImportPath(rt)
+			if err != nil {
+				return nil, err
+			}
+			return nil, fmt.Errorf("di: unable to find definition for result %q.%s in %q.%s. %w", importPath, parser.Unqualify(rt).String(), importPath, dataType, err)
+		}
+		importPath, err := def.Package().Import()
+		if err != nil {
+			return nil, err
 		}
 		unqualified := parser.Unqualify(rt)
 		function.Results = append(function.Results, &Type{
 			Import: importPath,
 			Type:   unqualified.String(),
 			kind:   def.Kind(),
-			name:   name,
 		})
 		continue
 	}

@@ -121,7 +121,6 @@ const (
 	KindBuiltin Kind = 1 + iota
 	KindStruct
 	KindInterface
-	KindAlias
 )
 
 // Declaration interface
@@ -137,6 +136,16 @@ func (pkg *Package) Functions() (fns []*Function) {
 		fns = append(fns, file.Functions()...)
 	}
 	return fns
+}
+
+// Functions returns all the functions in a package
+func (pkg *Package) Function(name string) (fn *Function) {
+	for _, file := range pkg.Files() {
+		if fn = file.Function(name); fn != nil {
+			return fn
+		}
+	}
+	return nil
 }
 
 // PublicFunctions returns all public functions in the package

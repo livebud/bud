@@ -2515,6 +2515,187 @@ func TestAliasBack(t *testing.T) {
 	})
 }
 
+func TestRuntimeAliasTo3rdPartyLibrary(t *testing.T) {
+	runTest(t, Test{
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []*di.Param{},
+			Results: []di.Dependency{
+				di.ToType("app.com/web", "*Generator"),
+			},
+			Aliases: di.Aliases{},
+		},
+		Expect: `
+			&web.Generator{tr: &transpiler.Transpiler{
+				ids:   map[string]int{},
+				exts:  map[int]string{},
+				fns:   map[string][]func(*transpiler.File) error{},
+				graph: &dijkstra.Graph{mapping: map[string]int{}},
+			}}
+		`,
+		Files: map[string]string{
+			"go.mod": `
+				module app.com
+				go 1.17
+				require (
+					github.com/hexops/valast v1.4.1
+					github.com/livebud/transpiler v0.0.1
+				)
+			`,
+			"main.go": mainGo,
+			"web/web.go": `
+				package web
+				import "app.com/runtime/transpiler"
+				func Load(tr *transpiler.Transpiler) *Generator {
+					return &Generator{tr}
+				}
+				type Generator struct {
+					tr *transpiler.Transpiler
+				}
+			`,
+			"runtime/transpiler/transpiler.go": `
+				package transpiler
+				import "github.com/livebud/transpiler"
+				type Transpiler = transpiler.Transpiler
+			`,
+		},
+	})
+}
+
+func TestRuntimeAliasToLibraryFunction(t *testing.T) {
+	runTest(t, Test{
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []*di.Param{},
+			Results: []di.Dependency{
+				di.ToType("app.com/web", "*Generator"),
+			},
+			Aliases: di.Aliases{},
+		},
+		Expect: `&web.Generator{tr: &transpiler.Transpiler{}}`,
+		Files: map[string]string{
+			"go.mod":  goMod,
+			"main.go": mainGo,
+			"web/web.go": `
+				package web
+				import "app.com/runtime/transpiler"
+				func Load(tr *transpiler.Transpiler) *Generator {
+					return &Generator{tr}
+				}
+				type Generator struct {
+					tr *transpiler.Transpiler
+				}
+			`,
+			"runtime/transpiler/transpiler.go": `
+				package transpiler
+				import "app.com/library/transpiler"
+				type Transpiler = transpiler.Transpiler
+			`,
+			"library/transpiler/transpiler.go": `
+				package transpiler
+				func New() *Transpiler {
+					return &Transpiler{}
+				}
+				type Transpiler struct {}
+			`,
+		},
+	})
+}
+
+func TestRuntimeAliasToLibraryStruct(t *testing.T) {
+	runTest(t, Test{
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []*di.Param{},
+			Results: []di.Dependency{
+				di.ToType("app.com/web", "*Generator"),
+			},
+			Aliases: di.Aliases{},
+		},
+		Expect: `&web.Generator{Transpiler: &transpiler.Transpiler{}}`,
+		Files: map[string]string{
+			"go.mod":  goMod,
+			"main.go": mainGo,
+			"web/web.go": `
+				package web
+				import "app.com/runtime/transpiler"
+				type Generator struct {
+					*transpiler.Transpiler
+				}
+			`,
+			"runtime/transpiler/transpiler.go": `
+				package transpiler
+				import "app.com/library/transpiler"
+				type Transpiler = transpiler.Transpiler
+			`,
+			"library/transpiler/transpiler.go": `
+				package transpiler
+				func New() *Transpiler {
+					return &Transpiler{}
+				}
+				type Transpiler struct {}
+			`,
+		},
+	})
+}
+
+func TestHTTPRequest(t *testing.T) {
+	runTest(t, Test{
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []*di.Param{
+				{Import: "context", Type: "Context", Hoist: true},
+				{Import: "net/http", Type: "*Request"},
+				{Import: "net/http", Type: "ResponseWriter"},
+			},
+			Results: []di.Dependency{
+				di.ToType("app.com/web", "*Controller"),
+			},
+			Aliases: di.Aliases{},
+		},
+		Expect: `
+			&web.Controller{Pool: &postgres.Pool{
+				Path: "/foo",
+			}}
+		`,
+		Files: map[string]string{
+			"go.mod": goMod,
+			"main.go": `
+				package main
+				import (
+					"os"
+					"fmt"
+					"github.com/hexops/valast"
+					"net/http/httptest"
+					"app.com/gen/web"
+				)
+				func main() {
+					req := httptest.NewRequest("GET", "http://example.com/foo", nil)
+					actual := web.Load(req)
+					fmt.Fprintf(os.Stdout, "%s\n", valast.String(actual))
+				}
+			`,
+			"web/web.go": `
+				package web
+				import "app.com/postgres"
+				type Controller struct {
+					Pool *postgres.Pool
+				}
+			`,
+			"postgres/pool.go": `
+				package postgres
+				import "net/http"
+				func New(r *http.Request) *Pool { return &Pool{r.URL.Path} }
+				type Pool struct { Path string }
+			`,
+		},
+	})
+}
+
 // TODO: figure out how to test imports as inputs
 
 // IDEA: consider renaming Target to Import

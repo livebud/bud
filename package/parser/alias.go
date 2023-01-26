@@ -7,6 +7,7 @@ import (
 type Alias struct {
 	file *File
 	ts   *ast.TypeSpec
+	kind Kind // Resolved kind
 }
 
 var _ Declaration = (*Alias)(nil)
@@ -20,7 +21,7 @@ func (a *Alias) Name() string {
 }
 
 func (a *Alias) Kind() Kind {
-	return KindAlias
+	return a.kind
 }
 
 // Private returns true if the field is private

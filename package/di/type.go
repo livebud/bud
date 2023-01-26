@@ -10,7 +10,6 @@ type Type struct {
 	Type   string
 
 	module *gomod.Module // Optional, defaults to project module
-	name   string        // Optional, defaults to assumed name + type
 	kind   parser.Kind   // Kind of type (e.g. struct, interface, etc.)
 }
 

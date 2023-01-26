@@ -82,6 +82,21 @@ func (i *Injector) Find(currModule *gomod.Module, dep Dependency) (Declaration, 
 		}).Debug("di: found struct declaration")
 		return decl, nil
 	}
+	// Lastly, look through the type aliases
+	for _, alias := range pkg.Aliases() {
+		decl, err := tryTypeAlias(alias, dep.TypeName())
+		if err != nil {
+			if err == ErrNoMatch {
+				continue
+			}
+			return nil, err
+		}
+		i.log.Fields(log.Fields{
+			"id":  decl.ID(),
+			"for": dep.ID(),
+		}).Debug("di: found struct declaration")
+		return decl, nil
+	}
 	// TODO: add breadcrumbs to help with finding the root of this error
 	return nil, fmt.Errorf("di: unclear how to provide %s", dep.ID())
 }
