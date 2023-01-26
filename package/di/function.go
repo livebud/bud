@@ -123,11 +123,11 @@ func tryFunction(fn *parser.Function, importPath, dataType string) (*function, e
 		}
 		def, err := param.Definition()
 		if err != nil {
-			importPath, err := parser.ImportPath(pt)
-			if err != nil {
+			typeImportPath, err2 := parser.ImportPath(pt)
+			if err2 != nil {
 				return nil, err
 			}
-			return nil, fmt.Errorf("di: unable to find definition for param %q.%s in %q.%s. %w", importPath, parser.Unqualify(pt).String(), importPath, dataType, err)
+			return nil, fmt.Errorf("di: unable to find definition for param %q.%s in %q.%s. %w", typeImportPath, parser.Unqualify(pt), importPath, dataType, err)
 		}
 		importPath, err := def.Package().Import()
 		if err != nil {
@@ -148,17 +148,16 @@ func tryFunction(fn *parser.Function, importPath, dataType string) (*function, e
 			function.Results = append(function.Results, &Type{
 				Import: importPath,
 				Type:   rt.String(),
-				kind:   parser.KindBuiltin,
 			})
 			continue
 		}
 		def, err := result.Definition()
 		if err != nil {
-			importPath, err := parser.ImportPath(rt)
-			if err != nil {
-				return nil, err
+			typeImportPath, err2 := parser.ImportPath(rt)
+			if err2 != nil {
+				return nil, err2
 			}
-			return nil, fmt.Errorf("di: unable to find definition for result %q.%s in %q.%s. %w", importPath, parser.Unqualify(rt).String(), importPath, dataType, err)
+			return nil, fmt.Errorf("di: unable to find definition for result %q.%s in %q.%s. %w", typeImportPath, parser.Unqualify(rt), importPath, dataType, err)
 		}
 		importPath, err := def.Package().Import()
 		if err != nil {

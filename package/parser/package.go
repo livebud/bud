@@ -105,21 +105,16 @@ type Kind uint8
 func (k Kind) String() string {
 	switch k {
 	case 1:
-		return "builtin"
-	case 2:
 		return "struct"
-	case 3:
+	case 2:
 		return "interface"
-	case 4:
-		return "alias"
 	default:
 		return "unknown"
 	}
 }
 
 const (
-	KindBuiltin Kind = 1 + iota
-	KindStruct
+	KindStruct Kind = 1 + iota
 	KindInterface
 )
 

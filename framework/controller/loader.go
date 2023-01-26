@@ -324,10 +324,10 @@ func (l *loader) loadActionParamName(param *parser.Param, nth int) string {
 }
 
 func (l *loader) loadType(dt parser.Type, dec parser.Declaration) string {
-	// TODO: Error out for certain built-ins (e.g. chan)
-	if dec.Kind() == parser.KindBuiltin {
-		return dt.String()
-	}
+	// // TODO: Error out for certain built-ins (e.g. chan)
+	// if dec.Kind() == parser.KindBuiltin {
+	// 	return dt.String()
+	// }
 	// Find the import path
 	importPath, err := dec.Package().Import()
 	if err != nil {

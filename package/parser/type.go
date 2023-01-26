@@ -307,6 +307,9 @@ func (t *IdentType) Unqualify() Type {
 
 // Definition returns the type definition
 func (t *IdentType) Definition() (Declaration, error) {
+	if gois.Builtin(t.n.Name) {
+		return nil, fmt.Errorf("parser: builtin type %q doesn't have a definition", t.n.Name)
+	}
 	pkg := t.f.File().Package()
 	return pkg.definition(t.n.Name)
 }
