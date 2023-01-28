@@ -6,6 +6,13 @@ Get the latest release of Bud by running the following in your terminal:
 curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
 ```
 
+## v0.2.8
+
+- Added beta support for `generator/` and `transpiler/` generators. Docs coming in a later release, but you can look at the tests for example usage if you're feeling adventurous.
+- Added better support for type aliases to dependency injection.
+- Fixed an issue where transition state between changes in the controller would
+  lead to the generated controller getting removed.
+
 ## v0.2.7
 
 - Fixed a small regression in `bud create` (#360)
