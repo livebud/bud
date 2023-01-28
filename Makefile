@@ -244,6 +244,7 @@ publish:
 	@ git push origin main "v$(BUD_VERSION)"
 	@ gh release create --notes-file=release/changelog.md "v$(BUD_VERSION)" release/bud_* release/checksums.txt
 
+sanity:
 	@ echo "Running post-release sanity test..."
 	@ go test --ldflags="-s -w -X 'github.com/livebud/bud/internal/versions.Bud=$(BUD_VERSION)'" \
 		./internal/cli/create_test.go -run "TestReleaseVersionOk"
