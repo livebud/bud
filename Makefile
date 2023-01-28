@@ -217,10 +217,6 @@ publish:
 	@ echo "Checking for unpushed commits..." && git fetch
 	@ test "" = "`git cherry`" || (echo "Refusing to publish with unpushed commits" && false)
 
-	@ echo "Running sanity tests..."
-	@ go test --ldflags="-s -w -X 'github.com/livebud/bud/internal/versions.Bud=$(BUD_VERSION)'" \
-		./internal/cli/create_test.go -run "TestReleaseVersionOk"
-
 	@ echo "Building binaries into ./release..."
 	@ $(MAKE) --no-print-directory build
 	@ go run scripts/generate-changelog/main.go "v$(BUD_VERSION)" > release/changelog.md
@@ -247,6 +243,10 @@ publish:
 	@ echo "Publishing the release on Github"
 	@ git push origin main "v$(BUD_VERSION)"
 	@ gh release create --notes-file=release/changelog.md "v$(BUD_VERSION)" release/bud_* release/checksums.txt
+
+	@ echo "Running post-release sanity test..."
+	@ go test --ldflags="-s -w -X 'github.com/livebud/bud/internal/versions.Bud=$(BUD_VERSION)'" \
+		./internal/cli/create_test.go -run "TestReleaseVersionOk"
 
 ##
 # E2E
