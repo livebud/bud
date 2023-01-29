@@ -10,6 +10,7 @@ import (
 )
 
 type File = transpiler.File
+
 type Interface = transpiler.Interface
 
 func New() *Transpiler {
@@ -48,4 +49,10 @@ func Serve(tr transpiler.Interface, fsys fs.FS, file *genfs.File) error {
 	}
 	file.Data = output
 	return nil
+}
+
+type FS = fs.FS
+
+type Client struct {
+	FS FS
 }

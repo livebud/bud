@@ -21,15 +21,15 @@ import (
 	"github.com/livebud/bud/package/viewer"
 )
 
-func New(log log.Log, module *gomod.Module, transpiler transpiler.Interface, vm js.VM) *Viewer {
-	return &Viewer{log, module, transpiler, vm}
+func New(log log.Log, module *gomod.Module, tr *transpiler.Client, vm js.VM) *Viewer {
+	return &Viewer{log, module, tr, vm}
 }
 
 type Viewer struct {
-	log        log.Log
-	module     *gomod.Module
-	transpiler transpiler.Interface
-	vm         js.VM
+	log    log.Log
+	module *gomod.Module
+	tr     *transpiler.Client
+	vm     js.VM
 }
 
 var _ viewer.Viewer = (*Viewer)(nil)

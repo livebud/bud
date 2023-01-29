@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/livebud/bud/internal/errs"
+
 	"github.com/livebud/bud/internal/gois"
 	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/package/parser"
@@ -123,9 +125,9 @@ func tryFunction(fn *parser.Function, importPath, dataType string) (*function, e
 		}
 		def, err := param.Definition()
 		if err != nil {
-			importPath, err := parser.ImportPath(pt)
-			if err != nil {
-				return nil, err
+			importPath, err2 := parser.ImportPath(pt)
+			if err2 != nil {
+				err = errs.Join(err, err2)
 			}
 			return nil, fmt.Errorf("di: unable to find definition for param %q.%s in %q.%s. %w", importPath, parser.Unqualify(pt).String(), importPath, dataType, err)
 		}
@@ -154,9 +156,9 @@ func tryFunction(fn *parser.Function, importPath, dataType string) (*function, e
 		}
 		def, err := result.Definition()
 		if err != nil {
-			importPath, err := parser.ImportPath(rt)
-			if err != nil {
-				return nil, err
+			importPath, err2 := parser.ImportPath(rt)
+			if err2 != nil {
+				err = errs.Join(err, err2)
 			}
 			return nil, fmt.Errorf("di: unable to find definition for result %q.%s in %q.%s. %w", importPath, parser.Unqualify(rt).String(), importPath, dataType, err)
 		}

@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/gois"
 	"github.com/livebud/bud/internal/valid"
 
@@ -21,13 +22,14 @@ import (
 	"github.com/matthewmueller/text"
 )
 
-func Load(fsys fs.FS, injector *di.Injector, module *gomod.Module, parser *parser.Parser) (*State, error) {
+func Load(flag *framework.Flag, fsys fs.FS, injector *di.Injector, module *gomod.Module, parser *parser.Parser) (*State, error) {
 	if files, err := fs.Glob(fsys, "{controller/**.go,view/**}"); err != nil {
 		return nil, err
 	} else if len(files) == 0 {
 		return nil, fs.ErrNotExist
 	}
 	loader := &loader{
+		flag:      flag,
 		fsys:      fsys,
 		providers: newProviderSet(),
 		imports:   imports.New(),
@@ -41,6 +43,7 @@ func Load(fsys fs.FS, injector *di.Injector, module *gomod.Module, parser *parse
 // loader struct
 type loader struct {
 	bail.Struct
+	flag      *framework.Flag
 	fsys      fs.FS
 	injector  *di.Injector
 	imports   *imports.Set
@@ -520,7 +523,7 @@ func (l *loader) loadProvider(controller *Controller, method *parser.Function) *
 		l.Bail(err)
 	}
 	fnName := gotext.Camel("load " + controller.Name + " " + def.Name())
-	provider, err := l.injector.Wire(&di.Function{
+	fn := &di.Function{
 		Name:    fnName,
 		Target:  l.module.Import("bud", "controller"),
 		Imports: l.imports,
@@ -534,11 +537,16 @@ func (l *loader) loadProvider(controller *Controller, method *parser.Function) *
 		},
 		Params: []*di.Param{
 			{Import: "context", Type: "Context", Hoist: true},
+			{Import: "github.com/livebud/bud/package/log", Type: "Log", Hoist: true},
+			{Import: "github.com/livebud/bud/package/budhttp", Type: "Client", Hoist: true},
+			{Import: "github.com/livebud/bud/package/remotefs", Type: "*Client", Hoist: true},
+			{Import: "github.com/livebud/bud/package/js", Type: "VM", Hoist: true},
+			{Import: "github.com/livebud/bud/runtime/transpiler", Type: "FS", Hoist: true},
 			{Import: "net/http", Type: "*Request"},
 			{Import: "net/http", Type: "ResponseWriter"},
 		},
-		Aliases: di.Aliases{},
-	})
+	}
+	provider, err := l.injector.Wire(fn)
 	if err != nil {
 		l.Bail(err)
 	}

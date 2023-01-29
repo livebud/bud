@@ -56,6 +56,7 @@ func (l *loader) loadProvider() *di.Provider {
 	// TODO: the public generator should be able to configure this
 	publicFS := di.ToType("github.com/livebud/bud/framework/public/publicrt", "FS")
 	viewFS := di.ToType("github.com/livebud/bud/framework/view/viewrt", "FS")
+	transpilerFS := di.ToType("github.com/livebud/bud/runtime/transpiler", "FS")
 	fn := &di.Function{
 		Name:    "loadWeb",
 		Imports: l.imports,
@@ -72,15 +73,17 @@ func (l *loader) loadProvider() *di.Provider {
 			&di.Error{},
 		},
 		Aliases: di.Aliases{
-			publicFS: di.ToType("github.com/livebud/bud/package/remotefs", "*Client"),
-			viewFS:   di.ToType("github.com/livebud/bud/package/remotefs", "*Client"),
-			jsVM:     di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
+			publicFS:     di.ToType("github.com/livebud/bud/package/remotefs", "*Client"),
+			viewFS:       di.ToType("github.com/livebud/bud/package/remotefs", "*Client"),
+			transpilerFS: di.ToType("github.com/livebud/bud/package/remotefs", "*Client"),
+			jsVM:         di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
 		},
 	}
 	if l.flag.Embed {
 		fn.Aliases[jsVM] = di.ToType("github.com/livebud/bud/package/js/v8", "*VM")
 		fn.Aliases[publicFS] = di.ToType(l.module.Import("bud/internal/web/public"), "FS")
 		fn.Aliases[viewFS] = di.ToType(l.module.Import("bud/internal/web/view"), "FS")
+		fn.Aliases[transpilerFS] = di.ToType(l.module.Import("bud/internal/transpiler"), "FS")
 	}
 	provider, err := l.injector.Wire(fn)
 	if err != nil {

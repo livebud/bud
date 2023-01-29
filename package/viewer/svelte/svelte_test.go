@@ -156,7 +156,7 @@ func loadViewer(t testing.TB, fsys fs.FS) *svelte.Viewer {
 	// 		},
 	// 	},
 	// )
-	return svelte.New(fsys, log, module, tr, vm)
+	return svelte.New(log, module, tr, vm)
 }
 
 func TestServeViewSSR(t *testing.T) {

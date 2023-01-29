@@ -8,16 +8,23 @@ import (
 	"github.com/livebud/bud/framework/controller/controllerrt/request"
 	"github.com/livebud/bud/package/log/console"
 	"github.com/livebud/bud/package/viewer"
+	"github.com/livebud/bud/package/viewer/svelte"
 )
 
-// func NewViewer(svelteViewer *svelte.Viewer) *Viewer {
-// 	return &Viewer{}
-// }
+func NewViewer(svelteViewer *svelte.Viewer) *Viewer {
+	return &Viewer{svelteViewer}
+}
 
 type SvelteViewer struct{}
 type HTMLViewer struct{}
 
+type Viewers map[string]viewer.Viewer
+
+func (vs Viewers) Render(key string, propMap *viewer.Page) {
+}
+
 type Viewer struct {
+	svelteViewer *svelte.Viewer
 }
 
 func New(layoutFrame *controller.Controller, viewer *Viewer) *Controller {
