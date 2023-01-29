@@ -115,7 +115,7 @@ Finally, reload the page and you should be good to go. Happy hacking!
 
 ## Issues to Work On
 
-Issues with the [good first issue]() or [help wanted](https://github.com/livebud/bud/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) labels would be good candidates to work on.
+Issues with the [good first issue](https://github.com/livebud/bud/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3A%22good+first+issue%22) or [help wanted](https://github.com/livebud/bud/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) labels would be good candidates to work on.
 
 ## Running Tests
 
