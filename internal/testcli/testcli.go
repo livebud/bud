@@ -314,7 +314,11 @@ func coerceMimes(res *http.Response) error {
 }
 
 func (c *Client) Do(req *http.Request) (*Response, error) {
-	res, err := c.webc.Do(req)
+	return do(c.webc, req)
+}
+
+func do(client *http.Client, req *http.Request) (*Response, error) {
+	res, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -367,24 +371,24 @@ func (c *Client) Ready(ctx context.Context) error {
 
 func (c *Client) Get(path string) (*Response, error) {
 	c.log.Debug("testcli: get request %q", path)
-	req, err := c.GetRequest(path)
+	req, err := getRequest(path)
 	if err != nil {
 		return nil, err
 	}
-	return c.Do(req)
+	return do(c.webc, req)
 }
 
 func (c *Client) GetJSON(path string) (*Response, error) {
 	c.log.Debug("testcli: get json request %q", path)
-	req, err := c.GetRequest(path)
+	req, err := getRequest(path)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
-	return c.Do(req)
+	return do(c.webc, req)
 }
 
-func (c *Client) GetRequest(path string) (*http.Request, error) {
+func getRequest(path string) (*http.Request, error) {
 	return http.NewRequest(http.MethodGet, getURL(path), nil)
 }
 
@@ -394,7 +398,7 @@ func (c *Client) Post(path string, body io.Reader) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return c.Do(req)
+	return do(c.webc, req)
 }
 
 func (c *Client) PostJSON(path string, body io.Reader) (*Response, error) {
@@ -405,7 +409,7 @@ func (c *Client) PostJSON(path string, body io.Reader) (*Response, error) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	return c.Do(req)
+	return do(c.webc, req)
 }
 
 func (c *Client) PostRequest(path string, body io.Reader) (*http.Request, error) {
@@ -418,7 +422,7 @@ func (c *Client) Patch(path string, body io.Reader) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return c.Do(req)
+	return do(c.webc, req)
 }
 
 func (c *Client) PatchJSON(path string, body io.Reader) (*Response, error) {
@@ -429,7 +433,7 @@ func (c *Client) PatchJSON(path string, body io.Reader) (*Response, error) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	return c.Do(req)
+	return do(c.webc, req)
 }
 
 func (c *Client) PatchRequest(path string, body io.Reader) (*http.Request, error) {
@@ -442,7 +446,7 @@ func (c *Client) Delete(path string, body io.Reader) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	return c.Do(req)
+	return do(c.webc, req)
 }
 
 func (c *Client) DeleteJSON(path string, body io.Reader) (*Response, error) {
@@ -453,7 +457,7 @@ func (c *Client) DeleteJSON(path string, body io.Reader) (*Response, error) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	return c.Do(req)
+	return do(c.webc, req)
 }
 
 func (c *Client) DeleteRequest(path string, body io.Reader) (*http.Request, error) {

@@ -56,6 +56,7 @@ func (l *loader) loadProvider() *di.Provider {
 	// TODO: the public generator should be able to configure this
 	publicFS := di.ToType("github.com/livebud/bud/framework/public/publicrt", "FS")
 	viewFS := di.ToType("github.com/livebud/bud/framework/view/viewrt", "FS")
+	transpilerFS := di.ToType("github.com/livebud/bud/runtime/transpiler", "FS")
 	fn := &di.Function{
 		Name:    "loadWeb",
 		Imports: l.imports,
@@ -72,9 +73,10 @@ func (l *loader) loadProvider() *di.Provider {
 			&di.Error{},
 		},
 		Aliases: di.Aliases{
-			publicFS: di.ToType("github.com/livebud/bud/package/remotefs", "*Client"),
-			viewFS:   di.ToType("github.com/livebud/bud/package/remotefs", "*Client"),
-			jsVM:     di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
+			transpilerFS: di.ToType("github.com/livebud/bud/package/remotefs", "*Client"),
+			publicFS:     di.ToType("github.com/livebud/bud/runtime/transpiler", "*Proxy"),
+			viewFS:       di.ToType("github.com/livebud/bud/package/remotefs", "*Client"),
+			jsVM:         di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
 		},
 	}
 	if l.flag.Embed {
