@@ -1,11 +1,13 @@
 package public
 
 import (
+	"errors"
 	"io/fs"
 	"path"
 	"strings"
 
 	"github.com/livebud/bud/internal/valid"
+	"github.com/livebud/bud/runtime/transpiler"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/package/finder"
@@ -68,14 +70,20 @@ func (l *loader) loadFiles(paths []string) (files []*File) {
 	return files
 }
 
-func (l *loader) loadFile(path string) *File {
+func (l *loader) loadFile(fpath string) *File {
 	file := new(File)
-	file.Path = path
-	file.Route = strings.TrimPrefix(path, "public")
+	file.Path = fpath
+	file.Route = strings.TrimPrefix(fpath, "public")
 	if l.flag.Embed {
-		data, err := fs.ReadFile(l.fsys, path)
+		data, err := transpiler.TranspileFile(l.fsys, fpath, path.Ext(fpath))
 		if err != nil {
-			l.Bail(err)
+			if !errors.Is(err, fs.ErrNotExist) {
+				l.Bail(err)
+			}
+			data, err = fs.ReadFile(l.fsys, fpath)
+			if err != nil {
+				l.Bail(err)
+			}
 		}
 		file.Data = data
 	}

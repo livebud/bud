@@ -1,6 +1,7 @@
 package transpiler
 
 import (
+	"errors"
 	"io/fs"
 	"path"
 	"strings"
@@ -29,14 +30,17 @@ func splitRoot(fpath string) (rootDir, remainingPath string) {
 	return parts[0], parts[1]
 }
 
+// Aliasing allows us to target the transpiler filesystem directly
+type FS = fs.FS
+
 // TranspileFile transpiles a file from one extension to another. It assumes
 // the transpiler generator is hooked up and serving from the transpiler
 // directory.
-func TranspileFile(fsys fs.FS, inputPath, toExt string) ([]byte, error) {
+func TranspileFile(fsys FS, inputPath, toExt string) ([]byte, error) {
 	return fs.ReadFile(fsys, path.Join(transpilerDir, toExt, inputPath))
 }
 
-func Serve(tr transpiler.Interface, fsys fs.FS, file *genfs.File) error {
+func Serve(tr transpiler.Interface, fsys FS, file *genfs.File) error {
 	toExt, inputPath := splitRoot(file.Relative())
 	input, err := fs.ReadFile(fsys, inputPath)
 	if err != nil {
@@ -48,4 +52,20 @@ func Serve(tr transpiler.Interface, fsys fs.FS, file *genfs.File) error {
 	}
 	file.Data = output
 	return nil
+}
+
+// Proxy a filesystem through the transpiler
+type Proxy struct {
+	FS FS
+}
+
+func (p *Proxy) Open(name string) (fs.File, error) {
+	file, err := p.FS.Open(path.Join(transpilerDir, path.Ext(name), name))
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return nil, err
+		}
+		return p.FS.Open(name)
+	}
+	return file, nil
 }

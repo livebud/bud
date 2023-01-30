@@ -149,8 +149,48 @@ func TestGetChangeGet(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(200, res.Status())
 	is.Equal(res.Body().Bytes(), favicon2)
-	// is.Equal(result.Stdout(), "")
-	// is.Equal(result.Stderr(), "")
+}
+
+func TestTranspiledGetChangeGet(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	favicon := []byte{0x01, 0x02, 0x03}
+	td.BFiles["public/favicon.ico"] = favicon
+	td.Files["transpiler/favicon/favicon.go"] = `
+		package favicon
+		import "github.com/livebud/bud/runtime/transpiler"
+		type Transpiler struct{}
+		func (t *Transpiler) IcoToIco(file *transpiler.File) error {
+			for i, b := range file.Data {
+				file.Data[i] = b + 1
+			}
+			return nil
+		}
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	app, err := cli.Start(ctx, "run")
+	is.NoErr(err)
+	defer app.Close()
+	res, err := app.Get("/favicon.ico")
+	is.NoErr(err)
+	is.Equal(200, res.Status())
+	is.Equal(res.Body().Bytes(), []byte{0x02, 0x03, 0x04})
+	is.NoErr(td.Exists("bud/internal/web/public/public.go"))
+	// Favicon2
+	favicon2 := []byte{0x10, 0x11, 0x12}
+	td.BFiles["public/favicon.ico"] = favicon2
+	is.NoErr(td.Write(ctx))
+	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	is.NoErr(app.Ready(readyCtx))
+	cancel()
+	is.NoErr(td.Exists("bud/internal/web/public/public.go"))
+	res, err = app.Get("/favicon.ico")
+	is.NoErr(err)
+	is.Equal(200, res.Status())
+	is.Equal(res.Body().Bytes(), []byte{0x11, 0x12, 0x13})
 }
 
 func TestEmbedFavicon(t *testing.T) {
@@ -181,5 +221,51 @@ func TestEmbedFavicon(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(200, res.Status())
 	is.Equal(res.Body().Bytes(), favicon)
+	is.NoErr(app.Close())
+}
+
+func TestTranspiledEmbedFavicon(t *testing.T) {
+	is := is.New(t)
+	ctx := context.Background()
+	dir := t.TempDir()
+	td := testdir.New(dir)
+	td.BFiles["public/favicon.ico"] = favicon
+	td.Files["transpiler/favicon/favicon.go"] = `
+		package favicon
+		import "github.com/livebud/bud/runtime/transpiler"
+		type Transpiler struct{}
+		func (t *Transpiler) IcoToIco(file *transpiler.File) error {
+			file.Data = []byte{0x01, 0x02, 0x03}
+			return nil
+		}
+	`
+	is.NoErr(td.Write(ctx))
+	cli := testcli.New(dir)
+	result, err := cli.Run(ctx, "build")
+	is.NoErr(err)
+	is.Equal(result.Stdout(), "")
+	is.Equal(result.Stderr(), "")
+	app, err := cli.StartApp(ctx)
+	is.NoErr(err)
+	defer app.Close()
+	res, err := app.Get("/favicon.ico")
+	is.NoErr(err)
+	is.Equal(200, res.Status())
+	is.Equal(res.Body().Bytes(), []byte{0x01, 0x02, 0x03})
+	// Replace favicon
+	favicon2 := []byte{0x00, 0x00, 0x01}
+	td.BFiles["public/favicon.ico"] = favicon2
+	is.NoErr(td.Write(ctx))
+	is.NoErr(app.Close())
+	// Restart app
+	app, err = cli.StartApp(ctx)
+	is.NoErr(err)
+	defer app.Close()
+	// Favicon shouldn't have changed because non-Go files don't trigger
+	// full rebuilds and server restarts
+	res, err = app.Get("/favicon.ico")
+	is.NoErr(err)
+	is.Equal(200, res.Status())
+	is.Equal(res.Body().Bytes(), []byte{0x01, 0x02, 0x03})
 	is.NoErr(app.Close())
 }
