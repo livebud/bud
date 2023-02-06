@@ -363,7 +363,7 @@ func (t *SelectorType) Unqualify() Type {
 func (t *SelectorType) Definition() (Declaration, error) {
 	decl, err := t.definition()
 	if err != nil {
-		return nil, fmt.Errorf("parser: unable to find declaration for %s in %q. %w", FullName(t), t.f.File().Path(), err)
+		return nil, fmt.Errorf("parser: unable to find selector definition for %s in %q. %w", FullName(t), t.f.File().Path(), err)
 	}
 	return decl, nil
 }

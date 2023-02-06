@@ -41,7 +41,7 @@ func (g *Generator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
 	}
 	state, err := Load(g.injector, g.log, g.module)
 	if err != nil {
-		return fmt.Errorf("framework/afs: unable to load state %w", err)
+		return fmt.Errorf("framework/afs: unable to load state. %w", err)
 	}
 	code, err := Generate(state)
 	if err != nil {

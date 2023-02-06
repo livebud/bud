@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/livebud/bud/package/modcache"
+
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/versions"
@@ -99,9 +101,16 @@ func (c *CLI) Generate(ctx context.Context, in *Generate) (err error) {
 
 	// Sync genfs to the filesystem
 	skips = append(skips, afsSkips...)
+retryAFSSync:
 	log.Debug("syncing afs")
 	if err := dsync.To(genfs, module, "bud", dsync.WithSkip(skips...), dsync.WithLog(log)); err != nil {
-		if !errors.Is(err, fs.ErrNotExist) {
+		if isModuleNotFound(err) {
+			// If the module is not found, run `go mod download` to try and recover
+			if err := c.command(module.Directory(), "go", "mod", "download").Run(); err != nil {
+				return err
+			}
+			goto retryAFSSync
+		} else if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
 	}
@@ -149,9 +158,16 @@ func (c *CLI) Generate(ctx context.Context, in *Generate) (err error) {
 
 	// Sync the app files again with the remote filesystem
 	skips = append(skips, appSkips...)
+retryAppSync:
 	log.Debug("syncing app")
 	if err := dsync.To(afsClient, module, "bud", dsync.WithSkip(skips...), dsync.WithLog(log)); err != nil {
-		if !errors.Is(err, fs.ErrNotExist) {
+		if isModuleNotFound(err) {
+			// If the module is not found, run `go mod download` to try and recover
+			if err := c.command(module.Directory(), "go", "mod", "download").Run(); err != nil {
+				return err
+			}
+			goto retryAppSync
+		} else if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
 	}
@@ -260,4 +276,9 @@ func needsAppBinary(paths []string) bool {
 		}
 	}
 	return false
+}
+
+// We can't use errors.Is, because this error cross the process boundary.
+func isModuleNotFound(err error) bool {
+	return strings.Contains(err.Error(), modcache.ErrModuleNotFound.Error())
 }

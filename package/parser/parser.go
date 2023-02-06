@@ -77,7 +77,7 @@ func Check(code []byte) error {
 	fset := token.NewFileSet()
 	_, err := parser.ParseFile(fset, "", code, parser.DeclarationErrors)
 	if err != nil {
-		return fmt.Errorf("parser: unable to parse code the following:\n\n%s\n%w", string(code), err)
+		return fmt.Errorf("parser: unable to parse code the following:\n\n%s. %w", string(code), err)
 	}
 	return nil
 }

@@ -51,7 +51,7 @@ type loader struct {
 
 // load fn
 func (l *loader) Load() (state *State, err error) {
-	defer l.Recover2(&err, "controller: unable to load")
+	defer l.Recover2(&err, "controller: unable to load state")
 	state = new(State)
 	state.Controller = l.loadController("controller")
 	state.Providers = l.providers.List()
@@ -379,7 +379,7 @@ func (l *loader) loadActionResults(results []*parser.Result) (outputs []*ActionR
 func (l *loader) loadActionResult(order int, result *parser.Result) *ActionResult {
 	def, err := result.Definition()
 	if err != nil {
-		l.Bail(fmt.Errorf("controller: unable to load result definition for %s . %w", result.Type(), err))
+		l.Bail(fmt.Errorf("controller: unable to load result definition for %s. %w", result.Type(), err))
 	}
 	output := new(ActionResult)
 	output.Name = l.loadActionResultName(order, result)

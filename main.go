@@ -6,6 +6,7 @@ import (
 	"os"
 
 	cli "github.com/livebud/bud/internal/cli"
+	"github.com/livebud/bud/internal/errs"
 	"github.com/livebud/bud/internal/once"
 	"github.com/livebud/bud/package/log/console"
 )
@@ -16,7 +17,7 @@ import (
 func main() {
 	ctx := context.Background()
 	if err := run(ctx); err != nil {
-		console.Error(err.Error())
+		console.Error(errs.Format(err))
 		os.Exit(1)
 	}
 	os.Exit(0)
