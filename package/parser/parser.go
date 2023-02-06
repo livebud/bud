@@ -53,7 +53,7 @@ func (p *Parser) Parse(dir string) (*Package, error) {
 		}
 		parsedPackage.Files[filename] = parsedFile
 	}
-	pkg := newPackage(dir, p, p.module, parsedPackage)
+	pkg := newPackage(imported.Dir, p, p.module, parsedPackage)
 	return pkg, nil
 }
 
