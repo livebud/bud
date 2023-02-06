@@ -33,7 +33,7 @@ require (
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/tools v0.1.11-0.20220513221640-090b14e8501f
 	honnef.co/go/tools v0.3.3
-	rogchap.com/v8go v0.7.0
+	rogchap.com/v8go v0.8.0
 	src.techknowlogick.com/xgo v1.4.1-0.20220413212431-091a0a22b814
 )
 
