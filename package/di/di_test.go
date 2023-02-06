@@ -2540,7 +2540,7 @@ func TestRuntimeAliasTo3rdPartyLibrary(t *testing.T) {
 				go 1.17
 				require (
 					github.com/hexops/valast v1.4.1
-					github.com/livebud/transpiler v0.0.1
+					github.com/livebud/transpiler v0.0.3
 				)
 			`,
 			"main.go": mainGo,
