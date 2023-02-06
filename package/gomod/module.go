@@ -91,12 +91,23 @@ func (m *Module) ReadDir(name string) ([]fs.DirEntry, error) {
 }
 
 // ResolveImport returns an import path from a local directory.
-func (m *Module) ResolveImport(directory string) (importPath string, err error) {
-	relPath, err := filepath.Rel(m.dir, filepath.Clean(directory))
+func (m *Module) ResolveImport(dir string) (importPath string, err error) {
+	return m.resolveImport(dir, true)
+}
+
+func (m *Module) resolveImport(dir string, evalSymlinks bool) (string, error) {
+	relPath, err := filepath.Rel(m.dir, dir)
 	if err != nil {
 		return "", err
 	} else if strings.HasPrefix(relPath, "..") {
-		return "", fmt.Errorf("%q can't be outside the module directory %q", directory, m.dir)
+		if !evalSymlinks {
+			return "", fmt.Errorf("module: unable to resolve import. %q can't be outside the module directory %q", dir, m.dir)
+		}
+		// Maybe the directory is a symlink, resolve that symlink and try again.
+		if dir, err = filepath.EvalSymlinks(dir); err != nil {
+			return "", fmt.Errorf("module: unable to resolve import for %q. %w", dir, err)
+		}
+		return m.resolveImport(dir, false)
 	}
 	return m.Import(relPath), nil
 }
