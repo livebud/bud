@@ -250,8 +250,10 @@ func TestAliasLookupModule(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 	td := testdir.New(dir)
-	version := "v0.0.1"
-	td.Modules["github.com/livebud/transpiler"] = version
+	budModule, err := gomod.Find(".")
+	is.NoErr(err)
+	dep := budModule.File().Require("github.com/livebud/transpiler")
+	td.Modules["github.com/livebud/transpiler"] = dep.Version
 	is.NoErr(td.Write(ctx))
 	module, err := gomod.Find(dir)
 	is.NoErr(err)
@@ -297,5 +299,5 @@ func TestAliasLookupModule(t *testing.T) {
 	importPath, err = pkg.Import()
 	is.NoErr(err)
 	is.Equal(importPath, "github.com/livebud/transpiler")
-	is.Equal(pkg.Directory(), path.Join(module.ModCache(), "github.com/livebud/transpiler@"+version))
+	is.Equal(pkg.Directory(), path.Join(module.ModCache(), "github.com/livebud/transpiler@"+dep.Version))
 }
