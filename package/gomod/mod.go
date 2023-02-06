@@ -15,9 +15,6 @@ import (
 	"golang.org/x/mod/modfile"
 )
 
-// ErrCantInfer occurs when you can't infer the module path from the $GOPATH.
-var ErrCantInfer = errors.New("mod: unable to infer the module path")
-
 // ErrFileNotFound occurs when no go.mod can be found
 var ErrFileNotFound = fmt.Errorf("unable to find go.mod: %w", fs.ErrNotExist)
 
@@ -51,7 +48,7 @@ func Find(dir string, options ...Option) (*Module, error) {
 func find(opt *option, dir string) (*Module, error) {
 	moduleDir, err := Absolute(dir)
 	if err != nil {
-		return nil, fmt.Errorf("%w in %q", ErrFileNotFound, dir)
+		return nil, fmt.Errorf("module: %q %w", dir, ErrFileNotFound)
 	}
 	modulePath := filepath.Join(moduleDir, "go.mod")
 	moduleData, err := os.ReadFile(modulePath)

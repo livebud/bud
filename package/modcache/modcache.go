@@ -12,6 +12,9 @@ import (
 	"golang.org/x/mod/semver"
 )
 
+// ErrModuleNotFound occurs when a go.mod module hasn't been downloaded yet
+var ErrModuleNotFound = errors.New("module not found")
+
 // Default loads a module cache from the default location
 func Default() *Cache {
 	return New(getModDir())
@@ -47,18 +50,18 @@ func SplitPathVersion(pathVersion string) (path, version string, err error) {
 	return path, version, nil
 }
 
-// ResolveDirectory returns the directory to which m should have been
+// ResolveDirectory returns the directory to which the module should have been
 // downloaded. An error will be returned if the module path or version cannot be
-// escaped. An error satisfying errors.Is(err, os.ErrNotExist) will be returned
-// along with the directory if the directory does not exist or if the directory
-// is not completely populated.
+// escaped. An error satisfying errors.Is(err, ErrModuleNotFound) will be
+// returned along with the directory if the directory does not exist or if the
+// directory is not completely populated.
 func (c *Cache) ResolveDirectory(modulePath, version string) (string, error) {
 	dir, err := c.getModuleDirectory(modulePath, version)
 	if err != nil {
 		return "", err
 	}
 	if fi, err := os.Stat(dir); os.IsNotExist(err) {
-		return "", err
+		return "", fmt.Errorf("modcache: %s@%s %w", modulePath, version, ErrModuleNotFound)
 	} else if err != nil {
 		return "", &downloadDirPartialError{dir, err}
 	} else if !fi.IsDir() {

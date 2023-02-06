@@ -39,7 +39,7 @@ type Generator struct {
 func (g *Generator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
 	state, err := Load(fsys, g.injector, g.module, g.parser)
 	if err != nil {
-		return fmt.Errorf("framework/controller: unable to load. %w", err)
+		return fmt.Errorf("controller: unable to load. %w", err)
 	}
 	code, err := Generate(state)
 	if err != nil {
