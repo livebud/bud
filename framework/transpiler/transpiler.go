@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/internal/valid"
@@ -25,12 +24,11 @@ var template string
 var generator = gotemplate.MustParse("framework/transpiler/transpiler.gotext", template)
 
 // New transpiler generator
-func New(flag *framework.Flag, log log.Log, module *gomod.Module, parser *parser.Parser) *Generator {
-	return &Generator{flag, log, module, parser}
+func New(log log.Log, module *gomod.Module, parser *parser.Parser) *Generator {
+	return &Generator{log, module, parser}
 }
 
 type Generator struct {
-	flag   *framework.Flag
 	log    log.Log
 	module *gomod.Module
 	parser *parser.Parser
