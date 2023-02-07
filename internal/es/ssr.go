@@ -2,10 +2,11 @@ package es
 
 import (
 	"fmt"
-	"io/fs"
+	"path/filepath"
 	"strings"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
+	"github.com/livebud/bud/package/virtual"
 )
 
 // TODO: replace with *gomod.Module
@@ -50,7 +51,7 @@ func (b *Builder) Build(build *Build) ([]byte, error) {
 		EntryPointsAdvanced: []esbuild.EntryPoint{
 			{
 				InputPath:  build.Entrypoint,
-				OutputPath: build.Entrypoint,
+				OutputPath: strings.TrimSuffix(build.Entrypoint, ".js"),
 			},
 		},
 		AbsWorkingDir: b.base.AbsWorkingDir,
@@ -89,6 +90,53 @@ type Bundle struct {
 	Minify      bool
 }
 
-func (b *Builder) Bundle(out fs.FS, bundle *Bundle) error {
+func (b *Builder) Bundle(fsys virtual.FS, bundle *Bundle) error {
+	entries := make([]esbuild.EntryPoint, len(bundle.Entrypoints))
+	for i, entry := range bundle.Entrypoints {
+		entries[i] = esbuild.EntryPoint{
+			InputPath:  entry,
+			OutputPath: strings.TrimSuffix(entry, ".js"),
+		}
+	}
+	input := esbuild.BuildOptions{
+		EntryPointsAdvanced: entries,
+		AbsWorkingDir:       b.base.AbsWorkingDir,
+		Outdir:              b.base.Outdir,
+		Format:              b.base.Format,
+		Platform:            b.base.Platform,
+		GlobalName:          b.base.GlobalName,
+		Bundle:              b.base.Bundle,
+		Metafile:            b.base.Metafile,
+		Plugins:             append(bundle.Plugins, b.base.Plugins...),
+	}
+	if bundle.Minify {
+		input.MinifyWhitespace = true
+		input.MinifyIdentifiers = true
+		input.MinifySyntax = true
+	}
+	result := esbuild.Build(input)
+	if len(result.Errors) > 0 {
+		msgs := esbuild.FormatMessages(result.Errors, esbuild.FormatMessagesOptions{
+			Color: true,
+			Kind:  esbuild.ErrorMessage,
+		})
+		return fmt.Errorf(strings.Join(msgs, "\n"))
+	}
+	for _, file := range result.OutputFiles {
+		dir, err := filepath.EvalSymlinks(b.dir)
+		if err != nil {
+			return err
+		}
+		relPath, err := filepath.Rel(dir, file.Path)
+		if err != nil {
+			return err
+		}
+		if err := fsys.MkdirAll(filepath.Dir(relPath), 0755); err != nil {
+			return err
+		}
+		if err := fsys.WriteFile(relPath, file.Contents, 0644); err != nil {
+			return err
+		}
+	}
 	return nil
 }

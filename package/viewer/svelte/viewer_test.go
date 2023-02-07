@@ -18,7 +18,7 @@ import (
 	v8 "github.com/livebud/js/v8"
 )
 
-func loadViewer(dir string, fsys fs.FS) (*svelte.Viewer, error) {
+func loadViewer(dir string, fsys fs.FS, pages map[string]*viewer.Page) (*svelte.Viewer, error) {
 	esbuilder := es.New(dir)
 	js, err := v8.Load(&js.Console{
 		Log:   os.Stdout,
@@ -41,10 +41,6 @@ func loadViewer(dir string, fsys fs.FS) (*svelte.Viewer, error) {
 		file.Data = []byte(ssr.JS)
 		return nil
 	})
-	pages, err := viewer.Find(fsys)
-	if err != nil {
-		return nil, err
-	}
 	viewer := svelte.New(esbuilder, fsys, js, tr, pages)
 	return viewer, nil
 }
@@ -60,7 +56,9 @@ func TestEntryNoProps(t *testing.T) {
 			<h1>Hello {planet}!</h1>
 		`)},
 	}
-	svelte, err := loadViewer(dir, fsys)
+	pages, err := viewer.Find(fsys)
+	is.NoErr(err)
+	svelte, err := loadViewer(dir, fsys, pages)
 	is.NoErr(err)
 	viewers := viewer.Viewers{
 		"index": svelte,
@@ -82,7 +80,9 @@ func TestEntryProps(t *testing.T) {
 			<h1>Hello {planet}!</h1>
 		`)},
 	}
-	svelte, err := loadViewer(dir, fsys)
+	pages, err := viewer.Find(fsys)
+	is.NoErr(err)
+	svelte, err := loadViewer(dir, fsys, pages)
 	is.NoErr(err)
 	viewers := viewer.Viewers{
 		"index": svelte,
@@ -114,7 +114,9 @@ func TestFrameProps(t *testing.T) {
 			<h1>Hello {planet}!</h1>
 		`)},
 	}
-	svelte, err := loadViewer(dir, fsys)
+	pages, err := viewer.Find(fsys)
+	is.NoErr(err)
+	svelte, err := loadViewer(dir, fsys, pages)
 	is.NoErr(err)
 	viewers := viewer.Viewers{
 		"index": svelte,
@@ -162,7 +164,9 @@ func TestLayoutFrameNoProps(t *testing.T) {
 			<h1>Hello {planet}!</h1>
 		`)},
 	}
-	svelte, err := loadViewer(dir, fsys)
+	pages, err := viewer.Find(fsys)
+	is.NoErr(err)
+	svelte, err := loadViewer(dir, fsys, pages)
 	is.NoErr(err)
 	viewers := viewer.Viewers{
 		"index": svelte,
@@ -210,7 +214,9 @@ func TestLayoutFrameProps(t *testing.T) {
 			<h1>Hello {planet}!</h1>
 		`)},
 	}
-	svelte, err := loadViewer(dir, fsys)
+	pages, err := viewer.Find(fsys)
+	is.NoErr(err)
+	svelte, err := loadViewer(dir, fsys, pages)
 	is.NoErr(err)
 	viewers := viewer.Viewers{
 		"index": svelte,
@@ -267,7 +273,9 @@ func TestMultipleFrames(t *testing.T) {
 			<h1>Hello {planet}!</h1>
 		`)},
 	}
-	svelte, err := loadViewer(dir, fsys)
+	pages, err := viewer.Find(fsys)
+	is.NoErr(err)
+	svelte, err := loadViewer(dir, fsys, pages)
 	is.NoErr(err)
 	viewers := viewer.Viewers{
 		"posts/index": svelte,
@@ -292,7 +300,6 @@ func TestMultipleFrames(t *testing.T) {
 }
 
 func TestBundle(t *testing.T) {
-	t.Skip("TODO: add bundling")
 	is := is.New(t)
 	dir := t.TempDir()
 	fsys := fstest.MapFS{
@@ -327,15 +334,62 @@ func TestBundle(t *testing.T) {
 			</script>
 			<h1>Hello {planet}!</h1>
 		`)},
+		"index.svelte": &fstest.MapFile{Data: []byte(`
+			<script>
+				export let planet = 'Mercury'
+			</script>
+			<h1>Hello {planet}!</h1>
+		`)},
 	}
-	svelte, err := loadViewer(dir, fsys)
+	pages, err := viewer.Find(fsys)
+	is.NoErr(err)
+	svelte, err := loadViewer(dir, fsys, pages)
 	is.NoErr(err)
 	viewers := viewer.Viewers{
+		"index":       svelte,
 		"posts/index": svelte,
 	}
 	ctx := context.Background()
 	outfs := virtual.Map{}
 	err = viewers.Bundle(ctx, outfs)
 	is.NoErr(err)
-	is.True(outfs["posts/index.js"] != nil)
+	is.True(outfs[".ssr.js"] != nil)
+	svelte, err = loadViewer(dir, outfs, pages)
+	is.NoErr(err)
+	viewers = viewer.Viewers{
+		"index":       svelte,
+		"posts/index": svelte,
+	}
+	// Try with index
+	html, err := viewers.Render2(ctx, "index", map[string]interface{}{
+		"index": map[string]interface{}{
+			"planet": "Venus",
+		},
+		"frame": map[string]interface{}{
+			"title": "Mark's Blog",
+		},
+		"layout": map[string]interface{}{
+			"theme": "mango",
+		},
+	})
+	is.NoErr(err)
+	is.True(strings.Contains(string(html), `<main data-theme="mango"><div id="bud_target"><header><h1>Mark's Blog</h1></header><h1>Hello Venus!</h1></div></main></body></html>`))
+
+	// Try with posts/index
+	html, err = viewers.Render2(ctx, "posts/index", map[string]interface{}{
+		"posts/index": map[string]interface{}{
+			"planet": "Mars",
+		},
+		"posts/frame": map[string]interface{}{
+			"id": 456,
+		},
+		"frame": map[string]interface{}{
+			"title": "Matt's Blog",
+		},
+		"layout": map[string]interface{}{
+			"theme": "navy",
+		},
+	})
+	is.NoErr(err)
+	is.True(strings.Contains(string(html), `<main data-theme="navy"><div id="bud_target"><article id="slug-456"><header><h1>Matt's Blog</h1></header><h1>Hello Mars!</h1></article></div></main></body></html>`))
 }

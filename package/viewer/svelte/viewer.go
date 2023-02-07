@@ -16,6 +16,7 @@ import (
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/livebud/bud/internal/es"
 	"github.com/livebud/bud/package/viewer"
+	"github.com/livebud/bud/package/virtual"
 	"github.com/livebud/bud/runtime/transpiler"
 	"github.com/livebud/js"
 )
@@ -62,6 +63,38 @@ func (v *Viewer) Render(ctx context.Context, key string, props viewer.Props) ([]
 	return []byte(html), nil
 }
 
+func (v *Viewer) Render2(ctx context.Context, key string, props viewer.Props) ([]byte, error) {
+	page, ok := v.pages[key]
+	if !ok {
+		return nil, fmt.Errorf("svelte: %q. %w", key, viewer.ErrPageNotFound)
+	}
+	// ssrCode, err := v.esbuilder.Build(&es.Build{
+	// 	Entrypoint: page.Path + ".js",
+	// 	Plugins: []es.Plugin{
+	// 		v.ssrEntryPlugin(page),
+	// 		v.ssrRuntimePlugin(),
+	// 		v.ssrTranspile(),
+	// 	},
+	// })
+	// if err != nil {
+	// 	return nil, err
+	// }
+	ssrCode, err := fs.ReadFile(v.fsys, ".ssr.js")
+	if err != nil {
+		return nil, err
+	}
+	propBytes, err := json.Marshal(props)
+	if err != nil {
+		return nil, err
+	}
+	expr := fmt.Sprintf(`%s; bud.render(%q, %s)`, ssrCode, key, propBytes)
+	html, err := v.js.Evaluate(ctx, page.Path, expr)
+	if err != nil {
+		return nil, err
+	}
+	return []byte(html), nil
+}
+
 func (v *Viewer) RenderError(ctx context.Context, key string, err error, props viewer.Props) []byte {
 	return []byte("RenderError not implemented yet")
 }
@@ -70,9 +103,18 @@ func (v *Viewer) Register(router viewer.Router) {
 	fmt.Println("register called")
 }
 
-func (v *Viewer) Bundle(ctx context.Context, out viewer.FS) error {
-	for _, page := range v.pages {
-		fmt.Println("bundling", page.Path)
+func (v *Viewer) Bundle(ctx context.Context, fsys virtual.FS) error {
+	err := v.esbuilder.Bundle(fsys, &es.Bundle{
+		Entrypoints: []string{".ssr.js"},
+		Plugins: []es.Plugin{
+			v.ssrBundlePlugin(),
+			v.ssrRuntimePlugin(),
+			v.ssrTranspile(),
+		},
+		Minify: true, // TODO: configurable
+	})
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -167,6 +209,40 @@ func (v *Viewer) ssrEntryPlugin(page *viewer.Page) es.Plugin {
 	}
 }
 
+func (v *Viewer) ssrBundlePlugin() es.Plugin {
+	pages := make([]*viewer.Page, len(v.pages))
+	i := 0
+	for _, page := range v.pages {
+		pages[i] = page
+		i++
+	}
+	return es.Plugin{
+		Name: "svelte_ssr_bundle",
+		Setup: func(epb esbuild.PluginBuild) {
+			epb.OnResolve(esbuild.OnResolveOptions{Filter: `^\.ssr\.js$`}, func(args esbuild.OnResolveArgs) (result esbuild.OnResolveResult, err error) {
+				result.Namespace = args.Path
+				result.Path = args.Path
+				return result, nil
+			})
+			epb.OnLoad(esbuild.OnLoadOptions{Filter: `.*`, Namespace: `.ssr.js`}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
+				code := new(bytes.Buffer)
+				state := newState(pages...)
+				if err := ssrEntryTemplate.Execute(code, state); err != nil {
+					return result, err
+				}
+				if err != nil {
+					return result, err
+				}
+				contents := code.String()
+				result.ResolveDir = v.esbuilder.Directory()
+				result.Contents = &contents
+				result.Loader = esbuild.LoaderJS
+				return result, nil
+			})
+		},
+	}
+}
+
 //go:embed ssr_runtime.ts
 var ssrRuntimeCode string
 
@@ -174,12 +250,12 @@ func (v *Viewer) ssrRuntimePlugin() esbuild.Plugin {
 	return esbuild.Plugin{
 		Name: "svelte_ssr_runtime",
 		Setup: func(epb esbuild.PluginBuild) {
-			epb.OnResolve(esbuild.OnResolveOptions{Filter: `^ssrSvelteRuntime$`}, func(args esbuild.OnResolveArgs) (result esbuild.OnResolveResult, err error) {
-				result.Namespace = "ssrSvelteRuntime"
+			epb.OnResolve(esbuild.OnResolveOptions{Filter: `^\.ssr-svelte-runtime$`}, func(args esbuild.OnResolveArgs) (result esbuild.OnResolveResult, err error) {
+				result.Namespace = ".ssr-svelte-runtime"
 				result.Path = args.Path
 				return result, nil
 			})
-			epb.OnLoad(esbuild.OnLoadOptions{Filter: `.*`, Namespace: `ssrSvelteRuntime`}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
+			epb.OnLoad(esbuild.OnLoadOptions{Filter: `.*`, Namespace: `.ssr-svelte-runtime`}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
 				result.ResolveDir = v.esbuilder.Directory()
 				result.Contents = &ssrRuntimeCode
 				result.Loader = esbuild.LoaderTS

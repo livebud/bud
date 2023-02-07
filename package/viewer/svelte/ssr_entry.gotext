@@ -4,7 +4,7 @@
 import {{ $import.Name }} from "./{{ $import.Path }}"
 {{- end }}
 
-import { Page, Viewer } from "ssrSvelteRuntime";
+import { Page, Viewer } from ".ssr-svelte-runtime";
 
 const pages = {
 	{{- range $page := $.Pages }}
@@ -31,7 +31,7 @@ const pages = {
 			Component: {{ $page.Error.Component }},
 		},
 		{{- end }}
-	})
+	}),
 	{{- end }}
 }
 
