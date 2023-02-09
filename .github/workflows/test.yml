@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        go: ['1.17', '1.18', '1.19']
+        go: ['1.17', '1.18', '1.19', '1.20']
         node: ['16']
         include:
           - os: ubuntu-latest
@@ -25,6 +25,9 @@ jobs:
             node: 18
           - os: macos-latest
             go: 1.19
+            node: 18
+          - os: macos-latest
+            go: 1.20
             node: 18
 
     steps:
