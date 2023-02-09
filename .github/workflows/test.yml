@@ -18,16 +18,16 @@ jobs:
         node: ['16']
         include:
           - os: ubuntu-latest
-            go: 1.18
+            go: '1.18'
             node: 18
           - os: macos-latest
-            go: 1.18
+            go: '1.18'
             node: 18
           - os: macos-latest
-            go: 1.19
+            go: '1.19'
             node: 18
           - os: macos-latest
-            go: 1.20
+            go: '1.20'
             node: 18
 
     steps:
