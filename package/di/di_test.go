@@ -2696,6 +2696,131 @@ func TestHTTPRequest(t *testing.T) {
 	})
 }
 
+func TestMapParamAlias(t *testing.T) {
+	t.Skip("aliasing to a map is not implemented yet")
+	runTest(t, Test{
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []*di.Param{},
+			Results: []di.Dependency{
+				di.ToType("app.com/web", "*Controller"),
+			},
+			Aliases: di.Aliases{
+				di.ToType("app.com/viewer", "Pages"): di.ToType("app.com/viewer/svelte", "Pages"),
+			},
+		},
+		Expect: `
+			&web.Controller{Pool: &postgres.Pool{
+				Path: "/foo",
+			}}
+		`,
+		Files: map[string]string{
+			"go.mod":  goMod,
+			"main.go": mainGo,
+			"web/web.go": `
+				package web
+				import "app.com/viewer/svelte"
+				type Controller struct {
+					Svelte *svelte.Viewer
+				}
+			`,
+			"viewer/viewer.go": `
+				package viewer
+				type Pages = map[string]string
+			`,
+			"viewer/svelte/svelte.go": `
+				package svelte
+				import "app.com/viewer"
+				func New(pages Pages) *Viewer {
+					return &Viewer{pages}
+				}
+				type Pages = viewer.Pages
+				func NewPages() Pages {
+					return viewer.Pages{}
+				}
+				type Viewer struct {
+					pages Pages
+				}
+			`,
+		},
+	})
+}
+
+func TestTypeSpec(t *testing.T) {
+	runTest(t, Test{
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []*di.Param{},
+			Results: []di.Dependency{
+				di.ToType("app.com/web", "*Controller"),
+			},
+			Aliases: di.Aliases{},
+		},
+		Expect: `
+			&web.Controller{
+				Actions: web.Actions{
+					"hello": "world",
+				},
+				URL: web.URL("hello"),
+			}
+		`,
+		Files: map[string]string{
+			"go.mod":  goMod,
+			"main.go": mainGo,
+			"web/web.go": `
+				package web
+				func NewActions() Actions {
+					return Actions{"hello": "world"}
+				}
+				type Actions map[string]string
+				// type Actions2 map[string]string
+				func NewURL() URL {
+					return URL("hello")
+				}
+				type URL string
+				type Controller struct {
+					Actions Actions
+					URL URL
+				}
+			`,
+		},
+	})
+}
+
+func TestInterfaceErrorUnclear(t *testing.T) {
+	runTest(t, Test{
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []*di.Param{},
+			Results: []di.Dependency{
+				di.ToType("app.com/web", "*Controller"),
+			},
+			Aliases: di.Aliases{},
+		},
+		Expect: `di: unclear how to provide 'app.com/js'.VM`,
+		Files: map[string]string{
+			"go.mod":  goMod,
+			"main.go": mainGo,
+			"js/js.go": `
+				package js
+				type VM interface {
+					Eval(expr string) (string, error)
+				}
+			`,
+			"web/web.go": `
+				package web
+				import "app.com/js"
+				type Controller struct {
+					VM js.VM
+				}
+			`,
+		},
+	})
+}
+
 // TODO: figure out how to test imports as inputs
 
 // IDEA: consider renaming Target to Import
