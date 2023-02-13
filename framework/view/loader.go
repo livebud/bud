@@ -99,6 +99,8 @@ func (l *loader) Load() (state *State, err error) {
 	l.imports.AddNamed("router", "github.com/livebud/bud/package/router")
 	l.imports.AddNamed("virtual", "github.com/livebud/bud/package/virtual")
 	l.imports.AddNamed("viewrt", "github.com/livebud/bud/framework/view/viewrt")
+	l.imports.AddNamed("svelte", "github.com/livebud/bud/package/viewer/svelte")
+	l.imports.AddNamed("viewer", "github.com/livebud/bud/package/viewer")
 	state.Imports = l.imports.List()
 	return state, nil
 }

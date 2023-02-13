@@ -6,13 +6,15 @@ import (
 	"strings"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
+	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/virtual"
 )
 
 // TODO: replace with *gomod.Module
-func New(absDir string) *Builder {
+func New(module *gomod.Module) *Builder {
+	absDir := module.Directory()
 	return &Builder{
-		dir: absDir,
+		module: module,
 		base: esbuild.BuildOptions{
 			AbsWorkingDir: absDir,
 			Outdir:        "./",
@@ -29,12 +31,12 @@ func New(absDir string) *Builder {
 }
 
 type Builder struct {
-	dir  string
-	base esbuild.BuildOptions
+	module *gomod.Module
+	base   esbuild.BuildOptions
 }
 
 func (b *Builder) Directory() string {
-	return b.dir
+	return b.module.Directory()
 }
 
 type Entrypoint = esbuild.EntryPoint
@@ -123,7 +125,7 @@ func (b *Builder) Bundle(fsys virtual.FS, bundle *Bundle) error {
 		return fmt.Errorf(strings.Join(msgs, "\n"))
 	}
 	for _, file := range result.OutputFiles {
-		dir, err := filepath.EvalSymlinks(b.dir)
+		dir, err := filepath.EvalSymlinks(b.module.Directory())
 		if err != nil {
 			return err
 		}

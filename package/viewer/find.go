@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-type Pages = map[Key]*Page
+type Pages map[Key]*Page
 
 // Find pages
 func Find(fsys fs.FS) (Pages, error) {

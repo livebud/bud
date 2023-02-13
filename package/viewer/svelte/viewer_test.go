@@ -8,8 +8,9 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/livebud/bud/internal/es"
+	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/is"
+	"github.com/livebud/bud/package/es"
 	"github.com/livebud/bud/package/viewer"
 	"github.com/livebud/bud/package/viewer/svelte"
 	"github.com/livebud/bud/package/virtual"
@@ -18,7 +19,7 @@ import (
 	v8 "github.com/livebud/js/v8"
 )
 
-func loadViewer(dir string, fsys fs.FS, pages map[string]*viewer.Page) (*svelte.Viewer, error) {
+func loadViewer(dir string, flag *framework.Flag, fsys fs.FS, pages map[string]*viewer.Page) (*svelte.Viewer, error) {
 	esbuilder := es.New(dir)
 	js, err := v8.Load(&js.Console{
 		Log:   os.Stdout,
@@ -41,7 +42,7 @@ func loadViewer(dir string, fsys fs.FS, pages map[string]*viewer.Page) (*svelte.
 		file.Data = []byte(ssr.JS)
 		return nil
 	})
-	viewer := svelte.New(esbuilder, fsys, js, tr, pages)
+	viewer := svelte.New(esbuilder, flag, fsys, js, tr, pages)
 	return viewer, nil
 }
 
@@ -56,9 +57,10 @@ func TestEntryNoProps(t *testing.T) {
 			<h1>Hello {planet}!</h1>
 		`)},
 	}
+	flag := &framework.Flag{}
 	pages, err := viewer.Find(fsys)
 	is.NoErr(err)
-	svelte, err := loadViewer(dir, fsys, pages)
+	svelte, err := loadViewer(dir, flag, fsys, pages)
 	is.NoErr(err)
 	viewers := viewer.Viewers{
 		"index": svelte,
@@ -80,9 +82,10 @@ func TestEntryProps(t *testing.T) {
 			<h1>Hello {planet}!</h1>
 		`)},
 	}
+	flag := &framework.Flag{}
 	pages, err := viewer.Find(fsys)
 	is.NoErr(err)
-	svelte, err := loadViewer(dir, fsys, pages)
+	svelte, err := loadViewer(dir, flag, fsys, pages)
 	is.NoErr(err)
 	viewers := viewer.Viewers{
 		"index": svelte,
@@ -114,9 +117,10 @@ func TestFrameProps(t *testing.T) {
 			<h1>Hello {planet}!</h1>
 		`)},
 	}
+	flag := &framework.Flag{}
 	pages, err := viewer.Find(fsys)
 	is.NoErr(err)
-	svelte, err := loadViewer(dir, fsys, pages)
+	svelte, err := loadViewer(dir, flag, fsys, pages)
 	is.NoErr(err)
 	viewers := viewer.Viewers{
 		"index": svelte,
@@ -164,9 +168,10 @@ func TestLayoutFrameNoProps(t *testing.T) {
 			<h1>Hello {planet}!</h1>
 		`)},
 	}
+	flag := &framework.Flag{}
 	pages, err := viewer.Find(fsys)
 	is.NoErr(err)
-	svelte, err := loadViewer(dir, fsys, pages)
+	svelte, err := loadViewer(dir, flag, fsys, pages)
 	is.NoErr(err)
 	viewers := viewer.Viewers{
 		"index": svelte,
@@ -214,9 +219,10 @@ func TestLayoutFrameProps(t *testing.T) {
 			<h1>Hello {planet}!</h1>
 		`)},
 	}
+	flag := &framework.Flag{}
 	pages, err := viewer.Find(fsys)
 	is.NoErr(err)
-	svelte, err := loadViewer(dir, fsys, pages)
+	svelte, err := loadViewer(dir, flag, fsys, pages)
 	is.NoErr(err)
 	viewers := viewer.Viewers{
 		"index": svelte,
@@ -273,9 +279,10 @@ func TestMultipleFrames(t *testing.T) {
 			<h1>Hello {planet}!</h1>
 		`)},
 	}
+	flag := &framework.Flag{}
 	pages, err := viewer.Find(fsys)
 	is.NoErr(err)
-	svelte, err := loadViewer(dir, fsys, pages)
+	svelte, err := loadViewer(dir, flag, fsys, pages)
 	is.NoErr(err)
 	viewers := viewer.Viewers{
 		"posts/index": svelte,
@@ -341,9 +348,10 @@ func TestBundle(t *testing.T) {
 			<h1>Hello {planet}!</h1>
 		`)},
 	}
+	flag := &framework.Flag{}
 	pages, err := viewer.Find(fsys)
 	is.NoErr(err)
-	svelte, err := loadViewer(dir, fsys, pages)
+	svelte, err := loadViewer(dir, flag, fsys, pages)
 	is.NoErr(err)
 	viewers := viewer.Viewers{
 		"index":       svelte,
@@ -354,7 +362,8 @@ func TestBundle(t *testing.T) {
 	err = viewers.Bundle(ctx, outfs)
 	is.NoErr(err)
 	is.True(outfs[".ssr.js"] != nil)
-	svelte, err = loadViewer(dir, outfs, pages)
+	flag = &framework.Flag{Embed: true, Minify: true}
+	svelte, err = loadViewer(dir, flag, outfs, pages)
 	is.NoErr(err)
 	viewers = viewer.Viewers{
 		"index":       svelte,

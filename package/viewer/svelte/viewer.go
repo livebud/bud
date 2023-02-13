@@ -10,23 +10,25 @@ import (
 	"io/fs"
 	"path/filepath"
 
+	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/imports"
 	"github.com/matthewmueller/gotext"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
-	"github.com/livebud/bud/internal/es"
+	"github.com/livebud/bud/package/es"
 	"github.com/livebud/bud/package/viewer"
 	"github.com/livebud/bud/package/virtual"
 	"github.com/livebud/bud/runtime/transpiler"
 	"github.com/livebud/js"
 )
 
-func New(esbuilder *es.Builder, fsys fs.FS, js js.VM, transpiler transpiler.Interface, pages viewer.Pages) *Viewer {
-	return &Viewer{esbuilder, fsys, js, pages, transpiler}
+func New(esbuilder *es.Builder, flag *framework.Flag, fsys fs.FS, js js.VM, transpiler transpiler.Interface, pages viewer.Pages) *Viewer {
+	return &Viewer{esbuilder, flag, fsys, js, pages, transpiler}
 }
 
 type Viewer struct {
 	esbuilder  *es.Builder
+	flag       *framework.Flag
 	fsys       fs.FS
 	js         js.VM
 	pages      viewer.Pages
