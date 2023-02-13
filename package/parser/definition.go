@@ -22,16 +22,30 @@ func (pkg *Package) definition(name string) (decl Declaration, err error) {
 			file = pkg.File(n.Name.Name)
 			return true
 		case *ast.TypeSpec:
-			// TODO: handle type declarations (e.g. type A string)
-			if n.Assign == 0 {
-				ts = n
-				return true
-			} else if n.Name.Name != name {
+			ts = n
+			if n.Name.Name != name {
 				return true
 			}
+			// Handle type spec
+			if n.Assign == 0 {
+				switch n.Type.(type) {
+				// Continue on if we find a struct or interface
+				case *ast.StructType, *ast.InterfaceType:
+					return true
+				default:
+					// Otherwise it's a generic type spec
+					decl = &TypeSpec{
+						file: file,
+						node: n,
+					}
+					err = nil
+					return false
+				}
+			}
+			// Handle type aliases
 			alias := &Alias{
 				file: file,
-				ts:   n,
+				node: n,
 			}
 			resolved, err2 := alias.Definition()
 			if err2 != nil {

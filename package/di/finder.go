@@ -82,7 +82,7 @@ func (i *Injector) Find(currModule *gomod.Module, dep Dependency) (Declaration, 
 		}).Debug("di: found struct declaration")
 		return decl, nil
 	}
-	// Lastly, look through the type aliases
+	// Look through the type aliases
 	for _, alias := range pkg.Aliases() {
 		decl, err := tryTypeAlias(alias, dep.TypeName())
 		if err != nil {

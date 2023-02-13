@@ -111,7 +111,7 @@ func (k Kind) String() string {
 	case 3:
 		return "interface"
 	case 4:
-		return "alias"
+		return "typespec"
 	default:
 		return "unknown"
 	}
@@ -121,6 +121,7 @@ const (
 	KindBuiltin Kind = 1 + iota
 	KindStruct
 	KindInterface
+	KindTypeSpec
 )
 
 // Declaration interface
@@ -226,6 +227,13 @@ func (pkg *Package) Aliases() (aliases []*Alias) {
 		aliases = append(aliases, file.Aliases()...)
 	}
 	return aliases
+}
+
+func (pkg *Package) TypeSpecs() (typeSpecs []*TypeSpec) {
+	for _, file := range pkg.Files() {
+		typeSpecs = append(typeSpecs, file.TypeSpecs()...)
+	}
+	return typeSpecs
 }
 
 // var errIsBuiltin = errors.New("definition is a built-in type")

@@ -6,7 +6,7 @@ import (
 
 type Alias struct {
 	file *File
-	ts   *ast.TypeSpec
+	node *ast.TypeSpec
 	kind Kind // Resolved kind
 }
 
@@ -17,7 +17,7 @@ func (a *Alias) File() *File {
 }
 
 func (a *Alias) Name() string {
-	return a.ts.Name.Name
+	return a.node.Name.Name
 }
 
 func (a *Alias) Kind() Kind {
@@ -26,7 +26,7 @@ func (a *Alias) Kind() Kind {
 
 // Private returns true if the field is private
 func (a *Alias) Private() bool {
-	return isPrivate(a.ts.Name.Name)
+	return isPrivate(a.node.Name.Name)
 }
 
 func (a *Alias) Package() *Package {
@@ -34,7 +34,7 @@ func (a *Alias) Package() *Package {
 }
 
 func (a *Alias) Type() Type {
-	return getType(a, a.ts.Type)
+	return getType(a, a.node.Type)
 }
 
 // Definition goes to the aliases definition
