@@ -226,9 +226,38 @@ func (f *File) Aliases() (aliases []*Alias) {
 			}
 			aliases = append(aliases, &Alias{
 				file: f,
-				ts:   ts,
+				node: ts,
 			})
 		}
 	}
 	return aliases
+}
+
+func (f *File) TypeSpec(name string) *TypeSpec {
+	for _, ts := range f.TypeSpecs() {
+		if ts.Name() == name {
+			return ts
+		}
+	}
+	return nil
+}
+
+func (f *File) TypeSpecs() (typeSpecs []*TypeSpec) {
+	for _, decl := range f.node.Decls {
+		node, ok := decl.(*ast.GenDecl)
+		if !ok {
+			continue
+		}
+		for _, spec := range node.Specs {
+			ts, ok := spec.(*ast.TypeSpec)
+			if !ok || ts.Assign != 0 {
+				continue
+			}
+			typeSpecs = append(typeSpecs, &TypeSpec{
+				file: f,
+				node: ts,
+			})
+		}
+	}
+	return typeSpecs
 }
