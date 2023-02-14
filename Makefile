@@ -79,7 +79,7 @@ go.fmt:
 	@ test -z "$(shell go fmt $(GO_SOURCE))"
 
 go.staticcheck:
-	@ go run honnef.co/go/tools/cmd/staticcheck $(GO_SOURCE)
+	@ go run honnef.co/go/tools/cmd/staticcheck@2023.1 $(GO_SOURCE)
 
 go.install:
 	@ go build --trimpath \
