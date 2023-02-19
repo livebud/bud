@@ -19,7 +19,8 @@ import (
 func TestHello(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
+	is.NoErr(os.RemoveAll("_tmp"))
+	dir := "_tmp"
 	td := testdir.New(dir)
 	td.Files["controller/controller.go"] = `
 		package controller

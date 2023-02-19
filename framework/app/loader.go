@@ -46,7 +46,6 @@ func (l *loader) Load() (state *State, err error) {
 	l.imports.AddNamed("budhttp", "github.com/livebud/bud/package/budhttp")
 	l.imports.Add(l.module.Import("bud/internal/web"))
 	state.Provider = l.loadProvider()
-	state.Flag = l.flag
 	state.Imports = l.imports.List()
 	return state, nil
 }
@@ -57,11 +56,13 @@ func (l *loader) loadProvider() *di.Provider {
 	publicFS := di.ToType("github.com/livebud/bud/framework/public/publicrt", "FS")
 	viewFS := di.ToType("github.com/livebud/bud/framework/view/viewrt", "FS")
 	transpilerFS := di.ToType("github.com/livebud/bud/runtime/transpiler", "FS")
+	viewerPages := di.ToType(`github.com/livebud/bud/package/viewer`, `Pages`)
 	fn := &di.Function{
 		Name:    "loadWeb",
 		Imports: l.imports,
 		Target:  l.module.Import("bud", "program"),
 		Params: []*di.Param{
+			{Import: "github.com/livebud/bud/framework", Type: "*Flag"},
 			{Import: "github.com/livebud/bud/package/log", Type: "Log"},
 			{Import: "github.com/livebud/bud/package/gomod", Type: "*Module"},
 			{Import: "github.com/livebud/bud/package/budhttp", Type: "Client"},
@@ -77,6 +78,7 @@ func (l *loader) loadProvider() *di.Provider {
 			publicFS:     di.ToType("github.com/livebud/bud/runtime/transpiler", "*Proxy"),
 			viewFS:       di.ToType("github.com/livebud/bud/package/remotefs", "*Client"),
 			jsVM:         di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
+			viewerPages:  di.ToType(l.module.Import("bud/internal/web/view"), "Pages"),
 		},
 	}
 	if l.flag.Embed {

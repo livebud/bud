@@ -18,6 +18,7 @@ require (
 	github.com/keegancsmith/rpc v1.3.0
 	github.com/lithammer/dedent v1.1.0
 	github.com/livebud/bud-test-plugin v0.0.9
+	github.com/livebud/js v0.0.0-20221112072017-b9e63b92aad5
 	github.com/livebud/transpiler v0.0.3
 	github.com/matthewmueller/diff v0.0.0-20220104030700-cb2fe910d90c
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac

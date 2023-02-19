@@ -11,7 +11,13 @@ import (
 )
 {{- end }}
 
-func NewHandler(handler *viewrt.Handler) *Handler {
+func NewPages() Pages {
+	return Pages{}
+}
+
+type Pages = viewer.Pages
+
+func NewHandler(handler *viewrt.Handler, svelte *svelte.Viewer) *Handler {
 	return &Handler{handler}
 }
 
