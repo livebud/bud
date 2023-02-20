@@ -1,0 +1,13 @@
+# This file is used by the `asdf` CLI (https://asdf-vm.com) to easily switch
+# between binary versions. You can think of it like `nvm` or `gvm` but across
+# languages.
+#
+# We'll use `asdf` during development to easily test between
+# different versions.
+#
+# The versions below are not the only valid versions that Bud supports. To see
+# a more complete list, review the GitHub workflow to see the versions tested
+# in CI.
+
+golang 1.19.3
+nodejs 16.4.2
