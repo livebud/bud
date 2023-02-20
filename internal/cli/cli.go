@@ -351,9 +351,9 @@ func (c *CLI) genFS(cache genfs.Cache, flag *framework.Flag, log log.Log, module
 	genfs := genfs.New(cache, fsys, log)
 	parser := parser.New(genfs, module)
 	injector := di.New(genfs, log, module, parser)
-	genfs.FileGenerator("bud/internal/generator/transpiler/transpiler.go", transpiler.New(flag, log, module, parser))
+	genfs.FileGenerator("bud/internal/generator/transpiler/transpiler.go", transpiler.New(log, module, parser))
 	genfs.FileGenerator("bud/internal/generator/generator.go", generator.New(log, module, parser))
-	genfs.FileGenerator("bud/cmd/afs/main.go", afs.New(flag, injector, log, module))
+	genfs.FileGenerator("bud/cmd/afs/main.go", afs.New(injector, log, module))
 	return genfs
 }
 
