@@ -2,7 +2,6 @@ package budhttp
 
 import (
 	"fmt"
-	"io/fs"
 
 	"github.com/livebud/bud/framework/view/ssr"
 )
@@ -23,10 +22,6 @@ func (discard) Script(path, script string) error {
 
 func (discard) Eval(path, expression string) (string, error) {
 	return "", fmt.Errorf("budhttp: discard client does not support eval")
-}
-
-func (discard) Open(name string) (fs.File, error) {
-	return nil, fmt.Errorf("budhttp: discard client does not support open")
 }
 
 // Publish nothing

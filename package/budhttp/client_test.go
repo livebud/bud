@@ -2,12 +2,7 @@ package budhttp_test
 
 import (
 	"context"
-	"errors"
-	"io"
-	"io/fs"
-	"os"
 	"testing"
-	"time"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/dag"
@@ -24,7 +19,6 @@ import (
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/internal/testdir"
-	"github.com/livebud/bud/internal/versions"
 	"github.com/livebud/bud/package/budhttp"
 	"github.com/livebud/bud/package/budhttp/budsvr"
 	"github.com/livebud/bud/package/gomod"
@@ -64,92 +58,6 @@ func loadServer(bus pubsub.Client, dir string) (*budsvr.Server, error) {
 	gfs.FileServer("bud/node_modules", nodemodules.New(module))
 	gfs.FileGenerator("bud/view/_ssr.js", ssr.New(module, transforms))
 	return budsvr.New(budln, bus, flag, gfs, log, vm), nil
-}
-
-func TestOpen(t *testing.T) {
-	ctx := context.Background()
-	is := is.New(t)
-	log := testlog.New()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.Files["view/index.svelte"] = `
-		<script>
-			export let _string = "cupcake"
-		</script>
-		<h1>Hello, {_string}!</h1>
-	`
-	td.NodeModules["svelte"] = versions.Svelte
-	td.NodeModules["livebud"] = "*"
-	is.NoErr(td.Write(ctx))
-	bus := pubsub.New()
-	server, err := loadServer(bus, dir)
-	is.NoErr(err)
-	server.Start(ctx)
-	defer server.Close()
-	client, err := budhttp.Load(log, server.Address())
-	is.NoErr(err)
-
-	// Check the entrypoint
-	file, err := client.Open("bud/view/_index.svelte.js")
-	is.NoErr(err)
-	defer file.Close()
-	code, err := io.ReadAll(file)
-	is.NoErr(err)
-	is.In(string(code), `"view/index.svelte"`)
-	is.In(string(code), `"/bud/view/index.svelte"`)
-	stat, err := file.Stat()
-	is.NoErr(err)
-	is.Equal(stat.Name(), "_index.svelte.js")
-	is.Equal(stat.Size(), int64(3690))
-	is.Equal(stat.Mode(), os.FileMode(0))
-	is.Equal(stat.ModTime(), time.Time{})
-	is.Equal(stat.IsDir(), false)
-	is.Equal(stat.Sys(), nil)
-
-	// Check the component
-	file, err = client.Open("bud/view/index.svelte")
-	is.NoErr(err)
-	defer file.Close()
-	stat, err = file.Stat()
-	is.NoErr(err)
-	is.Equal(stat.Name(), "index.svelte")
-	is.Equal(stat.Size(), int64(3124))
-	is.Equal(stat.Mode(), os.FileMode(0))
-	is.Equal(stat.ModTime(), time.Time{})
-	is.Equal(stat.IsDir(), false)
-	is.Equal(stat.Sys(), nil)
-
-	// Check the node_modules
-	file, err = client.Open("bud/node_modules/svelte/internal")
-	is.NoErr(err)
-	defer file.Close()
-	stat, err = file.Stat()
-	is.NoErr(err)
-	is.Equal(stat.Name(), "internal")
-	is.Equal(stat.Size(), int64(56452))
-	is.Equal(stat.Mode(), os.FileMode(0))
-	is.Equal(stat.ModTime(), time.Time{})
-	is.Equal(stat.IsDir(), false)
-	is.Equal(stat.Sys(), nil)
-}
-
-func TestOpen404(t *testing.T) {
-	ctx := context.Background()
-	is := is.New(t)
-	log := testlog.New()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	is.NoErr(td.Write(ctx))
-	bus := pubsub.New()
-	server, err := loadServer(bus, dir)
-	is.NoErr(err)
-	server.Start(ctx)
-	defer server.Close()
-	client, err := budhttp.Load(log, server.Address())
-	is.NoErr(err)
-	file, err := client.Open("public/favicon.ico")
-	is.True(errors.Is(err, fs.ErrNotExist))
-	is.Equal(file, nil)
 }
 
 func TestEvents(t *testing.T) {
