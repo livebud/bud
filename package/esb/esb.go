@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -11,11 +12,11 @@ import (
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/livebud/bud/framework"
+	"github.com/livebud/bud/internal/once"
 )
 
 // SSR creates a server-rendered preset
 func SSR(flag *framework.Flag, entries ...string) esbuild.BuildOptions {
-
 	options := esbuild.BuildOptions{
 		EntryPoints: entries,
 		Outdir:      "./",
@@ -59,14 +60,24 @@ func DOM(flag *framework.Flag, entries ...string) esbuild.BuildOptions {
 	return options
 }
 
+// Only create the temp dir once
+var tempDir = func() func(prefix string) (string, error) {
+	var once once.String
+	return func(prefix string) (string, error) {
+		return once.Do(func() (string, error) {
+			return os.MkdirTemp("", prefix)
+		})
+	}
+}()
+
 // Serve a single file
-func Serve(fsys fs.FS, options esbuild.BuildOptions) (*esbuild.OutputFile, error) {
+func Serve(transport http.RoundTripper, fsys fs.FS, options esbuild.BuildOptions) (*esbuild.OutputFile, error) {
 	// Build from a scratch directory to reduce file-system influence
-	tmpdir, err := os.MkdirTemp("", "bud-es-")
+	dir, err := tempDir("bud_esb_*")
 	if err != nil {
 		return nil, fmt.Errorf("es: unable to create scratch dir. %w", err)
 	}
-	options.AbsWorkingDir = tmpdir
+	options.AbsWorkingDir = dir
 	options.Plugins = append(options.Plugins, virtualPlugin(fsys))
 	// Run esbuild
 	result := esbuild.Build(options)

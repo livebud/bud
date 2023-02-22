@@ -2,6 +2,7 @@ package esb_test
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 
 	"github.com/livebud/bud/framework"
@@ -39,7 +40,7 @@ func TestServeSSR(t *testing.T) {
 		},
 	}
 	ssr := esb.SSR(&framework.Flag{}, "./view/index.jsx")
-	file, err := esb.Serve(fsys, ssr)
+	file, err := esb.Serve(http.DefaultTransport, fsys, ssr)
 	is.NoErr(err)
 	vm, err := v8.Load()
 	is.NoErr(err)
