@@ -32,6 +32,7 @@ func Try(log log.Log, addr string) (Client, error) {
 }
 
 // Load a client from an address
+// TODO: rename Dial
 func Load(log log.Log, addr string) (Client, error) {
 	url, err := urlx.Parse(addr)
 	if err != nil {

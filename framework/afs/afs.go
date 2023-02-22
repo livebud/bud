@@ -89,7 +89,7 @@ func (l *loader) Load() (state *State, err error) {
 
 func (l *loader) loadProvider() *di.Provider {
 	jsVM := di.ToType("github.com/livebud/bud/package/js", "VM")
-	// TODO: the public generator should be able to configure this
+	transpilerFS := di.ToType("github.com/livebud/bud/runtime/transpiler", "FS")
 	provider, err := l.injector.Wire(&di.Function{
 		Name:    "loadGeneratorFS",
 		Imports: l.imports,
@@ -105,7 +105,8 @@ func (l *loader) loadProvider() *di.Provider {
 			{Import: "github.com/livebud/bud/package/budhttp", Type: "Client"},
 		},
 		Aliases: di.Aliases{
-			jsVM: di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
+			jsVM:         di.ToType("github.com/livebud/bud/package/budhttp", "Client"),
+			transpilerFS: di.ToType("github.com/livebud/bud/package/genfs", "*FileSystem"),
 		},
 		Results: []di.Dependency{
 			di.ToType(l.module.Import("bud/internal/generator"), "FS"),
@@ -113,7 +114,6 @@ func (l *loader) loadProvider() *di.Provider {
 		},
 	})
 	if err != nil {
-		fmt.Println(l.module.Import("bud/internal/generator"))
 		// Intentionally don't wrap this error, it gets swallowed up too easily
 		l.Bail(fmt.Errorf("afs: unable to wire. %s", err))
 	}

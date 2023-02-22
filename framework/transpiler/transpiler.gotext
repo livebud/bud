@@ -15,19 +15,19 @@ func Load(
 	{{ $transpiler.Camel }} *{{ $transpiler.Import.Name }}.Transpiler,
 	{{- end }}
 ) *Generator {
-	tr := transpiler.New()
+	server := transpiler.NewServer()
 	{{- range $transpiler := $.Transpilers }}
 	{{- range $method := $transpiler.Methods }}
-	tr.Add(`{{ $method.From }}`, `{{ $method.To }}`, {{ $transpiler.Camel }}.{{ $method.Pascal }})
+	server.Add(`{{ $method.From }}`, `{{ $method.To }}`, {{ $transpiler.Camel }}.{{ $method.Pascal }})
 	{{- end }}
 	{{- end }}
-	return &Generator{tr}
+	return &Generator{server}
 }
 
 type Generator struct {
-	tr transpiler.Interface
+	server *transpiler.Server
 }
 
 func (g *Generator) Serve(fsys genfs.FS, file *genfs.File) error {
-	return transpiler.Serve(g.tr, fsys, file)
+	return g.server.Serve(fsys, file)
 }

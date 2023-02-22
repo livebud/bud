@@ -121,13 +121,9 @@ type Import struct {
 }
 
 // AssumedName returns the assumed package name of an import path.
-// It does this using only string parsing of the import path.
-// It picks the last element of the path that does not look like a major
-// version, and then picks the valid identifier off the start of that element.
-// It is used to determine if a local rename should be added to an import for
-// clarity.
-// This function could be moved to a standard package and exported if we want
-// for use in other tools.
+//
+// Originally found in:
+// https://cs.opensource.google/go/x/tools/+/refs/tags/v0.6.0:internal/imports/fix.go;l=1144
 func AssumedName(importPath string) string {
 	base := path.Base(importPath)
 	if strings.HasPrefix(base, "v") {

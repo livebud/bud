@@ -6,12 +6,12 @@ import (
 	"github.com/livebud/bud/framework"
 )
 
-type ToolDS struct {
+type ToolBS struct {
 	Flag      *framework.Flag
 	ListenDev string
 }
 
-func (c *CLI) ToolDS(ctx context.Context, in *ToolDS) error {
+func (c *CLI) ToolBS(ctx context.Context, in *ToolBS) error {
 	bus := c.bus()
 
 	devLn, err := c.listenDev(in.ListenDev)
