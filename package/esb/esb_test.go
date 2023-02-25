@@ -50,15 +50,17 @@ func TestServeSSR(t *testing.T) {
 	is.Equal(result, `<h1>hello</h1>`)
 }
 
-// TODO: test tilde ~
-// TODO: test http
 // TODO: Test serve DOM relative entry
 // TODO: Test serve DOM node_module entry (e.g. "./node_modules/react")
-// TODO: Test bundle SSR relative entries
-// TODO: Test bundle DOM relative entries
 // TODO: test resolving different relative path extensions (e.g. ./Header.svelte)
 // TODO: test resolving different node_modules path extensions (e.g. "./node_modules/@ui/Grid.svelte")
-// TODO: test resolving svelte from within an embedded virtual file system
-// TODO: test minifying
-// TODO: test injecting variables
 // TODO: test dependencies of dependencies
+
+// TODO: Test bundle SSR relative entries
+// TODO: Test bundle DOM relative entries
+// TODO: test minifying
+
+// TODO: test tilde ~
+// TODO: test http
+// TODO: test resolving svelte from within an embedded virtual file system
+// TODO: test injecting variables
