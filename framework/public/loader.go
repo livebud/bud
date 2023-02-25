@@ -1,7 +1,6 @@
 package public
 
 import (
-	"errors"
 	"io/fs"
 	"path"
 	"strings"
@@ -16,20 +15,22 @@ import (
 	"github.com/livebud/bud/internal/imports"
 )
 
-func Load(fsys fs.FS, flag *framework.Flag) (*State, error) {
+func Load(fsys fs.FS, flag *framework.Flag, transpiler *transpiler.Client) (*State, error) {
 	loader := &loader{
-		fsys:    fsys,
-		flag:    flag,
-		imports: imports.New(),
+		fsys:       fsys,
+		flag:       flag,
+		transpiler: transpiler,
+		imports:    imports.New(),
 	}
 	return loader.Load()
 }
 
 type loader struct {
 	bail.Struct
-	flag    *framework.Flag
-	fsys    fs.FS
-	imports *imports.Set
+	flag       *framework.Flag
+	fsys       fs.FS
+	transpiler *transpiler.Client
+	imports    *imports.Set
 }
 
 // Load the command state
@@ -75,15 +76,9 @@ func (l *loader) loadFile(fpath string) *File {
 	file.Path = fpath
 	file.Route = strings.TrimPrefix(fpath, "public")
 	if l.flag.Embed {
-		data, err := transpiler.TranspileFile(l.fsys, fpath, path.Ext(fpath))
+		data, err := l.transpiler.Proxy(fpath, path.Ext(fpath))
 		if err != nil {
-			if !errors.Is(err, fs.ErrNotExist) {
-				l.Bail(err)
-			}
-			data, err = fs.ReadFile(l.fsys, fpath)
-			if err != nil {
-				l.Bail(err)
-			}
+			l.Bail(err)
 		}
 		file.Data = data
 	}

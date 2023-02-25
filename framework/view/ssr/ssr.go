@@ -64,7 +64,7 @@ func (c *Generator) Compile(fsys fileSystem) ([]byte, error) {
 		AbsWorkingDir: dir,
 		Outdir:        "./",
 		Format:        esbuild.FormatIIFE,
-		Platform:      esbuild.PlatformBrowser,
+		Platform:      esbuild.PlatformNeutral,
 		GlobalName:    "bud",
 		JSXFactory:    "__budReact__.createElement",
 		JSXFragment:   "__budReact__.Fragment",

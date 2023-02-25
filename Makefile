@@ -53,7 +53,7 @@ example.hn.watch:
 # Go
 ##
 
-GO_SOURCE := ./internal/... ./package/... ./framework/...
+GO_SOURCE := ./internal/... ./package/... ./framework/... ./runtime/...
 
 go.tools:
 	@ go install \
@@ -61,12 +61,9 @@ go.tools:
 		github.com/pointlander/peg \
 		src.techknowlogick.com/xgo
 
-go.mod.tidy:
-	@ go mod tidy
-
 # Run go generate
 go.generate:
-	@ go generate $(GO_SOURCE)
+	@ go generate -mod=mod $(GO_SOURCE)
 
 # TODO: add -race back in
 go.test:
@@ -173,8 +170,8 @@ budjs.test:
 ##
 
 test: test.dev
-test.dev: go.tools go.generate go.fmt go.vet go.staticcheck budjs.check budjs.test go.test
-test.all: go.tools go.generate go.vet go.staticcheck budjs.check budjs.test go.test
+test.dev: go.generate go.fmt go.vet go.staticcheck budjs.check budjs.test go.test
+test.all: go.generate go.vet go.staticcheck budjs.check budjs.test go.test
 
 ##
 # CI

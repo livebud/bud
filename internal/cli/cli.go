@@ -186,14 +186,23 @@ func (c *CLI) Parse(ctx context.Context, args ...string) error {
 	{ // $ bud tool
 		cli := cli.Command("tool", "extra tools")
 
-		{ // $ bud tool ds
-			in := &ToolDS{Flag: &framework.Flag{}}
+		{ // $ bud tool bs
+			in := &ToolBS{Flag: &framework.Flag{}}
 			cli := cli.Command("bs", "run the bud server")
 			cli.Flag("embed", "embed assets").Bool(&in.Flag.Embed).Default(false)
 			cli.Flag("hot", "hot reloading").Bool(&in.Flag.Hot).Default(true)
 			cli.Flag("minify", "minify assets").Bool(&in.Flag.Minify).Default(false)
 			cli.Flag("listen-dev", "dev server address").String(&in.ListenDev).Default(":35729")
-			cli.Run(func(ctx context.Context) error { return c.ToolDS(ctx, in) })
+			cli.Run(func(ctx context.Context) error { return c.ToolBS(ctx, in) })
+
+			{ // $ bud tool bs publish <topic> [data...]
+				in := &ToolBSPublish{}
+				cli := cli.Command("publish", "publish a topic to the dev server")
+				cli.Flag("dial-dev", "dev server address").String(&in.DialDev).Default(":35729")
+				cli.Arg("topic").String(&in.Topic)
+				cli.Args("data").Strings(&in.Data)
+				cli.Run(func(ctx context.Context) error { return c.ToolBSPublish(ctx, in) })
+			}
 		}
 
 		{ // $ bud tool di

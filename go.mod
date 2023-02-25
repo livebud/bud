@@ -8,7 +8,7 @@ require (
 	github.com/aybabtme/rgbterm v0.0.0-20170906152045-cc83f3b3ce59
 	github.com/bep/debounce v1.2.1
 	github.com/cespare/xxhash v1.1.0
-	github.com/evanw/esbuild v0.14.11
+	github.com/evanw/esbuild v0.17.10
 	github.com/fatih/structtag v1.2.0
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/gitchander/permutation v0.0.0-20201214100618-1f3e7285f953
@@ -18,6 +18,7 @@ require (
 	github.com/keegancsmith/rpc v1.3.0
 	github.com/lithammer/dedent v1.1.0
 	github.com/livebud/bud-test-plugin v0.0.9
+	github.com/livebud/js v0.0.0-20221112072017-b9e63b92aad5
 	github.com/livebud/transpiler v0.0.3
 	github.com/matthewmueller/diff v0.0.0-20220104030700-cb2fe910d90c
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac
@@ -53,7 +54,7 @@ require (
 	github.com/shurcooL/go-goon v0.0.0-20170922171312-37c2f522c041 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20220218215828-6cf2b201936e // indirect
 	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f // indirect
-	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
+	golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	mvdan.cc/gofumpt v0.2.0 // indirect
 )

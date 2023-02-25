@@ -70,6 +70,20 @@ func (g *Generator) Load(fsys fs.FS) (*State, error) {
 	state := new(State)
 	imset := imports.New()
 
+	// Load core transpilers
+	const sveltePath = "github.com/livebud/bud/runtime/view/svelte"
+	state.Transpilers = append(state.Transpilers, &Transpiler{
+		Import: &imports.Import{
+			Name: imset.Add(sveltePath),
+			Path: sveltePath,
+		},
+		Camel: "svelte",
+		Methods: []*Method{
+			{Pascal: "SvelteToSsrJs", From: ".svelte", To: ".ssr.js"},
+			{Pascal: "SvelteToDomJs", From: ".svelte", To: ".dom.js"},
+		},
+	})
+
 	// Load the transpilers
 	transpilerDirs, err := finder.Find(fsys, "{transpiler/**.go}", func(path string, isDir bool) (entries []string) {
 		if !isDir && valid.GoFile(path) {

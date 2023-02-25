@@ -6,6 +6,7 @@ import (
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/runtime/transpiler"
 
 	"github.com/livebud/bud/internal/gotemplate"
 )
@@ -21,20 +22,22 @@ func Generate(state *State) ([]byte, error) {
 }
 
 // New public generator
-func New(flag *framework.Flag, module *gomod.Module) *Generator {
+func New(flag *framework.Flag, module *gomod.Module, transpiler *transpiler.Client) *Generator {
 	return &Generator{
-		flag:   flag,
-		module: module,
+		flag:       flag,
+		module:     module,
+		transpiler: transpiler,
 	}
 }
 
 type Generator struct {
-	flag   *framework.Flag
-	module *gomod.Module
+	flag       *framework.Flag
+	module     *gomod.Module
+	transpiler *transpiler.Client
 }
 
 func (g *Generator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
-	state, err := Load(fsys, g.flag)
+	state, err := Load(fsys, g.flag, g.transpiler)
 	if err != nil {
 		return err
 	}

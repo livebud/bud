@@ -2,7 +2,6 @@ package afsrt
 
 import (
 	"context"
-	"fmt"
 	"io/fs"
 	"os"
 	"strings"
@@ -37,11 +36,8 @@ func GenFS(module *gomod.Module, log log.Log) (*genfs.FileSystem, error) {
 	fsys := virtual.Exclude(module, func(path string) bool {
 		return path == "bud" || strings.HasPrefix(path, "bud/")
 	})
-	cache, err := dag.Load(log, module.Directory("bud/bud.db"))
-	if err != nil {
-		return nil, fmt.Errorf("afs: unable to load cache. %w", err)
-	}
-	return genfs.New(cache, fsys, log), nil
+	// Discard allows for refreshes to serve the latest SSR views
+	return genfs.New(dag.Discard, fsys, log), nil
 }
 
 // Serve the remote filesystem

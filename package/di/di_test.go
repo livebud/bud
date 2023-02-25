@@ -41,6 +41,7 @@ func goRun(ctx context.Context, cacheDir, appDir string) (string, error) {
 }
 
 type Test struct {
+	Dir      string
 	Function *di.Function
 	Files    map[string]string
 	Expect   string
@@ -51,8 +52,10 @@ func runTest(t testing.TB, test Test) {
 	is := is.New(t)
 	log := testlog.New()
 	ctx := context.Background()
-	appDir := t.TempDir()
-	appFS := os.DirFS(appDir)
+	if test.Dir == "" {
+		test.Dir = t.TempDir()
+	}
+	appFS := os.DirFS(test.Dir)
 	modCache := modcache.Default()
 	// Write application files
 	if test.Files != nil {
@@ -60,10 +63,10 @@ func runTest(t testing.TB, test Test) {
 		for path, code := range test.Files {
 			vmap[path] = []byte(redent(code))
 		}
-		err := vfs.Write(appDir, vmap)
+		err := vfs.Write(test.Dir, vmap)
 		is.NoErr(err)
 	}
-	module, err := gomod.Find(appDir, gomod.WithModCache(modCache))
+	module, err := gomod.Find(test.Dir, gomod.WithModCache(modCache))
 	is.NoErr(err)
 	parser := parser.New(appFS, module)
 	injector := di.New(appFS, log, module, parser)
@@ -82,7 +85,7 @@ func runTest(t testing.TB, test Test) {
 	outPath := filepath.Join(targetDir, "di.go")
 	err = os.WriteFile(outPath, []byte(code), 0644)
 	is.NoErr(err)
-	stdout, err := goRun(ctx, modCache.Directory(), appDir)
+	stdout, err := goRun(ctx, modCache.Directory(), test.Dir)
 	is.NoErr(err)
 	diff.TestString(t, redent(test.Expect), stdout)
 }
@@ -2815,6 +2818,46 @@ func TestInterfaceErrorUnclear(t *testing.T) {
 				import "app.com/js"
 				type Controller struct {
 					VM js.VM
+				}
+			`,
+		},
+	})
+}
+
+func TestTypeSpecAliased(t *testing.T) {
+	runTest(t, Test{
+		Function: &di.Function{
+			Name:   "Load",
+			Target: "app.com/gen/web",
+			Params: []*di.Param{},
+			Results: []di.Dependency{
+				di.ToType("app.com/web", "*Proxy"),
+			},
+			Aliases: di.Aliases{
+				di.ToType("app.com/web", "FS"): di.ToType("app.com/fs", "*FS"),
+			},
+		},
+		Expect: `
+			&web.Proxy{FS: &fs.FS{}}
+		`,
+		Files: map[string]string{
+			"go.mod":  goMod,
+			"main.go": mainGo,
+			"fs/fs.go": `
+				package fs
+				import "io/fs"
+				type FS struct {}
+				func (f *FS) Open(name string) (fs.File, error) {
+					return nil, fs.ErrNotExist
+				}
+			`,
+			"web/web.go": `
+				package web
+				import "io/fs"
+				type FS fs.FS
+				type Proxy struct { FS FS }
+				func (p *Proxy) Open(name string) (fs.File, error) {
+					return nil, fs.ErrNotExist
 				}
 			`,
 		},

@@ -19,6 +19,8 @@ export default class Hot {
   }
 
   private onmessage = (e: MessageEvent) => {
+    console.log("got message", JSON.parse(e.data))
+    return
     // TODO: define a protocol
     const payload: { scripts: string[]; reload: boolean } = JSON.parse(e.data)
     if (payload.reload) {
