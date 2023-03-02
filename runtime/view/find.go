@@ -44,17 +44,17 @@ func find(fsys fs.FS, pages map[Key]*Page, inherited *inherited, dir string) err
 		switch extless {
 		case "layout":
 			inherited.Layout[ext] = &View{
-				Path: path.Join(dir, de.Name()),
+				Path: "./" + path.Join(dir, de.Name()),
 				Key:  path.Join(dir, extless),
 			}
 		case "frame":
 			inherited.Frames[ext] = append(inherited.Frames[ext], &View{
-				Path: path.Join(dir, de.Name()),
+				Path: "./" + path.Join(dir, de.Name()),
 				Key:  path.Join(dir, extless),
 			})
 		case "error":
 			inherited.Error[ext] = &View{
-				Path: path.Join(dir, de.Name()),
+				Path: "./" + path.Join(dir, de.Name()),
 				Key:  path.Join(dir, extless),
 			}
 		}
@@ -74,7 +74,7 @@ func find(fsys fs.FS, pages map[Key]*Page, inherited *inherited, dir string) err
 			key := path.Join(dir, extless)
 			pages[key] = &Page{
 				View: &View{
-					Path: path.Join(dir, de.Name()),
+					Path: "./" + path.Join(dir, de.Name()),
 					Key:  key,
 				},
 				Layout: inherited.Layout[ext],

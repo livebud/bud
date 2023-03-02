@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"path"
 	"path/filepath"
 	"text/template"
@@ -15,6 +16,7 @@ import (
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/package/es"
+	"github.com/livebud/bud/package/esb"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/js"
 	"github.com/livebud/bud/package/router"
@@ -23,16 +25,17 @@ import (
 	"github.com/matthewmueller/gotext"
 )
 
-func New(esbuilder *es.Builder, flag *framework.Flag, js js.VM, module *gomod.Module, transpiler *transpiler.Client) *Viewer {
-	return &Viewer{esbuilder, flag, js, module, transpiler}
+func New(esbuilder *es.Builder, esbuilder2 *esb.Builder, flag *framework.Flag, js js.VM, module *gomod.Module, transpiler transpiler.Transpiler) *Viewer {
+	return &Viewer{esbuilder, esbuilder2, flag, js, module, transpiler}
 }
 
 type Viewer struct {
 	esbuilder  *es.Builder
+	esbuilder2 *esb.Builder
 	flag       *framework.Flag
 	js         js.VM
 	module     *gomod.Module
-	transpiler *transpiler.Client
+	transpiler transpiler.Transpiler
 }
 
 var _ view.Viewer = (*Viewer)(nil)
@@ -47,15 +50,19 @@ func (v *Viewer) Register(r *router.Router, pages []*view.Page) {
 }
 
 func (v *Viewer) Render(ctx context.Context, page *view.Page, propMap view.PropMap) ([]byte, error) {
-	ssrCode, err := v.esbuilder.Build(&es.Build{
-		Entrypoint: page.Path + ".js",
-		Mode:       es.ModeSSR,
-		Plugins: []es.Plugin{
-			v.ssrEntryPlugin(page),
-			v.ssrRuntimePlugin(),
-			v.ssrTranspile(),
-		},
-	})
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+	options := esb.SSR(v.flag)
+	options.Plugins = append(options.Plugins,
+		esb.FS(v.module, "virtual"),
+		v.ssrEntryPlugin(page),
+		v.ssrRuntimePlugin(),
+		v.ssrTranspile(),
+		esb.FS(os.DirFS(cwd), "svelte"),
+	)
+	ssrFile, err := v.esbuilder2.Serve(options, page.Path+".js")
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +70,7 @@ func (v *Viewer) Render(ctx context.Context, page *view.Page, propMap view.PropM
 	if err != nil {
 		return nil, err
 	}
-	expr := fmt.Sprintf(`%s; bud.render(%s)`, ssrCode, propBytes)
+	expr := fmt.Sprintf(`%s; bud.render(%s)`, string(ssrFile.Contents), propBytes)
 	html, err := v.js.Eval(page.Path, expr)
 	if err != nil {
 		return nil, err
@@ -137,11 +144,11 @@ func (v *Viewer) ssrEntryPlugin(page *view.Page) es.Plugin {
 		Name: "svelte_ssr_entry",
 		Setup: func(epb esbuild.PluginBuild) {
 			epb.OnResolve(esbuild.OnResolveOptions{Filter: `^` + page.Path + `\.js$`}, func(args esbuild.OnResolveArgs) (result esbuild.OnResolveResult, err error) {
-				result.Namespace = page.Path + `.js`
+				result.Namespace = `svelte_ssr_entry`
 				result.Path = args.Path
 				return result, nil
 			})
-			epb.OnLoad(esbuild.OnLoadOptions{Filter: `.*`, Namespace: page.Path + `.js`}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
+			epb.OnLoad(esbuild.OnLoadOptions{Filter: `.*`, Namespace: `svelte_ssr_entry`}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
 				type View struct {
 					Path      string
 					Key       string
@@ -202,6 +209,8 @@ func (v *Viewer) ssrEntryPlugin(page *view.Page) es.Plugin {
 					return result, err
 				}
 				contents := code.String()
+				fmt.Println("loaded", args.Path)
+				fmt.Println("with contents", contents)
 				result.ResolveDir = v.module.Directory()
 				result.Contents = &contents
 				result.Loader = esbuild.LoaderJS
@@ -224,7 +233,6 @@ func (v *Viewer) ssrRuntimePlugin() esbuild.Plugin {
 				return result, nil
 			})
 			epb.OnLoad(esbuild.OnLoadOptions{Filter: `.*`, Namespace: `svelte_ssr_runtime`}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
-				result.ResolveDir = v.module.Directory()
 				result.Contents = &ssrRuntimeCode
 				result.Loader = esbuild.LoaderTS
 				return result, nil

@@ -13,6 +13,10 @@ import (
 
 type File = transpiler.File
 
+type Transpiler interface {
+	Transpile(fromPath, toExt string) ([]byte, error)
+}
+
 func NewServer() *Server {
 	return &Server{transpiler.New()}
 }
@@ -25,7 +29,7 @@ func (s *Server) Add(fromExt, toExt string, transpile func(file *File) error) {
 	s.tr.Add(fromExt, toExt, transpile)
 }
 
-func (s *Server) Serve(fsys FS, file *genfs.File) error {
+func (s *Server) Serve(fsys genfs.FS, file *genfs.File) error {
 	toExt, inputPath := splitRoot(file.Relative())
 	data, err := fs.ReadFile(fsys, inputPath)
 	if err != nil {
@@ -42,6 +46,29 @@ func (s *Server) Serve(fsys FS, file *genfs.File) error {
 // Aliasing allows us to target the transpiler filesystem directly
 type FS = fs.FS
 
+func NewTester(fsys FS) *Tester {
+	return &Tester{fsys, transpiler.New()}
+}
+
+type Tester struct {
+	fsys fs.FS
+	tr   *transpiler.Transpiler
+}
+
+var _ Transpiler = (*Tester)(nil)
+
+func (t *Tester) Add(fromExt, toExt string, transpile func(file *File) error) {
+	t.tr.Add(fromExt, toExt, transpile)
+}
+
+func (t *Tester) Transpile(fromPath, toExt string) ([]byte, error) {
+	data, err := fs.ReadFile(t.fsys, fromPath)
+	if err != nil {
+		return nil, err
+	}
+	return t.tr.Transpile(fromPath, toExt, data)
+}
+
 func NewClient(fsys FS) *Client {
 	return &Client{fsys}
 }
@@ -50,6 +77,8 @@ func NewClient(fsys FS) *Client {
 type Client struct {
 	fsys FS
 }
+
+var _ Transpiler = (*Client)(nil)
 
 const transpilerDir = `bud/internal/transpiler`
 
