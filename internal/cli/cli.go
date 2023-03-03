@@ -377,7 +377,7 @@ func (c *CLI) devServer(bus pubsub.Client, devLn net.Listener, flag *framework.F
 	if c.ds != nil {
 		return c.ds
 	}
-	c.ds = budsvr.New(devLn, bus, flag, virtual.Map{}, log, v8)
+	c.ds = budsvr.New(devLn, bus, flag, virtual.List{}, log, v8)
 	c.Closer.Add(c.ds.Close)
 	return c.ds
 }

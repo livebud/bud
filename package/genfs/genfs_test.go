@@ -27,7 +27,7 @@ import (
 
 func TestGenerateFile(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	gfs := genfs.New(cache, fsys, log)
@@ -42,7 +42,7 @@ func TestGenerateFile(t *testing.T) {
 
 func TestGenerateDir(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -79,7 +79,7 @@ func (t *svelte) GenerateFile(fs genfs.FS, file *genfs.File) error {
 
 func TestFS(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	gfs := genfs.New(cache, fsys, log)
@@ -177,7 +177,7 @@ func view() func(fsys genfs.FS, dir *genfs.Dir) error {
 
 func TestViewFS(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -235,7 +235,7 @@ func TestViewFS(t *testing.T) {
 
 func TestAll(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -514,7 +514,7 @@ func TestAll(t *testing.T) {
 
 func TestDir(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -566,8 +566,11 @@ func TestDir(t *testing.T) {
 
 func TestReadFsys(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{
-		"a.txt": &virtual.File{Data: []byte("a")},
+	fsys := virtual.List{
+		&virtual.File{
+			Path: "a.txt",
+			Data: []byte("a"),
+		},
 	}
 	log := testlog.New()
 	cache := dag.Discard
@@ -579,7 +582,7 @@ func TestReadFsys(t *testing.T) {
 
 func TestGenerateFileError(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -596,7 +599,7 @@ func TestGenerateFileError(t *testing.T) {
 
 func TestHTTP(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -643,7 +646,7 @@ func rootless(fpath string) string {
 // Test inner file and rootless
 func TestTargetPath(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -661,7 +664,7 @@ func TestTargetPath(t *testing.T) {
 
 func TestDynamicDir(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -689,7 +692,7 @@ func TestDynamicDir(t *testing.T) {
 
 func TestBases(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -709,7 +712,7 @@ func TestBases(t *testing.T) {
 
 func TestDirUnevenMerge(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -744,7 +747,7 @@ func TestDirUnevenMerge(t *testing.T) {
 // Add the view
 func TestAddGenerator(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -795,7 +798,7 @@ func (c *commandGenerator) GenerateDir(fsys genfs.FS, dir *genfs.Dir) error {
 
 func TestFileGenerator(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -807,7 +810,7 @@ func TestFileGenerator(t *testing.T) {
 
 func TestDirGenerator(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -819,7 +822,7 @@ func TestDirGenerator(t *testing.T) {
 
 func TestDotReadDirEmpty(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -838,7 +841,7 @@ func TestDotReadDirEmpty(t *testing.T) {
 
 func TestEmbedOpen(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -890,7 +893,7 @@ func TestEmbedOpen(t *testing.T) {
 
 func TestGoModGoMod(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -909,7 +912,7 @@ func TestGoModGoMod(t *testing.T) {
 
 func TestGoModGoModEmbed(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -927,7 +930,7 @@ func TestGoModGoModEmbed(t *testing.T) {
 
 func TestReadDirNotExists(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -949,7 +952,7 @@ func TestReadDirNotExists(t *testing.T) {
 
 func TestReadRootNotExists(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -971,7 +974,7 @@ func TestReadRootNotExists(t *testing.T) {
 
 func TestServeFile(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -1016,7 +1019,7 @@ func TestServeFile(t *testing.T) {
 
 func TestGenerateDirNotExists(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -1035,8 +1038,11 @@ func TestGenerateDirNotExists(t *testing.T) {
 // they're present in mergefs
 func TestGeneratorPriority(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{
-		"a.txt": &virtual.File{Data: []byte("a")},
+	fsys := virtual.List{
+		&virtual.File{
+			Path: "a.txt",
+			Data: []byte("a"),
+		},
 	}
 	log := testlog.New()
 	cache := dag.Discard
@@ -1189,7 +1195,7 @@ func TestSideBySideDir(t *testing.T) {
 // 	is.Equal(count["view/index.svelte"], 0, "wrong index.svelte file reads")
 // 	is.Equal(count["view/about/index.svelte"], 0, "wrong about/index.svelte file reads")
 // 	// First sync
-// 	out := virtual.Map{}
+// 	out := virtual.List{}
 // 	err = bfs.Sync(out, "bud/internal")
 // 	is.NoErr(err)
 // 	is.Equal(count["bud/internal/web/web.go"], 1, "wrong web generator reads")
@@ -1255,7 +1261,7 @@ func TestSideBySideDir(t *testing.T) {
 // 		})
 // 		return nil
 // 	})
-// 	out := virtual.Map{}
+// 	out := virtual.List{}
 // 	err = bfs.Sync(out, ".")
 // 	is.NoErr(err)
 // 	is.Equal(count["node_modules/svelte/svelte.ts"], 1, "wrong svelte.ts generator reads")
@@ -1425,7 +1431,7 @@ func TestSideBySideDir(t *testing.T) {
 // 	is.Equal(count["bud/generator/a.txt"], 0, "wrong bud/generator/a.txt mount reads")
 // 	is.Equal(count["bud/generator/b.txt"], 0, "wrong bud/generator/b.txt mount reads")
 // 	// Initial sync
-// 	out := virtual.Map{}
+// 	out := virtual.List{}
 // 	err = bfs.Sync(out, ".")
 // 	is.NoErr(err)
 // 	// Multiple reads due to lack of shared caching across budfs:
@@ -1439,7 +1445,7 @@ func TestSideBySideDir(t *testing.T) {
 // 	// Try again to verify only the files themselves changed were read once
 // 	// because we reset the file cache. The generators in mountfs are still
 // 	// cached and weren't run, leading to no additional reads in view/*.txt.
-// 	out = virtual.Map{}
+// 	out = virtual.List{}
 // 	err = bfs.Sync(out, ".")
 // 	is.NoErr(err)
 // 	is.Equal(count["view/a.txt"], 3, "wrong view/a.txt file reads")
@@ -1452,7 +1458,7 @@ func TestSideBySideDir(t *testing.T) {
 // 	// cache.
 // 	bfs.Change("view/a.txt")
 // 	mountfs.Change("view/a.txt")
-// 	out = virtual.Map{}
+// 	out = virtual.List{}
 // 	err = bfs.Sync(out, ".")
 // 	is.NoErr(err)
 // 	is.Equal(count["view/a.txt"], 5, "wrong view/a.txt file reads")
@@ -1465,7 +1471,7 @@ func TestSideBySideDir(t *testing.T) {
 // func TestChangingMount(t *testing.T) {
 // 	is := is.New(t)
 // 	log := testlog.New()
-// 	fsys := virtual.Map{}
+// 	fsys := virtual.List{}
 // 	cache := vcache.Discard
 // 	linker := &Linker{}
 // 	bfs := genfs.New(cache, fsys, log)
@@ -1505,7 +1511,7 @@ func TestSideBySideDir(t *testing.T) {
 // func TestChangingMountDir(t *testing.T) {
 // 	is := is.New(t)
 // 	log := testlog.New()
-// 	fsys := virtual.Map{}
+// 	fsys := virtual.List{}
 // 	cache := vcache.Discard
 // 	linker := &Linker{}
 // 	bfs := genfs.New(cache, fsys, log)
@@ -1545,7 +1551,7 @@ func TestSideBySideDir(t *testing.T) {
 
 func TestCyclesOk(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -1565,7 +1571,7 @@ func TestCyclesOk(t *testing.T) {
 
 // func TestWatchGlob(t *testing.T) {
 // 	is := is.New(t)
-// 	fsys := virtual.Map{}
+// 	fsys := virtual.List{}
 // 	log := testlog.New()
 // 	cache := vcache.Discard
 // 	linker := &Linker{}
@@ -1622,7 +1628,7 @@ func TestCyclesOk(t *testing.T) {
 
 // func TestWatchFileAppearing(t *testing.T) {
 // 	is := is.New(t)
-// 	fsys := virtual.Map{}
+// 	fsys := virtual.List{}
 // 	log := testlog.New()
 // 	cache := vcache.Discard
 // 	linker := &Linker{}
@@ -1661,7 +1667,7 @@ func TestCyclesOk(t *testing.T) {
 
 // func TestWatchDirAppearing(t *testing.T) {
 // 	is := is.New(t)
-// 	fsys := virtual.Map{}
+// 	fsys := virtual.List{}
 // 	log := testlog.New()
 // 	cache := vcache.Discard
 // 	linker := &Linker{}
@@ -1740,7 +1746,7 @@ func TestCyclesOk(t *testing.T) {
 
 func TestDirServeFile(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -1761,7 +1767,7 @@ func TestDirServeFile(t *testing.T) {
 
 func TestSeek(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	gfs := genfs.New(cache, fsys, log)
@@ -1784,7 +1790,7 @@ func TestSeek(t *testing.T) {
 
 func TestExternal(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -1795,7 +1801,7 @@ func TestExternal(t *testing.T) {
 		})
 		return nil
 	})
-	is.NoErr(dsync.Dir(bfs, ".", fsys, "."))
+	is.NoErr(dsync.Dir(bfs, ".", &fsys, "."))
 	code, err := fs.ReadFile(fsys, "bud/app")
 	is.NoErr(err)
 	is.Equal(string(code), "my app")
@@ -1803,7 +1809,7 @@ func TestExternal(t *testing.T) {
 
 func TestDirMount(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)
@@ -1888,7 +1894,7 @@ func TestDirMount(t *testing.T) {
 // around, but it's not trivial to change so we'll avoid this situation for now.
 func TestDirMountPriority(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	log := testlog.New()
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)

@@ -8,15 +8,15 @@ import (
 	"time"
 )
 
-type Map map[string]*File
+type List []*File
 
-var _ FS = (Map)(nil)
+var _ FS = (*List)(nil)
 
-func (fsys Map) Open(path string) (fs.File, error) {
+func (fsys List) Open(path string) (fs.File, error) {
 	if !fs.ValidPath(path) {
 		return nil, &fs.PathError{Op: "open", Path: path, Err: fs.ErrInvalid}
 	}
-	file, ok := fsys[path]
+	file, ok := fsys.find(path)
 	if !ok {
 		return nil, fs.ErrNotExist
 	}
@@ -33,7 +33,8 @@ func (fsys Map) Open(path string) (fs.File, error) {
 	var list []fs.DirEntry
 	var need = make(map[string]bool)
 	if path == "." {
-		for fname, file := range fsys {
+		for _, file := range fsys {
+			fname := file.Path
 			i := strings.Index(fname, "/")
 			if i < 0 {
 				if fname != "." {
@@ -46,7 +47,8 @@ func (fsys Map) Open(path string) (fs.File, error) {
 		}
 	} else {
 		prefix := path + "/"
-		for fname, file := range fsys {
+		for _, file := range fsys {
+			fname := file.Path
 			if strings.HasPrefix(fname, prefix) {
 				felem := fname[len(prefix):]
 				i := strings.Index(felem, "/")
@@ -80,53 +82,99 @@ func (fsys Map) Open(path string) (fs.File, error) {
 }
 
 // Mkdir create a directory.
-func (fsys Map) MkdirAll(path string, perm fs.FileMode) error {
-	fsys[path] = &File{path, nil, perm | fs.ModeDir, time.Time{}, nil}
+func (fsys *List) MkdirAll(path string, perm fs.FileMode) error {
+	file, ok := fsys.find(path)
+	if ok {
+		if file.IsDir() {
+			return nil
+		}
+		return &fs.PathError{
+			Op:   "MkdirAll",
+			Path: path,
+			Err:  fs.ErrExist,
+		}
+	}
+	*fsys = append(*fsys, &File{path, nil, perm | fs.ModeDir, time.Time{}, nil})
 	return nil
 }
 
 // WriteFile writes a file
-func (fsys Map) WriteFile(path string, data []byte, perm fs.FileMode) error {
-	fsys[path] = &File{path, data, perm, time.Time{}, nil}
+func (fsys *List) WriteFile(path string, data []byte, perm fs.FileMode) error {
+	file, ok := fsys.find(path)
+	if ok {
+		if file.IsDir() {
+			return &fs.PathError{
+				Op:   "WriteFile",
+				Path: path,
+				Err:  fs.ErrExist,
+			}
+		}
+		file.Data = data
+		file.Mode = perm
+		return nil
+	}
+	*fsys = append(*fsys, &File{path, data, perm, time.Time{}, nil})
 	return nil
 }
 
 // Remove removes a path
-func (fsys Map) RemoveAll(path string) error {
-	delete(fsys, path)
+func (fsys *List) RemoveAll(path string) error {
+	idx := fsys.indexOf(path)
+	if idx < 0 {
+		return nil
+	}
+	*fsys = append((*fsys)[:idx], (*fsys)[idx+1:]...)
 	return nil
 }
 
 // Sub returns a submap
-func (fsys Map) Sub(dir string) (FS, error) {
-	return &subMap{dir, fsys}, nil
+func (fsys List) Sub(dir string) (FS, error) {
+	return &subList{dir, fsys}, nil
 }
 
-type subMap struct {
+type subList struct {
 	dir string
-	m   Map
+	m   List
 }
 
-func (s *subMap) Open(filepath string) (fs.File, error) {
+func (s *subList) Open(filepath string) (fs.File, error) {
 	return s.m.Open(path.Join(s.dir, filepath))
 }
 
 // Mkdir create a directory.
-func (s *subMap) MkdirAll(filepath string, perm fs.FileMode) error {
+func (s *subList) MkdirAll(filepath string, perm fs.FileMode) error {
 	return s.m.MkdirAll(path.Join(s.dir, filepath), perm)
 }
 
 // WriteFile writes a file
-func (s *subMap) WriteFile(filepath string, data []byte, perm fs.FileMode) error {
+func (s *subList) WriteFile(filepath string, data []byte, perm fs.FileMode) error {
 	return s.m.WriteFile(path.Join(s.dir, filepath), data, perm)
 }
 
 // Remove removes a path
-func (s *subMap) RemoveAll(filepath string) error {
+func (s *subList) RemoveAll(filepath string) error {
 	return s.m.RemoveAll(path.Join(s.dir, filepath))
 }
 
-// Sub returns a submap
-func (s *subMap) Sub(dir string) (FS, error) {
-	return &subMap{path.Join(s.dir, dir), s.m}, nil
+// Sub returns a subList
+func (s *subList) Sub(dir string) (FS, error) {
+	return &subList{path.Join(s.dir, dir), s.m}, nil
+}
+
+func (l List) find(path string) (f *File, ok bool) {
+	for _, file := range l {
+		if file.Path == path {
+			return file, true
+		}
+	}
+	return nil, false
+}
+
+func (l List) indexOf(path string) (i int) {
+	for i, file := range l {
+		if file.Path == path {
+			return i
+		}
+	}
+	return -1
 }

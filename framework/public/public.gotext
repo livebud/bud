@@ -26,10 +26,10 @@ func (h *Handler) Register(r *router.Router) {
 }
 
 func LoadFS() FS {
-	return virtual.Map{
+	return virtual.List{
 		{{- range $file := $.Files }}
 		{{- if $file.Data }}
-		"{{ $file.Path }}": &virtual.File{
+		&virtual.File{
 			Path: "{{ $file.Path }}",
 			{{/* Using double quotes matters because $file.Data is escaped hex */}}
 			Data: []byte("{{ $file.Data }}"),
