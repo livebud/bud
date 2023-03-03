@@ -12,7 +12,7 @@ import (
 {{- end }}
 
 func New(
-	fsys *genfs.FileSystem,
+	fsys genfs.FileSystem,
 	module *gomod.Module,
 	log log.Log,
 	{{- range $generator := $.FileGenerators }}

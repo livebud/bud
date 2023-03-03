@@ -33,7 +33,7 @@ func Logger(level string) (log.Log, error) {
 }
 
 // GenFS creates a new filesystem
-func GenFS(module *gomod.Module, log log.Log) (*genfs.FileSystem, error) {
+func GenFS(module *gomod.Module, log log.Log) (genfs.FileSystem, error) {
 	fsys := virtual.Exclude(module, func(path string) bool {
 		return path == "bud" || strings.HasPrefix(path, "bud/")
 	})

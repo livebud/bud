@@ -10,6 +10,12 @@ import (
 	"github.com/livebud/bud/package/virtual"
 )
 
+type FileSystem interface {
+	fs.FS
+	fs.ReadDirFS
+	Generators
+}
+
 type Generators interface {
 	GenerateFile(path string, fn func(fsys FS, file *File) error)
 	FileGenerator(path string, generator FileGenerator)
@@ -38,57 +44,55 @@ type generator interface {
 	Generate(target string) (fs.File, error)
 }
 
-func New(cache Cache, fsys fs.FS, log log.Log) *FileSystem {
-	return &FileSystem{cache, fsys, log, newTree()}
+func New(cache Cache, fsys fs.FS, log log.Log) FileSystem {
+	return &fileSystem{cache, fsys, log, newTree()}
 }
 
-type FileSystem struct {
+type fileSystem struct {
 	cache Cache   // File cache that supports linking files together into a DAG
 	fsys  fs.FS   // Merged external filesystem (local, remote, etc.) with filler
 	log   log.Log // Log messages
 	tree  *tree   // Tree for the generators and filler nodes
 }
 
-var _ Generators = (*FileSystem)(nil)
-var _ fs.FS = (*FileSystem)(nil)
-var _ fs.ReadDirFS = (*FileSystem)(nil)
+var _ FileSystem = (*fileSystem)(nil)
 
-func (f *FileSystem) GenerateFile(path string, fn func(fsys FS, file *File) error) {
+func (f *fileSystem) GenerateFile(path string, fn func(fsys FS, file *File) error) {
 	fileg := &fileGenerator{f.cache, fn, f, path}
 	f.tree.Insert(path, modeGen, fileg)
 }
 
-func (f *FileSystem) FileGenerator(path string, generator FileGenerator) {
+func (f *fileSystem) FileGenerator(path string, generator FileGenerator) {
 	f.GenerateFile(path, generator.GenerateFile)
 }
 
-func (f *FileSystem) GenerateDir(path string, fn func(fsys FS, dir *Dir) error) {
+func (f *fileSystem) GenerateDir(path string, fn func(fsys FS, dir *Dir) error) {
 	dirg := &dirGenerator{f.cache, fn, f, path, f.tree}
 	f.tree.Insert(path, modeGenDir, dirg)
 }
 
-func (f *FileSystem) DirGenerator(path string, generator DirGenerator) {
+func (f *fileSystem) DirGenerator(path string, generator DirGenerator) {
 	f.GenerateDir(path, generator.GenerateDir)
 }
 
-func (f *FileSystem) ServeFile(dir string, fn func(fsys FS, file *File) error) {
+func (f *fileSystem) ServeFile(dir string, fn func(fsys FS, file *File) error) {
 	server := &fileServer{f.cache, fn, f, dir}
 	f.tree.Insert(dir, modeGenDir, server)
 }
 
-func (f *FileSystem) FileServer(dir string, server FileServer) {
+func (f *fileSystem) FileServer(dir string, server FileServer) {
 	f.ServeFile(dir, server.ServeFile)
 }
 
-func (f *FileSystem) GenerateExternal(path string, fn func(fsys FS, file *External) error) {
+func (f *fileSystem) GenerateExternal(path string, fn func(fsys FS, file *External) error) {
 	fileg := &externalGenerator{f.cache, fn, f, path}
 	f.tree.Insert(path, modeGen, fileg)
 }
-func (f *FileSystem) ExternalGenerator(path string, generator ExternalGenerator) {
+func (f *fileSystem) ExternalGenerator(path string, generator ExternalGenerator) {
 	f.GenerateExternal(path, generator.GenerateExternal)
 }
 
-func (f *FileSystem) Open(target string) (fs.File, error) {
+func (f *fileSystem) Open(target string) (fs.File, error) {
 	// Check that target is valid
 	if !fs.ValidPath(target) {
 		return nil, formatError(fs.ErrInvalid, "invalid target path %q", target)
@@ -96,7 +100,7 @@ func (f *FileSystem) Open(target string) (fs.File, error) {
 	return f.openFrom("", target)
 }
 
-func (f *FileSystem) openFrom(previous string, target string) (fs.File, error) {
+func (f *fileSystem) openFrom(previous string, target string) (fs.File, error) {
 	// First look for an exact matching generator
 	node, found := f.tree.Find(target)
 	if found && node.Generator != nil {
@@ -134,7 +138,7 @@ func (f *FileSystem) openFrom(previous string, target string) (fs.File, error) {
 	return nil, formatError(fs.ErrNotExist, "open %q", target)
 }
 
-func (f *FileSystem) ReadDir(target string) ([]fs.DirEntry, error) {
+func (f *fileSystem) ReadDir(target string) ([]fs.DirEntry, error) {
 	deset := newDirEntrySet()
 	node, ok := f.tree.Find(target)
 	if ok {

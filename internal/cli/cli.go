@@ -107,7 +107,7 @@ type CLI struct {
 	webFile    *os.File
 	v8         *v8.VM
 	ds         *budsvr.Server
-	genfs      *genfs.FileSystem
+	genfs      genfs.FileSystem
 	afsClient  *remotefs.Client
 	afsProcess *shell.Process
 	appProcess *shell.Process
@@ -341,7 +341,7 @@ func (c *CLI) openDB(log log.Log, module *gomod.Module) (*dag.DB, error) {
 	return c.db, nil
 }
 
-func (c *CLI) genFS(cache genfs.Cache, flag *framework.Flag, log log.Log, module *gomod.Module) *genfs.FileSystem {
+func (c *CLI) genFS(cache genfs.Cache, flag *framework.Flag, log log.Log, module *gomod.Module) genfs.FileSystem {
 	if c.genfs != nil {
 		return c.genfs
 	}

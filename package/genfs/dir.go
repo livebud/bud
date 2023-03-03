@@ -10,7 +10,7 @@ import (
 
 type Dir struct {
 	cache  Cache
-	genfs  *FileSystem
+	genfs  *fileSystem
 	path   string // Current directory path
 	target string // Final target path
 	tree   *tree
@@ -119,7 +119,7 @@ func (fn GenerateDir) GenerateDir(fsys FS, dir *Dir) error {
 type dirGenerator struct {
 	cache Cache
 	fn    func(fsys FS, dir *Dir) error
-	genfs *FileSystem
+	genfs *fileSystem
 	path  string
 	tree  *tree
 }
