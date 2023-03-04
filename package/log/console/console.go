@@ -10,7 +10,6 @@ import (
 	"github.com/go-logfmt/logfmt"
 
 	"github.com/livebud/bud/internal/ansi"
-	"github.com/livebud/bud/internal/stacktrace"
 	log "github.com/livebud/bud/package/log"
 )
 
@@ -92,40 +91,27 @@ func (c *console) Log(log *log.Entry) error {
 // Stderr is a console log singleton that writes to stderr
 var stderr = log.New(New(os.Stderr))
 
-// Return a logger with a field
-func Field(key string, value interface{}) log.Log {
-	return stderr.Field(key, value)
-}
-
-// Debug message is written to the console
-func Debug(msg string, args ...interface{}) {
-	stderr.Debug(msg, args...)
-}
-
-// Info message is written to the console
-func Info(msg string, args ...interface{}) {
-	stderr.Info(msg, args...)
-}
-
-// Notice message is written to the console
-func Notice(msg string, args ...interface{}) {
-	stderr.Notice(msg, args...)
-}
-
-// Warn message is written to the console
-func Warn(msg string, args ...interface{}) {
-	stderr.Warn(msg, args...)
-}
-
-// Error message is written to the console
-func Error(msg string, args ...interface{}) {
-	stderr.Error(msg, args...)
-}
-
-// Err message is written to the console
-func Err(err error, msg string, args ...interface{}) {
-	stderr.Fields(log.Fields{
-		"error":  err.Error(),
-		"source": stacktrace.Source(1),
-	}).Error(msg, args...)
-}
+var (
+	// Return a logger with a field
+	Field = stderr.Field
+	// Debug message is written to the console
+	Debug = stderr.Debug
+	// Debugf message is written to the console
+	Debugf = stderr.Debugf
+	// Info message is written to the console
+	Info = stderr.Info
+	// Infof message is written to the console
+	Infof = stderr.Infof
+	// Notice message is written to the console
+	Notice = stderr.Notice
+	// Noticef message is written to the console
+	Noticef = stderr.Noticef
+	// Warn message is written to the console
+	Warn = stderr.Warn
+	// Warnf message is written to the console
+	Warnf = stderr.Warnf
+	// Error message is written to the console
+	Error = stderr.Error
+	// Errorf message is written to the console
+	Errorf = stderr.Errorf
+)

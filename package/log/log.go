@@ -2,6 +2,7 @@
 package log
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"time"
@@ -32,12 +33,16 @@ var Now = time.Now
 type Log interface {
 	Field(key string, value interface{}) Log
 	Fields(fields map[string]interface{}) Log
-	Debug(msg string, args ...interface{}) error
-	Info(msg string, args ...interface{}) error
-	Notice(msg string, args ...interface{}) error
-	Warn(msg string, args ...interface{}) error
-	Error(msg string, args ...interface{}) error
-	Err(err error, msg string, args ...interface{}) error
+	Debug(args ...interface{}) error
+	Debugf(msg string, args ...interface{}) error
+	Info(args ...interface{}) error
+	Infof(msg string, args ...interface{}) error
+	Notice(args ...interface{}) error
+	Noticef(msg string, args ...interface{}) error
+	Warn(args ...interface{}) error
+	Warnf(msg string, args ...interface{}) error
+	Error(args ...interface{}) error
+	Errorf(msg string, args ...interface{}) error
 }
 
 func Error(log Log, err error) Log {
@@ -74,34 +79,71 @@ func (l *Logger) Field(key string, value interface{}) Log {
 	return &sublogger{l, Fields{key: value}}
 }
 
-func (l *Logger) Debug(msg string, args ...interface{}) error {
-	return l.log(DebugLevel, msg, args, nil)
+func (l *Logger) Debug(args ...interface{}) error {
+	return l.log(DebugLevel, args, nil)
 }
 
-func (l *Logger) Info(msg string, args ...interface{}) error {
-	return l.log(InfoLevel, msg, args, nil)
+func (l *Logger) Debugf(msg string, args ...interface{}) error {
+	return l.logf(DebugLevel, msg, args, nil)
 }
 
-func (l *Logger) Warn(msg string, args ...interface{}) error {
-	return l.log(WarnLevel, msg, args, nil)
+func (l *Logger) Info(args ...interface{}) error {
+	return l.log(InfoLevel, args, nil)
 }
 
-func (l *Logger) Notice(msg string, args ...interface{}) error {
-	return l.log(NoticeLevel, msg, args, nil)
+func (l *Logger) Infof(msg string, args ...interface{}) error {
+	return l.logf(InfoLevel, msg, args, nil)
 }
 
-func (l *Logger) Error(msg string, args ...interface{}) error {
-	return l.log(ErrorLevel, msg, args, nil)
+func (l *Logger) Warn(args ...interface{}) error {
+	return l.log(WarnLevel, args, nil)
 }
 
-func (l *Logger) Err(err error, msg string, args ...interface{}) error {
-	return l.log(ErrorLevel, msg, args, Fields{
-		"error":  err.Error(),
+func (l *Logger) Warnf(msg string, args ...interface{}) error {
+	return l.logf(WarnLevel, msg, args, nil)
+}
+
+func (l *Logger) Notice(args ...interface{}) error {
+	return l.log(NoticeLevel, args, nil)
+}
+
+func (l *Logger) Noticef(msg string, args ...interface{}) error {
+	return l.logf(NoticeLevel, msg, args, nil)
+}
+
+func (l *Logger) Error(args ...interface{}) error {
+	return l.log(ErrorLevel, args, map[string]interface{}{
 		"source": stacktrace.Source(1),
 	})
 }
 
-func (l *Logger) log(level Level, msg string, args []interface{}, fields map[string]interface{}) error {
+func (l *Logger) Errorf(msg string, args ...interface{}) error {
+	return l.logf(ErrorLevel, msg, args, map[string]interface{}{
+		"source": stacktrace.Source(1),
+	})
+}
+
+func (l *Logger) log(level Level, args []interface{}, fields map[string]interface{}) error {
+	if len(args) == 0 {
+		return nil
+	}
+	var msg bytes.Buffer
+	// Add spaces between the arguments
+	for argNum, arg := range args {
+		if argNum > 0 {
+			msg.WriteByte(' ')
+		}
+		msg.WriteString(fmt.Sprint(arg))
+	}
+	return l.Handler.Log(&Entry{
+		Timestamp: Now(),
+		Level:     level,
+		Message:   msg.String(),
+		Fields:    fields,
+	})
+}
+
+func (l *Logger) logf(level Level, msg string, args []interface{}, fields map[string]interface{}) error {
 	if len(args) > 0 {
 		msg = fmt.Sprintf(msg, args...)
 	}
@@ -120,11 +162,12 @@ type Field struct {
 
 type logger interface {
 	Log
-	log(level Level, msg string, args []interface{}, fields map[string]interface{}) error
+	log(level Level, args []interface{}, fields map[string]interface{}) error
+	logf(level Level, msg string, args []interface{}, fields map[string]interface{}) error
 }
 
 type sublogger struct {
-	logger logger
+	parent logger
 	fields map[string]interface{}
 }
 
@@ -134,40 +177,55 @@ func (l *sublogger) Fields(fields map[string]interface{}) Log {
 			fields[k] = v
 		}
 	}
-	return &sublogger{l.logger, fields}
+	return &sublogger{l.parent, fields}
 }
 
 func (l *sublogger) Field(key string, value interface{}) Log {
 	return l.Fields(Fields{key: value})
 }
 
-func (l *sublogger) Debug(msg string, args ...interface{}) error {
-	return l.log(DebugLevel, msg, args, l.fields)
+func (l *sublogger) Debug(args ...interface{}) error {
+	return l.parent.log(DebugLevel, args, l.fields)
 }
 
-func (l *sublogger) Info(msg string, args ...interface{}) error {
-	return l.log(InfoLevel, msg, args, l.fields)
+func (l *sublogger) Debugf(msg string, args ...interface{}) error {
+	return l.parent.logf(DebugLevel, msg, args, l.fields)
 }
 
-func (l *sublogger) Warn(msg string, args ...interface{}) error {
-	return l.log(WarnLevel, msg, args, l.fields)
+func (l *sublogger) Info(args ...interface{}) error {
+	return l.parent.log(InfoLevel, args, l.fields)
 }
 
-func (l *sublogger) Notice(msg string, args ...interface{}) error {
-	return l.log(NoticeLevel, msg, args, l.fields)
+func (l *sublogger) Infof(msg string, args ...interface{}) error {
+	return l.parent.logf(InfoLevel, msg, args, l.fields)
 }
 
-func (l *sublogger) Error(msg string, args ...interface{}) error {
-	return l.log(ErrorLevel, msg, args, l.fields)
+func (l *sublogger) Warn(args ...interface{}) error {
+	return l.parent.log(WarnLevel, args, l.fields)
 }
 
-func (l *sublogger) Err(err error, msg string, args ...interface{}) error {
-	return l.Fields(Fields{
-		"error":  err.Error(),
-		"source": stacktrace.Source(1),
-	}).Error(msg, args...)
+func (l *sublogger) Warnf(msg string, args ...interface{}) error {
+	return l.parent.logf(WarnLevel, msg, args, l.fields)
 }
 
-func (l *sublogger) log(level Level, msg string, args []interface{}, fields map[string]interface{}) error {
-	return l.logger.log(level, msg, args, fields)
+func (l *sublogger) Notice(args ...interface{}) error {
+	return l.parent.log(NoticeLevel, args, l.fields)
+}
+
+func (l *sublogger) Noticef(msg string, args ...interface{}) error {
+	return l.parent.logf(NoticeLevel, msg, args, l.fields)
+}
+
+func (l *sublogger) Error(args ...interface{}) error {
+	if _, ok := l.fields["source"]; !ok {
+		l.fields["source"] = stacktrace.Source(1)
+	}
+	return l.parent.log(ErrorLevel, args, l.fields)
+}
+
+func (l *sublogger) Errorf(msg string, args ...interface{}) error {
+	if _, ok := l.fields["source"]; !ok {
+		l.fields["source"] = stacktrace.Source(1)
+	}
+	return l.parent.logf(ErrorLevel, msg, args, l.fields)
 }

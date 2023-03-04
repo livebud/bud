@@ -10,12 +10,13 @@ import (
 )
 
 func TestConsole(t *testing.T) {
-	console.Field("file", "console_test.go").Field("another", "cool story").Debug("hello %s", "mars")
-	console.Field("file", "console_test.go").Field("another", "cool story").Info("hello %s", "mars")
-	console.Field("file", "console_test.go").Field("another", "cool story").Notice("hello %s", "mars")
-	console.Field("file", "console_test.go").Field("another", "cool story").Warn("hello %s", "mars")
-	console.Field("file", "console_test.go").Field("another", "cool story").Error("hello %s", "mars")
-	console.Err(errors.New("one"), "two %s", "three")
+	console.Field("file", "console_test.go").Field("another", "cool story").Debugf("hello %s", "mars")
+	console.Field("file", "console_test.go").Field("another", "cool story").Infof("hello %s", "mars")
+	console.Field("file", "console_test.go").Field("another", "cool story").Noticef("hello %s", "mars")
+	console.Field("file", "console_test.go").Field("another", "cool story").Warnf("hello %s", "mars")
+	console.Field("file", "console_test.go").Field("another", "cool story").Errorf("hello %s", "mars")
+	console.Field("file", "console_test.go").Field("another", "cool story").Error("hello", "mars")
+	console.Error(errors.New("one"), "two", "three")
 	logger := log.New(console.New(os.Stdout))
-	logger.Err(errors.New("one"), "two %s", "three")
+	logger.Error(errors.New("one"), 4, "three")
 }

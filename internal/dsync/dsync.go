@@ -153,7 +153,7 @@ func diff(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string
 	ops = append(ops, deleteOps...)
 	ops = append(ops, childOps...)
 	for _, op := range ops {
-		log.Debug("op: %s %q", op.Type, op.Path)
+		log.Debug("op:", op.Type, op.Path)
 	}
 	return ops, nil
 }
