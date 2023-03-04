@@ -71,7 +71,7 @@ func (c *Command) Serve(ctx context.Context) (err error) {
 		{{- if $.Provider.Variable "context.Context" }}ctx,{{ end }}
 		{{- if $.Provider.Variable "github.com/livebud/bud/package/di.*Injector" }}injector,{{ end }}
 		{{- if $.Provider.Variable "github.com/livebud/bud/framework.*Flag" }}&c.Flag,{{ end }}
-		{{- if $.Provider.Variable "github.com/livebud/bud/package/genfs.*FileSystem" }}gfs,{{ end }}
+		{{- if $.Provider.Variable "github.com/livebud/bud/package/genfs.FileSystem" }}gfs,{{ end }}
 		{{- if $.Provider.Variable "github.com/livebud/bud/package/gomod.*Module" }}module,{{ end }}
 		{{- if $.Provider.Variable "github.com/livebud/bud/package/log.Log" }}log,{{ end }}
 		{{- if $.Provider.Variable "github.com/livebud/bud/package/parser.*Parser" }}parser,{{ end }}

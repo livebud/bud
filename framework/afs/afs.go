@@ -98,7 +98,7 @@ func (l *loader) loadProvider() *di.Provider {
 			{Import: "github.com/livebud/bud/package/log", Type: "Log"},
 			{Import: "github.com/livebud/bud/package/gomod", Type: "*Module"},
 			{Import: "github.com/livebud/bud/framework", Type: "*Flag"},
-			{Import: "github.com/livebud/bud/package/genfs", Type: "*FileSystem"},
+			{Import: "github.com/livebud/bud/package/genfs", Type: "FileSystem"},
 			{Import: "github.com/livebud/bud/package/di", Type: "*Injector"},
 			{Import: "github.com/livebud/bud/package/parser", Type: "*Parser"},
 			{Import: "context", Type: "Context"},
