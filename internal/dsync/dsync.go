@@ -4,10 +4,10 @@ import (
 	"errors"
 	"io/fs"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"time"
 
-	"github.com/livebud/bud/internal/dsync/set"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/vfs"
 )
@@ -119,6 +119,40 @@ func (o Op) String() string {
 	return o.Type.String() + ":" + o.Path
 }
 
+func newSet(des []fs.DirEntry) set {
+	s := make(set, len(des))
+	for _, de := range des {
+		s[de.Name()] = de
+	}
+	return s
+}
+
+type set map[string]fs.DirEntry
+
+func (source set) Difference(target set) (des []fs.DirEntry) {
+	for name, de := range source {
+		if _, ok := target[name]; !ok {
+			des = append(des, de)
+		}
+	}
+	sort.Slice(des, func(i, j int) bool {
+		return des[i].Name() < des[j].Name()
+	})
+	return des
+}
+
+func (source set) Intersection(target set) (des []fs.DirEntry) {
+	for name, de := range source {
+		if _, ok := target[name]; ok {
+			des = append(des, de)
+		}
+	}
+	sort.Slice(des, func(i, j int) bool {
+		return des[i].Name() < des[j].Name()
+	})
+	return des
+}
+
 func diff(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string) (ops []Op, err error) {
 	log := opt.log.Field("fn", "diff")
 	sourceEntries, err := fs.ReadDir(sfs, sdir)
@@ -130,22 +164,22 @@ func diff(opt *option, sfs fs.FS, sdir string, tfs vfs.ReadWritable, tdir string
 		return nil, err
 	}
 	// Create the source set from the source entries
-	sourceSet := set.New(sourceEntries...)
+	sourceSet := newSet(sourceEntries)
 	// Create a target set from the target entries
-	targetSet := set.New(targetEntries...)
+	targetSet := newSet(targetEntries)
 	// Compute the operations
-	creates := set.Difference(sourceSet, targetSet)
-	deletes := set.Difference(targetSet, sourceSet)
-	updates := set.Intersection(sourceSet, targetSet)
-	createOps, err := createOps(opt, sfs, sdir, creates.List())
+	creates := sourceSet.Difference(targetSet)
+	deletes := targetSet.Difference(sourceSet)
+	updates := sourceSet.Intersection(targetSet)
+	createOps, err := createOps(opt, sfs, sdir, creates)
 	if err != nil {
 		return nil, err
 	}
-	deleteOps, err := deleteOps(opt, sdir, deletes.List())
+	deleteOps, err := deleteOps(opt, sdir, deletes)
 	if err != nil {
 		return nil, err
 	}
-	childOps, err := updateOps(opt, sfs, sdir, tfs, tdir, updates.List())
+	childOps, err := updateOps(opt, sfs, sdir, tfs, tdir, updates)
 	if err != nil {
 		return nil, err
 	}
@@ -276,7 +310,7 @@ func apply(opt *option, sfs fs.FS, tfs vfs.ReadWritable, ops []Op) error {
 	for _, op := range ops {
 		switch op.Type {
 		case CreateType:
-			log.Debug("creating %q", op.Path)
+			log.Debug("creating", op.Path)
 			dir := filepath.Dir(op.Path)
 			if err := tfs.MkdirAll(dir, 0755); err != nil {
 				return err
@@ -285,12 +319,12 @@ func apply(opt *option, sfs fs.FS, tfs vfs.ReadWritable, ops []Op) error {
 				return err
 			}
 		case UpdateType:
-			log.Debug("updating %q", op.Path)
+			log.Debug("updating", op.Path)
 			if err := tfs.WriteFile(op.Path, op.Data, 0644); err != nil {
 				return err
 			}
 		case DeleteType:
-			log.Debug("removing %q", op.Path)
+			log.Debug("removing", op.Path)
 			if err := tfs.RemoveAll(op.Path); err != nil {
 				return err
 			}
