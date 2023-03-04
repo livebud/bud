@@ -7,9 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/imports"
 	"github.com/livebud/bud/package/parser"
 )
 

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/internal/is"
-	"github.com/livebud/bud/internal/valid"
+	"github.com/livebud/bud/package/valid"
 )
 
 func TestDir(t *testing.T) {

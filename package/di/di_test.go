@@ -10,10 +10,10 @@ import (
 	"testing"
 
 	"github.com/lithammer/dedent"
-	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/imports"
 	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/modcache"
 	"github.com/livebud/bud/package/parser"

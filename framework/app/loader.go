@@ -6,9 +6,9 @@ import (
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/bail"
-	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/imports"
 	"github.com/livebud/bud/package/vfs"
 )
 

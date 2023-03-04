@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/livebud/bud/internal/valid"
+	"github.com/livebud/bud/package/valid"
 
 	"github.com/matthewmueller/text"
 )
