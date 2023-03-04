@@ -113,3 +113,20 @@ func TestListOpenParentInvalid(t *testing.T) {
 	is.True(errors.Is(err, fs.ErrInvalid))
 	is.Equal(file, nil)
 }
+
+func TestEmptyPath(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.List{
+		&virtual.File{
+			Data: []byte(`<h1>index</h1>`),
+		},
+	}
+	code, err := fs.ReadFile(fsys, "")
+	is.True(err != nil)
+	is.True(errors.Is(err, fs.ErrInvalid))
+	is.Equal(code, nil)
+	code, err = fs.ReadFile(fsys, ".")
+	is.True(err != nil)
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.Equal(code, nil)
+}
