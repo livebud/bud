@@ -114,7 +114,7 @@ func TestListOpenParentInvalid(t *testing.T) {
 	is.Equal(file, nil)
 }
 
-func TestEmptyPath(t *testing.T) {
+func TestListEmptyPath(t *testing.T) {
 	is := is.New(t)
 	fsys := virtual.List{
 		&virtual.File{
@@ -129,4 +129,18 @@ func TestEmptyPath(t *testing.T) {
 	is.True(err != nil)
 	is.True(errors.Is(err, fs.ErrNotExist))
 	is.Equal(code, nil)
+}
+
+func TestListMkdirWriteChild(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.List{}
+	err := fsys.MkdirAll("a/b", 0755)
+	is.NoErr(err)
+	err = fsys.WriteFile("a/b/c.txt", []byte("c"), 0644)
+	is.NoErr(err)
+	stat, err := fs.Stat(fsys, "a/b")
+	is.NoErr(err)
+	is.Equal(stat.Name(), "b")
+	is.Equal(stat.IsDir(), true)
+	is.Equal(stat.Mode(), fs.FileMode(0755|fs.ModeDir))
 }

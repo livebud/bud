@@ -2,6 +2,7 @@ package virtual
 
 import (
 	"io/fs"
+	"time"
 )
 
 type FS interface {
@@ -17,4 +18,9 @@ func Open(f *File) fs.File {
 		return &openDir{f, 0}
 	}
 	return &openFile{f, 0}
+}
+
+// Now may be overridden for testing purposes
+var Now = func() time.Time {
+	return time.Now()
 }

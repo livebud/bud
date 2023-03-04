@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+// List is meant to be a simple list of files. It's not a tree of files
+// and you can't walk it. Use Tree if you need a more capable filesystem.
 type List []*File
 
 var _ FS = (*List)(nil)
@@ -30,7 +32,7 @@ func (fsys List) Open(path string) (fs.File, error) {
 	// Note that file can be nil here: the map need not contain explicit parent directories for all its files.
 	// But file can also be non-nil, in case the user wants to set metadata for the directory explicitly.
 	// Either way, we need to construct the list of children of this directory.
-	var list []fs.DirEntry
+	var des []fs.DirEntry
 	var need = make(map[string]bool)
 	if path == "." {
 		for _, file := range fsys {
@@ -39,7 +41,7 @@ func (fsys List) Open(path string) (fs.File, error) {
 			if i < 0 {
 				if fname != "." {
 					file.Path = fname
-					list = append(list, file)
+					des = append(des, file)
 				}
 			} else {
 				need[fname[:i]] = true
@@ -54,7 +56,7 @@ func (fsys List) Open(path string) (fs.File, error) {
 				i := strings.Index(felem, "/")
 				if i < 0 {
 					file.Path = felem
-					list = append(list, file)
+					des = append(des, file)
 				} else {
 					need[fname[len(prefix):len(prefix)+i]] = true
 				}
@@ -63,26 +65,34 @@ func (fsys List) Open(path string) (fs.File, error) {
 		// If the directory name is not in the map,
 		// and there are no children of the name in the map,
 		// then the directory is treated as not existing.
-		if file == nil && list == nil && len(need) == 0 {
+		if file == nil && des == nil && len(need) == 0 {
 			return nil, &fs.PathError{Op: "open", Path: path, Err: fs.ErrNotExist}
 		}
 	}
-	for _, fi := range list {
+	for _, fi := range des {
 		delete(need, fi.Name())
 	}
 	for path := range need {
 		dir := &File{path, nil, fs.ModeDir, time.Time{}, nil}
-		list = append(list, dir)
+		des = append(des, dir)
 	}
-	sort.Slice(list, func(i, j int) bool {
-		return list[i].Name() < list[j].Name()
+	sort.Slice(des, func(i, j int) bool {
+		return des[i].Name() < des[j].Name()
 	})
+	// Create a new directory if it wasn't found previously.
+	if file == nil {
+		file = &File{path, nil, fs.ModeDir, time.Time{}, nil}
+	}
 	// Return the synthesized entries as a directory.
-	return &openDir{&File{path, nil, fs.ModeDir, time.Time{}, list}, 0}, nil
+	file.Entries = des
+	return &openDir{file, 0}, nil
 }
 
 // Mkdir create a directory.
 func (fsys *List) MkdirAll(path string, perm fs.FileMode) error {
+	if path == "." {
+		return nil
+	}
 	file, ok := fsys.find(path)
 	if ok {
 		if file.IsDir() {

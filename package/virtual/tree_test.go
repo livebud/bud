@@ -10,7 +10,7 @@ import (
 	"github.com/livebud/bud/package/virtual"
 )
 
-func TestFSTree(t *testing.T) {
+func TestTreeFSTree(t *testing.T) {
 	is := is.New(t)
 	fsys := virtual.Tree{
 		"bud/view/index.svelte": &virtual.File{
@@ -24,7 +24,7 @@ func TestFSTree(t *testing.T) {
 	is.NoErr(err)
 }
 
-func TestReadDir(t *testing.T) {
+func TestTreeReadDir(t *testing.T) {
 	is := is.New(t)
 	fsys := virtual.Tree{
 		"bud/view/index.svelte": &virtual.File{
@@ -41,7 +41,7 @@ func TestReadDir(t *testing.T) {
 	is.Equal(des[1].Name(), "index.svelte")
 }
 
-func TestTreeWriteRead(t *testing.T) {
+func TestTreeTreeWriteRead(t *testing.T) {
 	is := is.New(t)
 	fsys := virtual.Tree{}
 
@@ -61,7 +61,7 @@ func TestTreeWriteRead(t *testing.T) {
 	is.Equal(string(code), `c`)
 }
 
-func TestTreeRoot(t *testing.T) {
+func TestTreeTreeRoot(t *testing.T) {
 	is := is.New(t)
 	fsys := virtual.Tree{}
 	des, err := fs.ReadDir(fsys, ".")
@@ -69,7 +69,7 @@ func TestTreeRoot(t *testing.T) {
 	is.Equal(len(des), 0)
 }
 
-func TestTreeDirAndFileWithin(t *testing.T) {
+func TestTreeTreeDirAndFileWithin(t *testing.T) {
 	is := is.New(t)
 	fsys := virtual.Tree{}
 	err := fsys.MkdirAll("controller/hello", 0755)
@@ -90,7 +90,7 @@ func TestTreeDirAndFileWithin(t *testing.T) {
 	is.Equal(paths[3], "controller/hello/controller.go")
 }
 
-func TestTreeOpenParentInvalid(t *testing.T) {
+func TestTreeTreeOpenParentInvalid(t *testing.T) {
 	is := is.New(t)
 	fsys := virtual.Tree{
 		"a/b.txt": &virtual.File{Data: []byte("b")},
@@ -99,4 +99,84 @@ func TestTreeOpenParentInvalid(t *testing.T) {
 	file, err := fsys.Open("../a/b.txt")
 	is.True(errors.Is(err, fs.ErrInvalid))
 	is.Equal(file, nil)
+}
+
+func TestTreeStatWithPerm(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Tree{}
+	fsys.MkdirAll("a/b", 0755)
+	stat, err := fs.Stat(fsys, "a/b")
+	is.NoErr(err)
+	is.Equal(stat.Mode(), fs.FileMode(0755|fs.ModeDir))
+}
+
+func TestTreeRemoveDir(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Tree{}
+	fsys.MkdirAll("a/b", 0755)
+	stat, err := fs.Stat(fsys, "a/b")
+	is.NoErr(err)
+	is.Equal(stat.Mode(), fs.FileMode(0755|fs.ModeDir))
+}
+
+func TestTreeReadWriteDelete(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Tree{
+		"duo/view/index.svelte": &virtual.File{
+			Data: []byte(`<h1>index</h1>`),
+		},
+	}
+
+	// Read duo/view/index.svelte
+	code, err := fs.ReadFile(fsys, "duo/view/index.svelte")
+	is.NoErr(err)
+	is.Equal(string(code), `<h1>index</h1>`)
+
+	// stat duo/
+	stat, err := fs.Stat(fsys, "duo")
+	is.NoErr(err)
+	is.Equal(stat.Name(), "duo")
+	is.Equal(stat.IsDir(), true)
+	is.Equal(stat.Mode(), fs.FileMode(fs.ModeDir))
+
+	// mkdir duo/controller
+	err = fsys.MkdirAll("duo/controller", 0755)
+	is.NoErr(err)
+	stat, err = fs.Stat(fsys, "duo/controller")
+	is.NoErr(err)
+	is.Equal(stat.Name(), "controller")
+	is.Equal(stat.IsDir(), true)
+	is.Equal(stat.Mode(), fs.FileMode(0755|fs.ModeDir))
+
+	// write duo/controller/controller.go
+	err = fsys.WriteFile("duo/controller/controller.go", []byte(`package controller`), 0644)
+	is.NoErr(err)
+
+	// read duo/controller/controller.go
+	code, err = fs.ReadFile(fsys, "duo/controller/controller.go")
+	is.NoErr(err)
+	is.Equal(string(code), `package controller`)
+
+	// remove duo/view
+	err = fsys.RemoveAll("duo/view")
+	is.NoErr(err)
+
+	// Read duo/view/index.svelte
+	code, err = fs.ReadFile(fsys, "duo/view/index.svelte")
+	is.Equal(errors.Is(err, fs.ErrNotExist), true)
+	is.Equal(code, nil)
+}
+
+func TestTreeMkdirWriteChild(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.Tree{}
+	err := fsys.MkdirAll("a/b", 0755)
+	is.NoErr(err)
+	err = fsys.WriteFile("a/b/c.txt", []byte("c"), 0644)
+	is.NoErr(err)
+	stat, err := fs.Stat(fsys, "a/b")
+	is.NoErr(err)
+	is.Equal(stat.Name(), "b")
+	is.Equal(stat.IsDir(), true)
+	is.Equal(stat.Mode(), fs.FileMode(0755|fs.ModeDir))
 }
