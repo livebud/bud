@@ -24,12 +24,12 @@ type Handler struct {
 }
 
 func (h *Handler) Register(r *router.Router) {
-	handle := handler(http.FS(&virtual.Map{
-		".": &virtual.File{
-			Path: "index.html",
+	handle := handler(http.FS(virtual.List{
+		&virtual.File{
+			Path: ".",
 			Data: index,
 		},
-		"bud/view/_index.svelte.js": &virtual.File{
+		&virtual.File{
 			Path: "bud/view/_index.svelte.js",
 			Data: clientJS,
 		},

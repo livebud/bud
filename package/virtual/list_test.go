@@ -9,13 +9,15 @@ import (
 	"github.com/livebud/bud/package/virtual"
 )
 
-func TestMap(t *testing.T) {
+func TestList(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{
-		"bud/view/index.svelte": &virtual.File{
+	fsys := virtual.List{
+		&virtual.File{
+			Path: "bud/view/index.svelte",
 			Data: []byte(`<h1>index</h1>`),
 		},
-		"bud/view/about/index.svelte": &virtual.File{
+		&virtual.File{
+			Path: "bud/view/about/index.svelte",
 			Data: []byte(`<h1>about</h1>`),
 		},
 	}
@@ -40,9 +42,9 @@ func TestMap(t *testing.T) {
 	is.Equal(code, nil)
 }
 
-func TestMapWriteRead(t *testing.T) {
+func TestListWriteRead(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 
 	// Create a directory
 	err := fsys.MkdirAll("a/b", 0755)
@@ -60,25 +62,34 @@ func TestMapWriteRead(t *testing.T) {
 	is.Equal(string(code), `c`)
 }
 
-func TestMapRoot(t *testing.T) {
+func TestListRoot(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	des, err := fs.ReadDir(fsys, ".")
 	is.True(errors.Is(err, fs.ErrNotExist))
 	is.Equal(des, nil)
-	fsys = virtual.Map{
-		".": &virtual.File{Mode: fs.ModeDir},
+	fsys = virtual.List{
+		&virtual.File{
+			Path: ".",
+			Mode: fs.ModeDir,
+		},
 	}
 	des, err = fs.ReadDir(fsys, ".")
 	is.NoErr(err)
 	is.Equal(len(des), 0)
 }
 
-func TestMapReadDirWithChild(t *testing.T) {
+func TestListReadDirWithChild(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{
-		"a/b.txt": &virtual.File{Data: []byte("b")},
-		"a":       &virtual.File{Mode: fs.ModeDir},
+	fsys := virtual.List{
+		&virtual.File{
+			Path: "a/b.txt",
+			Data: []byte("b"),
+		},
+		&virtual.File{
+			Path: "a",
+			Mode: fs.ModeDir,
+		},
 	}
 	des, err := fs.ReadDir(fsys, "a")
 	is.NoErr(err)
@@ -86,13 +97,36 @@ func TestMapReadDirWithChild(t *testing.T) {
 	is.Equal(des[0].Name(), "b.txt")
 }
 
-func TestMapOpenParentInvalid(t *testing.T) {
+func TestListOpenParentInvalid(t *testing.T) {
 	is := is.New(t)
-	fsys := virtual.Map{
-		"a/b.txt": &virtual.File{Data: []byte("b")},
-		"a":       &virtual.File{Mode: fs.ModeDir},
+	fsys := virtual.List{
+		&virtual.File{
+			Path: "a/b.txt",
+			Data: []byte("b"),
+		},
+		&virtual.File{
+			Path: "a",
+			Mode: fs.ModeDir,
+		},
 	}
 	file, err := fsys.Open("../a/b.txt")
 	is.True(errors.Is(err, fs.ErrInvalid))
 	is.Equal(file, nil)
+}
+
+func TestEmptyPath(t *testing.T) {
+	is := is.New(t)
+	fsys := virtual.List{
+		&virtual.File{
+			Data: []byte(`<h1>index</h1>`),
+		},
+	}
+	code, err := fs.ReadFile(fsys, "")
+	is.True(err != nil)
+	is.True(errors.Is(err, fs.ErrInvalid))
+	is.Equal(code, nil)
+	code, err = fs.ReadFile(fsys, ".")
+	is.True(err != nil)
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.Equal(code, nil)
 }

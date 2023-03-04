@@ -19,7 +19,7 @@ import (
 func TestServerClose(t *testing.T) {
 	is := is.New(t)
 	log := testlog.New()
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	vm, err := v8.Load()
 	is.NoErr(err)
 	bus := pubsub.New()
@@ -37,7 +37,7 @@ func TestServerClose(t *testing.T) {
 func TestServerCancel(t *testing.T) {
 	is := is.New(t)
 	log := testlog.New()
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	vm, err := v8.Load()
 	is.NoErr(err)
 	bus := pubsub.New()
@@ -56,7 +56,7 @@ func TestServerCancel(t *testing.T) {
 func TestServerListenCancel(t *testing.T) {
 	is := is.New(t)
 	log := testlog.New()
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	vm, err := v8.Load()
 	is.NoErr(err)
 	bus := pubsub.New()
@@ -116,7 +116,7 @@ func TestErrGroup(t *testing.T) {
 func TestServerCloseNoServe(t *testing.T) {
 	is := is.New(t)
 	log := testlog.New()
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	vm, err := v8.Load()
 	is.NoErr(err)
 	bus := pubsub.New()
@@ -132,7 +132,7 @@ func TestServerCloseNoServe(t *testing.T) {
 func TestServerWaitNoServe(t *testing.T) {
 	is := is.New(t)
 	log := testlog.New()
-	fsys := virtual.Map{}
+	fsys := virtual.List{}
 	vm, err := v8.Load()
 	is.NoErr(err)
 	bus := pubsub.New()
