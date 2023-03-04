@@ -77,6 +77,6 @@ func listen(log log.Log, path string) (socket.Listener, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("afs: serving from %s", ln.Addr())
+	log.Debug("afs: serving from", ln.Addr())
 	return ln, nil
 }

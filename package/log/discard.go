@@ -14,26 +14,42 @@ func (d discard) Fields(fields map[string]interface{}) Log {
 	return d
 }
 
-func (discard) Debug(msg string, args ...interface{}) error {
+func (discard) Debug(args ...interface{}) error {
 	return nil
 }
 
-func (discard) Info(msg string, args ...interface{}) error {
+func (discard) Debugf(msg string, args ...interface{}) error {
 	return nil
 }
 
-func (discard) Notice(msg string, args ...interface{}) error {
+func (discard) Info(args ...interface{}) error {
 	return nil
 }
 
-func (discard) Warn(msg string, args ...interface{}) error {
+func (discard) Infof(msg string, args ...interface{}) error {
 	return nil
 }
 
-func (discard) Error(msg string, args ...interface{}) error {
+func (discard) Notice(args ...interface{}) error {
 	return nil
 }
 
-func (discard) Err(err error, msg string, args ...interface{}) error {
+func (discard) Noticef(msg string, args ...interface{}) error {
+	return nil
+}
+
+func (discard) Warn(args ...interface{}) error {
+	return nil
+}
+
+func (discard) Warnf(msg string, args ...interface{}) error {
+	return nil
+}
+
+func (discard) Error(args ...interface{}) error {
+	return nil
+}
+
+func (discard) Errorf(msg string, args ...interface{}) error {
 	return nil
 }

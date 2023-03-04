@@ -129,7 +129,7 @@ func (c *CLI) Run(ctx context.Context, in *Run) error {
 			return err
 		}
 		prompter.SuccessReload()
-		log.Debug("restarted the process in %s", time.Since(now))
+		log.Debug("restarted the process in", time.Since(now))
 		appProcess = p
 		return nil
 	}))
