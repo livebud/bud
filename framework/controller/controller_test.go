@@ -3,30 +3,27 @@ package controller_test
 import (
 	"bytes"
 	"context"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/lithammer/dedent"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testcli"
-	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/internal/versions"
+	"github.com/livebud/bud/package/testdir"
 	"github.com/matthewmueller/diff"
 )
 
 func TestNoActions(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -44,8 +41,8 @@ func TestNoActions(t *testing.T) {
 func TestIndexString(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -68,7 +65,7 @@ func TestIndexString(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -129,8 +126,8 @@ func TestIndexString(t *testing.T) {
 func TestCreateRedirect(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -147,7 +144,7 @@ func TestCreateRedirect(t *testing.T) {
 		func (c *Controller) Create() {}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -181,8 +178,8 @@ func TestCreateRedirect(t *testing.T) {
 func TestNoContent(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -200,7 +197,7 @@ func TestNoContent(t *testing.T) {
 		func (c *Controller) Edit(postId int, id int) error { return nil }
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -292,8 +289,8 @@ func TestNoContent(t *testing.T) {
 func TestIndex500(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		import "errors"
@@ -304,7 +301,7 @@ func TestIndex500(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -323,8 +320,8 @@ func TestIndexList500(t *testing.T) {
 	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		import "errors"
@@ -335,7 +332,7 @@ func TestIndexList500(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -352,8 +349,8 @@ func TestIndexList200(t *testing.T) {
 	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -363,7 +360,7 @@ func TestIndexList200(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -380,8 +377,8 @@ func TestIndexListObject500(t *testing.T) {
 	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		import "errors"
@@ -392,7 +389,7 @@ func TestIndexListObject500(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -409,8 +406,8 @@ func TestIndexListObject200(t *testing.T) {
 	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -420,7 +417,7 @@ func TestIndexListObject200(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -436,8 +433,8 @@ func TestIndexListObject200(t *testing.T) {
 func TestIndexStructs200(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -450,7 +447,7 @@ func TestIndexStructs200(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -468,15 +465,15 @@ func TestIndexStructs200(t *testing.T) {
 func TestJSONCreate204(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
 		func (c *Controller) Create() {}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -491,8 +488,8 @@ func TestJSONCreate204(t *testing.T) {
 func TestJSONCreate500(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		import "errors"
@@ -502,7 +499,7 @@ func TestJSONCreate500(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -520,8 +517,8 @@ func TestJSONCreate500(t *testing.T) {
 func TestDependencyHoist(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["postgres/pool.go"] = `
 		package postgres
 		func New() *Pool { return &Pool{1} }
@@ -538,7 +535,7 @@ func TestDependencyHoist(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -556,8 +553,8 @@ func TestDependencyHoist(t *testing.T) {
 func TestDependencyRequest(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["postgres/pool.go"] = `
 		package postgres
 		import "net/http"
@@ -575,7 +572,7 @@ func TestDependencyRequest(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -592,8 +589,8 @@ func TestDependencyRequest(t *testing.T) {
 func TestShareStruct(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["article/article.go"] = `
 		package article
 		type Article struct {
@@ -610,7 +607,7 @@ func TestShareStruct(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -628,8 +625,8 @@ func TestShareStruct(t *testing.T) {
 func TestJSONCreateNested(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["postgres/pool.go"] = `
 		package postgres
 		func New(r *http.Request) *Pool { return &Pool{r.URL.Path} }
@@ -681,7 +678,7 @@ func TestJSONCreateNested(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -723,8 +720,8 @@ func TestJSONCreateNested(t *testing.T) {
 func TestJSONDelete500(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		import "errors"
@@ -735,7 +732,7 @@ func TestJSONDelete500(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -753,8 +750,8 @@ func TestJSONDelete500(t *testing.T) {
 func TestJSONDelete200(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -767,7 +764,7 @@ func TestJSONDelete200(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -785,8 +782,8 @@ func TestJSONDelete200(t *testing.T) {
 func TestJSONMultipleActions(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -799,7 +796,7 @@ func TestJSONMultipleActions(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -825,8 +822,8 @@ func TestJSONMultipleActions(t *testing.T) {
 func TestJSONUpdate500(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		import "errors"
@@ -836,7 +833,7 @@ func TestJSONUpdate500(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -854,8 +851,8 @@ func TestJSONUpdate500(t *testing.T) {
 func TestJSONUpdate200(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -868,7 +865,7 @@ func TestJSONUpdate200(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -886,8 +883,8 @@ func TestJSONUpdate200(t *testing.T) {
 func TestNestedResource(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/users/users.go"] = `
 		package users
 		type DB struct {}
@@ -918,7 +915,7 @@ func TestNestedResource(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -972,8 +969,8 @@ func TestNestedResource(t *testing.T) {
 func TestDeepNestedResource(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/posts/comments/comments.go"] = `
 		package comments
 		type DB struct {}
@@ -1007,7 +1004,7 @@ func TestDeepNestedResource(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -1075,8 +1072,8 @@ func TestDeepNestedResource(t *testing.T) {
 func TestRedirectResource(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -1150,7 +1147,7 @@ func TestRedirectResource(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -1217,8 +1214,8 @@ func TestRedirectResource(t *testing.T) {
 func TestViewUnnamed(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.NodeModules["svelte"] = versions.Svelte
 	td.Files["view/index.svelte"] = `
 		<script>
@@ -1268,7 +1265,7 @@ func TestViewUnnamed(t *testing.T) {
 	`
 	// Generate the app
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -1366,8 +1363,8 @@ func TestViewUnnamed(t *testing.T) {
 func TestViewNestedUnnamed(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.NodeModules["svelte"] = versions.Svelte
 	td.Files["view/users/index.svelte"] = `
 		<script>
@@ -1417,7 +1414,7 @@ func TestViewNestedUnnamed(t *testing.T) {
 	`
 	// Generate the app
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -1515,8 +1512,8 @@ func TestViewNestedUnnamed(t *testing.T) {
 func TestViewDeepUnnamed(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.NodeModules["svelte"] = versions.Svelte
 	td.Files["view/teams/users/index.svelte"] = `
 		<script>
@@ -1569,7 +1566,7 @@ func TestViewDeepUnnamed(t *testing.T) {
 	`
 	// Generate the app
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -1667,8 +1664,8 @@ func TestViewDeepUnnamed(t *testing.T) {
 func TestResourceContext(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/users/users.go"] = `
 		package users
 		import contexts "context"
@@ -1697,7 +1694,7 @@ func TestResourceContext(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -1755,8 +1752,8 @@ func TestResourceContext(t *testing.T) {
 func TestEmptyActionWithView(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.NodeModules["svelte"] = versions.Svelte
 	td.Files["controller/controller.go"] = `
 		package controller
@@ -1765,7 +1762,7 @@ func TestEmptyActionWithView(t *testing.T) {
 	`
 	td.Files["view/index.svelte"] = `<h1>hello</h1>`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -1784,8 +1781,8 @@ func TestEmptyActionWithView(t *testing.T) {
 func TestCustomActions(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -1797,7 +1794,7 @@ func TestCustomActions(t *testing.T) {
 		func (c *Controller) Deactivate() string { return "deactivate" }
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -1823,8 +1820,8 @@ func TestCustomActions(t *testing.T) {
 func TestHandlerFuncs(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/foos/bars/controller.go"] = `
 		package controller
 		import "io"
@@ -1840,7 +1837,7 @@ func TestHandlerFuncs(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -1867,8 +1864,8 @@ func TestHandlerFuncs(t *testing.T) {
 func TestEnvSupport(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		import "os"
@@ -1878,7 +1875,7 @@ func TestEnvSupport(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	cli.Env["BUDDY"] = "buddy"
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
@@ -1898,8 +1895,8 @@ func TestEnvSupport(t *testing.T) {
 func TestStructInStruct(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["model/post/post.go"] = `
 		package post
 		type Model struct {}
@@ -1917,7 +1914,7 @@ func TestStructInStruct(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	result, err := cli.Run(ctx, "build")
 	is.NoErr(err)
 	is.Equal(result.Stdout(), "")
@@ -1928,8 +1925,8 @@ func TestStructInStruct(t *testing.T) {
 func TestLoadController(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		func Load() (*Controller, error) {
@@ -1939,7 +1936,7 @@ func TestLoadController(t *testing.T) {
 		func (c *Controller) Index() string { return "" }
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -1959,8 +1956,8 @@ func TestLoadController(t *testing.T) {
 func TestSameNestedName(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/users/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -1972,7 +1969,7 @@ func TestSameNestedName(t *testing.T) {
 		func (c *Controller) Index() string { return "/admins/:id/users" }
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -1998,15 +1995,15 @@ func TestSameNestedName(t *testing.T) {
 func TestControllerChange(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
 		func (c *Controller) Index() (string, error) { return "/", nil }
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -2019,13 +2016,12 @@ func TestControllerChange(t *testing.T) {
 		"/"
 	`)
 	// Update controller
-	controllerFile := filepath.Join(dir, "controller", "controller.go")
-	is.NoErr(os.MkdirAll(filepath.Dir(controllerFile), 0755))
-	is.NoErr(os.WriteFile(controllerFile, []byte(dedent.Dedent(`
+	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
 		func (c *Controller) Index() string { return "/" }
-	`)), 0644))
+	`
+	is.NoErr(td.Write(ctx))
 	// Wait for the app to be ready again
 	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	is.NoErr(app.Ready(readyCtx))
@@ -2045,8 +2041,8 @@ func TestControllerChange(t *testing.T) {
 func TestRequestMap(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/posts/comments/controller.go"] = `
 		package comments
 		type Controller struct {}
@@ -2063,7 +2059,7 @@ func TestRequestMap(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -2098,8 +2094,8 @@ func TestRequestMap(t *testing.T) {
 func TestComplexInput(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -2122,7 +2118,7 @@ func TestComplexInput(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -2147,8 +2143,8 @@ func TestComplexInput(t *testing.T) {
 func TestRedirectBack(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		import "errors"
@@ -2173,7 +2169,7 @@ func TestRedirectBack(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -2230,8 +2226,8 @@ func TestRedirectBack(t *testing.T) {
 func TestInject(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["log/log.go"] = `
 		package log
 		func New() *Logger { return &Logger{} }
@@ -2292,7 +2288,7 @@ func TestInject(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -2326,8 +2322,8 @@ func TestInject(t *testing.T) {
 func TestEscapeProps(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.NodeModules["svelte"] = versions.Svelte
 	td.Files["controller/controller.go"] = `
 		package controller
@@ -2346,7 +2342,7 @@ func TestEscapeProps(t *testing.T) {
 		<h1>{post.html}</h1>
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -2364,8 +2360,8 @@ func TestEscapeProps(t *testing.T) {
 func TestProtocol(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["livebud"] = "*"
 	td.Files["model/model.go"] = `
@@ -2467,7 +2463,7 @@ func TestProtocol(t *testing.T) {
 		<h1>{article.SlugID}</h1>
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -2674,8 +2670,8 @@ func TestProtocol(t *testing.T) {
 func TestIndexControllerWithRootIndexAction(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	// root controller with index action
 	td.Files["controller/controller.go"] = `
 		package controller
@@ -2709,7 +2705,7 @@ func TestIndexControllerWithRootIndexAction(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -2751,8 +2747,8 @@ func TestIndexControllerWithRootIndexAction(t *testing.T) {
 func TestCreateRouteAndControllerAndView(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.NodeModules["svelte"] = versions.Svelte
 	td.Files["controller/controller.go"] = `
 		package controller
@@ -2763,7 +2759,7 @@ func TestCreateRouteAndControllerAndView(t *testing.T) {
 	`
 	is.NoErr(td.Write(ctx))
 	// Start
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -2777,7 +2773,7 @@ func TestCreateRouteAndControllerAndView(t *testing.T) {
 		"/"
 	`))
 	// Create a new route
-	is.NoErr(os.WriteFile(filepath.Join(dir, "controller", "controller.go"), []byte(`
+	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct{}
 		func (c *Controller) Index() string {
@@ -2786,7 +2782,8 @@ func TestCreateRouteAndControllerAndView(t *testing.T) {
 		func (c *Controller) Show(id string) string {
 			return "/" + id
 		}
-	`), 0644))
+	`
+	is.NoErr(td.Write(ctx))
 	// Wait for the app to be ready again
 	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	is.NoErr(app.Ready(readyCtx))
@@ -2800,14 +2797,14 @@ func TestCreateRouteAndControllerAndView(t *testing.T) {
 		"/10"
 	`))
 	// Create a new controller
-	is.NoErr(os.MkdirAll(filepath.Join(dir, "controller", "posts"), 0755))
-	is.NoErr(os.WriteFile(filepath.Join(dir, "controller", "posts", "controller.go"), []byte(`
+	td.Files["controller/posts/controller.go"] = `
 		package posts
 		type Controller struct{}
 		func (c *Controller) Index() string {
 			return "/posts"
 		}
-	`), 0644))
+	`
+	is.NoErr(td.Write(ctx))
 	// Wait for the app to be ready again
 	readyCtx, cancel = context.WithTimeout(ctx, 15*time.Second)
 	is.NoErr(app.Ready(readyCtx))
@@ -2821,10 +2818,10 @@ func TestCreateRouteAndControllerAndView(t *testing.T) {
 		"/posts"
 	`))
 	// Create a new view
-	is.NoErr(os.MkdirAll(filepath.Join(dir, "view", "posts"), 0755))
-	is.NoErr(os.WriteFile(filepath.Join(dir, "view", "posts", "index.svelte"), []byte(`
+	td.Files["view/posts/index.svelte"] = `
 		<h1>Posts</h1>
-	`), 0644))
+	`
+	is.NoErr(td.Write(ctx))
 	// Wait for the app to be ready again
 	readyCtx, cancel = context.WithTimeout(ctx, 15*time.Second)
 	is.NoErr(app.Ready(readyCtx))
@@ -2842,9 +2839,10 @@ func TestCreateRouteAndControllerAndView(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(html, `<h1>Posts</h1>`)
 	// Create a controller-less view
-	is.NoErr(os.WriteFile(filepath.Join(dir, "view", "posts", "show.svelte"), []byte(`
+	td.Files["view/posts/show.svelte"] = `
 		<h1>Show Posts</h1>
-	`), 0644))
+	`
+	is.NoErr(td.Write(ctx))
 	// Wait for the app to be ready again
 	readyCtx, cancel = context.WithTimeout(ctx, 15*time.Second)
 	is.NoErr(app.Ready(readyCtx))
@@ -2857,7 +2855,7 @@ func TestCreateRouteAndControllerAndView(t *testing.T) {
 		X-Content-Type-Options: nosniff
 	`))
 	// Create the accompanying route
-	is.NoErr(os.WriteFile(filepath.Join(dir, "controller", "posts", "controller.go"), []byte(`
+	td.Files["controller/posts/controller.go"] = `
 		package posts
 		type Controller struct{}
 		func (c *Controller) Index() string {
@@ -2865,7 +2863,8 @@ func TestCreateRouteAndControllerAndView(t *testing.T) {
 		}
 		func (c *Controller) Show() {
 		}
-	`), 0644))
+	`
+	is.NoErr(td.Write(ctx))
 	// Wait for the app to be ready again
 	readyCtx, cancel = context.WithTimeout(ctx, 15*time.Second)
 	is.NoErr(app.Ready(readyCtx))
@@ -2887,8 +2886,8 @@ func TestCreateRouteAndControllerAndView(t *testing.T) {
 func TestDeleteRouteAndControllerAndView(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.NodeModules["svelte"] = versions.Svelte
 	td.Files["controller/posts/controller.go"] = `
 		package controller
@@ -2908,7 +2907,7 @@ func TestDeleteRouteAndControllerAndView(t *testing.T) {
 	`
 	is.NoErr(td.Write(ctx))
 	// Start
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -2939,7 +2938,7 @@ func TestDeleteRouteAndControllerAndView(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(html, `<h1>Show Posts</h1>`)
 	// Delete the show view
-	is.NoErr(os.Remove(filepath.Join(dir, "view", "posts", "show.svelte")))
+	is.NoErr(td.RemoveAll("view/posts/show.svelte"))
 	// Wait for the app to be ready again
 	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	is.NoErr(app.Ready(readyCtx))
@@ -2953,7 +2952,7 @@ func TestDeleteRouteAndControllerAndView(t *testing.T) {
 	`))
 	is.NotIn(res.Body().String(), "<h1>Show Posts</h1>")
 	// Delete the controller
-	is.NoErr(os.RemoveAll(filepath.Join(dir, "controller", "posts")))
+	is.NoErr(td.RemoveAll("controller/posts"))
 	// Wait for the app to be ready again
 	readyCtx, cancel = context.WithTimeout(ctx, 15*time.Second)
 	is.NoErr(app.Ready(readyCtx))
@@ -2979,8 +2978,8 @@ func TestDeleteRouteAndControllerAndView(t *testing.T) {
 func TestUpdateBodyAndSignatureAndRoute(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -2989,7 +2988,7 @@ func TestUpdateBodyAndSignatureAndRoute(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -3003,13 +3002,14 @@ func TestUpdateBodyAndSignatureAndRoute(t *testing.T) {
 	`))
 	is.In(res.Body().String(), `Hello Users!`)
 	// Update controller body
-	is.NoErr(os.WriteFile(filepath.Join(dir, "controller", "controller.go"), []byte(`
+	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
 		func (c *Controller) Index() string {
 			return "Hello Humans!"
 		}
-	`), 0644))
+	`
+	is.NoErr(td.Write(ctx))
 	// Wait for the app to be ready again
 	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	is.NoErr(app.Ready(readyCtx))
@@ -3023,13 +3023,14 @@ func TestUpdateBodyAndSignatureAndRoute(t *testing.T) {
 	`))
 	is.In(res.Body().String(), `Hello Humans!`)
 	// Update controller signature
-	is.NoErr(os.WriteFile(filepath.Join(dir, "controller", "controller.go"), []byte(`
+	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
 		func (c *Controller) Index(name string) (string, error) {
 			return "Hello " + name + "!", nil
 		}
-	`), 0644))
+	`
+	is.NoErr(td.Write(ctx))
 	// Wait for the app to be ready again
 	readyCtx, cancel = context.WithTimeout(ctx, 15*time.Second)
 	is.NoErr(app.Ready(readyCtx))
@@ -3043,13 +3044,14 @@ func TestUpdateBodyAndSignatureAndRoute(t *testing.T) {
 	`))
 	is.In(res.Body().String(), `Hello Mark!`)
 	// Update route
-	is.NoErr(os.WriteFile(filepath.Join(dir, "controller", "controller.go"), []byte(`
+	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
 		func (c *Controller) Show(id string) (string, error) {
 			return "/"+id, nil
 		}
-	`), 0644))
+	`
+	is.NoErr(td.Write(ctx))
 	// Wait for the app to be ready again
 	readyCtx, cancel = context.WithTimeout(ctx, 15*time.Second)
 	is.NoErr(app.Ready(readyCtx))

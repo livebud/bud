@@ -5,25 +5,23 @@ import (
 	"context"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testcli"
-	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/internal/versions"
+	"github.com/livebud/bud/package/testdir"
 )
 
 func TestNewControllerNoActions(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	err := td.Write(ctx)
+	td, err := testdir.Load()
 	is.NoErr(err)
-	cli := testcli.New(dir)
+	err = td.Write(ctx)
+	is.NoErr(err)
+	cli := testcli.New(td.Directory())
 	result, err := cli.Run(ctx, "new", "controller", "hello")
 	is.NoErr(err)
 	is.Equal(result.Stdout(), "")
@@ -47,11 +45,11 @@ func TestNewControllerNoActions(t *testing.T) {
 func TestNewControllerNoActionsRoute(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	err := td.Write(ctx)
+	td, err := testdir.Load()
 	is.NoErr(err)
-	cli := testcli.New(dir)
+	err = td.Write(ctx)
+	is.NoErr(err)
+	cli := testcli.New(td.Directory())
 	result, err := cli.Run(ctx, "new", "controller", "hello:/")
 	is.NoErr(err)
 	is.Equal(result.Stdout(), "")
@@ -75,12 +73,12 @@ func TestNewControllerNoActionsRoute(t *testing.T) {
 func TestNewControllerAll(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.NodeModules["svelte"] = versions.Svelte
-	err := td.Write(ctx)
+	td, err := testdir.Load()
 	is.NoErr(err)
-	cli := testcli.New(dir)
+	td.NodeModules["svelte"] = versions.Svelte
+	err = td.Write(ctx)
+	is.NoErr(err)
+	cli := testcli.New(td.Directory())
 	result, err := cli.Run(ctx, "new", "controller", "posts", "index", "show", "create", "update", "delete", "edit", "new")
 	is.NoErr(err)
 	is.Equal(result.Stdout(), "")
@@ -173,12 +171,12 @@ func TestNewControllerAll(t *testing.T) {
 func TestNewControllerAllRoot(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.NodeModules["svelte"] = versions.Svelte
-	err := td.Write(ctx)
+	td, err := testdir.Load()
 	is.NoErr(err)
-	cli := testcli.New(dir)
+	td.NodeModules["svelte"] = versions.Svelte
+	err = td.Write(ctx)
+	is.NoErr(err)
+	cli := testcli.New(td.Directory())
 	result, err := cli.Run(ctx, "new", "controller", "posts:/", "index", "show", "create", "update", "delete", "edit", "new")
 	is.NoErr(err)
 	is.Equal(result.Stdout(), "")
@@ -271,12 +269,12 @@ func TestNewControllerAllRoot(t *testing.T) {
 func TestNewControllerAllNested(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.NodeModules["svelte"] = versions.Svelte
-	err := td.Write(ctx)
+	td, err := testdir.Load()
 	is.NoErr(err)
-	cli := testcli.New(dir)
+	td.NodeModules["svelte"] = versions.Svelte
+	err = td.Write(ctx)
+	is.NoErr(err)
+	cli := testcli.New(td.Directory())
 	result, err := cli.Run(ctx, "new", "controller", "posts/comments", "index", "show", "create", "update", "delete", "edit", "new")
 	is.True(err != nil)
 	is.Equal(err.Error(), `new controller: scaffolding the "index" or "new" action of a nested resource like "posts/comments" isn't supported yet, see https://github.com/livebud/bud/issues/209 for details`)
@@ -373,12 +371,12 @@ func TestNewControllerAllNested(t *testing.T) {
 func TestNewControllerCustom(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.NodeModules["svelte"] = versions.Svelte
-	err := td.Write(ctx)
+	td, err := testdir.Load()
 	is.NoErr(err)
-	cli := testcli.New(dir)
+	td.NodeModules["svelte"] = versions.Svelte
+	err = td.Write(ctx)
+	is.NoErr(err)
+	cli := testcli.New(td.Directory())
 	result, err := cli.Run(ctx, "new", "controller", "posts:/", "custom")
 	is.True(err != nil)
 	is.Equal(err.Error(), `new controller: invalid action "custom", expected "index", "new", "create", "show", "edit", "update" or "delete"`)
@@ -389,12 +387,12 @@ func TestNewControllerCustom(t *testing.T) {
 func TestNewControllerRemoveViewDir(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.NodeModules["svelte"] = versions.Svelte
-	err := td.Write(ctx)
+	td, err := testdir.Load()
 	is.NoErr(err)
-	cli := testcli.New(dir)
+	td.NodeModules["svelte"] = versions.Svelte
+	err = td.Write(ctx)
+	is.NoErr(err)
+	cli := testcli.New(td.Directory())
 	result, err := cli.Run(ctx, "new", "controller", "/", "index")
 	is.NoErr(err)
 	is.Equal(result.Stdout(), "")
@@ -408,7 +406,7 @@ func TestNewControllerRemoveViewDir(t *testing.T) {
 	is.In(res.Body().String(), `<h1>Resource Index</h1>`)
 
 	// Remove the view directory
-	is.NoErr(os.RemoveAll(filepath.Join(dir, "view")))
+	is.NoErr(td.RemoveAll("view"))
 
 	// Wait for the app to be ready again
 	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)

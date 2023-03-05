@@ -6,17 +6,17 @@ import (
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testcli"
-	"github.com/livebud/bud/internal/testdir"
+	"github.com/livebud/bud/package/testdir"
 )
 
 func TestWelcome(t *testing.T) {
 	is := is.New(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	is.NoErr(td.NotExists("bud/app"))
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)

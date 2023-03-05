@@ -6,16 +6,16 @@ import (
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testcli"
-	"github.com/livebud/bud/internal/testdir"
+	"github.com/livebud/bud/package/testdir"
 )
 
 func TestHelp(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	result, err := cli.Run(ctx, "--help")
 	is.NoErr(err)
 	is.Equal(result.Stderr(), "")
@@ -31,11 +31,11 @@ func TestHelp(t *testing.T) {
 func TestChdir(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	is.NoErr(td.Write(ctx))
 	cli := testcli.New(".")
-	result, err := cli.Run(ctx, "--chdir", dir, "build")
+	result, err := cli.Run(ctx, "--chdir", td.Directory(), "build")
 	is.NoErr(err)
 	is.Equal(result.Stdout(), "")
 	is.Equal(result.Stderr(), "")
@@ -48,11 +48,11 @@ func TestChdir(t *testing.T) {
 func TestChdirHelp(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	is.NoErr(td.Write(ctx))
 	cli := testcli.New(".")
-	result, err := cli.Run(ctx, "--chdir", dir, "--help")
+	result, err := cli.Run(ctx, "--chdir", td.Directory(), "--help")
 	is.NoErr(err)
 	is.Equal(result.Stderr(), "")
 	is.In(result.Stdout(), "  bud")
@@ -67,9 +67,9 @@ func TestChdirHelp(t *testing.T) {
 func TestOutsideModule(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	cli := testcli.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
+	cli := testcli.New(td.Directory())
 	result, err := cli.Run(ctx)
 	is.NoErr(err)
 	is.Equal(result.Stderr(), "")
@@ -91,9 +91,9 @@ func TestOutsideModule(t *testing.T) {
 func TestOutsideModuleHelp(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	cli := testcli.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
+	cli := testcli.New(td.Directory())
 	result, err := cli.Run(ctx, "--help")
 	is.NoErr(err)
 	is.Equal(result.Stderr(), "")
@@ -120,10 +120,10 @@ func TestOutsideModuleHelp(t *testing.T) {
 func TestBuildRunAlignment(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	buildResult, err := cli.Run(ctx, "build", "--help")
 	is.NoErr(err)
 	is.Equal(buildResult.Stderr(), "")

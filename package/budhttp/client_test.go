@@ -18,12 +18,12 @@ import (
 	"github.com/livebud/bud/framework/view/ssr"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/pubsub"
-	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/package/budhttp"
 	"github.com/livebud/bud/package/budhttp/budsvr"
 	"github.com/livebud/bud/package/gomod"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/svelte"
+	"github.com/livebud/bud/package/testdir"
 )
 
 func loadServer(bus pubsub.Client, dir string) (*budsvr.Server, error) {
@@ -64,11 +64,11 @@ func TestEvents(t *testing.T) {
 	ctx := context.Background()
 	is := is.New(t)
 	log := testlog.New()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	is.NoErr(td.Write(ctx))
 	ps := pubsub.New()
-	server, err := loadServer(ps, dir)
+	server, err := loadServer(ps, td.Directory())
 	is.NoErr(err)
 	server.Start(ctx)
 	defer server.Close()
@@ -90,11 +90,11 @@ func TestScript(t *testing.T) {
 	ctx := context.Background()
 	is := is.New(t)
 	log := testlog.New()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	is.NoErr(td.Write(ctx))
 	ps := pubsub.New()
-	server, err := loadServer(ps, dir)
+	server, err := loadServer(ps, td.Directory())
 	is.NoErr(err)
 	server.Start(ctx)
 	defer server.Close()
@@ -111,11 +111,11 @@ func TestScriptEval(t *testing.T) {
 	ctx := context.Background()
 	is := is.New(t)
 	log := testlog.New()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	is.NoErr(td.Write(ctx))
 	ps := pubsub.New()
-	server, err := loadServer(ps, dir)
+	server, err := loadServer(ps, td.Directory())
 	is.NoErr(err)
 	server.Start(ctx)
 	defer server.Close()

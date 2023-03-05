@@ -2,22 +2,21 @@ package generator_test
 
 import (
 	"context"
+	"io/fs"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/lithammer/dedent"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testcli"
-	"github.com/livebud/bud/internal/testdir"
+	"github.com/livebud/bud/package/testdir"
 )
 
 func TestGenerators(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["generator/tailwind/tailwind.go"] = `
 		package tailwind
 		import (
@@ -108,23 +107,23 @@ func TestGenerators(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
-	_, err := cli.Run(ctx, "build", "--embed=false")
+	cli := testcli.New(td.Directory())
+	_, err = cli.Run(ctx, "build", "--embed=false")
 	is.NoErr(err)
 	is.NoErr(td.Exists("bud/internal/tailwind/tailwind.css"))
 	is.NoErr(td.Exists("bud/internal/tailwind/preflight.css"))
 	is.NoErr(td.Exists("bud/internal/markdoc/markdoc.go"))
 	is.NoErr(td.Exists("bud/internal/frontend/viewer/viewer.go"))
-	data, err := os.ReadFile(td.Path("bud/internal/tailwind/tailwind.css"))
+	data, err := fs.ReadFile(td, "bud/internal/tailwind/tailwind.css")
 	is.NoErr(err)
 	is.Equal(string(data), "/** tailwind **/")
-	data, err = os.ReadFile(td.Path("bud/internal/tailwind/preflight.css"))
+	data, err = fs.ReadFile(td, "bud/internal/tailwind/preflight.css")
 	is.NoErr(err)
 	is.Equal(string(data), "/** preflight **/")
-	data, err = os.ReadFile(td.Path("bud/internal/markdoc/markdoc.go"))
+	data, err = fs.ReadFile(td, "bud/internal/markdoc/markdoc.go")
 	is.NoErr(err)
 	is.Equal(string(data), "package markdoc # About # About # Index # Index ")
-	data, err = os.ReadFile(td.Path("bud/internal/frontend/viewer/viewer.go"))
+	data, err = fs.ReadFile(td, "bud/internal/frontend/viewer/viewer.go")
 	is.NoErr(err)
 	is.Equal(string(data), "package viewer")
 }
@@ -132,14 +131,14 @@ func TestGenerators(t *testing.T) {
 func TestMissingGenerator(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["generator/web/transform/transform.go"] = `
 		package transform
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
-	_, err := cli.Run(ctx, "build", "--embed=false")
+	cli := testcli.New(td.Directory())
+	_, err = cli.Run(ctx, "build", "--embed=false")
 	is.NoErr(err)
 	is.NoErr(td.NotExists("bud/command/generate/main.go"))
 	is.NoErr(td.NotExists("bud/command/generate/main"))
@@ -148,16 +147,16 @@ func TestMissingGenerator(t *testing.T) {
 func TestMissingMatchingMethod(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["generator/web/transform/transform.go"] = `
 		package transform
 		type Generator struct {}
 		func (g *Generator) generate() error { return nil }
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
-	_, err := cli.Run(ctx, "build", "--embed=false")
+	cli := testcli.New(td.Directory())
+	_, err = cli.Run(ctx, "build", "--embed=false")
 	is.NoErr(err)
 	is.NoErr(td.NotExists("bud/command/generate/main"))
 }
@@ -165,8 +164,8 @@ func TestMissingMatchingMethod(t *testing.T) {
 func TestSyntaxError(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["generator/tailwind/tailwind.go"] = `
 		package tailwind
 		import (
@@ -178,7 +177,7 @@ func TestSyntaxError(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	res, err := cli.Run(ctx, "build", "--embed=false")
 	is.True(err != nil)
 	is.In(err.Error(), `exit status 2`)
@@ -189,8 +188,8 @@ func TestSyntaxError(t *testing.T) {
 func TestUpdateGenerator(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["generator/tailwind/tailwind.go"] = `
 		package tailwind
 		import (
@@ -206,17 +205,16 @@ func TestUpdateGenerator(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
 	// Check for tailwind
-	data, err := os.ReadFile(td.Path("bud/internal/tailwind/tailwind.css"))
+	data, err := fs.ReadFile(td, "bud/internal/tailwind/tailwind.css")
 	is.NoErr(err)
 	is.Equal(string(data), "/** tailwind **/")
 	// Update generator
-	generatorFile := filepath.Join(dir, "generator", "tailwind", "tailwind.go")
-	is.NoErr(os.WriteFile(generatorFile, []byte(dedent.Dedent(`
+	td.Files["generator/tailwind/tailwind.go"] = `
 		package tailwind
 		import (
 			"github.com/livebud/bud/package/genfs"
@@ -234,17 +232,18 @@ func TestUpdateGenerator(t *testing.T) {
 			})
 			return nil
 		}
-	`)), 0644))
+	`
+	is.NoErr(td.Write(ctx))
 	// Wait for the app to be ready again
 	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	is.NoErr(app.Ready(readyCtx))
 	cancel()
 	// Check for preflight
-	data, err = os.ReadFile(td.Path("bud/internal/tailwind/preflight.css"))
+	data, err = fs.ReadFile(td, "bud/internal/tailwind/preflight.css")
 	is.NoErr(err)
 	is.Equal(string(data), "/** preflight **/")
 	// Check that tailwind has been updated
-	data, err = os.ReadFile(td.Path("bud/internal/tailwind/tailwind.css"))
+	data, err = fs.ReadFile(td, "bud/internal/tailwind/tailwind.css")
 	is.NoErr(err)
 	is.Equal(string(data), "/** tailwind2 **/")
 }
@@ -252,8 +251,8 @@ func TestUpdateGenerator(t *testing.T) {
 func TestDeleteGenerator(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["generator/tailwind/tailwind.go"] = `
 		package tailwind
 		import (
@@ -269,17 +268,16 @@ func TestDeleteGenerator(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
 	// Check for tailwind
-	data, err := os.ReadFile(td.Path("bud/internal/tailwind/tailwind.css"))
+	data, err := fs.ReadFile(td, "bud/internal/tailwind/tailwind.css")
 	is.NoErr(err)
 	is.Equal(string(data), "/** tailwind **/")
 	// Update generator
-	generatorFile := filepath.Join(dir, "generator", "tailwind", "tailwind.go")
-	is.NoErr(os.WriteFile(generatorFile, []byte(dedent.Dedent(`
+	td.Files["generator/tailwind/tailwind.go"] = `
 		package tailwind
 		import (
 			"github.com/livebud/bud/package/genfs"
@@ -288,13 +286,14 @@ func TestDeleteGenerator(t *testing.T) {
 		func (g *Generator) Generate(fsys genfs.FS, dir *genfs.Dir) error {
 			return nil
 		}
-	`)), 0644))
+	`
+	is.NoErr(td.Write(ctx))
 	// Wait for the app to be ready again
 	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	is.NoErr(app.Ready(readyCtx))
 	cancel()
 	// Check that tailwind has been updated
-	data, err = os.ReadFile(td.Path("bud/internal/tailwind/tailwind.css"))
+	data, err = fs.ReadFile(td, "bud/internal/tailwind/tailwind.css")
 	is.True(os.IsNotExist(err))
 	is.Equal(data, nil)
 }
@@ -302,8 +301,8 @@ func TestDeleteGenerator(t *testing.T) {
 func TestChangeGenerator(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["generator/tailwind/tailwind.go"] = `
 		package tailwind
 		import (
@@ -319,17 +318,16 @@ func TestChangeGenerator(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
 	// Check for tailwind
-	data, err := os.ReadFile(td.Path("bud/internal/tailwind/tailwind.css"))
+	data, err := fs.ReadFile(td, "bud/internal/tailwind/tailwind.css")
 	is.NoErr(err)
 	is.Equal(string(data), "/** tailwind **/")
 	// Update generator
-	generatorFile := filepath.Join(dir, "generator", "tailwind", "tailwind.go")
-	is.NoErr(os.WriteFile(generatorFile, []byte(dedent.Dedent(`
+	td.Files["generator/tailwind/tailwind.go"] = `
 		package tailwind
 		import (
 			"github.com/livebud/bud/package/genfs"
@@ -342,17 +340,18 @@ func TestChangeGenerator(t *testing.T) {
 			})
 			return nil
 		}
-	`)), 0644))
+	`
+	is.NoErr(td.Write(ctx))
 	// Wait for the app to be ready again
 	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	is.NoErr(app.Ready(readyCtx))
 	cancel()
 	// Check that tailwind has been updated
-	data, err = os.ReadFile(td.Path("bud/internal/tailwind/tailwind.css"))
+	data, err = fs.ReadFile(td, "bud/internal/tailwind/tailwind.css")
 	is.True(os.IsNotExist(err))
 	is.Equal(data, nil)
 	// Check for preflight
-	data, err = os.ReadFile(td.Path("bud/internal/tailwind/preflight.css"))
+	data, err = fs.ReadFile(td, "bud/internal/tailwind/preflight.css")
 	is.NoErr(err)
 	is.Equal(string(data), "/** preflight **/")
 }
@@ -360,8 +359,8 @@ func TestChangeGenerator(t *testing.T) {
 func TestPkgGenerator(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["generator/tailwind/tailwind.go"] = `
 		package tailwind
 		import (
@@ -377,13 +376,13 @@ func TestPkgGenerator(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	res, err := cli.Run(ctx, "build", "--embed=false")
 	is.NoErr(err)
 	is.Equal(res.Stderr(), "")
 	is.Equal(res.Stdout(), "")
 	is.NoErr(td.Exists("bud/pkg/tailwind/tailwind.css"))
-	data, err := os.ReadFile(td.Path("bud/pkg/tailwind/tailwind.css"))
+	data, err := fs.ReadFile(td, "bud/pkg/tailwind/tailwind.css")
 	is.NoErr(err)
 	is.Equal(string(data), "/** tailwind **/")
 }
@@ -391,8 +390,8 @@ func TestPkgGenerator(t *testing.T) {
 func TestCmdGenerator(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["generator/tailwind/tailwind.go"] = `
 		package tailwind
 		import (
@@ -408,13 +407,13 @@ func TestCmdGenerator(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	res, err := cli.Run(ctx, "build", "--embed=false")
 	is.NoErr(err)
 	is.Equal(res.Stderr(), "")
 	is.Equal(res.Stdout(), "")
 	is.NoErr(td.Exists("bud/cmd/tailwind/main.go"))
-	data, err := os.ReadFile(td.Path("bud/cmd/tailwind/main.go"))
+	data, err := fs.ReadFile(td, "bud/cmd/tailwind/main.go")
 	is.NoErr(err)
 	is.Equal(string(data), "package main\nfunc main() {}")
 }
@@ -422,8 +421,8 @@ func TestCmdGenerator(t *testing.T) {
 func TestGeneratorServer(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["generator/tailwind/tailwind.go"] = `
 		package tailwind
 		import (
@@ -455,13 +454,13 @@ func TestGeneratorServer(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	res, err := cli.Run(ctx, "build", "--embed=false")
 	is.NoErr(err)
 	is.Equal(res.Stderr(), "")
 	is.Equal(res.Stdout(), "")
 	is.NoErr(td.Exists("bud/internal/view/view.go"))
-	data, err := os.ReadFile(td.Path("bud/internal/view/view.go"))
+	data, err := fs.ReadFile(td, "bud/internal/view/view.go")
 	is.NoErr(err)
 	is.Equal(string(data), "preflight.css")
 }
@@ -474,8 +473,8 @@ func TestGeneratorServer(t *testing.T) {
 func TestCustomWebGenerator(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	const healthHandler = `
 		package health
 		import "github.com/livebud/bud/package/router"
@@ -500,7 +499,7 @@ func TestCustomWebGenerator(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()

@@ -2,7 +2,6 @@ package parser_test
 
 import (
 	"context"
-	"os"
 	"path"
 	"path/filepath"
 	"testing"
@@ -16,9 +15,9 @@ import (
 	"github.com/livebud/bud/package/parser"
 
 	"github.com/livebud/bud/internal/is"
-	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/internal/txtar"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/testdir"
 	"github.com/livebud/bud/package/vfs"
 )
 
@@ -154,8 +153,8 @@ func TestAliasLookup(t *testing.T) {
 func TestNetHTTP(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["app.go"] = `
 		package app
 
@@ -165,9 +164,9 @@ func TestNetHTTP(t *testing.T) {
 			*http.Request
 		}
 	`
-	err := td.Write(ctx)
+	err = td.Write(ctx)
 	is.NoErr(err)
-	module, err := gomod.Find(dir)
+	module, err := gomod.Find(td.Directory())
 	is.NoErr(err)
 	p := parser.New(module, module)
 	pkg, err := p.Parse(".")
@@ -194,11 +193,11 @@ func TestGenerate(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	log := testlog.New()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Modules["github.com/livebud/bud-test-plugin"] = `v0.0.8`
 	is.NoErr(td.Write(ctx))
-	fsys := genfs.New(dag.Discard, os.DirFS(dir), log)
+	fsys := genfs.New(dag.Discard, td, log)
 	fsys.GenerateFile("hello/hello.go", func(fsys genfs.FS, file *genfs.File) error {
 		file.Data = []byte(`
 			package hello
@@ -207,7 +206,7 @@ func TestGenerate(t *testing.T) {
 		`)
 		return nil
 	})
-	module, err := gomod.Find(dir)
+	module, err := gomod.Find(td.Directory())
 	is.NoErr(err)
 	p := parser.New(fsys, module)
 	// Parse a virtual package
@@ -248,14 +247,14 @@ func TestGenerate(t *testing.T) {
 func TestAliasLookupModule(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	budModule, err := gomod.Find(".")
 	is.NoErr(err)
 	dep := budModule.File().Require("github.com/livebud/transpiler")
 	td.Modules["github.com/livebud/transpiler"] = dep.Version
 	is.NoErr(td.Write(ctx))
-	module, err := gomod.Find(dir)
+	module, err := gomod.Find(td.Directory())
 	is.NoErr(err)
 	fsys := virtual.Tree{
 		"bud/transpiler/transpiler.go": &virtual.File{Data: []byte(`

@@ -2,14 +2,14 @@ package transpiler_test
 
 import (
 	"context"
-	"os"
+	"io/fs"
 	"path"
 	"testing"
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testcli"
-	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/internal/versions"
+	"github.com/livebud/bud/package/testdir"
 )
 
 type Transpile struct {
@@ -47,19 +47,19 @@ func addFiles(td *testdir.Dir, transpiles []Transpile) {
 func TestEmpty(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
-	_, err := cli.Run(ctx, "build", "--embed=false")
+	cli := testcli.New(td.Directory())
+	_, err = cli.Run(ctx, "build", "--embed=false")
 	is.NoErr(err)
 }
 
 func TestSvelteToSvelte(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["livebud"] = "*"
 	td.Files["view/index.svelte"] = `<h1>hello</h1>`
@@ -76,11 +76,11 @@ func TestSvelteToSvelte(t *testing.T) {
 		{"view/index.svelte", "svelte"},
 	})
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
-	_, err := cli.Run(ctx, "build", "--embed=false")
+	cli := testcli.New(td.Directory())
+	_, err = cli.Run(ctx, "build", "--embed=false")
 	is.NoErr(err)
 	is.NoErr(td.Exists("bud/internal/svelte/view/index.svelte"))
-	data, err := os.ReadFile(td.Path("bud/internal/svelte/view/index.svelte"))
+	data, err := fs.ReadFile(td, "bud/internal/svelte/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(string(data), `<h1>hello</h1><h1>hello</h1>`)
 }
@@ -88,8 +88,8 @@ func TestSvelteToSvelte(t *testing.T) {
 func TestSvelteToSvelteToJSX(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["livebud"] = "*"
 	td.Files["view/index.svelte"] = `<h1>hello</h1>`
@@ -115,11 +115,11 @@ func TestSvelteToSvelteToJSX(t *testing.T) {
 		{"view/index.svelte", "jsx"},
 	})
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
-	_, err := cli.Run(ctx, "build", "--embed=false")
+	cli := testcli.New(td.Directory())
+	_, err = cli.Run(ctx, "build", "--embed=false")
 	is.NoErr(err)
 	is.NoErr(td.Exists("bud/internal/jsx/view/index.svelte"))
-	data, err := os.ReadFile(td.Path("bud/internal/jsx/view/index.svelte"))
+	data, err := fs.ReadFile(td, "bud/internal/jsx/view/index.svelte")
 	is.NoErr(err)
 	is.Equal(string(data), `export default function() { return <><h1>hello</h1><h1>hello</h1></> }`)
 }
@@ -127,9 +127,9 @@ func TestSvelteToSvelteToJSX(t *testing.T) {
 func TestFaviconToFavicon(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.BFiles["public/favicon.ico"] = []byte{0x01, 0x02, 0x03}
+	td, err := testdir.Load()
+	is.NoErr(err)
+	td.Bytes["public/favicon.ico"] = []byte{0x01, 0x02, 0x03}
 	td.Files["transpiler/doubler/transpiler.go"] = `
 		package doubler
 		import "github.com/livebud/bud/runtime/transpiler"
@@ -147,11 +147,11 @@ func TestFaviconToFavicon(t *testing.T) {
 		{"public/favicon.ico", "ico"},
 	})
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
-	_, err := cli.Run(ctx, "build", "--embed=false")
+	cli := testcli.New(td.Directory())
+	_, err = cli.Run(ctx, "build", "--embed=false")
 	is.NoErr(err)
 	is.NoErr(td.Exists("bud/internal/ico/public/favicon.ico"))
-	data, err := os.ReadFile(td.Path("bud/internal/ico/public/favicon.ico"))
+	data, err := fs.ReadFile(td, "bud/internal/ico/public/favicon.ico")
 	is.NoErr(err)
 	is.Equal(data, []byte{0x01, 0x02, 0x03, 0x01, 0x02, 0x03})
 }
@@ -159,8 +159,8 @@ func TestFaviconToFavicon(t *testing.T) {
 func TestMdToSsrJsAndDomJs(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["livebud"] = "*"
 	td.Files["view/index.md"] = `# hello`
@@ -213,19 +213,19 @@ func TestMdToSsrJsAndDomJs(t *testing.T) {
 		{"view/index.md", "dom.js"},
 	})
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
-	_, err := cli.Run(ctx, "build", "--embed=false")
+	cli := testcli.New(td.Directory())
+	_, err = cli.Run(ctx, "build", "--embed=false")
 	is.NoErr(err)
 
 	// SSR
 	is.NoErr(td.Exists("bud/internal/ssr.js/view/index.md"))
-	data, err := os.ReadFile(td.Path("bud/internal/ssr.js/view/index.md"))
+	data, err := fs.ReadFile(td, "bud/internal/ssr.js/view/index.md")
 	is.NoErr(err)
 	is.Equal(string(data), `module.exports = function() { return <h1 style='color: red'>hello</h1> }`)
 
 	// DOM
 	is.NoErr(td.Exists("bud/internal/dom.js/view/index.md"))
-	data, err = os.ReadFile(td.Path("bud/internal/dom.js/view/index.md"))
+	data, err = fs.ReadFile(td, "bud/internal/dom.js/view/index.md")
 	is.NoErr(err)
 	is.Equal(string(data), `export default function() { return <h1 style='color: red'>hello</h1> }`)
 }

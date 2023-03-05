@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/modcache"
+	"github.com/livebud/bud/package/testdir"
 	"github.com/livebud/bud/package/vfs"
 
 	"github.com/livebud/bud/internal/is"
@@ -156,14 +156,13 @@ func TestModuleFindStdlib(t *testing.T) {
 func TestFindNested(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir, err := filepath.EvalSymlinks(t.TempDir())
+	td, err := testdir.Load()
 	is.NoErr(err)
-	td := testdir.New(dir)
 	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.9"
 	err = td.Write(ctx)
 	is.NoErr(err)
 	modCache := modcache.Default()
-	module1, err := gomod.Find(dir)
+	module1, err := gomod.Find(td.Directory())
 	is.NoErr(err)
 	data, err := fs.ReadFile(module1, "go.mod")
 	is.NoErr(err)
@@ -196,7 +195,7 @@ func TestFindNested(t *testing.T) {
 
 	// Ensure module1 is not overridden
 	is.Equal(module1.Import(), "app.com")
-	is.Equal(module1.Directory(), dir)
+	is.Equal(module1.Directory(), td.Directory())
 
 	// Ensure module2 is not overridden
 	is.Equal(module2.Import(), "github.com/livebud/bud-test-plugin")
@@ -284,14 +283,13 @@ func TestMissingModule(t *testing.T) {
 func TestFindBy(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir, err := filepath.EvalSymlinks(t.TempDir())
+	td, err := testdir.Load()
 	is.NoErr(err)
-	td := testdir.New(dir)
 	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.9"
 	td.Modules["github.com/livebud/bud-test-nested-plugin"] = "v0.0.5"
 	err = td.Write(ctx)
 	is.NoErr(err)
-	module, err := gomod.Find(dir)
+	module, err := gomod.Find(td.Directory())
 	is.NoErr(err)
 	modules, err := module.FindBy(func(mod *gomod.Require) bool {
 		return strings.HasPrefix(path.Base(mod.Mod.Path), "bud-")
@@ -304,8 +302,7 @@ func TestFindBy(t *testing.T) {
 
 func TestNew(t *testing.T) {
 	is := is.New(t)
-	dir, err := filepath.EvalSymlinks(t.TempDir())
-	is.NoErr(err)
+	dir := t.TempDir()
 	module := gomod.New(dir)
 	is.Equal(dir, module.Directory())
 	is.Equal(module.Import(), "change.me")

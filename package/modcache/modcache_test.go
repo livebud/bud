@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/livebud/bud/internal/testdir"
+	"github.com/livebud/bud/package/testdir"
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/modcache"
@@ -47,8 +47,8 @@ func TestDirectory(t *testing.T) {
 func TestResolveDirectoryFromCache(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.9"
 	is.NoErr(td.Write(ctx))
 	modCache := modcache.Default()
