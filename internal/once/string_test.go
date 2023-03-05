@@ -10,36 +10,42 @@ import (
 
 func TestStringNil(t *testing.T) {
 	is := is.New(t)
+	var once once.String
 	called := 0
-	callOnce := once.String(func() (string, error) {
+	res, err := once.Do(func() (string, error) {
 		called++
-		return "ok", nil
+		return "1", nil
 	})
-	res, err := callOnce()
 	is.NoErr(err)
 	is.Equal(called, 1)
-	is.Equal(res, "ok")
-	res, err = callOnce()
+	is.Equal(res, "1")
+	res, err = once.Do(func() (string, error) {
+		called++
+		return "2", errors.New("oh noz")
+	})
 	is.NoErr(err)
 	is.Equal(called, 1)
-	is.Equal(res, "ok")
+	is.Equal(res, "1")
 }
 
 func TestStringError(t *testing.T) {
 	is := is.New(t)
+	var once once.String
 	called := 0
-	callOnce := once.String(func() (string, error) {
+	res, err := once.Do(func() (string, error) {
 		called++
-		return "ok", errors.New("oh noz")
+		return "1", errors.New("oh noz")
 	})
-	res, err := callOnce()
 	is.True(err != nil)
 	is.Equal(err.Error(), "oh noz")
 	is.Equal(called, 1)
-	is.Equal(res, "ok")
-	res, err = callOnce()
+	is.Equal(res, "1")
+	res, err = once.Do(func() (string, error) {
+		called++
+		return "2", nil
+	})
 	is.True(err != nil)
 	is.Equal(err.Error(), "oh noz")
 	is.Equal(called, 1)
-	is.Equal(res, "ok")
+	is.Equal(res, "1")
 }

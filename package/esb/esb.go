@@ -61,14 +61,19 @@ func DOM(flag *framework.Flag, entries ...string) esbuild.BuildOptions {
 }
 
 // Only create the temp dir once
-var tempDir = once.String(func() (string, error) {
-	return os.MkdirTemp("", "bud_esb_*")
-})
+var tempDir = func() func(prefix string) (string, error) {
+	var once once.String
+	return func(prefix string) (string, error) {
+		return once.Do(func() (string, error) {
+			return os.MkdirTemp("", prefix)
+		})
+	}
+}()
 
 // Serve a single file
 func Serve(transport http.RoundTripper, fsys fs.FS, options esbuild.BuildOptions) (*esbuild.OutputFile, error) {
 	// Build from a scratch directory to reduce file-system influence
-	dir, err := tempDir()
+	dir, err := tempDir("bud_esb_*")
 	if err != nil {
 		return nil, fmt.Errorf("es: unable to create scratch dir. %w", err)
 	}
