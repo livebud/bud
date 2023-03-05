@@ -94,6 +94,7 @@ func TestNodeModules(t *testing.T) {
 	log := testlog.New()
 	ctx := context.Background()
 	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["view/index.svelte"] = `<h1>hi world</h1>`
 	td.NodeModules["svelte"] = versions.Svelte
 	is.NoErr(td.Write(ctx))
@@ -113,6 +114,7 @@ func TestGenerateDir(t *testing.T) {
 	log := testlog.New()
 	ctx := context.Background()
 	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["view/index.svelte"] = `<h1>index</h1>`
 	td.Files["view/about/index.svelte"] = `<h2>about</h2>`
 	td.NodeModules["livebud"] = "*"
@@ -181,6 +183,7 @@ func TestUpdateFile(t *testing.T) {
 	transformer, err := transformrt.Default(log, svelteCompiler)
 	is.NoErr(err)
 	td, err := testdir.Load()
+	is.NoErr(err)
 	td.NodeModules["svelte"] = versions.Svelte
 	td.Files["view/Story.svelte"] = `<h2>Story</h2>`
 	td.Files["view/index.svelte"] = `
