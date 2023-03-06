@@ -3,11 +3,13 @@ package cli
 import (
 	"context"
 	"fmt"
-	"os"
+	"io/fs"
 	"path"
+	"path/filepath"
 	"sort"
 
 	"github.com/livebud/bud/framework"
+	"github.com/livebud/bud/package/virtual"
 )
 
 type ToolFsLs struct {
@@ -21,9 +23,13 @@ func (c *CLI) ToolFsLs(ctx context.Context, in *ToolFsLs) error {
 	if err := c.Generate(ctx, generate); err != nil {
 		return err
 	}
-
+	abs, err := filepath.Abs(c.Dir)
+	if err != nil {
+		return err
+	}
+	fsys := virtual.OS(abs)
 	// Read the directory out
-	des, err := os.ReadDir(path.Clean(in.Path))
+	des, err := fs.ReadDir(fsys, path.Clean(in.Path))
 	if err != nil {
 		return err
 	}

@@ -9,7 +9,6 @@ import (
 
 // Copy files from one filesystem to another at subpath
 func Copy(log log.Log, from fs.FS, to FS, subpaths ...string) error {
-	log = log.Field("fn", "copy")
 	target := path.Join(subpaths...)
 	if target == "" {
 		target = "."
@@ -21,14 +20,28 @@ func Copy(log log.Log, from fs.FS, to FS, subpaths ...string) error {
 			return nil
 		}
 		if d.IsDir() {
-			log.Debug("copy dir", fpath)
-			return to.MkdirAll(fpath, d.Type())
+			mode := d.Type()
+			// Many of the virtual filesystems don't set a mode. Copying these to an
+			// actual filesystem will cause permission errors, so we'll use common
+			// permissions when not explicitly set.
+			if mode == 0 || mode == fs.ModeDir {
+				mode = 0755 | fs.ModeDir
+			}
+			log.Debug("virtual: copying dir", fpath, mode)
+			return to.MkdirAll(fpath, mode)
 		}
-		log.Debug("copy file", fpath)
 		data, err := fs.ReadFile(from, fpath)
 		if err != nil {
 			return err
 		}
-		return to.WriteFile(fpath, data, d.Type())
+		// Many of the virtual filesystems don't set a mode. Copying these to an
+		// actual filesystem will cause permission errors, so we'll use common
+		// permissions when not explicitly set.
+		mode := d.Type()
+		if mode == 0 {
+			mode = 0644
+		}
+		log.Debug("virtual: copying file", fpath, mode)
+		return to.WriteFile(fpath, data, mode)
 	})
 }

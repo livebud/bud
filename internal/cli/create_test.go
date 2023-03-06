@@ -10,8 +10,8 @@ import (
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testcli"
-	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/internal/versions"
+	"github.com/livebud/bud/package/testdir"
 	"golang.org/x/mod/modfile"
 )
 
@@ -26,13 +26,13 @@ func fileFirstLine(filePath string) string {
 func TestCreateOutsideGoPath(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	err := td.Write(ctx)
+	td, err := testdir.Load()
 	is.NoErr(err)
-	cli := testcli.New(dir)
+	err = td.Write(ctx)
+	is.NoErr(err)
+	cli := testcli.New(td.Directory())
 	is.NoErr(td.NotExists(".gitignore"))
-	result, err := cli.Run(ctx, "create", dir)
+	result, err := cli.Run(ctx, "create", td.Directory())
 	is.NoErr(err)
 	is.Equal(result.Stdout(), "")
 	is.In(result.Stderr(), "Ready")
@@ -40,17 +40,17 @@ func TestCreateOutsideGoPath(t *testing.T) {
 	is.NoErr(td.Exists("go.sum"))
 	is.NoErr(td.Exists("package.json"))
 	is.NoErr(td.Exists("package-lock.json"))
-	is.Equal(fileFirstLine(filepath.Join(dir, "go.mod")), "module change.me\n")
+	is.Equal(fileFirstLine(filepath.Join(td.Directory(), "go.mod")), "module change.me\n")
 }
 
 func TestCreateOutsideGoPathModulePath(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	cli := testcli.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
+	cli := testcli.New(td.Directory())
 	is.NoErr(td.NotExists(".gitignore"))
-	result, err := cli.Run(ctx, "create", "--module=github.com/my/app", dir)
+	result, err := cli.Run(ctx, "create", "--module=github.com/my/app", td.Directory())
 	is.NoErr(err)
 	is.Equal(result.Stdout(), "")
 	is.In(result.Stderr(), "Ready")
@@ -59,7 +59,7 @@ func TestCreateOutsideGoPathModulePath(t *testing.T) {
 	is.NoErr(td.Exists("package.json"))
 	is.NoErr(td.Exists("package-lock.json"))
 	is.NoErr(td.Exists("public/favicon.ico"))
-	is.Equal(fileFirstLine(filepath.Join(dir, "go.mod")), "module github.com/my/app\n")
+	is.Equal(fileFirstLine(filepath.Join(td.Directory(), "go.mod")), "module github.com/my/app\n")
 }
 
 func TestModfileAutoQuote(t *testing.T) {
@@ -73,13 +73,13 @@ func TestModfileAutoQuote(t *testing.T) {
 func TestCreateSeesWelcome(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	err := td.Write(ctx)
+	td, err := testdir.Load()
 	is.NoErr(err)
-	cli := testcli.New(dir)
+	err = td.Write(ctx)
+	is.NoErr(err)
+	cli := testcli.New(td.Directory())
 	is.NoErr(td.NotExists(".gitignore"))
-	result, err := cli.Run(ctx, "create", dir)
+	result, err := cli.Run(ctx, "create", td.Directory())
 	is.NoErr(err)
 	is.Equal(result.Stdout(), "")
 	is.In(result.Stderr(), "Ready")
@@ -106,13 +106,13 @@ func TestCreateSeesWelcome(t *testing.T) {
 func TestCreateRemoveBudGraceful(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	err := td.Write(ctx)
+	td, err := testdir.Load()
 	is.NoErr(err)
-	cli := testcli.New(dir)
+	err = td.Write(ctx)
+	is.NoErr(err)
+	cli := testcli.New(td.Directory())
 	is.NoErr(td.NotExists(".gitignore"))
-	result, err := cli.Run(ctx, "create", dir)
+	result, err := cli.Run(ctx, "create", td.Directory())
 	is.NoErr(err)
 	is.Equal(result.Stdout(), "")
 	is.In(result.Stderr(), "Ready")
@@ -130,7 +130,7 @@ func TestCreateRemoveBudGraceful(t *testing.T) {
 	is.NoErr(td.Exists("bud/bud.db"))
 
 	// Remove the bud directory
-	is.NoErr(os.RemoveAll(filepath.Join(dir, "bud")))
+	is.NoErr(td.RemoveAll("bud"))
 	is.NoErr(td.NotExists("bud/app"))
 	is.NoErr(td.NotExists("bud/afs"))
 	is.NoErr(td.NotExists("bud/bud.db"))
@@ -156,13 +156,13 @@ func TestCreateRemoveBudGraceful(t *testing.T) {
 func TestCreateRemovePublicGraceful(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	err := td.Write(ctx)
+	td, err := testdir.Load()
 	is.NoErr(err)
-	cli := testcli.New(dir)
+	err = td.Write(ctx)
+	is.NoErr(err)
+	cli := testcli.New(td.Directory())
 	is.NoErr(td.NotExists(".gitignore"))
-	result, err := cli.Run(ctx, "create", dir)
+	result, err := cli.Run(ctx, "create", td.Directory())
 	is.NoErr(err)
 	is.Equal(result.Stdout(), "")
 	is.In(result.Stderr(), "Ready")
@@ -178,7 +178,7 @@ func TestCreateRemovePublicGraceful(t *testing.T) {
 	is.NoErr(td.Exists("public/favicon.ico"))
 
 	// Remove the public directory
-	is.NoErr(os.RemoveAll(filepath.Join(dir, "public")))
+	is.NoErr(td.RemoveAll("public"))
 	is.NoErr(td.NotExists("bud/public"))
 
 	// Wait for the app to recover
@@ -199,13 +199,13 @@ func TestReleaseVersionOk(t *testing.T) {
 	}
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	err := td.Write(ctx)
+	td, err := testdir.Load()
 	is.NoErr(err)
-	cli := testcli.New(dir)
+	err = td.Write(ctx)
+	is.NoErr(err)
+	cli := testcli.New(td.Directory())
 	is.NoErr(td.NotExists(".gitignore"))
-	result, err := cli.Run(ctx, "create", "--dev=false", dir)
+	result, err := cli.Run(ctx, "create", "--dev=false", td.Directory())
 	is.NoErr(err)
 	is.Equal(result.Stdout(), "")
 	is.In(result.Stderr(), "Ready")
@@ -213,8 +213,8 @@ func TestReleaseVersionOk(t *testing.T) {
 	is.NoErr(td.Exists("go.sum"))
 	is.NoErr(td.Exists("package.json"))
 	is.NoErr(td.Exists("package-lock.json"))
-	is.Equal(fileFirstLine(filepath.Join(dir, "go.mod")), "module change.me\n")
-	gomod, err := os.ReadFile(filepath.Join(dir, "go.mod"))
+	is.Equal(fileFirstLine(filepath.Join(td.Directory(), "go.mod")), "module change.me\n")
+	gomod, err := os.ReadFile(filepath.Join(td.Directory(), "go.mod"))
 	is.NoErr(err)
 	is.In(string(gomod), "github.com/livebud/bud v"+versions.Bud)
 }

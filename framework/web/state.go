@@ -1,6 +1,6 @@
 package web
 
-import "github.com/livebud/bud/internal/imports"
+import "github.com/livebud/bud/package/imports"
 
 type State struct {
 	Imports   []*imports.Import

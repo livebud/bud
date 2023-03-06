@@ -14,12 +14,11 @@ import (
 
 // Sync files from one filesystem to another at subpath
 func Sync(log log.Log, from fs.FS, to FS, subpaths ...string) error {
+	log.Debug("virtual: syncing")
 	target := path.Join(subpaths...)
 	if target == "" {
 		target = "."
 	}
-	log = log.Field("fn", "sync")
-	log.Debug("syncing")
 	now := time.Now()
 
 	ops, err := diff(log, from, to, target)
@@ -27,7 +26,7 @@ func Sync(log log.Log, from fs.FS, to FS, subpaths ...string) error {
 		return err
 	}
 	err = apply(log, to, ops)
-	log.Field("duration", time.Since(now)).Debug("synced")
+	log.Debug("virtual: synced in", time.Since(now))
 	return err
 }
 
@@ -56,10 +55,11 @@ type syncOp struct {
 	Type syncType
 	Path string
 	Data []byte
+	Mode fs.FileMode
 }
 
 func (o syncOp) String() string {
-	return o.Type.String() + ":" + o.Path
+	return o.Type.String() + " " + o.Path + " " + o.Mode.String()
 }
 
 func newSet(des []fs.DirEntry) set {
@@ -97,7 +97,6 @@ func (source set) Intersection(target set) (des []fs.DirEntry) {
 }
 
 func diff(log log.Log, from fs.FS, to FS, dir string) (ops []syncOp, err error) {
-	log = log.Field("fn", "diff")
 	sourceEntries, err := fs.ReadDir(from, dir)
 	if err != nil {
 		return nil, err
@@ -130,7 +129,7 @@ func diff(log log.Log, from fs.FS, to FS, dir string) (ops []syncOp, err error) 
 	ops = append(ops, deleteOps...)
 	ops = append(ops, childOps...)
 	for _, op := range ops {
-		log.Debug("op", op)
+		log.Debug("virtual: op", op)
 	}
 	return ops, nil
 }
@@ -150,7 +149,7 @@ func createOps(log log.Log, from fs.FS, dir string, des []fs.DirEntry) (ops []sy
 				}
 				return nil, err
 			}
-			ops = append(ops, syncOp{createType, fpath, data})
+			ops = append(ops, syncOp{createType, fpath, data, de.Type()})
 			continue
 		}
 		des, err := fs.ReadDir(from, fpath)
@@ -177,7 +176,7 @@ func deleteOps(log log.Log, dir string, des []fs.DirEntry) (ops []syncOp, err er
 			continue
 		}
 		fpath := path.Join(dir, de.Name())
-		ops = append(ops, syncOp{deleteType, fpath, nil})
+		ops = append(ops, syncOp{deleteType, fpath, nil, de.Type()})
 		continue
 	}
 	return ops, nil
@@ -216,36 +215,51 @@ func updateOps(log log.Log, from fs.FS, to FS, dir string, des []fs.DirEntry) (o
 			// Don't error out on files that don't exist
 			if errors.Is(err, fs.ErrNotExist) {
 				// The file no longer exists, delete it
-				ops = append(ops, syncOp{deleteType, fpath, nil})
+				ops = append(ops, syncOp{deleteType, fpath, nil, de.Type()})
 				continue
 			}
 			return nil, err
 		}
-		ops = append(ops, syncOp{updateType, fpath, data})
+		ops = append(ops, syncOp{updateType, fpath, data, de.Type()})
 	}
 	return ops, nil
 }
 
 func apply(log log.Log, to FS, ops []syncOp) error {
-	log = log.Field("fn", "apply")
 	for _, op := range ops {
 		switch op.Type {
 		case createType:
-			log.Debug("creating", op.Path)
 			dir := filepath.Dir(op.Path)
-			if err := to.MkdirAll(dir, 0755); err != nil {
+			// TODO: create ops for new directories too and maintain original
+			// permission bits.
+			mode := fs.FileMode(0755 | fs.ModeDir)
+			log.Debug("virtual: creating", dir, mode)
+			if err := to.MkdirAll(dir, mode); err != nil {
 				return err
 			}
-			if err := to.WriteFile(op.Path, op.Data, 0644); err != nil {
+			// Many of the virtual filesystems don't set a mode. Copying these to an
+			// actual filesystem will cause permission errors, so we'll use common
+			// permissions when not explicitly set.
+			if op.Mode == 0 {
+				op.Mode = 0644
+			}
+			log.Debug("virtual: creating", op.Path, op.Mode)
+			if err := to.WriteFile(op.Path, op.Data, op.Mode); err != nil {
 				return err
 			}
 		case updateType:
-			log.Debug("updating", op.Path)
-			if err := to.WriteFile(op.Path, op.Data, 0644); err != nil {
+			// Many of the virtual filesystems don't set a mode. Copying these to an
+			// actual filesystem will cause permission errors, so we'll use common
+			// permissions when not explicitly set.
+			if op.Mode == 0 {
+				op.Mode = 0644
+			}
+			log.Debug("virtual: updating", op.Path, op.Mode)
+			if err := to.WriteFile(op.Path, op.Data, op.Mode); err != nil {
 				return err
 			}
 		case deleteType:
-			log.Debug("removing", op.Path)
+			log.Debug("virtual: removing", op.Path)
 			if err := to.RemoveAll(op.Path); err != nil {
 				return err
 			}

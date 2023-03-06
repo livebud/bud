@@ -19,9 +19,9 @@ import (
 	"github.com/livebud/bud/internal/dag"
 	"github.com/livebud/bud/internal/dsync"
 	"github.com/livebud/bud/internal/is"
-	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/log/testlog"
+	"github.com/livebud/bud/package/testdir"
 	"github.com/livebud/bud/package/virtual"
 )
 
@@ -1060,17 +1060,17 @@ func TestGlob(t *testing.T) {
 	ctx := context.Background()
 	is := is.New(t)
 	log := testlog.New()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = "package controller"
 	td.Files["controller/_show.go"] = "package controller"
 	td.Files["controller/posts/controller.go"] = "package posts"
 	td.Files["controller/posts/.show.go"] = "package posts"
 	td.Files["controller/_articles/controller.go"] = "package articles"
 	td.Files["controller/.users/controller.go"] = "package users"
-	err := td.Write(ctx)
+	err = td.Write(ctx)
 	is.NoErr(err)
-	fsys, err := gomod.Find(dir)
+	fsys, err := gomod.Find(td.Directory())
 	is.NoErr(err)
 	cache := dag.Discard
 	bfs := genfs.New(cache, fsys, log)

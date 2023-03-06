@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/livebud/bud/internal/gotemplate"
+	"github.com/livebud/bud/package/gotemplate"
 	"github.com/livebud/bud/package/virtual"
 	"github.com/otiai10/copy"
 )

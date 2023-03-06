@@ -3,9 +3,9 @@ package web
 import (
 	_ "embed"
 
-	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/gotemplate"
 	"github.com/livebud/bud/package/parser"
 )
 

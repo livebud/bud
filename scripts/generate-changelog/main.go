@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/package/commander"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/gotemplate"
 	"github.com/livebud/bud/package/log/console"
 )
 

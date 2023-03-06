@@ -6,14 +6,14 @@ import (
 	"path"
 	"strings"
 
-	"github.com/livebud/bud/internal/valid"
+	"github.com/livebud/bud/package/valid"
 	"github.com/livebud/bud/runtime/transpiler"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/package/finder"
 
 	"github.com/livebud/bud/internal/bail"
-	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/imports"
 )
 
 func Load(fsys fs.FS, flag *framework.Flag) (*State, error) {

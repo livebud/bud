@@ -3,10 +3,12 @@ package cli
 import (
 	"context"
 	"fmt"
-	"os"
+	"io/fs"
 	"path"
+	"path/filepath"
 
 	"github.com/livebud/bud/framework"
+	"github.com/livebud/bud/package/virtual"
 )
 
 type ToolFsCat struct {
@@ -20,9 +22,14 @@ func (c *CLI) ToolFsCat(ctx context.Context, in *ToolFsCat) error {
 	if err := c.Generate(ctx, generate); err != nil {
 		return err
 	}
+	abs, err := filepath.Abs(c.Dir)
+	if err != nil {
+		return err
+	}
+	fsys := virtual.OS(abs)
 
 	// Read the file out
-	code, err := os.ReadFile(path.Clean(in.Path))
+	code, err := fs.ReadFile(fsys, path.Clean(in.Path))
 	if err != nil {
 		return err
 	}

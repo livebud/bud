@@ -12,10 +12,10 @@ import (
 	"github.com/livebud/bud/package/finder"
 	"github.com/livebud/bud/package/log"
 
-	"github.com/livebud/bud/internal/imports"
-	"github.com/livebud/bud/internal/valid"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/imports"
 	"github.com/livebud/bud/package/parser"
+	"github.com/livebud/bud/package/valid"
 )
 
 type coreGenerator struct {
