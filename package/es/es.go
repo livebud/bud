@@ -72,12 +72,12 @@ func (b *Builder) Serve(serve *Serve) (*File, error) {
 type Bundle struct {
 	Entries  []string
 	Plugins  []esbuild.Plugin
-	Platform esbuild.Platform
+	Platform Platform
 }
 
 func (b *Builder) bundleOptions(bundle *Bundle) esbuild.BuildOptions {
 	switch bundle.Platform {
-	case esbuild.PlatformBrowser:
+	case DOM:
 		return b.dom(bundle.Entries, bundle.Plugins)
 	default:
 		return b.ssr(bundle.Entries, bundle.Plugins)
