@@ -58,6 +58,15 @@ func find(opt *option, dir string) (*Module, error) {
 	return parse(opt, modulePath, moduleData)
 }
 
+// MustFind is like Find but panics if an error occurs
+func MustFind(dir string, options ...Option) *Module {
+	module, err := Find(dir, options...)
+	if err != nil {
+		panic(err)
+	}
+	return module
+}
+
 // Infer the module path from the $GOPATH. This only works if you work inside
 // $GOPATH.
 func Infer(dir string) string {

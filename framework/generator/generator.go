@@ -22,14 +22,27 @@ func Generate(state *State) ([]byte, error) {
 	return generator.Generate(state)
 }
 
+const defaultGlob = `{generator/**.go,bud/internal/generator/*/*.go}`
+
+type Selector struct {
+	Import string
+	Type   string
+}
+
+var emptySelectors = map[string]Selector{}
+
 func New(log log.Log, module *gomod.Module, parser *parser.Parser) *Generator {
-	return &Generator{log, module, parser}
+	return &Generator{log, module, parser, defaultGlob, emptySelectors, emptySelectors, emptySelectors}
 }
 
 type Generator struct {
-	log    log.Log
-	module *gomod.Module
-	parser *parser.Parser
+	log            log.Log
+	module         *gomod.Module
+	parser         *parser.Parser
+	Glob           string
+	FileGenerators map[string]Selector
+	FileServers    map[string]Selector
+	DirGenerators  map[string]Selector
 }
 
 // GenerateFile connects to the remotefs and mounts the remote directory.
@@ -48,6 +61,6 @@ func (g *Generator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
 
 // Load the generators
 func (g *Generator) Load(fsys fs.FS) (*State, error) {
-	loader := &loader{g.log, g.module, g.parser, imports.New()}
+	loader := &loader{g, imports.New()}
 	return loader.Load(fsys)
 }

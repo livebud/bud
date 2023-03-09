@@ -10,61 +10,13 @@ import (
 	"github.com/matthewmueller/gotext"
 
 	"github.com/livebud/bud/package/finder"
-	"github.com/livebud/bud/package/log"
 
-	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/imports"
-	"github.com/livebud/bud/package/parser"
 	"github.com/livebud/bud/package/valid"
 )
 
-type coreGenerator struct {
-	Import string
-	Path   string
-}
-
-var coreFileGenerators = []*coreGenerator{
-	{
-		Import: "github.com/livebud/bud/framework/app",
-		Path:   "bud/cmd/app/main.go",
-	},
-	{
-		Import: "github.com/livebud/bud/framework/web",
-		Path:   "bud/internal/web/web.go",
-	},
-	{
-		Import: "github.com/livebud/bud/framework/controller",
-		Path:   "bud/internal/web/controller/controller.go",
-	},
-	{
-		Import: "github.com/livebud/bud/framework/view",
-		Path:   "bud/internal/web/view/view.go",
-	},
-	{
-		Import: "github.com/livebud/bud/framework/public",
-		Path:   "bud/internal/web/public/public.go",
-	},
-	{
-		Import: "github.com/livebud/bud/framework/view/ssr",
-		Path:   "bud/view/_ssr.js",
-	},
-}
-
-var coreFileServers = []*coreGenerator{
-	{
-		Import: "github.com/livebud/bud/framework/view/dom",
-		Path:   "bud/view",
-	},
-	{
-		Import: "github.com/livebud/bud/framework/view/nodemodules",
-		Path:   "bud/node_modules",
-	},
-}
-
 type loader struct {
-	log     log.Log
-	module  *gomod.Module
-	parser  *parser.Parser
+	*Generator
 	imports *imports.Set
 }
 
@@ -78,7 +30,7 @@ func (l *loader) Load(fsys fs.FS) (state *State, err error) {
 
 func (l *loader) load(fsys fs.FS) (state *State, err error) {
 	state = new(State)
-	generatorDirs, err := finder.Find(fsys, "{generator/**.go,bud/internal/generator/*/*.go}", func(path string, isDir bool) (entries []string) {
+	generatorDirs, err := finder.Find(fsys, l.Glob, func(path string, isDir bool) (entries []string) {
 		if !isDir && valid.GoFile(path) && !isUserDefinedInternalGenerator(path) {
 			entries = append(entries, filepath.Dir(path))
 		}
@@ -90,33 +42,33 @@ func (l *loader) load(fsys fs.FS) (state *State, err error) {
 
 	exists := make(map[string]bool)
 
-	// Load the core file generators
-	for _, generator := range coreFileGenerators {
-		if !exists[generator.Path] {
-			exists[generator.Path] = true
+	// Load passed in file generators
+	for path, generator := range l.FileGenerators {
+		if !exists[path] {
+			exists[path] = true
 			name := l.imports.Add(generator.Import)
 			state.FileGenerators = append(state.FileGenerators, &CodeGenerator{
 				Import: &imports.Import{
 					Name: name,
 					Path: generator.Import,
 				},
-				Path:  generator.Path,
+				Path:  path,
 				Camel: gotext.Camel(name),
 			})
 		}
 	}
 
-	// Load the core file servers
-	for _, generator := range coreFileServers {
-		if !exists[generator.Path] {
-			exists[generator.Path] = true
+	// Load passed in file servers
+	for path, generator := range l.FileServers {
+		if !exists[path] {
+			exists[path] = true
 			name := l.imports.Add(generator.Import)
 			state.FileServers = append(state.FileServers, &CodeGenerator{
 				Import: &imports.Import{
 					Name: name,
 					Path: generator.Import,
 				},
-				Path:  generator.Path,
+				Path:  path,
 				Camel: gotext.Camel(name),
 			})
 		}
@@ -215,8 +167,6 @@ func (l *loader) load(fsys fs.FS) (state *State, err error) {
 	}
 	l.imports.AddStd("io/fs")
 	l.imports.AddNamed("genfs", "github.com/livebud/bud/package/genfs")
-	l.imports.AddNamed("gomod", "github.com/livebud/bud/package/gomod")
-	l.imports.AddNamed("log", "github.com/livebud/bud/package/log")
 	state.Imports = l.imports.List()
 	return state, nil
 }

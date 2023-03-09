@@ -13,8 +13,6 @@ import (
 
 func New(
 	fsys genfs.FileSystem,
-	module *gomod.Module,
-	log log.Log,
 	{{- range $generator := $.FileGenerators }}
 	{{ $generator.Camel }} *{{ $generator.Import.Name }}.Generator,
 	{{- end }}
