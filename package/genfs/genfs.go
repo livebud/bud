@@ -33,6 +33,12 @@ type Cache interface {
 	Link(from string, toPatterns ...string) error
 }
 
+type discardCache struct{}
+
+func (discardCache) Get(path string) (*virtual.File, error)       { return nil, errors.New("not found") }
+func (discardCache) Set(path string, file *virtual.File) error    { return nil }
+func (discardCache) Link(from string, toPatterns ...string) error { return nil }
+
 type FS interface {
 	fs.FS
 	fs.ReadDirFS
@@ -45,6 +51,9 @@ type generator interface {
 }
 
 func New(cache Cache, fsys fs.FS, log log.Log) FileSystem {
+	if cache == nil {
+		cache = discardCache{}
+	}
 	return &fileSystem{cache, fsys, log, newTree()}
 }
 

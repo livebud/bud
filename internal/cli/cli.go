@@ -149,6 +149,17 @@ func (c *CLI) Parse(ctx context.Context, args ...string) error {
 		cli.Run(func(ctx context.Context) error { return c.Generate(ctx, in) })
 	}
 
+	{ // $ bud generate2 [packages...]
+		in := &Generate2{Flag: &framework.Flag{}}
+		cli := cli.Command("generate2", "generate bud packages")
+		cli.Flag("listen-dev", "dev server address").String(&in.ListenDev).Default(":35729")
+		cli.Flag("embed", "embed assets").Bool(&in.Flag.Embed).Default(false)
+		cli.Flag("hot", "hot reloading").Bool(&in.Flag.Hot).Default(true)
+		cli.Flag("minify", "minify assets").Bool(&in.Flag.Minify).Default(false)
+		cli.Args("packages").Strings(&in.Packages)
+		cli.Run(func(ctx context.Context) error { return c.Generate2(ctx, in) })
+	}
+
 	{ // $ bud run
 		in := &Run{Flag: &framework.Flag{}}
 		cli := cli.Command("run", "run the app in development mode")

@@ -18,6 +18,12 @@ install:
 # Examples
 ##
 
+example.zero:
+	@ go run main.go -C example/zero generate2
+
+example.zero.watch:
+	@ watch --clear -- $(MAKE) example.zero
+
 example.basic:
 	@ (cd example/basic && npm link ../../livebud)
 	@ go run main.go -C example/basic run
