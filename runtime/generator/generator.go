@@ -14,10 +14,13 @@ import (
 
 type FS = genfs.FS
 type File = genfs.File
+type Dir = genfs.Dir
 type GenerateFile = genfs.GenerateFile
+type GenerateDir = genfs.GenerateDir
 
 type Schema struct {
 	GenerateFiles map[string]GenerateFile
+	GenerateDirs  map[string]GenerateDir
 }
 
 func New(log log.Log, module *gomod.Module, schema *Schema) *Generator {
@@ -34,6 +37,9 @@ func New(log log.Log, module *gomod.Module, schema *Schema) *Generator {
 	gen := genfs.New(dag.Discard, dirfs, log)
 	for path, generator := range schema.GenerateFiles {
 		gen.FileGenerator(path, generator)
+	}
+	for path, generator := range schema.GenerateDirs {
+		gen.DirGenerator(path, generator)
 	}
 	return &Generator{gen, log, module}
 }

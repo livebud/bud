@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
@@ -113,8 +112,10 @@ func (g *mainGenerator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
 		Name:    "loadGenerator",
 		Imports: imset,
 		Aliases: di.Aliases{
-			di.ToType("github.com/livebud/bud/package/log", "Log"):       di.ToType("github.com/livebud/bud/runtime/gen", "Log"),
-			di.ToType("github.com/livebud/bud/package/gomod", "*Module"): di.ToType("github.com/livebud/bud/runtime/gen", "*Module"),
+			di.ToType("github.com/livebud/bud/package/log", "Log"):        di.ToType("github.com/livebud/bud/runtime/gen", "Log"),
+			di.ToType("github.com/livebud/bud/package/gomod", "*Module"):  di.ToType("github.com/livebud/bud/runtime/gen", "*Module"),
+			di.ToType("github.com/livebud/bud/package/parser", "*Parser"): di.ToType("github.com/livebud/bud/runtime/gen", "*Parser"),
+			di.ToType("github.com/livebud/bud/package/di", "*Injector"):   di.ToType("github.com/livebud/bud/runtime/gen", "*Injector"),
 		},
 		Results: []di.Dependency{
 			di.ToType(g.module.Import("bud/internal/gen/generator"), "*Generator"),
@@ -122,7 +123,6 @@ func (g *mainGenerator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
 		},
 	})
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	code, err := mainGen.Generate(State{
@@ -160,9 +160,9 @@ func New(
 	{{- end }}
 ) *Generator {
 	return generator.New(log, module, &generator.Schema{
-		GenerateFiles: map[string]generator.GenerateFile{
+		GenerateDirs: map[string]generator.GenerateDir{
 			{{- range $generator := $.Generators }}
-			"{{ $generator.Path }}": {{ $generator.Camel }}.GenerateFile,
+			"{{ $generator.Path }}": {{ $generator.Camel }}.GenerateDir,
 			{{- end }}
 		},
 	})
@@ -190,15 +190,25 @@ func (g *generatorGenerator) GenerateFile(fsys genfs.FS, file *genfs.File) error
 	imset.AddNamed("generator", "github.com/livebud/bud/runtime/generator")
 	imset.AddNamed("gomod", "github.com/livebud/bud/package/gomod")
 	imset.AddNamed("log", "github.com/livebud/bud/package/log")
-	appImportPath := g.module.Import("generator/cmd/app")
+	appImportPath := g.module.Import("generator/app")
+	commandImportPath := g.module.Import("generator/command")
 	generators := []*Generator{
 		{
 			Import: &imports.Import{
 				Name: imset.Add(appImportPath),
 				Path: appImportPath,
 			},
-			Path:  "bud/cmd/app/main.go",
+			Path:  "bud",
 			Camel: "app",
+			Type:  "Generator",
+		},
+		{
+			Import: &imports.Import{
+				Name: imset.Add(commandImportPath),
+				Path: commandImportPath,
+			},
+			Path:  "bud",
+			Camel: "command",
 			Type:  "Generator",
 		},
 	}

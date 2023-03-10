@@ -3,18 +3,20 @@ package app
 import (
 	"fmt"
 
+	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/gotemplate"
 	"github.com/livebud/bud/package/imports"
 	"github.com/livebud/bud/runtime/generator"
 )
 
-func New(module *gomod.Module) *Generator {
-	return &Generator{module}
+func New(injector *di.Injector, module *gomod.Module) *Generator {
+	return &Generator{injector, module}
 }
 
 type Generator struct {
-	module *gomod.Module
+	injector *di.Injector
+	module   *gomod.Module
 }
 
 const appTemplate = `package main
@@ -35,12 +37,17 @@ func main() {
 
 var appGen = gotemplate.MustParse("app.gotext", appTemplate)
 
-func (g *Generator) GenerateFile(fsys generator.FS, file *generator.File) error {
+func (g *Generator) GenerateDir(fsys generator.FS, dir *generator.Dir) error {
+	dir.GenerateFile("cmd/app/main.go", g.generateFile)
+	return nil
+}
+
+func (g *Generator) generateFile(fsys generator.FS, file *generator.File) error {
 	type State struct {
 		Imports []*imports.Import
 	}
 	imset := imports.New()
-	imset.Add(g.module.Import("generator/cmd/app"))
+	imset.Add(g.module.Import("generator/app"))
 	code, err := appGen.Generate(State{
 		Imports: imset.List(),
 	})
