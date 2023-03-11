@@ -37,8 +37,12 @@ func (c *CLI) Generate2(ctx context.Context, in *Generate2) (err error) {
 	if err != nil {
 		return err
 	}
-
-	gen := genfs.New(dag.Discard, module, log)
+	cache, err := dag.Load(log, module.Directory("bud", "bud.db"))
+	if err != nil {
+		return err
+	}
+	defer cache.Close()
+	gen := genfs.New(cache, module, log)
 	parser := parser.New(gen, module)
 	injector := di.New(gen, log, module, parser)
 	gen.FileGenerator("bud/cmd/gen/main.go", &mainGenerator{injector, log, module})
@@ -59,13 +63,8 @@ func (c *CLI) Generate2(ctx context.Context, in *Generate2) (err error) {
 		return err
 	}
 
-	// Build bud/app
-	cmd = c.command(module.Directory(), "go", "build", "-mod=mod", "-o=bud/app", "./bud/cmd/app")
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-
 	// Run bud/app
+	// TODO: this should be moved into `bud run`
 	cmd = c.command(module.Directory(), "./bud/app")
 	if err := cmd.Run(); err != nil {
 		return err
@@ -111,9 +110,21 @@ func (g *mainGenerator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
 	provider, err := g.injector.Wire(&di.Function{
 		Name:    "loadGenerator",
 		Imports: imset,
+		Params: []*di.Param{
+			&di.Param{
+				Import: "github.com/livebud/bud/package/gomod",
+				Type:   "*Module",
+			},
+			&di.Param{
+				Import: "github.com/livebud/bud/package/log",
+				Type:   "Log",
+			},
+			&di.Param{
+				Import: "github.com/livebud/bud/package/genfs",
+				Type:   "FileSystem",
+			},
+		},
 		Aliases: di.Aliases{
-			di.ToType("github.com/livebud/bud/package/log", "Log"):        di.ToType("github.com/livebud/bud/runtime/gen", "Log"),
-			di.ToType("github.com/livebud/bud/package/gomod", "*Module"):  di.ToType("github.com/livebud/bud/runtime/gen", "*Module"),
 			di.ToType("github.com/livebud/bud/package/parser", "*Parser"): di.ToType("github.com/livebud/bud/runtime/gen", "*Parser"),
 			di.ToType("github.com/livebud/bud/package/di", "*Injector"):   di.ToType("github.com/livebud/bud/runtime/gen", "*Injector"),
 		},
@@ -152,20 +163,20 @@ import (
 )
 {{- end }}
 
-func New(
+func NewGenerator(
+	genfs generator.FileSystem,
 	log log.Log,
-	module *gomod.Module,
 	{{- range $generator := $.Generators }}
 	{{ $generator.Camel }} *{{ $generator.Import.Name }}.{{ $generator.Type }},
 	{{- end }}
 ) *Generator {
-	return generator.New(log, module, &generator.Schema{
-		GenerateDirs: map[string]generator.GenerateDir{
-			{{- range $generator := $.Generators }}
-			"{{ $generator.Path }}": {{ $generator.Camel }}.GenerateDir,
-			{{- end }}
-		},
-	})
+	return generator.NewGenerator(
+		genfs,
+		log,
+		{{- range $generator := $.Generators }}
+		{{ $generator.Camel }},
+		{{- end }}
+	)
 }
 
 type Generator = generator.Generator
@@ -188,7 +199,7 @@ func (g *generatorGenerator) GenerateFile(fsys genfs.FS, file *genfs.File) error
 	imset := imports.New()
 	// imset.AddStd("fmt")
 	imset.AddNamed("generator", "github.com/livebud/bud/runtime/generator")
-	imset.AddNamed("gomod", "github.com/livebud/bud/package/gomod")
+	// imset.AddNamed("gomod", "github.com/livebud/bud/package/gomod")
 	imset.AddNamed("log", "github.com/livebud/bud/package/log")
 	appImportPath := g.module.Import("generator/app")
 	commandImportPath := g.module.Import("generator/command")

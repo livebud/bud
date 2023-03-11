@@ -37,9 +37,8 @@ func main() {
 
 var appGen = gotemplate.MustParse("app.gotext", appTemplate)
 
-func (g *Generator) GenerateDir(fsys generator.FS, dir *generator.Dir) error {
-	dir.GenerateFile("cmd/app/main.go", g.generateFile)
-	return nil
+func (g *Generator) Extend(gen generator.FileSystem) {
+	gen.GenerateFile("bud/cmd/app/main.go", g.generateFile)
 }
 
 func (g *Generator) generateFile(fsys generator.FS, file *generator.File) error {
@@ -59,5 +58,5 @@ func (g *Generator) generateFile(fsys generator.FS, file *generator.File) error 
 }
 
 func Main() {
-	fmt.Println("Hello, from app!!")
+	fmt.Println("Hello, from app!!!!")
 }

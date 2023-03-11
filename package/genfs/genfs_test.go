@@ -1956,33 +1956,3 @@ func TestFilesWithinServe(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(string(code), "e/f.txt")
 }
-
-func TestSameDirs(t *testing.T) {
-	is := is.New(t)
-	fsys := virtual.Tree{}
-	log := testlog.New()
-	cache := dag.Discard
-	gen := genfs.New(cache, fsys, log)
-	gen.GenerateDir("bud", func(fsys genfs.FS, dir *genfs.Dir) error {
-		dir.GenerateFile("a.txt", func(fsys genfs.FS, file *genfs.File) error {
-			file.Data = []byte("a")
-			return nil
-		})
-		return nil
-	})
-	gen.GenerateDir("bud", func(fsys genfs.FS, dir *genfs.Dir) error {
-		dir.GenerateFile("b.txt", func(fsys genfs.FS, file *genfs.File) error {
-			file.Data = []byte("b")
-			return nil
-		})
-		return nil
-	})
-	err := virtual.Sync(log, gen, fsys, "bud")
-	is.NoErr(err)
-	code, err := fs.ReadFile(fsys, "bud/a.txt")
-	is.NoErr(err)
-	is.Equal(string(code), "a")
-	code, err = fs.ReadFile(fsys, "bud/b.txt")
-	is.NoErr(err)
-	is.Equal(string(code), "b")
-}

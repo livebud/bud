@@ -2,6 +2,15 @@ package gen
 
 import (
 	"os"
+	"os/exec"
+	"path"
+	"strings"
+
+	"github.com/livebud/bud/package/virtual"
+
+	"github.com/livebud/bud/internal/dag"
+
+	"github.com/livebud/bud/package/genfs"
 
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
@@ -11,46 +20,77 @@ import (
 	"github.com/livebud/bud/runtime/generator"
 )
 
-type load = func() (*generator.Generator, error)
+type load = func(genfs.FileSystem, *gomod.Module, log.Log) (*generator.Generator, error)
 
-func FindModule() (*Module, error) {
-	return gomod.Find(".")
-}
-
-type Module = gomod.Module
-
-func NewLog() Log {
-	return log.New(console.New(os.Stderr))
-}
-
-type Log = log.Log
-
-func NewParser(module *Module) *Parser {
-	// TODO: do we need to pass genfs in here?
-	return parser.New(module, module)
+func ProvideParser(genfs genfs.FileSystem, module *gomod.Module) *Parser {
+	return parser.New(genfs, module)
 }
 
 type Parser = parser.Parser
 
-func NewInjector(log Log, module *Module, parser *Parser) *Injector {
-	// TODO: do we need to pass genfs in here?
-	return di.New(module, log, module, parser)
+func ProvideInjector(genfs genfs.FileSystem, log log.Log, module *gomod.Module, parser *Parser) *Injector {
+	return di.New(genfs, log, module, parser)
 }
 
 type Injector = di.Injector
 
 func Main(load load) {
 	log := log.New(console.New(os.Stderr))
-	if err := run(load); err != nil {
+	if err := run(log, load); err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}
 }
 
-func run(load load) error {
-	generator, err := load()
+func run(log log.Log, load load) error {
+	module, err := gomod.Find(".")
 	if err != nil {
-		return nil
+		return err
 	}
-	return generator.Generate()
+	fsys := virtual.Exclude(module, exclude)
+	gen := genfs.New(dag.Discard, fsys, log)
+	generator, err := load(gen, module, log)
+	if err != nil {
+		return err
+	}
+	// Generate the application packages like bud/cmd/app/main.go
+	if err := generator.Generate(module, "bud"); err != nil {
+		return err
+	}
+	// Build bud/cmd/app
+	cmd := exec.Command("go", "build", "-mod=mod", "-o=bud/app", "./bud/cmd/app")
+	cmd.Dir = module.Directory()
+	cmd.Env = os.Environ()
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Avoid deleting files that were synced or built earlier
+func exclude(path string) bool {
+	if isGenPath(path) || isBudChild(path) {
+		return false
+	} else if isBudPath(path) {
+		return true
+	}
+	return false
+}
+
+// Exclude everything in bud/
+func isBudPath(p string) bool {
+	return strings.HasPrefix(p, "bud/")
+}
+
+func isBudChild(p string) bool {
+	return path.Dir(p) == "bud"
+}
+
+func isGenPath(p string) bool {
+	return strings.HasPrefix(p, "bud/cmd/gen") ||
+		strings.HasPrefix(p, "bud/internal/gen") ||
+		strings.HasPrefix(p, "bud/pkg/gen")
 }

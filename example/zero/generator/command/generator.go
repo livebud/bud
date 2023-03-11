@@ -33,9 +33,8 @@ type Command struct {
 
 var gen = gotemplate.MustParse("command.gotext", template)
 
-func (g *Generator) GenerateDir(fsys generator.FS, dir *generator.Dir) error {
-	dir.GenerateFile("internal/command/command.go", g.generateFile)
-	return nil
+func (g *Generator) Extend(gen generator.FileSystem) {
+	gen.GenerateFile("bud/internal/command/command.go", g.generateFile)
 }
 
 func (g *Generator) generateFile(fsys generator.FS, file *generator.File) error {

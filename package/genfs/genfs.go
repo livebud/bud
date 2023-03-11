@@ -10,13 +10,8 @@ import (
 	"github.com/livebud/bud/package/virtual"
 )
 
-type FileSystem interface {
-	fs.FS
-	fs.ReadDirFS
-	Generators
-}
-
-type Generators interface {
+// Directory is the interface for adding file generators and directories
+type Directory interface {
 	GenerateFile(path string, fn func(fsys FS, file *File) error)
 	FileGenerator(path string, generator FileGenerator)
 	GenerateDir(path string, fn func(fsys FS, dir *Dir) error)
@@ -25,6 +20,22 @@ type Generators interface {
 	FileServer(dir string, server FileServer)
 	GenerateExternal(path string, fn func(fsys FS, file *External) error)
 	ExternalGenerator(path string, generator ExternalGenerator)
+}
+
+// // Extension allows you to extend the filesystem with more generators
+// type Extension interface {
+// 	Extend(g Directory)
+// }
+
+// FileSystem allows you to create and use a generator filesystem
+type FileSystem interface {
+	fs.FS
+	fs.ReadDirFS
+	Directory
+	// Sub(dir string) FileSystem
+	// Extend(extensions ...Extension) FileSystem
+	// Sync(to virtual.FS, subdirs ...string) error
+	// Copy(to virtual.FS, subdirs ...string) error
 }
 
 type Cache interface {
@@ -65,6 +76,14 @@ type fileSystem struct {
 }
 
 var _ FileSystem = (*fileSystem)(nil)
+
+// // Extend the filesystem with more generators
+// func (f *fileSystem) Extend(extensions ...Extension) FileSystem {
+// 	for _, extension := range extensions {
+// 		extension.Extend(f)
+// 	}
+// 	return f
+// }
 
 func (f *fileSystem) GenerateFile(path string, fn func(fsys FS, file *File) error) {
 	fileg := &fileGenerator{f.cache, fn, f, path}
@@ -175,6 +194,82 @@ func (f *fileSystem) ReadDir(target string) ([]fs.DirEntry, error) {
 	}
 	return deset.List(), nil
 }
+
+// func (f *fileSystem) Sync(to virtual.FS, subdirs ...string) error {
+// 	return virtual.Sync(f.log, f, to, subdirs...)
+// }
+
+// func (f *fileSystem) Copy(to virtual.FS, subdirs ...string) error {
+// 	return virtual.Copy(f.log, f, to, subdirs...)
+// }
+
+// func (f *fileSystem) Sub(dir string) FileSystem {
+// 	return &subSystem{dir, f, f.log}
+// }
+
+// type subSystem struct {
+// 	dir  string
+// 	fsys FileSystem
+// 	log  log.Log
+// }
+
+// var _ FileSystem = (*subSystem)(nil)
+
+// func (s *subSystem) Open(name string) (fs.File, error) {
+// 	return s.fsys.Open(path.Join(s.dir, name))
+// }
+
+// func (s *subSystem) ReadDir(name string) ([]fs.DirEntry, error) {
+// 	return s.fsys.ReadDir(path.Join(s.dir, name))
+// }
+
+// func (s *subSystem) GenerateFile(subpath string, fn func(fsys FS, file *File) error) {
+// 	s.fsys.GenerateFile(path.Join(s.dir, subpath), fn)
+// }
+
+// func (s *subSystem) FileGenerator(subpath string, generator FileGenerator) {
+// 	s.fsys.FileGenerator(path.Join(s.dir, subpath), generator)
+// }
+
+// func (s *subSystem) GenerateDir(subdir string, fn func(fsys FS, dir *Dir) error) {
+// 	s.fsys.GenerateDir(path.Join(s.dir, subdir), fn)
+// }
+
+// func (s *subSystem) DirGenerator(subdir string, generator DirGenerator) {
+// 	s.fsys.DirGenerator(path.Join(s.dir, subdir), generator)
+// }
+
+// func (s *subSystem) ServeFile(subdir string, fn func(fsys FS, file *File) error) {
+// 	s.fsys.ServeFile(path.Join(s.dir, subdir), fn)
+// }
+
+// func (s *subSystem) FileServer(subdir string, server FileServer) {
+// 	s.fsys.FileServer(path.Join(s.dir, subdir), server)
+// }
+
+// func (s *subSystem) GenerateExternal(subpath string, fn func(fsys FS, file *External) error) {
+// 	s.fsys.GenerateExternal(path.Join(s.dir, subpath), fn)
+// }
+
+// func (s *subSystem) ExternalGenerator(subpath string, generator ExternalGenerator) {
+// 	s.fsys.ExternalGenerator(path.Join(s.dir, subpath), generator)
+// }
+
+// func (s *subSystem) Sub(dir string) FileSystem {
+// 	return &subSystem{path.Join(s.dir, dir), s.fsys, s.log}
+// }
+
+// func (s *subSystem) Extend(extensions ...Extension) FileSystem {
+// 	return s.fsys.Extend(extensions...)
+// }
+
+// func (s *subSystem) Sync(to virtual.FS, subdirs ...string) error {
+// 	return virtual.Sync(s.log, s, to, subdirs...)
+// }
+
+// func (s *subSystem) Copy(to virtual.FS, subdirs ...string) error {
+// 	return virtual.Copy(s.log, s, to, subdirs...)
+// }
 
 func relativePath(base, target string) string {
 	rel := strings.TrimPrefix(target, base)
