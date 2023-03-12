@@ -1,21 +1,21 @@
-name: Test
+name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
-  bud:
+  test:
     name: Test
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        go: ['1.17', '1.18', '1.19', '1.20']
-        node: ['16']
+        os: [ 'ubuntu-latest', 'macos-latest' ]
+        go: [ '1.17', '1.18', '1.19', '1.20' ]
+        node: [ '16' ]
         include:
           - os: ubuntu-latest
             go: '1.18'
@@ -78,3 +78,26 @@ jobs:
       - name: Run CI (macOS)
         if: matrix.os == 'macos-latest'
         run: make ci.macos
+  staticcheck:
+    name: 'Run staticcheck'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ 'ubuntu-latest', 'macOS-latest' ]
+        go: [ '1.17', '1.18', '1.19', '1.20' ]
+      runs-on: ${{ matrix.os }}
+      steps:
+        - uses: actions/checkout@v3
+          with:
+            fetch-depth: 1
+        - uses: WillAbides/setup-go-faster@v1.8.0
+          with:
+            go-version: ${{ matrix.go }}
+        - run: 'go test ./...'
+        - run: 'go vet ./...'
+        - uses: dominikh/staticcheck-action@v1.3.0
+          with:
+            version: '2023.1.2'
+            install-go: false
+            min-go-version: ${{ matrix.go }}
+            cache-key: ${{ matrix.go }}
