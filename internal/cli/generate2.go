@@ -37,12 +37,12 @@ func (c *CLI) Generate2(ctx context.Context, in *Generate2) (err error) {
 	if err != nil {
 		return err
 	}
-	cache, err := dag.Load(log, module.Directory("bud", "bud.db"))
-	if err != nil {
-		return err
-	}
-	defer cache.Close()
-	gen := genfs.New(cache, module, log)
+	// cache, err := dag.Load(log, module.Directory("bud", "bud.db"))
+	// if err != nil {
+	// 	return err
+	// }
+	// defer cache.Close()
+	gen := genfs.New(dag.Discard, module, log)
 	parser := parser.New(gen, module)
 	injector := di.New(gen, log, module, parser)
 	gen.FileGenerator("bud/cmd/gen/main.go", &mainGenerator{injector, log, module})

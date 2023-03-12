@@ -4,7 +4,10 @@ go 1.19
 
 replace github.com/livebud/bud => ../..
 
-require github.com/livebud/bud v0.0.0-00010101000000-000000000000
+require (
+	github.com/livebud/bud v0.0.0-00010101000000-000000000000
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+)
 
 require (
 	github.com/aybabtme/rgbterm v0.0.0-20170906152045-cc83f3b3ce59 // indirect
