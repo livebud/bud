@@ -7,10 +7,10 @@ import (
 	_ "embed"
 	"fmt"
 
-	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/gotemplate"
 	"github.com/livebud/bud/package/parser"
 )
 

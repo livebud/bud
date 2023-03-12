@@ -96,7 +96,7 @@ func (a *App) Run(ctx context.Context) error {
 	// Inform bud that we're ready
 	budClient.Publish("app:ready", nil)
 	// Start serving requests
-	log.Debug("app: listening on %s", a.Listen)
+	log.Debug("app: listening on", a.Listen)
 	return webServer.Serve(ctx, a.Listen)
 }
 

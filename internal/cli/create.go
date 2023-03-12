@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/internal/gotemplate"
+	"github.com/livebud/bud/package/gotemplate"
 
 	"github.com/livebud/bud/internal/embedded"
 	"github.com/livebud/bud/internal/versions"
@@ -98,7 +98,7 @@ func (c *CLI) Create(ctx context.Context, in *Create) error {
 		if err := os.WriteFile(abspath, file.Data, 0644); err != nil {
 			return err
 		}
-		log.Info("Created: %s", file.Path)
+		log.Info("Created:", file.Path)
 	}
 
 	// Download the dependencies in go.mod to GOMODCACHE
@@ -139,7 +139,7 @@ func (c *CLI) Create(ctx context.Context, in *Create) error {
 	}
 	log.Info("Generated: bud")
 
-	log.Info("Ready: %s", c.Dir)
+	log.Info("Ready:", c.Dir)
 	return nil
 }
 

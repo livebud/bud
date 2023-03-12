@@ -3,11 +3,11 @@ package cli
 import (
 	"context"
 	"fmt"
-	"os"
+	"io/fs"
 	"path"
+	"path/filepath"
 
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/internal/printfs"
 	"github.com/livebud/bud/package/virtual"
 )
 
@@ -22,16 +22,17 @@ func (c *CLI) ToolFsTree(ctx context.Context, in *ToolFsTree) error {
 	if err := c.Generate(ctx, generate); err != nil {
 		return err
 	}
-
-	// Get the current working directory
-	wd, err := os.Getwd()
+	abs, err := filepath.Abs(c.Dir)
 	if err != nil {
 		return err
 	}
-	fsys := virtual.OS(wd)
-
+	fsys := virtual.OS(abs)
+	sub, err := fs.Sub(fsys, path.Clean(in.Path))
+	if err != nil {
+		return err
+	}
 	// Print out the tree
-	tree, err := printfs.Print(fsys, path.Clean(in.Path))
+	tree, err := virtual.Print(sub)
 	if err != nil {
 		return err
 	}

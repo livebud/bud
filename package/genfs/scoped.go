@@ -8,7 +8,7 @@ import (
 
 	"github.com/livebud/bud/internal/glob"
 	"github.com/livebud/bud/internal/orderedset"
-	"github.com/livebud/bud/internal/valid"
+	"github.com/livebud/bud/package/valid"
 )
 
 type scopedFS struct {

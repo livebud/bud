@@ -5,7 +5,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/livebud/bud/internal/gotemplate"
+	"github.com/livebud/bud/package/gotemplate"
 	"github.com/livebud/bud/package/vfs"
 	"golang.org/x/sync/errgroup"
 )

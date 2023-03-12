@@ -4,28 +4,26 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
-	"path/filepath"
 	"testing"
 
 	"github.com/livebud/bud/internal/mergefs"
 
 	"github.com/livebud/bud/internal/is"
-	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/pluginmod"
+	"github.com/livebud/bud/package/testdir"
 )
 
 func TestGlob(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir, err := filepath.EvalSymlinks(t.TempDir())
+	td, err := testdir.Load()
 	is.NoErr(err)
-	td := testdir.New(dir)
 	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.9"
 	td.Modules["github.com/livebud/bud-test-nested-plugin"] = "v0.0.5"
 	err = td.Write(ctx)
 	is.NoErr(err)
-	module, err := gomod.Find(dir)
+	module, err := gomod.Find(td.Directory())
 	is.NoErr(err)
 	plugins, err := pluginmod.Glob(module, "public")
 	is.NoErr(err)
@@ -41,16 +39,15 @@ func TestGlob(t *testing.T) {
 func TestAppFirst(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir, err := filepath.EvalSymlinks(t.TempDir())
+	td, err := testdir.Load()
 	is.NoErr(err)
-	td := testdir.New(dir)
 	favicon := []byte{0x00, 0x00, 0x01}
-	td.BFiles["public/favicon.ico"] = favicon
+	td.Bytes["public/favicon.ico"] = favicon
 	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.9"
 	td.Modules["github.com/livebud/bud-test-nested-plugin"] = "v0.0.5"
 	err = td.Write(ctx)
 	is.NoErr(err)
-	module, err := gomod.Find(dir)
+	module, err := gomod.Find(td.Directory())
 	is.NoErr(err)
 	plugins, err := pluginmod.Glob(module, "public")
 	is.NoErr(err)

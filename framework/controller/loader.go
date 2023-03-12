@@ -10,12 +10,12 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/internal/gois"
-	"github.com/livebud/bud/internal/valid"
+	"github.com/livebud/bud/package/valid"
 
 	"github.com/livebud/bud/internal/bail"
-	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/imports"
 	"github.com/livebud/bud/package/parser"
 	"github.com/matthewmueller/gotext"
 	"github.com/matthewmueller/text"

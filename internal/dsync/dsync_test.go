@@ -186,14 +186,14 @@ func TestSkipNotExist(t *testing.T) {
 	log := testlog.New()
 
 	// starting points
-	sourceFS := genfs.New(dag.Discard, virtual.Map{}, log)
+	sourceFS := genfs.New(dag.Discard, virtual.List{}, log)
 	sourceFS.GenerateFile("bud/generate/main.go", func(fsys genfs.FS, file *genfs.File) error {
 		return fs.ErrNotExist
 	})
-	targetFS := virtual.Map{}
+	targetFS := virtual.List{}
 
 	// sync
-	err := dsync.To(sourceFS, targetFS, ".")
+	err := dsync.To(sourceFS, &targetFS, ".")
 	is.NoErr(err)
 	is.Equal(len(targetFS), 0)
 }
@@ -203,14 +203,14 @@ func TestSkipDirNotExist(t *testing.T) {
 	log := testlog.New()
 
 	// starting points
-	sourceFS := genfs.New(dag.Discard, virtual.Map{}, log)
+	sourceFS := genfs.New(dag.Discard, virtual.List{}, log)
 	sourceFS.GenerateDir("bud/generate", func(fsys genfs.FS, dir *genfs.Dir) error {
 		return fs.ErrNotExist
 	})
-	targetFS := virtual.Map{}
+	targetFS := virtual.List{}
 
 	// sync
-	err := dsync.To(sourceFS, targetFS, ".")
+	err := dsync.To(sourceFS, &targetFS, ".")
 	is.NoErr(err)
 	is.Equal(len(targetFS), 0)
 }
@@ -224,14 +224,14 @@ func TestErrorGenerator(t *testing.T) {
 	vfs.Now = func() time.Time { return after }
 
 	// starting points
-	sourceFS := genfs.New(dag.Discard, virtual.Map{}, log)
+	sourceFS := genfs.New(dag.Discard, virtual.List{}, log)
 	sourceFS.GenerateFile("bud/generate/main.go", func(fsys genfs.FS, file *genfs.File) error {
 		return errors.New("uh oh")
 	})
-	targetFS := virtual.Map{}
+	targetFS := virtual.List{}
 
 	// sync
-	err := dsync.To(sourceFS, targetFS, ".")
+	err := dsync.To(sourceFS, &targetFS, ".")
 	is.True(err != nil)
 	is.In(err.Error(), `uh oh`)
 	is.True(!errors.Is(err, fs.ErrNotExist))
@@ -352,7 +352,7 @@ func TestDeleteNotExist(t *testing.T) {
 	log := testlog.New()
 
 	// starting points
-	sourceFS := genfs.New(dag.Discard, virtual.Map{}, log)
+	sourceFS := genfs.New(dag.Discard, virtual.List{}, log)
 	notExist := false
 	sourceFS.GenerateFile("bud/generate/main.go", func(fsys genfs.FS, file *genfs.File) error {
 		if notExist {

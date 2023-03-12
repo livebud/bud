@@ -8,15 +8,15 @@ import (
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testcli"
-	"github.com/livebud/bud/internal/testdir"
+	"github.com/livebud/bud/package/testdir"
 )
 
 func TestToolV8(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	cli := testcli.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
+	cli := testcli.New(td.Directory())
 	cli.Stdin = bytes.NewBufferString("2+2")
 	result, err := cli.Run(ctx, "tool", "v8")
 	is.NoErr(err)

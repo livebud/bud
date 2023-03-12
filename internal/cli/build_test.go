@@ -6,17 +6,17 @@ import (
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testcli"
-	"github.com/livebud/bud/internal/testdir"
+	"github.com/livebud/bud/package/testdir"
 )
 
 func TestBuildEmpty(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	err := td.Write(ctx)
+	td, err := testdir.Load()
 	is.NoErr(err)
-	cli := testcli.New(dir)
+	err = td.Write(ctx)
+	is.NoErr(err)
+	cli := testcli.New(td.Directory())
 	is.NoErr(td.NotExists("bud/app"))
 	result, err := cli.Run(ctx, "build")
 	is.NoErr(err)
@@ -28,10 +28,10 @@ func TestBuildEmpty(t *testing.T) {
 func TestBuildTwice(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	is.NoErr(td.NotExists("bud/app"))
 	result, err := cli.Run(ctx, "build")
 	is.NoErr(err)

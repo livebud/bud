@@ -59,6 +59,8 @@ github.com/livebud/bud-test-nested-plugin v0.0.5/go.mod h1:M3QujkGG4ggZ6h75t5zF8
 github.com/livebud/bud-test-plugin v0.0.9/go.mod h1:GTxMZ8W4BIyGIOgAA4hvPHMDDTkaZtfcuhnOcSu3y8M=
 github.com/livebud/transpiler v0.0.1 h1:raG4W8qMq534VYrWv5sFQieQCa4McrJhQOy0YXk63kk=
 github.com/livebud/transpiler v0.0.1/go.mod h1:vQYMN//Y2cnM55tw0lOmLGbEETugP7alxTyhQHzNdTI=
+github.com/livebud/transpiler v0.0.3 h1:OFKPsmfTOywBDoOE/ZFMVjAupk/xVXFlXoAgZNRhh5Q=
+github.com/livebud/transpiler v0.0.3/go.mod h1:vQYMN//Y2cnM55tw0lOmLGbEETugP7alxTyhQHzNdTI=
 github.com/matryer/is v1.4.0 h1:sosSmIWwkYITGrxZ25ULNDeKiMNzFSr4V/eqBQP0PeE=
 github.com/matryer/is v1.4.0/go.mod h1:8I/i5uYgLzgsgEloJE1U6xx5HkBQpAZvepWuujKwMRU=
 github.com/matthewmueller/diff v0.0.0-20220104030700-cb2fe910d90c h1:yjGBNrCIE7IghJAwrFcyDzwzwJKf0oRPeOHx60wfkmA=

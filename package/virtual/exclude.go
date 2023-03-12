@@ -5,27 +5,27 @@ import (
 	"path"
 )
 
-func Exclude(fsys fs.FS, fn func(path string) bool) fs.FS {
+func Exclude(fsys FS, fn func(path string) bool) FS {
 	return &exclude{fsys, fn}
 }
 
 type exclude struct {
-	fsys fs.FS
-	fn   func(path string) bool
+	FS
+	fn func(path string) bool
 }
 
 func (e *exclude) Open(path string) (fs.File, error) {
 	if e.fn(path) {
 		return nil, fs.ErrNotExist
 	}
-	return e.fsys.Open(path)
+	return e.FS.Open(path)
 }
 
 func (e *exclude) ReadDir(dir string) (results []fs.DirEntry, err error) {
 	if e.fn(dir) {
 		return nil, fs.ErrNotExist
 	}
-	des, err := fs.ReadDir(e.fsys, dir)
+	des, err := fs.ReadDir(e.FS, dir)
 	if err != nil {
 		return nil, err
 	}

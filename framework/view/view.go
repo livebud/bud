@@ -5,9 +5,9 @@ import (
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/framework/transform/transformrt"
-	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/package/genfs"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/gotemplate"
 )
 
 //go:embed view.gotext

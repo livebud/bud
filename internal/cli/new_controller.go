@@ -10,9 +10,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/livebud/bud/internal/gotemplate"
+	"github.com/livebud/bud/package/gotemplate"
 
-	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/imports"
 	"github.com/livebud/bud/package/virtual"
 	"github.com/matthewmueller/gotext"
 	"github.com/matthewmueller/text"

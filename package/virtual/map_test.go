@@ -1,7 +1,6 @@
 package virtual_test
 
 import (
-	"errors"
 	"io/fs"
 	"testing"
 
@@ -12,12 +11,8 @@ import (
 func TestMap(t *testing.T) {
 	is := is.New(t)
 	fsys := virtual.Map{
-		"bud/view/index.svelte": &virtual.File{
-			Data: []byte(`<h1>index</h1>`),
-		},
-		"bud/view/about/index.svelte": &virtual.File{
-			Data: []byte(`<h1>about</h1>`),
-		},
+		"bud/view/index.svelte":        `<h1>index</h1>`,
+		"bud/controller/controller.go": `package controller`,
 	}
 
 	// Read bud/view/index.svelte
@@ -25,74 +20,17 @@ func TestMap(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(string(code), `<h1>index</h1>`)
 
-	// Read bud/view/about/index.svelte
-	code, err = fs.ReadFile(fsys, "bud/view/about/index.svelte")
+	// stat bud/
+	stat, err := fs.Stat(fsys, "bud")
 	is.NoErr(err)
-	is.Equal(string(code), `<h1>about</h1>`)
+	is.Equal(stat.Name(), "bud")
+	is.Equal(stat.IsDir(), true)
+	is.Equal(stat.Mode(), fs.FileMode(fs.ModeDir))
 
-	// Remove bud/view/index.svelte
-	err = fsys.RemoveAll("bud/view/index.svelte")
+	// Test reading the directory
+	des, err := fs.ReadDir(fsys, "bud")
 	is.NoErr(err)
-
-	// Read bud/view/index.svelte
-	code, err = fs.ReadFile(fsys, "bud/view/index.svelte")
-	is.Equal(errors.Is(err, fs.ErrNotExist), true)
-	is.Equal(code, nil)
-}
-
-func TestMapWriteRead(t *testing.T) {
-	is := is.New(t)
-	fsys := virtual.Map{}
-
-	// Create a directory
-	err := fsys.MkdirAll("a/b", 0755)
-	is.NoErr(err)
-	stat, err := fs.Stat(fsys, "a/b")
-	is.NoErr(err)
-	is.Equal(stat.Name(), "b")
-	is.Equal(stat.IsDir(), true, "a/b should be a directory")
-
-	// Write a file
-	err = fsys.WriteFile("a/b/c.txt", []byte("c"), 0644)
-	is.NoErr(err)
-	code, err := fs.ReadFile(fsys, "a/b/c.txt")
-	is.NoErr(err)
-	is.Equal(string(code), `c`)
-}
-
-func TestMapRoot(t *testing.T) {
-	is := is.New(t)
-	fsys := virtual.Map{}
-	des, err := fs.ReadDir(fsys, ".")
-	is.True(errors.Is(err, fs.ErrNotExist))
-	is.Equal(des, nil)
-	fsys = virtual.Map{
-		".": &virtual.File{Mode: fs.ModeDir},
-	}
-	des, err = fs.ReadDir(fsys, ".")
-	is.NoErr(err)
-	is.Equal(len(des), 0)
-}
-
-func TestMapReadDirWithChild(t *testing.T) {
-	is := is.New(t)
-	fsys := virtual.Map{
-		"a/b.txt": &virtual.File{Data: []byte("b")},
-		"a":       &virtual.File{Mode: fs.ModeDir},
-	}
-	des, err := fs.ReadDir(fsys, "a")
-	is.NoErr(err)
-	is.Equal(len(des), 1)
-	is.Equal(des[0].Name(), "b.txt")
-}
-
-func TestMapOpenParentInvalid(t *testing.T) {
-	is := is.New(t)
-	fsys := virtual.Map{
-		"a/b.txt": &virtual.File{Data: []byte("b")},
-		"a":       &virtual.File{Mode: fs.ModeDir},
-	}
-	file, err := fsys.Open("../a/b.txt")
-	is.True(errors.Is(err, fs.ErrInvalid))
-	is.Equal(file, nil)
+	is.Equal(len(des), 2)
+	is.Equal(des[0].Name(), "controller")
+	is.Equal(des[1].Name(), "view")
 }

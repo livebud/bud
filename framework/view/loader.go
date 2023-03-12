@@ -12,8 +12,8 @@ import (
 	"github.com/livebud/bud/internal/bail"
 	"github.com/livebud/bud/internal/embed"
 	"github.com/livebud/bud/internal/entrypoint"
-	"github.com/livebud/bud/internal/imports"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/imports"
 )
 
 // TODO: remove once we replace budfs

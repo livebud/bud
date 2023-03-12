@@ -5,46 +5,44 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/livebud/bud/package/genfs"
+	"github.com/livebud/bud/package/gomod"
 
 	"github.com/livebud/bud/framework/view/nodemodules"
 
 	"github.com/livebud/bud/package/log/testlog"
 
 	"github.com/livebud/bud/framework/transform/transformrt"
-	"github.com/livebud/bud/package/gomod"
 
 	"github.com/livebud/bud/framework/view/dom"
 	"github.com/livebud/bud/internal/dag"
 	"github.com/livebud/bud/internal/is"
-	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/internal/versions"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/svelte"
+	"github.com/livebud/bud/package/testdir"
 )
 
 func TestServeFile(t *testing.T) {
 	is := is.New(t)
 	log := testlog.New()
 	ctx := context.Background()
-	dir := t.TempDir()
 	vm, err := v8.Load()
 	is.NoErr(err)
 	svelteCompiler, err := svelte.Load(vm)
 	is.NoErr(err)
 	transformer, err := transformrt.Default(log, svelteCompiler)
 	is.NoErr(err)
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["view/index.svelte"] = `<h1>index</h1>`
 	td.Files["view/about/index.svelte"] = `<h2>about</h2>`
 	td.NodeModules["svelte"] = versions.Svelte
 	is.NoErr(td.Write(ctx))
-	module, err := gomod.Find(dir)
+	module, err := gomod.Find(td.Directory())
 	is.NoErr(err)
 	gfs := genfs.New(dag.Discard, module, log)
 	gfs.FileServer("bud/view", dom.New(module, transformer))
@@ -95,12 +93,12 @@ func TestNodeModules(t *testing.T) {
 	is := is.New(t)
 	log := testlog.New()
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["view/index.svelte"] = `<h1>hi world</h1>`
 	td.NodeModules["svelte"] = versions.Svelte
 	is.NoErr(td.Write(ctx))
-	module, err := gomod.Find(dir)
+	module, err := gomod.Find(td.Directory())
 	is.NoErr(err)
 	gfs := genfs.New(dag.Discard, module, log)
 	gfs.FileServer("bud/node_modules", nodemodules.New(module))
@@ -115,8 +113,8 @@ func TestGenerateDir(t *testing.T) {
 	is := is.New(t)
 	log := testlog.New()
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["view/index.svelte"] = `<h1>index</h1>`
 	td.Files["view/about/index.svelte"] = `<h2>about</h2>`
 	td.NodeModules["livebud"] = "*"
@@ -128,7 +126,7 @@ func TestGenerateDir(t *testing.T) {
 	is.NoErr(err)
 	transformer, err := transformrt.Default(log, svelteCompiler)
 	is.NoErr(err)
-	module, err := gomod.Find(dir)
+	module, err := gomod.Find(td.Directory())
 	is.NoErr(err)
 	gfs := genfs.New(dag.Discard, module, log)
 	gfs.DirGenerator("bud/view", dom.New(module, transformer))
@@ -178,14 +176,14 @@ func TestUpdateFile(t *testing.T) {
 	is := is.New(t)
 	log := testlog.New()
 	ctx := context.Background()
-	dir := t.TempDir()
 	vm, err := v8.Load()
 	is.NoErr(err)
 	svelteCompiler, err := svelte.Load(vm)
 	is.NoErr(err)
 	transformer, err := transformrt.Default(log, svelteCompiler)
 	is.NoErr(err)
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.NodeModules["svelte"] = versions.Svelte
 	td.Files["view/Story.svelte"] = `<h2>Story</h2>`
 	td.Files["view/index.svelte"] = `
@@ -196,7 +194,7 @@ func TestUpdateFile(t *testing.T) {
 		<Story />
 	`
 	is.NoErr(td.Write(ctx))
-	module, err := gomod.Find(dir)
+	module, err := gomod.Find(td.Directory())
 	is.NoErr(err)
 	cache, err := dag.Load(log, module.Directory("bud/bud.db"))
 	is.NoErr(err)
@@ -213,14 +211,15 @@ func TestUpdateFile(t *testing.T) {
 	is.True(strings.Contains(string(code), `"home"`), "missing home")
 	is.True(strings.Contains(string(code), `"Story"`), "missing Story")
 	// Change view/Story.svelte and view/index.svelte
-	os.WriteFile(filepath.Join(dir, "view/Story.svelte"), []byte(`<h2>Stories</h2>`), 0644)
-	os.WriteFile(filepath.Join(dir, "view/index.svelte"), []byte(`
+	td.Files["view/Story.svelte"] = `<h2>Stories</h2>`
+	td.Files["view/index.svelte"] = `
 		<script>
 			import Story from "./Story.svelte";
 		</script>
 		<h1>homies</h1>
 		<Story />
-	`), 0644)
+	`
+	is.NoErr(td.Write(ctx))
 	// check entry (cached)
 	code, err = fs.ReadFile(gfs, "bud/view/_index.svelte.js")
 	is.NoErr(err)
@@ -245,7 +244,7 @@ func TestUpdateFile(t *testing.T) {
 	is.True(strings.Contains(string(code), `"Stories"`), "missing Stories")
 
 	// Remove a file
-	is.NoErr(os.Remove(filepath.Join(dir, "view/index.svelte")))
+	is.NoErr(td.RemoveAll("view/index.svelte"))
 	// check page (cached)
 	code, err = fs.ReadFile(gfs, "bud/view/index.svelte")
 	is.NoErr(err)

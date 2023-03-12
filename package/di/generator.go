@@ -3,7 +3,7 @@ package di
 import (
 	"strings"
 
-	"github.com/livebud/bud/internal/imports"
+	"github.com/livebud/bud/package/imports"
 )
 
 type generator struct {

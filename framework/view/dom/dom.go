@@ -15,8 +15,8 @@ import (
 	"github.com/livebud/bud/framework/transform/transformrt"
 	"github.com/livebud/bud/internal/entrypoint"
 	"github.com/livebud/bud/internal/esmeta"
-	"github.com/livebud/bud/internal/gotemplate"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/gotemplate"
 )
 
 //go:embed dom.gotext

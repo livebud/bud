@@ -7,16 +7,16 @@ import (
 
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testcli"
-	"github.com/livebud/bud/internal/testdir"
+	"github.com/livebud/bud/package/testdir"
 )
 
 func TestNoProject(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	is.NoErr(td.NotExists("bud/internal/web/public"))
 	result, err := cli.Run(ctx)
 	is.NoErr(err)
@@ -28,10 +28,10 @@ func TestNoProject(t *testing.T) {
 func TestEmptyBuild(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	is.NoErr(td.NotExists("bud/internal/web/public"))
 	result, err := cli.Run(ctx, "build")
 	is.NoErr(err)
@@ -61,16 +61,16 @@ var gif = []byte{
 func TestPublic(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.BFiles["public/favicon.ico"] = favicon
+	td, err := testdir.Load()
+	is.NoErr(err)
+	td.Bytes["public/favicon.ico"] = favicon
 	ga := `function ga(track){}`
 	td.Files["public/ga.js"] = ga
 	css := `* { box-sizing: border-box; }`
 	td.Files["public/normalize/normalize.css"] = css
-	td.BFiles["public/lol.gif"] = gif
+	td.Bytes["public/lol.gif"] = gif
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -107,11 +107,11 @@ func TestPlugin(t *testing.T) {
 	t.SkipNow()
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.9"
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -124,11 +124,11 @@ func TestPlugin(t *testing.T) {
 func TestGetChangeGet(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.BFiles["public/favicon.ico"] = favicon
+	td, err := testdir.Load()
+	is.NoErr(err)
+	td.Bytes["public/favicon.ico"] = favicon
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -139,7 +139,7 @@ func TestGetChangeGet(t *testing.T) {
 	is.NoErr(td.Exists("bud/internal/web/public/public.go"))
 	// Favicon2
 	favicon2 := []byte{0x00, 0x00, 0x01}
-	td.BFiles["public/favicon.ico"] = favicon2
+	td.Bytes["public/favicon.ico"] = favicon2
 	is.NoErr(td.Write(ctx))
 	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	is.NoErr(app.Ready(readyCtx))
@@ -154,10 +154,10 @@ func TestGetChangeGet(t *testing.T) {
 func TestTranspiledGetChangeGet(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	favicon := []byte{0x01, 0x02, 0x03}
-	td.BFiles["public/favicon.ico"] = favicon
+	td.Bytes["public/favicon.ico"] = favicon
 	td.Files["transpiler/favicon/favicon.go"] = `
 		package favicon
 		import "github.com/livebud/bud/runtime/transpiler"
@@ -170,7 +170,7 @@ func TestTranspiledGetChangeGet(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -181,7 +181,7 @@ func TestTranspiledGetChangeGet(t *testing.T) {
 	is.NoErr(td.Exists("bud/internal/web/public/public.go"))
 	// Favicon2
 	favicon2 := []byte{0x10, 0x11, 0x12}
-	td.BFiles["public/favicon.ico"] = favicon2
+	td.Bytes["public/favicon.ico"] = favicon2
 	is.NoErr(td.Write(ctx))
 	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	is.NoErr(app.Ready(readyCtx))
@@ -196,11 +196,11 @@ func TestTranspiledGetChangeGet(t *testing.T) {
 func TestEmbedFavicon(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.BFiles["public/favicon.ico"] = favicon
+	td, err := testdir.Load()
+	is.NoErr(err)
+	td.Bytes["public/favicon.ico"] = favicon
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run", "--embed", "--hot=false")
 	is.NoErr(err)
 	defer app.Close()
@@ -210,7 +210,7 @@ func TestEmbedFavicon(t *testing.T) {
 	is.Equal(res.Body().Bytes(), favicon)
 	// Replace favicon
 	favicon2 := []byte{0x00, 0x00, 0x01}
-	td.BFiles["public/favicon.ico"] = favicon2
+	td.Bytes["public/favicon.ico"] = favicon2
 	is.NoErr(td.Write(ctx))
 	readyCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	is.NoErr(app.Ready(readyCtx))
@@ -227,9 +227,9 @@ func TestEmbedFavicon(t *testing.T) {
 func TestTranspiledEmbedFavicon(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.BFiles["public/favicon.ico"] = favicon
+	td, err := testdir.Load()
+	is.NoErr(err)
+	td.Bytes["public/favicon.ico"] = favicon
 	td.Files["transpiler/favicon/favicon.go"] = `
 		package favicon
 		import "github.com/livebud/bud/runtime/transpiler"
@@ -240,7 +240,7 @@ func TestTranspiledEmbedFavicon(t *testing.T) {
 		}
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	result, err := cli.Run(ctx, "build")
 	is.NoErr(err)
 	is.Equal(result.Stdout(), "")
@@ -254,7 +254,7 @@ func TestTranspiledEmbedFavicon(t *testing.T) {
 	is.Equal(res.Body().Bytes(), []byte{0x01, 0x02, 0x03})
 	// Replace favicon
 	favicon2 := []byte{0x00, 0x00, 0x01}
-	td.BFiles["public/favicon.ico"] = favicon2
+	td.Bytes["public/favicon.ico"] = favicon2
 	is.NoErr(td.Write(ctx))
 	is.NoErr(app.Close())
 	// Restart app

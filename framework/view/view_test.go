@@ -3,24 +3,21 @@ package view_test
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"regexp"
 	"testing"
 	"time"
 
-	"github.com/lithammer/dedent"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/internal/testcli"
-	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/internal/versions"
+	"github.com/livebud/bud/package/testdir"
 )
 
 func TestHello(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -30,7 +27,7 @@ func TestHello(t *testing.T) {
 	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["livebud"] = "*"
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -47,9 +44,8 @@ func TestHello(t *testing.T) {
 	is.In(res.Body().String(), "<h1>hello</h1>")
 	is.NoErr(td.Exists("bud/internal/web/view/view.go"))
 	// Change svelte file
-	indexFile := filepath.Join(dir, "view/index.svelte")
-	is.NoErr(os.MkdirAll(filepath.Dir(indexFile), 0755))
-	is.NoErr(os.WriteFile(indexFile, []byte(`<h1>hi</h1>`), 0644))
+	td.Files["view/index.svelte"] = `<h1>hi</h1>`
+	is.NoErr(td.Write(ctx))
 	// Wait for the app to be ready again
 	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	is.NoErr(app.Ready(readyCtx))
@@ -68,9 +64,8 @@ func TestHello(t *testing.T) {
 	`))
 	is.In(res.Body().String(), "<h1>hi</h1>")
 	// Change svelte file
-	indexFile = filepath.Join(dir, "view/index.svelte")
-	is.NoErr(os.MkdirAll(filepath.Dir(indexFile), 0755))
-	is.NoErr(os.WriteFile(indexFile, []byte(`<h1>hola</h1>`), 0644))
+	td.Files["view/index.svelte"] = `<h1>hola</h1>`
+	is.NoErr(td.Write(ctx))
 	// Wait for the app to be ready again
 	readyCtx, cancel = context.WithTimeout(ctx, 15*time.Second)
 	is.NoErr(app.Ready(readyCtx))
@@ -122,8 +117,8 @@ func TestHello(t *testing.T) {
 func TestHelloEmbed(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -133,7 +128,7 @@ func TestHelloEmbed(t *testing.T) {
 	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["livebud"] = "*"
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run", "--embed")
 	is.NoErr(err)
 	defer app.Close()
@@ -149,9 +144,8 @@ func TestHelloEmbed(t *testing.T) {
 	`))
 	is.In(res.Body().String(), "<h1>hello</h1>")
 	// Change svelte file
-	indexFile := filepath.Join(dir, "view/index.svelte")
-	is.NoErr(os.MkdirAll(filepath.Dir(indexFile), 0755))
-	is.NoErr(os.WriteFile(indexFile, []byte(`<h1>hi</h1>`), 0644))
+	td.Files["view/index.svelte"] = `<h1>hi</h1>`
+	is.NoErr(td.Write(ctx))
 	// Wait for the app to be ready again
 	readyCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	is.NoErr(app.Ready(readyCtx))
@@ -194,8 +188,8 @@ func findChunk(name, src string) (string, error) {
 func TestChunks(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -207,7 +201,7 @@ func TestChunks(t *testing.T) {
 	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["livebud"] = "*"
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run", "--embed")
 	is.NoErr(err)
 	defer app.Close()
@@ -264,8 +258,8 @@ func TestChunks(t *testing.T) {
 func TestConsoleLog(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -280,7 +274,7 @@ func TestConsoleLog(t *testing.T) {
 	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["livebud"] = "*"
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -306,8 +300,8 @@ func TestConsoleError(t *testing.T) {
 func TestRenameView(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -322,7 +316,7 @@ func TestRenameView(t *testing.T) {
 	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["livebud"] = "*"
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -338,10 +332,7 @@ func TestRenameView(t *testing.T) {
 	`))
 	is.In(res.Body().String(), "<h1>10</h1>")
 	// Rename the file
-	is.NoErr(os.Rename(
-		filepath.Join(dir, "view/show.svelte"),
-		filepath.Join(dir, "view/_show.svele"),
-	))
+	is.NoErr(td.Rename("view/show.svelte", "view/_show.svele"))
 	// Wait for the app to be ready again
 	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	is.NoErr(app.Ready(readyCtx))
@@ -364,8 +355,8 @@ func TestRenameView(t *testing.T) {
 func TestAddView(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -374,7 +365,7 @@ func TestAddView(t *testing.T) {
 	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["livebud"] = "*"
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -389,14 +380,13 @@ func TestAddView(t *testing.T) {
 	`))
 	is.Equal(res.Body().String(), "10")
 	// Add the view
-	showView := filepath.Join(dir, "view/show.svelte")
-	is.NoErr(os.MkdirAll(filepath.Dir(showView), 0755))
-	is.NoErr(os.WriteFile(showView, []byte(dedent.Dedent(`
+	td.Files["view/show.svelte"] = `
 		<script>
 			export let id = 0
 		</script>
 		<h1>{id}</h1>
-	`)), 0644))
+	`
+	is.NoErr(td.Write(ctx))
 	// Wait for the app to be ready again
 	readyCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	is.NoErr(app.Ready(readyCtx))
@@ -419,8 +409,8 @@ func TestAddView(t *testing.T) {
 func TestSvelteImportFromNodeModule(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["svelte-time"] = "*"
 	td.Files["controller/controller.go"] = `
@@ -435,7 +425,7 @@ func TestSvelteImportFromNodeModule(t *testing.T) {
 		<p>The time is <Time timestamp="2022-07-19 10:19:00" />.</p>
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()
@@ -453,8 +443,8 @@ func TestSvelteImportFromNodeModule(t *testing.T) {
 func TestSvelteImportFromOtherDir(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["svelte-time"] = "*"
 	td.NodeModules["livebud"] = "*"
@@ -473,7 +463,7 @@ func TestSvelteImportFromOtherDir(t *testing.T) {
 		<Time/>
 	`
 	is.NoErr(td.Write(ctx))
-	cli := testcli.New(dir)
+	cli := testcli.New(td.Directory())
 	app, err := cli.Start(ctx, "run")
 	is.NoErr(err)
 	defer app.Close()

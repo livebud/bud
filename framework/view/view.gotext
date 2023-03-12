@@ -32,9 +32,9 @@ func (h *Handler) Renderer(route string, props interface{}) http.Handler {
 type FS = fs.FS
 
 func LoadFS() FS {
-	return virtual.Map{
+	return virtual.List{
 		{{- range $embed := $.Embeds }}
-		"{{ $embed.Path }}": &virtual.File{
+		&virtual.File{
 			Path: "{{ $embed.Path }}",
 			{{/* Using double quotes matters because $embed.Data is escaped hex */}}
 			Data: []byte("{{ $embed.Data }}"),

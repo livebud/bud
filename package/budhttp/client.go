@@ -19,7 +19,6 @@ import (
 
 type Client interface {
 	Publish(topic string, data []byte) error
-	Open(name string) (fs.File, error)
 	js.VM
 }
 

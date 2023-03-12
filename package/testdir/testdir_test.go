@@ -2,24 +2,23 @@ package testdir_test
 
 import (
 	"context"
-	"os"
-	"path/filepath"
+	"errors"
+	"io/fs"
 	"testing"
 
 	"github.com/livebud/bud/internal/is"
-	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/internal/versions"
+	"github.com/livebud/bud/package/testdir"
 )
 
 func TestDir(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.Backup = false
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.2"
 	td.Files["controller/controller.go"] = `package controller`
-	td.BFiles["public/favicon.ico"] = []byte{0x00}
+	td.Bytes["public/favicon.ico"] = []byte{0x00}
 	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["livebud"] = "*"
 	is.NoErr(td.Write(ctx))
@@ -42,12 +41,11 @@ func TestDir(t *testing.T) {
 func TestRefresh(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
-	td.Backup = true
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Modules["github.com/livebud/bud-test-plugin"] = "v0.0.2"
 	td.Files["controller/controller.go"] = `package controller`
-	td.BFiles["public/favicon.ico"] = []byte{0x00}
+	td.Bytes["public/favicon.ico"] = []byte{0x00}
 	td.NodeModules["svelte"] = versions.Svelte
 	td.NodeModules["livebud"] = "*"
 	is.NoErr(td.Write(ctx))
@@ -60,7 +58,7 @@ func TestRefresh(t *testing.T) {
 		"go.mod",
 	))
 	favicon := []byte{0x01}
-	td.BFiles["public/favicon.ico"] = favicon
+	td.Bytes["public/favicon.ico"] = favicon
 	td.NodeModules["uid"] = "2.0.0"
 	is.NoErr(td.Write(ctx))
 	is.NoErr(td.Exists(
@@ -72,7 +70,7 @@ func TestRefresh(t *testing.T) {
 		"package.json",
 		"go.mod",
 	))
-	fav, err := os.ReadFile(filepath.Join(dir, "public/favicon.ico"))
+	fav, err := fs.ReadFile(td, "public/favicon.ico")
 	is.NoErr(err)
 	is.Equal(favicon, fav)
 }
@@ -80,8 +78,8 @@ func TestRefresh(t *testing.T) {
 func TestOverwrite(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
-	dir := t.TempDir()
-	td := testdir.New(dir)
+	td, err := testdir.Load()
+	is.NoErr(err)
 	td.Files["controller/controller.go"] = `
 		package controller
 		type Controller struct {}
@@ -91,19 +89,26 @@ func TestOverwrite(t *testing.T) {
 	is.NoErr(td.Write(ctx))
 	is.NoErr(td.Exists("controller/controller.go"))
 	is.NoErr(td.Exists("view/index.svelte"))
-	controller1, err := os.ReadFile(td.Path("controller/controller.go"))
+	controller1, err := fs.ReadFile(td, "controller/controller.go")
 	is.NoErr(err)
-	view1, err := os.ReadFile(td.Path("view/index.svelte"))
+	view1, err := fs.ReadFile(td, "view/index.svelte")
 	is.NoErr(err)
 	is.Equal(string(view1), `<h1>hello</h1>`)
 	td.Files["view/index.svelte"] = `<h1>hi</h1>`
 	is.NoErr(td.Write(ctx))
 	is.NoErr(td.Exists("controller/controller.go"))
 	is.NoErr(td.Exists("view/index.svelte"))
-	controller2, err := os.ReadFile(td.Path("controller/controller.go"))
+	controller2, err := fs.ReadFile(td, "controller/controller.go")
 	is.NoErr(err)
-	view2, err := os.ReadFile(td.Path("view/index.svelte"))
+	view2, err := fs.ReadFile(td, "view/index.svelte")
 	is.NoErr(err)
 	is.Equal(string(controller1), string(controller2))
 	is.Equal(string(view2), `<h1>hi</h1>`)
+
+	// Remove
+	is.NoErr(td.RemoveAll("view/index.svelte"))
+	view3, err := fs.ReadFile(td, "view/index.svelte")
+	is.True(err != nil)
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.Equal(view3, nil)
 }
