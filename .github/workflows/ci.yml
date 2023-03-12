@@ -86,6 +86,7 @@ jobs:
       matrix:
         os: [ 'ubuntu-latest', 'macOS-latest' ]
         go: [ '1.17', '1.18', '1.19', '1.20' ]
+        dir: [ 'internal', 'package', 'framework' ]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -99,3 +100,4 @@ jobs:
           install-go: false
           min-go-version: ${{ matrix.go }}
           cache-key: ${{ matrix.go }}
+          working-directory: ${{ matrix.dir }}
