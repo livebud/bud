@@ -9,5 +9,5 @@
 # a more complete list, review the GitHub workflow to see the versions tested
 # in CI.
 
-golang 1.19.3
+golang 1.20.2
 nodejs 16.4.2
