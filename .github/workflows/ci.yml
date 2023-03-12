@@ -102,11 +102,3 @@ jobs:
           min-go-version: ${{ matrix.go }}
           cache-key: ${{ matrix.go }}
           working-directory: ${{ matrix.dir }}
-      - uses: dominikh/staticcheck-action@v1.3.0
-        if: contains(['1.17', '1.18'], matrix.go)
-        with:
-          version: '2022.1'
-          install-go: false
-          min-go-version: ${{ matrix.go }}
-          cache-key: ${{ matrix.go }}
-          working-directory: ${{ matrix.dir }}
