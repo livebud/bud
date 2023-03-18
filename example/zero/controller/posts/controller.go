@@ -1,8 +1,8 @@
-package controller
+package posts
 
 type Controller struct {
 }
 
 func (c *Controller) Index() string {
-	return "hello world!"
+	return "post index"
 }

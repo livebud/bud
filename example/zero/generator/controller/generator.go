@@ -31,29 +31,100 @@ import (
 {{- end }}
 
 func New(
-	controller *controller.Controller,
+	posts *posts.Controller,
+	sessions *sessions.Controller,
+	users *users.Controller,
 ) *Controller {
 	return &Controller{
-		&IndexAction{controller},
+		&PostsController{
+			&PostsIndexAction{posts},
+		},
+		&SessionsController{
+			&SessionsNewAction{sessions},
+		},
+		&UsersController{
+			&UsersIndexAction{users},
+			&UsersNewAction{users},
+		},
 	}
 }
 
 type Controller struct {
-	Index *IndexAction
+	Posts *PostsController
+	Sessions *SessionsController
+	Users *UsersController
 }
 
 // TODO: use a router.Router interface
 func (c *Controller) Mount(r *router.Router) error {
-	r.Get("/", c.Index)
+	c.Posts.Mount(r)
+	c.Sessions.Mount(r)
+	c.Users.Mount(r)
 	return nil
 }
 
-type IndexAction struct {
-	controller *controller.Controller
+type PostsController struct {
+	Index *PostsIndexAction
 }
 
-func (a *IndexAction) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (c *PostsController) Mount(r *router.Router) error {
+	r.Get("/posts", c.Index)
+	return nil
+}
+
+type PostsIndexAction struct {
+	controller *posts.Controller
+}
+
+func (a *PostsIndexAction) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	res := a.controller.Index()
+	w.Write([]byte(res))
+}
+
+type SessionsController struct {
+	New *SessionsNewAction
+}
+
+func (c *SessionsController) Mount(r *router.Router) error {
+	r.Get("/sessions/new", c.New)
+	return nil
+}
+
+type SessionsNewAction struct {
+	controller *sessions.Controller
+}
+
+func (a *SessionsNewAction) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	res := a.controller.New()
+	w.Write([]byte(res))
+}
+
+type UsersController struct {
+	Index *UsersIndexAction
+	New *UsersNewAction
+}
+
+func (c *UsersController) Mount(r *router.Router) error {
+	r.Get("/users/new", c.New)
+	r.Get("/users", c.Index)
+	return nil
+}
+
+type UsersIndexAction struct {
+	controller *users.Controller
+}
+
+func (a *UsersIndexAction) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	res := a.controller.Index()
+	w.Write([]byte(res))
+}
+
+type UsersNewAction struct {
+	controller *users.Controller
+}
+
+func (a *UsersNewAction) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	res := a.controller.New()
 	w.Write([]byte(res))
 }
 `
@@ -68,7 +139,9 @@ func (g *Generator) generateFile(fsys generator.FS, file *generator.File) error 
 	imset := imports.New()
 	imset.AddStd("net/http")
 	imset.AddNamed("router", "github.com/livebud/bud/package/router")
-	imset.AddNamed("controller", g.module.Import("controller"))
+	imset.AddNamed("posts", g.module.Import("controller/posts"))
+	imset.AddNamed("users", g.module.Import("controller/users"))
+	imset.AddNamed("sessions", g.module.Import("controller/sessions"))
 	code, err := gen.Generate(&State{
 		Imports: imset.List(),
 	})
