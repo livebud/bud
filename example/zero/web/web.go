@@ -6,16 +6,13 @@ import (
 	"github.com/livebud/bud/package/middleware"
 
 	"github.com/livebud/bud/example/zero/bud/pkg/web/controller"
+	"github.com/livebud/bud/example/zero/bud/pkg/web/view"
 	"github.com/livebud/bud/package/router"
 )
 
 type Web struct {
 	Controller *controller.Controller
-	// Controller *controller.Controller
-	// Controller *controller.Generator
-	// Controller dependencies
-	// Middleware dependencies
-	// View dependencies
+	View       *view.View
 }
 
 // TODO: use a router interface

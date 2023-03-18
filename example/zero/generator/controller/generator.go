@@ -31,20 +31,21 @@ import (
 {{- end }}
 
 func New(
+	view *view.View,
 	posts *posts.Controller,
 	sessions *sessions.Controller,
 	users *users.Controller,
 ) *Controller {
 	return &Controller{
 		&PostsController{
-			&PostsIndexAction{posts},
+			&PostsIndexAction{posts, view},
 		},
 		&SessionsController{
-			&SessionsNewAction{sessions},
+			&SessionsNewAction{sessions, view},
 		},
 		&UsersController{
-			&UsersIndexAction{users},
-			&UsersNewAction{users},
+			&UsersIndexAction{users, view},
+			&UsersNewAction{users, view},
 		},
 	}
 }
@@ -74,11 +75,21 @@ func (c *PostsController) Mount(r *router.Router) error {
 
 type PostsIndexAction struct {
 	controller *posts.Controller
+	view *view.View
 }
 
 func (a *PostsIndexAction) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	res := a.controller.Index()
-	w.Write([]byte(res))
+	propMap := map[string]interface{}{
+		"posts/index": res,
+	}
+	html, err := a.view.Render(ctx, "posts/index", propMap)
+	if err != nil {
+		html = a.view.RenderError(ctx, "posts/index", propMap, err)
+	}
+	w.Header().Add("Content-Type", "text/html")
+	w.Write([]byte(html))
 }
 
 type SessionsController struct {
@@ -92,6 +103,7 @@ func (c *SessionsController) Mount(r *router.Router) error {
 
 type SessionsNewAction struct {
 	controller *sessions.Controller
+	view *view.View
 }
 
 func (a *SessionsNewAction) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -112,6 +124,7 @@ func (c *UsersController) Mount(r *router.Router) error {
 
 type UsersIndexAction struct {
 	controller *users.Controller
+	view *view.View
 }
 
 func (a *UsersIndexAction) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -121,6 +134,7 @@ func (a *UsersIndexAction) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 type UsersNewAction struct {
 	controller *users.Controller
+	view *view.View
 }
 
 func (a *UsersNewAction) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -142,6 +156,7 @@ func (g *Generator) generateFile(fsys generator.FS, file *generator.File) error 
 	imset.AddNamed("posts", g.module.Import("controller/posts"))
 	imset.AddNamed("users", g.module.Import("controller/users"))
 	imset.AddNamed("sessions", g.module.Import("controller/sessions"))
+	imset.AddNamed("view", g.module.Import("bud/pkg/web/view"))
 	code, err := gen.Generate(&State{
 		Imports: imset.List(),
 	})

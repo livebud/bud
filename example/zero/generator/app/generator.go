@@ -64,6 +64,10 @@ func (g *Generator) generateFile(fsys generator.FS, file *generator.File) error 
 				Import: "github.com/livebud/bud/package/log",
 				Type:   "Log",
 			},
+			&di.Param{
+				Import: "github.com/livebud/bud/package/gomod",
+				Type:   "*Module",
+			},
 		},
 		// Aliases: di.Aliases{
 		// 	di.ToType(g.module.Import("generator/web"), "Server"): di.ToType(g.module.Import("bud/internal/web"), "*Server"),
@@ -91,7 +95,7 @@ func (g *Generator) generateFile(fsys generator.FS, file *generator.File) error 
 // Runtime from the code generated above
 /////////////////////////////////////////
 
-type loadCLI func(log log.Log) (*command.CLI, error)
+type loadCLI func(module *gomod.Module, log log.Log) (*command.CLI, error)
 
 func Main(loadCLI loadCLI) {
 	log := log.New(console.New(os.Stderr))
@@ -102,7 +106,11 @@ func Main(loadCLI loadCLI) {
 }
 
 func run(log log.Log, loadCLI loadCLI) error {
-	cli, err := loadCLI(log)
+	module, err := gomod.Find(".")
+	if err != nil {
+		return err
+	}
+	cli, err := loadCLI(module, log)
 	if err != nil {
 		return err
 	}
