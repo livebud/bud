@@ -203,6 +203,7 @@ func (g *generatorGenerator) GenerateFile(fsys genfs.FS, file *genfs.File) error
 	imset.AddNamed("log", "github.com/livebud/bud/package/log")
 	appImportPath := g.module.Import("generator/app")
 	commandImportPath := g.module.Import("generator/command")
+	webImportPath := g.module.Import("generator/web")
 	generators := []*Generator{
 		{
 			Import: &imports.Import{
@@ -220,6 +221,15 @@ func (g *generatorGenerator) GenerateFile(fsys genfs.FS, file *genfs.File) error
 			},
 			Path:  "bud",
 			Camel: "command",
+			Type:  "Generator",
+		},
+		{
+			Import: &imports.Import{
+				Name: imset.Add(webImportPath),
+				Path: webImportPath,
+			},
+			Path:  "bud",
+			Camel: "web",
 			Type:  "Generator",
 		},
 	}

@@ -65,6 +65,9 @@ func (g *Generator) generateFile(fsys generator.FS, file *generator.File) error 
 				Type:   "Log",
 			},
 		},
+		// Aliases: di.Aliases{
+		// 	di.ToType(g.module.Import("generator/web"), "Server"): di.ToType(g.module.Import("bud/internal/web"), "*Server"),
+		// },
 		Results: []di.Dependency{
 			di.ToType(g.module.Import("bud/internal/command"), "*CLI"),
 			&di.Error{},
