@@ -204,6 +204,7 @@ func (g *generatorGenerator) GenerateFile(fsys genfs.FS, file *genfs.File) error
 	appImportPath := g.module.Import("generator/app")
 	commandImportPath := g.module.Import("generator/command")
 	webImportPath := g.module.Import("generator/web")
+	controllerImportPath := g.module.Import("generator/controller")
 	generators := []*Generator{
 		{
 			Import: &imports.Import{
@@ -230,6 +231,15 @@ func (g *generatorGenerator) GenerateFile(fsys genfs.FS, file *genfs.File) error
 			},
 			Path:  "bud",
 			Camel: "web",
+			Type:  "Generator",
+		},
+		{
+			Import: &imports.Import{
+				Name: imset.Add(controllerImportPath),
+				Path: controllerImportPath,
+			},
+			Path:  "bud",
+			Camel: "controller",
 			Type:  "Generator",
 		},
 	}

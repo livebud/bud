@@ -3,21 +3,30 @@ package web
 import (
 	"net/http"
 
-	"github.com/livebud/bud/example/zero/generator/web"
+	"github.com/livebud/bud/package/middleware"
+
+	"github.com/livebud/bud/example/zero/bud/pkg/web/controller"
+	"github.com/livebud/bud/package/router"
 )
 
 type Web struct {
+	Controller *controller.Controller
+	// Controller *controller.Controller
+	// Controller *controller.Generator
 	// Controller dependencies
 	// Middleware dependencies
 	// View dependencies
 }
 
-func (w *Web) Router(r web.Router) web.Router {
+// TODO: use a router interface
+func (w *Web) Router(r *router.Router) *router.Router {
+	// r.Get("/posts", w.Controller.Index)
+	r.Mount(w.Controller)
 	return r
 }
 
-func (w *Web) Middleware(m web.Middlewares) web.Middlewares {
-	return m
+func (w *Web) Middleware(s middleware.Stack) middleware.Stack {
+	return s
 }
 
 func (w *Web) Handler(h http.Handler) http.Handler {

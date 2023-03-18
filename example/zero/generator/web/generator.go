@@ -1,12 +1,9 @@
 package web
 
 import (
-	"net/http"
-
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/gotemplate"
 	"github.com/livebud/bud/package/imports"
-	"github.com/livebud/bud/package/middleware"
 	"github.com/livebud/bud/runtime/generator"
 )
 
@@ -96,15 +93,20 @@ func (g *Generator) generateFile(fsys generator.FS, file *generator.File) error 
 // }
 
 // TODO: move this into *router.Router
-type Router interface {
-	http.Handler
-	middleware.Middleware
-	Add(method string, route string, handler http.Handler) error
-	Get(route string, handler http.Handler) error
-	Post(route string, handler http.Handler) error
-	Put(route string, handler http.Handler) error
-	Patch(route string, handler http.Handler) error
-	Delete(route string, handler http.Handler) error
-}
+// type Router interface {
+// 	http.Handler
+// 	middleware.Middleware
+// 	Set(method string, route string, handler http.Handler) error
+// 	Get(route string, handler http.Handler) error
+// 	Post(route string, handler http.Handler) error
+// 	Put(route string, handler http.Handler) error
+// 	Patch(route string, handler http.Handler) error
+// 	Delete(route string, handler http.Handler) error
+// 	Mount(m Mount) error
+// }
 
-type Middlewares = middleware.Stack
+// type Mount interface {
+// 	Mount(router Router) error
+// }
+
+// type Middlewares = middleware.Stack

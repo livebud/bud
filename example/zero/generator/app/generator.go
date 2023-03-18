@@ -87,7 +87,9 @@ func (g *Generator) generateFile(fsys generator.FS, file *generator.File) error 
 	return nil
 }
 
+/////////////////////////////////////////
 // Runtime from the code generated above
+/////////////////////////////////////////
 
 type loadCLI func(log log.Log) (*command.CLI, error)
 
