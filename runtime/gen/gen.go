@@ -91,6 +91,6 @@ func isBudChild(p string) bool {
 
 func isGenPath(p string) bool {
 	return strings.HasPrefix(p, "bud/cmd/gen") ||
-		strings.HasPrefix(p, "bud/internal/gen") ||
-		strings.HasPrefix(p, "bud/pkg/gen")
+		strings.HasPrefix(p, "bud/internal/generator") ||
+		strings.HasPrefix(p, "bud/pkg/transpiler")
 }

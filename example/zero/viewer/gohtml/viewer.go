@@ -8,6 +8,7 @@ import (
 	"path"
 	"text/template"
 
+	"github.com/livebud/bud/example/zero/bud/pkg/transpiler"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/router"
@@ -15,13 +16,14 @@ import (
 )
 
 // TODO: may want a view.FS that is a wrapper around a fs.Sub(module, "view")
-func New(log log.Log, module *gomod.Module) *Viewer {
-	return &Viewer{log, module}
+func New(log log.Log, module *gomod.Module, tr transpiler.Transpiler) *Viewer {
+	return &Viewer{log, module, tr}
 }
 
 type Viewer struct {
 	log    log.Log
 	module *gomod.Module
+	tr     transpiler.Transpiler
 }
 
 var _ view.Viewer = (*Viewer)(nil)
@@ -30,10 +32,19 @@ func (v *Viewer) Register(r *router.Router, pages []*view.Page) {
 
 }
 
+func (v *Viewer) Mount(r *router.Router) error {
+	return nil
+}
+
 func (v *Viewer) parseTemplate(templatePath string) (*renderer, error) {
-	code, err := fs.ReadFile(v.module, path.Join("view", templatePath))
+	viewPath := path.Join("view", templatePath)
+	code, err := fs.ReadFile(v.module, viewPath)
 	if err != nil {
 		return nil, err
+	}
+	code, err = v.tr.Transpile(viewPath, ".gohtml", code)
+	if err != nil {
+		return nil, fmt.Errorf("gohtml unable to transpile %s: %w", viewPath, err)
 	}
 	tpl, err := template.New(templatePath).Parse(string(code))
 	if err != nil {

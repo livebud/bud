@@ -46,7 +46,8 @@ func (c *CLI) Generate2(ctx context.Context, in *Generate2) (err error) {
 	parser := parser.New(gen, module)
 	injector := di.New(gen, log, module, parser)
 	gen.FileGenerator("bud/cmd/gen/main.go", &mainGenerator{injector, log, module})
-	gen.FileGenerator("bud/internal/gen/generator/generator.go", &generatorGenerator{log, module})
+	gen.FileGenerator("bud/internal/generator/generator.go", &generatorGenerator{log, module})
+	gen.FileGenerator("bud/pkg/transpiler/transpiler.go", &transpilerGenerator{log, module})
 	if err := virtual.Sync(log, gen, module, "bud"); err != nil {
 		return err
 	}
@@ -129,7 +130,7 @@ func (g *mainGenerator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
 			di.ToType("github.com/livebud/bud/package/di", "*Injector"):   di.ToType("github.com/livebud/bud/runtime/gen", "*Injector"),
 		},
 		Results: []di.Dependency{
-			di.ToType(g.module.Import("bud/internal/gen/generator"), "*Generator"),
+			di.ToType(g.module.Import("bud/internal/generator"), "*Generator"),
 			&di.Error{},
 		},
 	})
@@ -182,7 +183,7 @@ func NewGenerator(
 type Generator = generator.Generator
 `
 
-var generatorGen = gotemplate.MustParse("bud/internal/gen/generator/generator.go", generatorTemplate)
+var generatorGen = gotemplate.MustParse("generator.go", generatorTemplate)
 
 func (g *generatorGenerator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
 	g.log.Info("generating file", file.Path())
@@ -257,6 +258,103 @@ func (g *generatorGenerator) GenerateFile(fsys genfs.FS, file *genfs.File) error
 	code, err := generatorGen.Generate(State{
 		Imports:    imset.List(),
 		Generators: generators,
+	})
+	if err != nil {
+		return err
+	}
+	file.Data = code
+	return nil
+}
+
+type transpilerGenerator struct {
+	log    log.Log
+	module *gomod.Module
+}
+
+const transpilerTemplate = `package transpiler
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+// Load the transpiler
+func Load(
+	{{- range $transpiler := $.Transpilers }}
+	{{ $transpiler.Camel }} *{{ $transpiler.Import.Name }}.Transpiler,
+	{{- end }}
+) Transpiler {
+	tr := transpiler.New()
+	{{- range $transpiler := $.Transpilers }}
+	{{- range $method := $transpiler.Methods }}
+	tr.Add("{{ $method.From }}", "{{ $method.To }}", {{ $transpiler.Camel }}.{{ $method.Pascal }})
+	{{- end }}
+	{{- end }}
+	return &proxy{tr}
+}
+
+type Transpiler = transpiler.Interface
+
+type proxy struct {
+	Transpiler
+}
+
+func (p *proxy) Transpile(fromExt, toExt string, code []byte) ([]byte, error) {
+	transpiled, err := p.Transpiler.Transpile(fromExt, toExt, code)
+	if err != nil {
+		if !errors.Is(err, transpiler.ErrNoPath) {
+			return nil, err
+		}
+		return code, nil
+	}
+	return transpiled, nil
+}
+`
+
+var transpilerGen = gotemplate.MustParse("transpiler.go", transpilerTemplate)
+
+func (g *transpilerGenerator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
+	g.log.Info("generating file", file.Path())
+	type Method struct {
+		Pascal string // Method name in pascal
+		From   string // From extension
+		To     string // To extension
+	}
+	type Transpiler struct {
+		Import  *imports.Import
+		Camel   string
+		Methods []*Method
+	}
+	type State struct {
+		Imports     []*imports.Import
+		Transpilers []*Transpiler
+	}
+	imset := imports.New()
+	imset.AddStd("errors")
+	imset.Add("github.com/livebud/bud/runtime/transpiler")
+	tailwindImport := g.module.Import("transpiler/tailwind")
+	code, err := transpilerGen.Generate(State{
+		Transpilers: []*Transpiler{
+			{
+				Import: &imports.Import{
+					Name: imset.Add(tailwindImport),
+					Path: tailwindImport,
+				},
+				Camel: "tailwind",
+				Methods: []*Method{
+					{
+						Pascal: "GohtmlToGohtml",
+						From:   ".gohtml",
+						To:     ".gohtml",
+					},
+				},
+			},
+		},
+		Imports: imset.List(),
 	})
 	if err != nil {
 		return err

@@ -15,6 +15,8 @@ import (
 type File = transpiler.File
 type Interface = transpiler.Interface
 
+var ErrNoPath = transpiler.ErrNoPath
+
 func New() *Transpiler {
 	return transpiler.New()
 }
