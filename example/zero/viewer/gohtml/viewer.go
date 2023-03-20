@@ -16,7 +16,6 @@ import (
 
 // TODO: may want a view.FS that is a wrapper around a fs.Sub(module, "view")
 func New(log log.Log, module *gomod.Module) *Viewer {
-	fmt.Println("new gohtml viewer!")
 	return &Viewer{log, module}
 }
 
@@ -31,26 +30,76 @@ func (v *Viewer) Register(r *router.Router, pages []*view.Page) {
 
 }
 
-func (v *Viewer) Render(ctx context.Context, page *view.Page, propMap view.PropMap) ([]byte, error) {
-	v.log.Info("rendering gohtml", page.Path)
-	code, err := fs.ReadFile(v.module, path.Join("view", page.Path))
+func (v *Viewer) parseTemplate(templatePath string) (*renderer, error) {
+	code, err := fs.ReadFile(v.module, path.Join("view", templatePath))
 	if err != nil {
 		return nil, err
 	}
-	tpl, err := template.New(page.Path).Parse(string(code))
+	tpl, err := template.New(templatePath).Parse(string(code))
 	if err != nil {
 		return nil, err
 	}
+	return &renderer{tpl}, nil
+}
+
+type renderer struct {
+	tpl *template.Template
+}
+
+func (r *renderer) Render(ctx context.Context, props interface{}) ([]byte, error) {
 	out := new(bytes.Buffer)
-	if err := tpl.Execute(out, propMap[page.Key]); err != nil {
+	// TODO: pass context through
+	if err := r.tpl.Execute(out, props); err != nil {
 		return nil, err
 	}
 	return out.Bytes(), nil
 }
 
-func (v *Viewer) RenderError(ctx context.Context, page *view.Page, propMap view.PropMap, err error) []byte {
-	fmt.Println("rendering gohtml error!", page, propMap, err)
-	return []byte{}
+func (v *Viewer) Render(ctx context.Context, page *view.Page, propMap view.PropMap) ([]byte, error) {
+	v.log.Info("rendering gohtml", page.Path)
+	entry, err := v.parseTemplate(page.Path)
+	if err != nil {
+		return nil, err
+	}
+	layout, err := v.parseTemplate(page.Layout.Path)
+	if err != nil {
+		return nil, err
+	}
+	html, err := entry.Render(ctx, propMap[page.Key])
+	if err != nil {
+		return nil, err
+	}
+	// TODO: support frames
+	// TODO: may want to introduce a slot function
+	return layout.Render(ctx, string(html))
+}
+
+func (v *Viewer) RenderError(ctx context.Context, page *view.Page, propMap view.PropMap, originalError error) []byte {
+	v.log.Info("rendering gohtml", page.Error.Path)
+	errorEntry, err := v.parseTemplate(page.Error.Path)
+	if err != nil {
+		return []byte(fmt.Sprintf("unable to read error template %s to render error: %s. %s", page.Error.Path, err, originalError))
+	}
+	layout, err := v.parseTemplate(page.Layout.Path)
+	if err != nil {
+		return []byte(fmt.Sprintf("unable to parse layout template %s to render error: %s. %s", page.Error.Path, err, originalError))
+	}
+	state := errorState{
+		Message: originalError.Error(),
+	}
+	html, err := errorEntry.Render(ctx, state)
+	if err != nil {
+		return []byte(fmt.Sprintf("unable to render error template %s to render error: %s. %s", page.Error.Path, err, originalError))
+	}
+	html, err = layout.Render(ctx, string(html))
+	if err != nil {
+		return []byte(fmt.Sprintf("unable to render layout template %s to render error: %s. %s", page.Error.Path, err, originalError))
+	}
+	return html
+}
+
+type errorState struct {
+	Message string
 }
 
 func (v *Viewer) Bundle(ctx context.Context, fsys view.Writable, pages []*view.Page) error {

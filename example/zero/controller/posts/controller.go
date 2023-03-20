@@ -3,6 +3,6 @@ package posts
 type Controller struct {
 }
 
-func (c *Controller) Index() string {
-	return "post index"
+func (c *Controller) Index() (string, error) {
+	return "post index", nil
 }

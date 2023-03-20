@@ -43,8 +43,14 @@ func New(
 				Path: "posts/index.gohtml",
 			},
 			Frames: []*view.View{},
-			Layout: nil,
-			Error: nil,
+			Layout: &view.View{
+				Key: "layout",
+				Path: "layout.gohtml",
+			},
+			Error: &view.View{
+				Key: "error",
+				Path: "error.gohtml",
+			},
 		},
 	}
 	return &View{
@@ -79,8 +85,16 @@ func (v *View) Render(ctx context.Context, key string, propMap view.PropMap) ([]
 }
 
 func (v *View) RenderError(ctx context.Context, key string, propMap view.PropMap, err error) []byte {
-	fmt.Println("generator/view: rendering error", key, err)
-	return []byte{}
+	page, ok := v.pages[key]
+	if !ok {
+		return []byte(fmt.Sprintf("no page %q to render error: %s", key, err))
+	}
+	// TODO: figure out how to decide on the viewer
+	viewer, ok := v.viewers["gohtml"]
+	if !ok {
+		return []byte(fmt.Sprintf("no viewer for %q to render error: %s", key, err))
+	}
+	return viewer.RenderError(ctx, page, propMap, err)
 }
 `
 

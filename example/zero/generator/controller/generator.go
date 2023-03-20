@@ -80,10 +80,16 @@ type PostsIndexAction struct {
 
 func (a *PostsIndexAction) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	res := a.controller.Index()
-	propMap := map[string]interface{}{
-		"posts/index": res,
+	propMap := map[string]interface{}{}
+	res, err := a.controller.Index()
+	if err != nil {
+		html := a.view.RenderError(ctx, "posts/index", propMap, err)
+		w.WriteHeader(500)
+		w.Header().Add("Content-Type", "text/html")
+		w.Write([]byte(html))
+		return
 	}
+	propMap["posts/index"] = res
 	html, err := a.view.Render(ctx, "posts/index", propMap)
 	if err != nil {
 		html = a.view.RenderError(ctx, "posts/index", propMap, err)
