@@ -53,6 +53,14 @@ func (v *Viewer) parseTemplate(templatePath string) (*renderer, error) {
 	return &renderer{tpl}, nil
 }
 
+func (v *Viewer) render(ctx context.Context, templatePath string, props interface{}) ([]byte, error) {
+	entry, err := v.parseTemplate(templatePath)
+	if err != nil {
+		return nil, err
+	}
+	return entry.Render(ctx, props)
+}
+
 type renderer struct {
 	tpl *template.Template
 }
@@ -68,21 +76,19 @@ func (r *renderer) Render(ctx context.Context, props interface{}) ([]byte, error
 
 func (v *Viewer) Render(ctx context.Context, page *view.Page, propMap view.PropMap) ([]byte, error) {
 	v.log.Info("rendering gohtml", page.Path)
-	entry, err := v.parseTemplate(page.Path)
+	html, err := v.render(ctx, page.Path, propMap[page.Key])
 	if err != nil {
 		return nil, err
 	}
-	layout, err := v.parseTemplate(page.Layout.Path)
-	if err != nil {
-		return nil, err
+	for _, frame := range page.Frames {
+		// TODO: support other props
+		html, err = v.render(ctx, frame.Path, string(html))
+		if err != nil {
+			return nil, err
+		}
 	}
-	html, err := entry.Render(ctx, propMap[page.Key])
-	if err != nil {
-		return nil, err
-	}
-	// TODO: support frames
-	// TODO: may want to introduce a slot function
-	return layout.Render(ctx, string(html))
+	// TODO: support other props
+	return v.render(ctx, page.Layout.Path, string(html))
 }
 
 func (v *Viewer) RenderError(ctx context.Context, page *view.Page, propMap view.PropMap, originalError error) []byte {

@@ -19,6 +19,7 @@ type Web struct {
 func (w *Web) Router(r *router.Router) *router.Router {
 	// r.Get("/posts", w.Controller.Index)
 	r.Mount(w.Controller)
+	r.Mount(w.View.Posts.Intro)
 	return r
 }
 

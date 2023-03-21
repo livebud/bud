@@ -33,16 +33,19 @@ import (
 func New(
 	gohtml *gohtml.Viewer,
 ) *View {
-	viewers := map[string]view.Viewer{
-		"gohtml": gohtml,
-	}
-	pages := map[string]*view.Page{
-		"posts/index": &view.Page{
+	postsIndexPage := &PostsIndexPage{
+		viewer: gohtml,
+		page: &view.Page{
 			View: &view.View{
 				Key: "posts/index",
 				Path: "posts/index.gohtml",
 			},
-			Frames: []*view.View{},
+			Frames: []*view.View{
+				{
+					Key: "posts/frame",
+					Path: "posts/frame.gohtml",
+				},
+			},
 			Layout: &view.View{
 				Key: "layout",
 				Path: "layout.gohtml",
@@ -53,15 +56,51 @@ func New(
 			},
 		},
 	}
+
+	postsIntroPage := &PostsIntroPage{
+		viewer: gohtml,
+		page: &view.Page{
+			View: &view.View{
+				Key: "posts/intro",
+				Path: "posts/intro.md",
+			},
+			Frames: []*view.View{
+				{
+					Key: "posts/frame",
+					Path: "posts/frame.gohtml",
+				},
+			},
+			Layout: &view.View{
+				Key: "layout",
+				Path: "layout.gohtml",
+			},
+			Error: &view.View{
+				Key: "error",
+				Path: "error.gohtml",
+			},
+		},
+	}
+
 	return &View{
-		viewers,
-		pages,
+		map[string]renderer{
+			"posts/index": postsIndexPage,
+			"posts/intro": postsIntroPage,
+		},
+		&PostsView{
+			postsIndexPage,
+			postsIntroPage,
+		},
 	}
 }
 
+type renderer interface {
+	Render(ctx context.Context, propMap view.PropMap) ([]byte, error)
+	RenderError(ctx context.Context, propMap view.PropMap, err error) []byte
+}
+
 type View struct {
-	viewers map[string]view.Viewer
-	pages  map[string]*view.Page
+	pages map[string]renderer
+	Posts *PostsView
 }
 
 var _ view.Interface = (*View)(nil)
@@ -76,12 +115,7 @@ func (v *View) Render(ctx context.Context, key string, propMap view.PropMap) ([]
 	if !ok {
 		return nil, fmt.Errorf("generator/view: no page for key %s", key)
 	}
-	// TODO: figure out how to decide on the viewer
-	viewer, ok := v.viewers["gohtml"]
-	if !ok {
-		return nil, fmt.Errorf("generator/view: no viewer for key %s", key)
-	}
-	return viewer.Render(ctx, page, propMap)
+	return page.Render(ctx, propMap)
 }
 
 func (v *View) RenderError(ctx context.Context, key string, propMap view.PropMap, err error) []byte {
@@ -89,12 +123,83 @@ func (v *View) RenderError(ctx context.Context, key string, propMap view.PropMap
 	if !ok {
 		return []byte(fmt.Sprintf("no page %q to render error: %s", key, err))
 	}
-	// TODO: figure out how to decide on the viewer
-	viewer, ok := v.viewers["gohtml"]
-	if !ok {
-		return []byte(fmt.Sprintf("no viewer for %q to render error: %s", key, err))
+	return page.RenderError(ctx, propMap, err)
+}
+
+type PostsView struct {
+	Index *PostsIndexPage
+	Intro *PostsIntroPage
+}
+
+func (p *PostsView) Mount(r *router.Router) error {
+	r.Mount(p.Index)
+	r.Mount(p.Intro)
+	return nil
+}
+
+type PostsIndexPage struct {
+	page *view.Page
+	viewer view.Viewer
+}
+
+func (p *PostsIndexPage) Mount(r *router.Router) error {
+	r.Get("/posts", p)
+	return nil
+}
+
+func (p *PostsIndexPage) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	propMap := map[string]interface{}{
+		// TODO: static props?
+		p.page.Key: nil,
 	}
-	return viewer.RenderError(ctx, page, propMap, err)
+	html, err := p.Render(r.Context(), propMap)
+	if err != nil {
+		html = p.RenderError(r.Context(), propMap, err)
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(html)
+}
+
+func (p *PostsIndexPage) Render(ctx context.Context, propMap view.PropMap) ([]byte, error) {
+	return p.viewer.Render(ctx, p.page, propMap)
+}
+
+func (p *PostsIndexPage) RenderError(ctx context.Context, propMap view.PropMap, err error) []byte {
+	return p.viewer.RenderError(ctx, p.page, propMap, err)
+}
+
+type PostsIntroPage struct {
+	page *view.Page
+	viewer view.Viewer
+}
+
+func (p *PostsIntroPage) Mount(r *router.Router) error {
+	r.Get("/posts/intro", p)
+	return nil
+}
+
+// TODO: consolidate
+func (p *PostsIntroPage) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	propMap := map[string]interface{}{
+		// TODO: static props?
+		p.page.Key: nil,
+	}
+	html, err := p.Render(r.Context(), propMap)
+	if err != nil {
+		html = p.RenderError(r.Context(), propMap, err)
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(html)
+}
+
+func (p *PostsIntroPage) Render(ctx context.Context, propMap view.PropMap) ([]byte, error) {
+	return p.viewer.Render(ctx, p.page, propMap)
+}
+
+func (p *PostsIntroPage) RenderError(ctx context.Context, propMap view.PropMap, err error) []byte {
+	return p.viewer.RenderError(ctx, p.page, propMap, err)
 }
 `
 
@@ -106,7 +211,7 @@ type State struct {
 
 func (g *Generator) generateFile(fsys generator.FS, file *generator.File) error {
 	imset := imports.New()
-	imset.AddStd("context", "fmt")
+	imset.AddStd("context", "fmt", "net/http")
 	imset.AddNamed("view", "github.com/livebud/bud/runtime/view")
 	imset.AddNamed("router", "github.com/livebud/bud/package/router")
 	imset.AddNamed("gohtml", g.module.Import("viewer/gohtml"))

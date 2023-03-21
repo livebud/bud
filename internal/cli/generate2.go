@@ -337,6 +337,7 @@ func (g *transpilerGenerator) GenerateFile(fsys genfs.FS, file *genfs.File) erro
 	imset.AddStd("errors")
 	imset.Add("github.com/livebud/bud/runtime/transpiler")
 	tailwindImport := g.module.Import("transpiler/tailwind")
+	goldmarkImport := g.module.Import("transpiler/goldmark")
 	code, err := transpilerGen.Generate(State{
 		Transpilers: []*Transpiler{
 			{
@@ -349,6 +350,20 @@ func (g *transpilerGenerator) GenerateFile(fsys genfs.FS, file *genfs.File) erro
 					{
 						Pascal: "GohtmlToGohtml",
 						From:   ".gohtml",
+						To:     ".gohtml",
+					},
+				},
+			},
+			{
+				Import: &imports.Import{
+					Name: imset.Add(goldmarkImport),
+					Path: goldmarkImport,
+				},
+				Camel: "goldmark",
+				Methods: []*Method{
+					{
+						Pascal: "MdToGohtml",
+						From:   ".md",
 						To:     ".gohtml",
 					},
 				},
