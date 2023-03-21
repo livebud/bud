@@ -79,7 +79,7 @@ go.fmt:
 	@ test -z "$(shell go fmt $(GO_SOURCE))"
 
 go.staticcheck:
-	@ go run honnef.co/go/tools/cmd/staticcheck $(GO_SOURCE)
+	@ go run honnef.co/go/tools/cmd/staticcheck@2023.1 $(GO_SOURCE)
 
 go.install:
 	@ go build --trimpath \
@@ -179,12 +179,13 @@ test.all: go.tools go.generate go.vet go.staticcheck budjs.check budjs.test go.t
 ##
 # CI
 ##
+ci.test: go.tools go.generate go.vet budjs.check budjs.test go.test
 
 ci.npm:
 	@ npm ci
 
-ci.macos: test.all e2e
-ci.ubuntu: test.all e2e
+ci.macos: ci.test e2e
+ci.ubuntu: ci.test e2e
 
 ##
 # Build

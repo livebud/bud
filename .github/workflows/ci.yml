@@ -1,30 +1,33 @@
-name: Test
+name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
-  bud:
-    name: Test
+  test:
+    name: 'Test'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        go: ['1.17', '1.18', '1.19']
-        node: ['16']
+        os: [ 'ubuntu-latest', 'macos-latest' ]
+        go: [ '1.17', '1.18', '1.19', '1.20' ]
+        node: [ '16' ]
         include:
           - os: ubuntu-latest
-            go: 1.18
+            go: '1.18'
             node: 18
           - os: macos-latest
-            go: 1.18
+            go: '1.18'
             node: 18
           - os: macos-latest
-            go: 1.19
+            go: '1.19'
+            node: 18
+          - os: macos-latest
+            go: '1.20'
             node: 18
 
     steps:
@@ -75,3 +78,35 @@ jobs:
       - name: Run CI (macOS)
         if: matrix.os == 'macos-latest'
         run: make ci.macos
+  staticcheck:
+    name: 'Run staticcheck'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ 'ubuntu-latest', 'macOS-latest' ]
+        go: [ '1.17', '1.18', '1.19', '1.20' ]
+        dir: [ 'internal', 'package', 'framework' ]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+      - uses: WillAbides/setup-go-faster@v1.8.0
+        with:
+          go-version: ${{ matrix.go }}
+      - uses: dominikh/staticcheck-action@v1.3.0
+        if: contains(fromJSON('["1.19", "1.20"]'), matrix.go)
+        with:
+          version:  '2023.1'
+          install-go: false
+          min-go-version: ${{ matrix.go }}
+          cache-key: ${{ matrix.go }}
+          working-directory: ${{ matrix.dir }}
+      - uses: dominikh/staticcheck-action@v1.3.0
+        if: contains(fromJSON('["1.17", "1.18"]'), matrix.go)
+        with:
+          version: '2022.1'
+          install-go: false
+          min-go-version: ${{ matrix.go }}
+          cache-key: ${{ matrix.go }}
+          working-directory: ${{ matrix.dir }}

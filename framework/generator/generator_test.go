@@ -180,7 +180,7 @@ func TestSyntaxError(t *testing.T) {
 	cli := testcli.New(td.Directory())
 	res, err := cli.Run(ctx, "build", "--embed=false")
 	is.True(err != nil)
-	is.In(err.Error(), `exit status 2`)
+	is.In([]string{`exit status 1`, `exit status 2`}, err.Error()) // The exit status code changed in Go v1.20 from "2" to "1".
 	is.In(res.Stderr(), `"ok"`)
 	is.In(res.Stderr(), `not used`)
 }
