@@ -5,11 +5,6 @@
 # We'll use `asdf` during development to easily test between
 # different versions.
 #
-# We recommend to use `direnv` (https://direnv.net/) alongside with `asdf`
-# to load/unload project-specific environments when changing directories.
-# `asdf-direnv`(https://github.com/asdf-community/asdf-direnv) lets play
-# them together nicely.
-#
 # The versions below are not the only valid versions that Bud supports. To see
 # a more complete list, review the GitHub workflow to see the versions tested
 # in CI.
