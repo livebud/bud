@@ -1,11 +1,17 @@
 package gen
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
 
+	"github.com/livebud/bud/package/log/console"
+	"github.com/livebud/bud/package/log/levelfilter"
+
+	"github.com/livebud/bud/framework"
+	"github.com/livebud/bud/package/commander"
 	"github.com/livebud/bud/package/virtual"
 
 	"github.com/livebud/bud/internal/dag"
@@ -15,12 +21,11 @@ import (
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log"
-	"github.com/livebud/bud/package/log/console"
 	"github.com/livebud/bud/package/parser"
 	"github.com/livebud/bud/runtime/generator"
 )
 
-type load = func(genfs.FileSystem, *gomod.Module, log.Log) (*generator.Generator, error)
+type loadFn = func(*framework.Flag, genfs.FileSystem, *gomod.Module, log.Log) (*generator.Generator, error)
 
 func ProvideParser(genfs genfs.FileSystem, module *gomod.Module) *Parser {
 	return parser.New(genfs, module)
@@ -34,22 +39,46 @@ func ProvideInjector(genfs genfs.FileSystem, log log.Log, module *gomod.Module, 
 
 type Injector = di.Injector
 
-func Main(load load) {
-	log := log.New(console.New(os.Stderr))
-	if err := run(log, load); err != nil {
-		log.Error(err)
+func Main(load loadFn) {
+	ctx := context.Background()
+	if err := run(ctx, load, os.Args[1:]); err != nil {
+		console.Error(err)
 		os.Exit(1)
 	}
 }
 
-func run(log log.Log, load load) error {
+func run(ctx context.Context, load loadFn, args []string) error {
+	cmd := &Generate{new(framework.Flag), "info", load}
+	cli := commander.New("gen")
+	cli.Flag("embed", "embed assets").Bool(&cmd.flag.Embed).Default(false)
+	cli.Flag("hot", "hot reloading").Bool(&cmd.flag.Hot).Default(true)
+	cli.Flag("minify", "minify assets").Bool(&cmd.flag.Minify).Default(false)
+	cli.Flag("log", "filter logs with this pattern").Short('L').String(&cmd.lvl).Default("info")
+	cli.Run(cmd.Run)
+	return cli.Parse(ctx, args)
+}
+
+// Generate command
+type Generate struct {
+	flag *framework.Flag
+	lvl  string
+	load loadFn
+}
+
+// Run the generator
+func (g *Generate) Run(ctx context.Context) error {
+	lvl, err := log.ParseLevel(g.lvl)
+	if err != nil {
+		return err
+	}
+	log := log.New(levelfilter.New(console.New(os.Stderr), lvl))
 	module, err := gomod.Find(".")
 	if err != nil {
 		return err
 	}
 	fsys := virtual.Exclude(module, exclude)
 	gen := genfs.New(dag.Discard, fsys, log)
-	generator, err := load(gen, module, log)
+	generator, err := g.load(g.flag, gen, module, log)
 	if err != nil {
 		return err
 	}
@@ -92,5 +121,6 @@ func isBudChild(p string) bool {
 func isGenPath(p string) bool {
 	return strings.HasPrefix(p, "bud/cmd/gen") ||
 		strings.HasPrefix(p, "bud/internal/generator") ||
-		strings.HasPrefix(p, "bud/pkg/transpiler")
+		strings.HasPrefix(p, "bud/pkg/transpiler") ||
+		strings.HasPrefix(p, "bud/pkg/viewer")
 }

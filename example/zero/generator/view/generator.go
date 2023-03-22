@@ -1,18 +1,24 @@
 package view
 
 import (
+	"fmt"
+
+	"github.com/livebud/bud/example/zero/bud/pkg/viewer"
+	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/gotemplate"
 	"github.com/livebud/bud/package/imports"
 	"github.com/livebud/bud/runtime/generator"
 )
 
-func New(module *gomod.Module) *Generator {
-	return &Generator{module}
+func New(flag *framework.Flag, module *gomod.Module, viewer viewer.Map) *Generator {
+	return &Generator{flag, module, viewer}
 }
 
 type Generator struct {
+	flag   *framework.Flag
 	module *gomod.Module
+	viewer viewer.Map
 }
 
 func (g *Generator) Extend(gen generator.FileSystem) {
@@ -31,10 +37,10 @@ import (
 {{- end }}
 
 func New(
-	gohtml *gohtml.Viewer,
+	viewer viewer.Map,
 ) *View {
 	postsIndexPage := &PostsIndexPage{
-		viewer: gohtml,
+		viewer: viewer[".gohtml"],
 		page: &view.Page{
 			View: &view.View{
 				Key: "posts/index",
@@ -58,7 +64,7 @@ func New(
 	}
 
 	postsIntroPage := &PostsIntroPage{
-		viewer: gohtml,
+		viewer: viewer[".gohtml"],
 		page: &view.Page{
 			View: &view.View{
 				Key: "posts/intro",
@@ -210,11 +216,12 @@ type State struct {
 }
 
 func (g *Generator) generateFile(fsys generator.FS, file *generator.File) error {
+	fmt.Println("TODO bundle", g.flag.Embed, g.viewer)
 	imset := imports.New()
 	imset.AddStd("context", "fmt", "net/http")
 	imset.AddNamed("view", "github.com/livebud/bud/runtime/view")
 	imset.AddNamed("router", "github.com/livebud/bud/package/router")
-	imset.AddNamed("gohtml", g.module.Import("viewer/gohtml"))
+	imset.AddNamed("viewer", g.module.Import("bud/pkg/viewer"))
 	// imset.AddNamed("posts", g.module.Import("controller/posts"))
 	// imset.AddNamed("users", g.module.Import("controller/users"))
 	// imset.AddNamed("sessions", g.module.Import("controller/sessions"))

@@ -48,6 +48,7 @@ func (c *CLI) Generate2(ctx context.Context, in *Generate2) (err error) {
 	gen.FileGenerator("bud/cmd/gen/main.go", &mainGenerator{injector, log, module})
 	gen.FileGenerator("bud/internal/generator/generator.go", &generatorGenerator{log, module})
 	gen.FileGenerator("bud/pkg/transpiler/transpiler.go", &transpilerGenerator{log, module})
+	gen.FileGenerator("bud/pkg/viewer/viewer.go", &viewerGenerator{log, module})
 	if err := virtual.Sync(log, gen, module, "bud"); err != nil {
 		return err
 	}
@@ -59,7 +60,7 @@ func (c *CLI) Generate2(ctx context.Context, in *Generate2) (err error) {
 	}
 
 	// Run bud/gen
-	cmd = c.command(module.Directory(), "./bud/gen")
+	cmd = c.command(module.Directory(), "./bud/gen", in.Flag.Flags()...)
 	if err := cmd.Run(); err != nil {
 		return err
 	}
@@ -112,6 +113,10 @@ func (g *mainGenerator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
 		Name:    "loadGenerator",
 		Imports: imset,
 		Params: []*di.Param{
+			&di.Param{
+				Import: "github.com/livebud/bud/framework",
+				Type:   "*Flag",
+			},
 			&di.Param{
 				Import: "github.com/livebud/bud/package/gomod",
 				Type:   "*Module",
@@ -367,6 +372,106 @@ func (g *transpilerGenerator) GenerateFile(fsys genfs.FS, file *genfs.File) erro
 						To:     ".gohtml",
 					},
 				},
+			},
+		},
+		Imports: imset.List(),
+	})
+	if err != nil {
+		return err
+	}
+	file.Data = code
+	return nil
+}
+
+type viewerGenerator struct {
+	log    log.Log
+	module *gomod.Module
+}
+
+const viewerTemplate = `package viewer
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+// Load the viewer
+func New(
+	{{- range $viewer := $.Viewers }}
+	{{ $viewer.Camel }} *{{ $viewer.Import.Name }}.Viewer,
+	{{- end }}
+) Map {
+	return Map{
+		{{- range $viewer := $.Viewers }}
+		"{{ $viewer.Ext }}": {{ $viewer.Camel }},
+		{{- end }}
+	}
+}
+
+type Map map[string]view.Viewer
+
+// var _ view.Viewer = Map{}
+
+func (viewers Map) Register(r *router.Router, pages []*view.Page) {
+	for _, viewer := range viewers {
+		viewer.Register(r, pages)
+	}
+}
+
+// func (viewers Map) Render(ctx context.Context, page *view.Page, propMap view.PropMap) ([]byte, error) {
+// 	viewer, ok := viewers[page.Ext]
+// 	if !ok {
+// 		return nil, fmt.Errorf("viewer: no viewer for extension %q to render %s", page.Ext, page.Path)
+// 	}
+// 	return viewer.Render(ctx, page, propMap)
+// }
+
+// func (viewers Map) RenderError(ctx context.Context, page *view.Page, propMap view.PropMap, err error) []byte {
+// 	viewer, ok := viewers[page.Ext]
+// 	if !ok {
+// 		return []byte(fmt.Sprintf("viewer: no viewer for extension %q to render error %s", page.Ext, err))
+// 	}
+// 	return viewer.RenderError(ctx, page, propMap, err)
+// }
+
+func (viewers Map) Bundle(ctx context.Context, fsys view.Writable, pages []*view.Page) error {
+	return fmt.Errorf("viewer: bundle not implemented")
+}
+`
+
+var viewerGen = gotemplate.MustParse("viewer.go", viewerTemplate)
+
+func (g *viewerGenerator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
+	g.log.Info("generating viewer", file.Path())
+	type Viewer struct {
+		Import *imports.Import
+		Ext    string
+		Camel  string
+		Pascal string
+	}
+	type State struct {
+		Imports []*imports.Import
+		Viewers []*Viewer
+	}
+	imset := imports.New()
+	imset.AddStd("context", "fmt")
+	imset.Add("github.com/livebud/bud/runtime/view")
+	imset.Add("github.com/livebud/bud/package/router")
+	gohtmlPath := g.module.Import("viewer/gohtml")
+	code, err := viewerGen.Generate(State{
+		Viewers: []*Viewer{
+			{
+				Import: &imports.Import{
+					Name: imset.Add(gohtmlPath),
+					Path: gohtmlPath,
+				},
+				Ext:    ".gohtml",
+				Camel:  "gohtml",
+				Pascal: "Gohtml",
 			},
 		},
 		Imports: imset.List(),
