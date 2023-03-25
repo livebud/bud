@@ -19,7 +19,8 @@ install:
 ##
 
 example.zero:
-	@ go run main.go -C example/zero generate2 --embed
+	@ # go run main.go -C example/zero generate2 --embed
+	@ go run main.go -C example/zero generate2
 
 example.zero.watch:
 	@ watch --clear -- $(MAKE) example.zero

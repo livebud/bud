@@ -22,6 +22,7 @@ require (
 	github.com/livebud/bud-test-plugin v0.0.9
 	github.com/livebud/js v0.0.0-20230416184227-ef633a94787b
 	github.com/livebud/transpiler v0.0.3
+	github.com/matryer/is v1.4.0
 	github.com/matthewmueller/diff v0.0.0-20220104030700-cb2fe910d90c
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac
 	github.com/matthewmueller/text v0.0.0-20210424201111-ec1e4af8dfe8

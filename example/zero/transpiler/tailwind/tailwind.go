@@ -4,7 +4,7 @@ import (
 	"bytes"
 
 	"github.com/livebud/bud/package/log"
-	"github.com/livebud/bud/runtime/transpiler"
+	transpiler "github.com/livebud/bud/runtime/transpiler2"
 )
 
 // TODO: switch to markdown. tailwind is more of a custom web generator

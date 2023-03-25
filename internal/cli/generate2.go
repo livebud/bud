@@ -340,7 +340,7 @@ func (g *transpilerGenerator) GenerateFile(fsys genfs.FS, file *genfs.File) erro
 	}
 	imset := imports.New()
 	imset.AddStd("errors")
-	imset.Add("github.com/livebud/bud/runtime/transpiler")
+	imset.AddNamed("transpiler", "github.com/livebud/bud/runtime/transpiler2")
 	tailwindImport := g.module.Import("transpiler/tailwind")
 	goldmarkImport := g.module.Import("transpiler/goldmark")
 	code, err := transpilerGen.Generate(State{
@@ -400,46 +400,110 @@ import (
 {{- end }}
 
 // Load the viewer
+// TODO: turn most of this code into a runtime library
 func New(
+	transpiler transpiler.Transpiler,
 	{{- range $viewer := $.Viewers }}
 	{{ $viewer.Camel }} *{{ $viewer.Import.Name }}.Viewer,
 	{{- end }}
-) Map {
-	return Map{
-		{{- range $viewer := $.Viewers }}
-		"{{ $viewer.Ext }}": {{ $viewer.Camel }},
-		{{- end }}
+) Viewer {
+	return &viewer{
+		transpiler: transpiler,
+		viewers: map[string]view.Viewer{
+			{{- range $viewer := $.Viewers }}
+			"{{ $viewer.Ext }}": {{ $viewer.Camel }},
+			{{- end }}
+		},
+		accepts: []string{
+			{{- range $viewer := $.Viewers }}
+			"{{ $viewer.Ext }}",
+			{{- end }}
+		},
 	}
 }
 
-type Map map[string]view.Viewer
+type Viewer = view.Viewer
 
-// var _ view.Viewer = Map{}
+type viewer struct {
+	transpiler transpiler.Transpiler
+	viewers map[string]view.Viewer
+	accepts []string
+}
 
-func (viewers Map) Register(r *router.Router, pages []*view.Page) {
-	for _, viewer := range viewers {
+var _ Viewer = (*viewer)(nil)
+
+func (v *viewer) Register(r *router.Router, pages []*view.Page) {
+	for _, viewer := range v.viewers {
 		viewer.Register(r, pages)
 	}
 }
 
-// func (viewers Map) Render(ctx context.Context, page *view.Page, propMap view.PropMap) ([]byte, error) {
-// 	viewer, ok := viewers[page.Ext]
-// 	if !ok {
-// 		return nil, fmt.Errorf("viewer: no viewer for extension %q to render %s", page.Ext, page.Path)
-// 	}
-// 	return viewer.Render(ctx, page, propMap)
-// }
+func (v *viewer) Render(ctx context.Context, fsys fs.FS, page *view.Page, propMap view.PropMap) ([]byte, error) {
+	viewer, ok := v.viewers[page.Ext]
+	if ok {
+		return viewer.Render(ctx, fsys, page, propMap)
+	}
+	// TODO: don't choose best when embedded
+	ext, err := v.transpiler.Best(page.Ext, v.accepts)
+	if err != nil {
+		return nil, fmt.Errorf("viewer: unable to render %q. %w", page.Path, err)
+	}
+	viewer, ok = v.viewers[ext]
+	if ok {
+		return viewer.Render(ctx, fsys, page, propMap)
+	}
+	return nil, fmt.Errorf("viewer: unable to find acceptable viewer to render %q", page.Path)
+}
 
-// func (viewers Map) RenderError(ctx context.Context, page *view.Page, propMap view.PropMap, err error) []byte {
-// 	viewer, ok := viewers[page.Ext]
-// 	if !ok {
-// 		return []byte(fmt.Sprintf("viewer: no viewer for extension %q to render error %s", page.Ext, err))
-// 	}
-// 	return viewer.RenderError(ctx, page, propMap, err)
-// }
+func (v *viewer) RenderError(ctx context.Context, fsys fs.FS, page *view.Page, propMap view.PropMap, err error) []byte {
+	viewer, ok := v.viewers[page.Error.Ext]
+	if ok {
+		return viewer.RenderError(ctx, fsys, page, propMap, err)
+	}
+	// TODO: don't choose best when embedded
+	ext, err := v.transpiler.Best(page.Error.Ext, v.accepts)
+	if err != nil {
+		msg := fmt.Sprintf("viewer: unable to find extension to render error page %q for error %s", page.Error.Path, err)
+		return []byte(msg)
+	}
+	viewer, ok = v.viewers[ext]
+	if ok {
+		return viewer.RenderError(ctx, fsys, page, propMap, err)
+	}
+	msg := fmt.Sprintf("viewer: unable to find acceptable viewer to render error page %q for error %s", page.Error.Path, err)
+	return []byte(msg)
+}
 
-func (viewers Map) Bundle(ctx context.Context, fsys view.Writable, pages []*view.Page) error {
-	return fmt.Errorf("viewer: bundle not implemented")
+func (v *viewer) Bundle(ctx context.Context, fsys fs.FS, pages view.Pages, embeds view.Embeds) error {
+	exts := map[string]map[string]*view.Page{}
+	for _, page := range pages {
+		if _, ok := v.viewers[page.Ext]; ok {
+			if exts[page.Ext] == nil {
+				exts[page.Ext] = map[string]*view.Page{}
+			}
+			exts[page.Ext][page.Path] = page
+			continue
+		}
+		ext, err := v.transpiler.Best(page.Ext, v.accepts)
+		if err != nil {
+			return fmt.Errorf("viewer: unable find viewer to bundle %q. %w", page.Path, err)
+		}
+		if exts[ext] == nil {
+			exts[ext] = map[string]*view.Page{}
+		}
+		exts[ext][page.Path] = page
+	}
+	// TODO: consider parallelizing this
+	for ext, pages := range exts {
+		viewer, ok := v.viewers[ext]
+		if !ok {
+			return fmt.Errorf("viewer: unable find viewer for %q", ext)
+		}
+		if err := viewer.Bundle(ctx, fsys, pages, embeds); err != nil {
+			return fmt.Errorf("viewer: unable to bundle %q. %w", ext, err)
+		}
+	}
+	return nil
 }
 `
 
@@ -458,9 +522,10 @@ func (g *viewerGenerator) GenerateFile(fsys genfs.FS, file *genfs.File) error {
 		Viewers []*Viewer
 	}
 	imset := imports.New()
-	imset.AddStd("context", "fmt")
+	imset.AddStd("context", "fmt", "io/fs")
 	imset.Add("github.com/livebud/bud/runtime/view")
 	imset.Add("github.com/livebud/bud/package/router")
+	imset.Add(g.module.Import("bud/pkg/transpiler"))
 	gohtmlPath := g.module.Import("viewer/gohtml")
 	code, err := viewerGen.Generate(State{
 		Viewers: []*Viewer{

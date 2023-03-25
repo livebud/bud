@@ -1,7 +1,8 @@
 package view
 
 import (
-	"fmt"
+	"context"
+	"io/fs"
 
 	"github.com/livebud/bud/example/zero/bud/pkg/viewer"
 	"github.com/livebud/bud/framework"
@@ -9,16 +10,17 @@ import (
 	"github.com/livebud/bud/package/gotemplate"
 	"github.com/livebud/bud/package/imports"
 	"github.com/livebud/bud/runtime/generator"
+	"github.com/livebud/bud/runtime/view"
 )
 
-func New(flag *framework.Flag, module *gomod.Module, viewer viewer.Map) *Generator {
+func New(flag *framework.Flag, module *gomod.Module, viewer viewer.Viewer) *Generator {
 	return &Generator{flag, module, viewer}
 }
 
 type Generator struct {
 	flag   *framework.Flag
 	module *gomod.Module
-	viewer viewer.Map
+	viewer viewer.Viewer
 }
 
 func (g *Generator) Extend(gen generator.FileSystem) {
@@ -37,52 +39,70 @@ import (
 {{- end }}
 
 func New(
-	viewer viewer.Map,
+	module *gomod.Module,
+	viewer viewer.Viewer,
 ) *View {
+	{{ if $.Flag.Embed }}
+	fsys := embeddedFS
+	{{ else }}
+	fsys := module
+	{{ end }}
+
+	// TODO: generate with Pages instead
 	postsIndexPage := &PostsIndexPage{
-		viewer: viewer[".gohtml"],
-		page: &view.Page{
+		fsys,
+		viewer,
+		&view.Page{
 			View: &view.View{
 				Key: "posts/index",
 				Path: "posts/index.gohtml",
+				Ext: ".gohtml",
 			},
 			Frames: []*view.View{
 				{
 					Key: "posts/frame",
 					Path: "posts/frame.gohtml",
+					Ext: ".gohtml",
 				},
 			},
 			Layout: &view.View{
 				Key: "layout",
 				Path: "layout.gohtml",
+				Ext: ".gohtml",
 			},
 			Error: &view.View{
 				Key: "error",
 				Path: "error.gohtml",
+				Ext: ".gohtml",
 			},
 		},
 	}
 
 	postsIntroPage := &PostsIntroPage{
-		viewer: viewer[".gohtml"],
-		page: &view.Page{
+		fsys,
+		viewer,
+		&view.Page{
 			View: &view.View{
 				Key: "posts/intro",
 				Path: "posts/intro.md",
+				Ext: ".md",
 			},
 			Frames: []*view.View{
 				{
 					Key: "posts/frame",
 					Path: "posts/frame.gohtml",
+					Ext: ".gohtml",
 				},
 			},
 			Layout: &view.View{
 				Key: "layout",
 				Path: "layout.gohtml",
+				Ext: ".gohtml",
 			},
 			Error: &view.View{
 				Key: "error",
 				Path: "error.gohtml",
+				Ext: ".gohtml",
 			},
 		},
 	}
@@ -97,6 +117,15 @@ func New(
 			postsIntroPage,
 		},
 	}
+}
+
+var embeddedFS = virtual.List{
+	{{- range $embed := $.Embeds }}
+	&virtual.File{
+		Path: "{{ $embed.Path }}",
+		Data: []byte("{{ $embed.Embed }}"),
+	},
+	{{- end }}
 }
 
 type renderer interface {
@@ -144,8 +173,9 @@ func (p *PostsView) Mount(r *router.Router) error {
 }
 
 type PostsIndexPage struct {
-	page *view.Page
+	fsys fs.FS
 	viewer view.Viewer
+	page *view.Page
 }
 
 func (p *PostsIndexPage) Mount(r *router.Router) error {
@@ -168,16 +198,17 @@ func (p *PostsIndexPage) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *PostsIndexPage) Render(ctx context.Context, propMap view.PropMap) ([]byte, error) {
-	return p.viewer.Render(ctx, p.page, propMap)
+	return p.viewer.Render(ctx, p.fsys, p.page, propMap)
 }
 
 func (p *PostsIndexPage) RenderError(ctx context.Context, propMap view.PropMap, err error) []byte {
-	return p.viewer.RenderError(ctx, p.page, propMap, err)
+	return p.viewer.RenderError(ctx, p.fsys, p.page, propMap, err)
 }
 
 type PostsIntroPage struct {
-	page *view.Page
+	fsys fs.FS
 	viewer view.Viewer
+	page *view.Page
 }
 
 func (p *PostsIntroPage) Mount(r *router.Router) error {
@@ -201,32 +232,52 @@ func (p *PostsIntroPage) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *PostsIntroPage) Render(ctx context.Context, propMap view.PropMap) ([]byte, error) {
-	return p.viewer.Render(ctx, p.page, propMap)
+	return p.viewer.Render(ctx, p.fsys, p.page, propMap)
 }
 
 func (p *PostsIntroPage) RenderError(ctx context.Context, propMap view.PropMap, err error) []byte {
-	return p.viewer.RenderError(ctx, p.page, propMap, err)
+	return p.viewer.RenderError(ctx, p.fsys, p.page, propMap, err)
 }
 `
 
 var gen = gotemplate.MustParse("view.gotext", template)
 
 type State struct {
+	Flag    *framework.Flag
 	Imports []*imports.Import
+	Pages   map[string]*view.Page
+	Embeds  view.Embeds
 }
 
 func (g *Generator) generateFile(fsys generator.FS, file *generator.File) error {
-	fmt.Println("TODO bundle", g.flag.Embed, g.viewer)
+	ctx := context.TODO()
 	imset := imports.New()
-	imset.AddStd("context", "fmt", "net/http")
+	imset.AddStd("context", "fmt", "net/http", "io/fs")
+	imset.AddNamed("gomod", "github.com/livebud/bud/package/gomod")
 	imset.AddNamed("view", "github.com/livebud/bud/runtime/view")
 	imset.AddNamed("router", "github.com/livebud/bud/package/router")
 	imset.AddNamed("viewer", g.module.Import("bud/pkg/viewer"))
-	// imset.AddNamed("posts", g.module.Import("controller/posts"))
-	// imset.AddNamed("users", g.module.Import("controller/users"))
-	// imset.AddNamed("sessions", g.module.Import("controller/sessions"))
+	imset.AddNamed("virtual", "github.com/livebud/bud/package/virtual")
+	viewFS, err := fs.Sub(fsys, "view")
+	if err != nil {
+		return err
+	}
+	pages, err := view.Find(viewFS)
+	if err != nil {
+		return err
+	}
+	embeds := view.Embeds{}
+	if g.flag.Embed {
+		// TODO: decide if we want to scope to the view path or module path
+		if err := g.viewer.Bundle(ctx, fsys, pages, embeds); err != nil {
+			return err
+		}
+	}
 	code, err := gen.Generate(&State{
+		Flag:    g.flag,
 		Imports: imset.List(),
+		Pages:   pages,
+		Embeds:  embeds,
 	})
 	if err != nil {
 		return err

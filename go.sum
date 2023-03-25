@@ -83,6 +83,7 @@ github.com/livebud/js v0.0.0-20230416184227-ef633a94787b/go.mod h1:Xkuu9hOX5C6DV
 github.com/livebud/transpiler v0.0.3 h1:OFKPsmfTOywBDoOE/ZFMVjAupk/xVXFlXoAgZNRhh5Q=
 github.com/livebud/transpiler v0.0.3/go.mod h1:vQYMN//Y2cnM55tw0lOmLGbEETugP7alxTyhQHzNdTI=
 github.com/matryer/is v1.4.0 h1:sosSmIWwkYITGrxZ25ULNDeKiMNzFSr4V/eqBQP0PeE=
+github.com/matryer/is v1.4.0/go.mod h1:8I/i5uYgLzgsgEloJE1U6xx5HkBQpAZvepWuujKwMRU=
 github.com/matthewmueller/diff v0.0.0-20220104030700-cb2fe910d90c h1:yjGBNrCIE7IghJAwrFcyDzwzwJKf0oRPeOHx60wfkmA=
 github.com/matthewmueller/diff v0.0.0-20220104030700-cb2fe910d90c/go.mod h1:xIxeV0n2W+WNB3ik/j9lUkcrQAk71VrvT9ch8u4pcvM=
 github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac h1:SjopLdUF96kdJU8ynYmGVHoJmngpwFHRvR5p2plBXG4=

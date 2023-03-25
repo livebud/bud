@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/livebud/bud/example/zero/generator/command"
+	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/package/di"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/gotemplate"
@@ -14,11 +15,12 @@ import (
 	"github.com/livebud/bud/runtime/generator"
 )
 
-func New(injector *di.Injector, module *gomod.Module) *Generator {
-	return &Generator{injector, module}
+func New(flag *framework.Flag, injector *di.Injector, module *gomod.Module) *Generator {
+	return &Generator{flag, injector, module}
 }
 
 type Generator struct {
+	flag     *framework.Flag
 	injector *di.Injector
 	module   *gomod.Module
 }
@@ -56,6 +58,10 @@ func (g *Generator) generateFile(fsys generator.FS, file *generator.File) error 
 	}
 	imset := imports.New()
 	imset.Add(g.module.Import("generator/app"))
+	aliases := di.Aliases{}
+	if !g.flag.Embed {
+		aliases[di.ToType(g.module.Import("bud/pkg/web/view"), "FS")] = di.ToType("github.com/livebud/bud/package/gomod", "*Module")
+	}
 	provider, err := g.injector.Wire(&di.Function{
 		Name:    "loadCLI",
 		Imports: imset,
@@ -69,9 +75,7 @@ func (g *Generator) generateFile(fsys generator.FS, file *generator.File) error 
 				Type:   "*Module",
 			},
 		},
-		// Aliases: di.Aliases{
-		// 	di.ToType(g.module.Import("generator/web"), "Server"): di.ToType(g.module.Import("bud/internal/web"), "*Server"),
-		// },
+		Aliases: aliases,
 		Results: []di.Dependency{
 			di.ToType(g.module.Import("bud/internal/command"), "*CLI"),
 			&di.Error{},

@@ -7,6 +7,7 @@ import (
 	"path"
 
 	"github.com/livebud/bud/package/router"
+	"github.com/livebud/bud/package/virtual"
 )
 
 var ErrViewerNotFound = errors.New("viewer not found")
@@ -16,11 +17,6 @@ type Key = string
 type Ext = string
 type PropMap = map[Key]interface{}
 type ReadFS = fs.FS
-
-type Writable interface {
-	MkdirAll(path string, perm fs.FileMode) error
-	WriteFile(name string, data []byte, perm fs.FileMode) error
-}
 
 // Interface for bud/internal/web/view
 type Interface interface {
@@ -32,6 +28,7 @@ type Interface interface {
 type View struct {
 	Key  Key
 	Path string
+	Ext  string
 }
 
 // Client is the standard route for specific views. This is typically used for
@@ -52,11 +49,14 @@ func (p *Page) Client() string {
 	return "/bud/" + path.Clean(p.View.Path) + ".entry.js"
 }
 
+type Embed = virtual.File
+type Embeds = map[string]*Embed
+
 type Viewer interface {
 	Register(r *router.Router, pages []*Page)
-	Render(ctx context.Context, page *Page, propMap PropMap) ([]byte, error)
-	RenderError(ctx context.Context, page *Page, propMap PropMap, err error) []byte
-	Bundle(ctx context.Context, fsys Writable, pages []*Page) error
+	Render(ctx context.Context, fsys fs.FS, page *Page, propMap PropMap) ([]byte, error)
+	RenderError(ctx context.Context, fsys fs.FS, page *Page, propMap PropMap, err error) []byte
+	Bundle(ctx context.Context, fsys fs.FS, pages Pages, embed Embeds) error
 }
 
 type Viewers map[Ext]Viewer

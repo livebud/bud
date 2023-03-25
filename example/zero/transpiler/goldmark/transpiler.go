@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/livebud/bud/package/log"
-	"github.com/livebud/bud/runtime/transpiler"
+	transpiler "github.com/livebud/bud/runtime/transpiler2"
 	"github.com/yuin/goldmark"
 )
 
