@@ -33,7 +33,7 @@ import (
 {{- end }}
 
 func New(web *web.Web) *Server {
-	middleware := web.Middleware(middleware.Stack{})
+	middleware := web.Stack(middleware.Stack{})
 	router := web.Router(router.New())
 	handler := web.Handler(middleware.Middleware(router))
 	server := web.Server(&http.Server{
