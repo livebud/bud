@@ -32,7 +32,8 @@ func TestHeadersWrapped(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/", nil)
 	is.NoErr(err)
-	h := wraprw.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	wrap := &wraprw.Middleware{}
+	h := wrap.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("X-A", "A")
 		w.Write([]byte("Hello, world!"))
 		w.Header().Add("X-B", "B")
@@ -70,7 +71,8 @@ func TestWriteStatusWrapped(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/", nil)
 	is.NoErr(err)
-	h := wraprw.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	wrap := &wraprw.Middleware{}
+	h := wrap.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("X-A", "A")
 		w.WriteHeader(201)
 		w.Write([]byte("Hello, world!"))
@@ -117,7 +119,8 @@ func TestFlushWrapped(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/", nil)
 	is.NoErr(err)
-	h := wraprw.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	wrap := &wraprw.Middleware{}
+	h := wrap.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello, world!"))
 		w.Header().Add("X-A", "A")
 		flush, ok := w.(http.Flusher)
@@ -143,7 +146,8 @@ func TestFlushStatusWrapped(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/", nil)
 	is.NoErr(err)
-	h := wraprw.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	wrap := &wraprw.Middleware{}
+	h := wrap.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello, world!"))
 		w.WriteHeader(201)
 		w.Header().Add("X-A", "A")

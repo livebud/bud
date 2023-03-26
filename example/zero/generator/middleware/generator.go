@@ -38,11 +38,14 @@ type Stack = middleware.Stack
 func New(
 	csrf *csrf.Middleware,
 	session *session.Middleware,
+	wraprw *wraprw.Middleware,
 ) *Middleware {
 	return &Middleware{
 		csrf,
 		session,
+		wraprw,
 		Stack{
+			wraprw,
 			csrf,
 			session,
 		},
@@ -52,6 +55,7 @@ func New(
 type Middleware struct {
 	CSRF    *csrf.Middleware
 	Session *session.Middleware
+	WrapRW  *wraprw.Middleware
 	stack   Stack
 }
 
@@ -77,6 +81,7 @@ func (g *Generator) generateFile(fsys generator.FS, file *generator.File) error 
 	imset.AddStd("net/http")
 	imset.AddNamed("middleware", "github.com/livebud/bud/package/middleware")
 	// TODO: generate these
+	imset.AddNamed("wraprw", g.module.Import("middleware/wraprw"))
 	imset.AddNamed("csrf", g.module.Import("middleware/csrf"))
 	imset.AddNamed("session", g.module.Import("middleware/session"))
 	code, err := gen.Generate(&State{

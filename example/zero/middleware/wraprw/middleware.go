@@ -7,7 +7,10 @@ import (
 	"github.com/felixge/httpsnoop"
 )
 
-func Middleware(next http.Handler) http.Handler {
+type Middleware struct {
+}
+
+func (m *Middleware) Middleware(next http.Handler) http.Handler {
 	rw := &responseWriter{
 		code: 0,
 		body: new(bytes.Buffer),
@@ -47,7 +50,7 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 func (rw *responseWriter) writeTo(w http.ResponseWriter) {
 	// Only write status code once to avoid:
 	// "http: superfluous response.WriteHeader"
-	// Not concurrency safe
+	// Not concurrency safe.
 	if !rw.wrote {
 		if rw.code == 0 {
 			rw.code = http.StatusOK
