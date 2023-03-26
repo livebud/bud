@@ -1,6 +1,11 @@
 package users
 
+import (
+	"github.com/livebud/bud/example/zero/env"
+)
+
 type Controller struct {
+	Env *env.Env
 }
 
 func (c *Controller) Index() string {

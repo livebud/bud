@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"os"
 
 	"github.com/livebud/bud/example/zero/generator/command"
@@ -58,10 +59,13 @@ func (g *Generator) generateFile(fsys generator.FS, file *generator.File) error 
 	}
 	imset := imports.New()
 	imset.Add(g.module.Import("generator/app"))
-	aliases := di.Aliases{}
+	aliases := di.Aliases{
+		di.ToType(g.module.Import("env"), "*Env"): di.ToType(g.module.Import("bud/internal/env"), "*Env"),
+	}
 	if !g.flag.Embed {
 		aliases[di.ToType(g.module.Import("bud/pkg/web/view"), "FS")] = di.ToType("github.com/livebud/bud/package/gomod", "*Module")
 	}
+
 	provider, err := g.injector.Wire(&di.Function{
 		Name:    "loadCLI",
 		Imports: imset,
@@ -103,7 +107,7 @@ type loadCLI func(module *gomod.Module, log log.Log) (*command.CLI, error)
 
 func Main(loadCLI loadCLI) {
 	log := log.New(console.New(os.Stderr))
-	if err := run(log, loadCLI); err != nil {
+	if err := run(log, loadCLI); err != nil && !errors.Is(err, context.Canceled) {
 		log.Error(err)
 		os.Exit(1)
 	}
