@@ -6,7 +6,9 @@ replace github.com/livebud/bud => ../..
 
 require (
 	github.com/caarlos0/env/v7 v7.1.0
+	github.com/felixge/httpsnoop v1.0.3
 	github.com/livebud/bud v0.0.0-00010101000000-000000000000
+	github.com/matryer/is v1.4.0
 	github.com/yuin/goldmark v1.5.4
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 )
