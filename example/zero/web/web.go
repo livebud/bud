@@ -6,14 +6,26 @@ import (
 	"github.com/livebud/bud/example/zero/bud/pkg/web/controller"
 	"github.com/livebud/bud/example/zero/bud/pkg/web/middleware"
 	"github.com/livebud/bud/example/zero/bud/pkg/web/view"
+	"github.com/livebud/bud/example/zero/mw"
 	"github.com/livebud/bud/package/router"
 )
 
 type Web struct {
 	Controller *controller.Controller
 	Middleware *middleware.Middleware
+	MW         *mw.Middleware
 	View       *view.View
 }
+
+// type Stack []func(next http.Handler) http.Handler
+
+// func (w *Web) Stack(s middleware.Stack) Stack {
+// 	return Stack{
+// 		w.MW.WrapRW,
+// 		w.MW.Session,
+// 		w.MW.CSRF,
+// 	}
+// }
 
 func (w *Web) Stack(s middleware.Stack) middleware.Interface {
 	return append(s, w.Middleware)
