@@ -151,7 +151,7 @@ func (c *CLI) Parse(ctx context.Context, args ...string) error {
 
 	{ // $ bud generate2 [packages...]
 		in := &Generate2{Flag: &framework.Flag{}}
-		cli := cli.Command("generate2", "generate bud packages")
+		cli := cli.Command("generate2", "generate bud packages").Hidden()
 		cli.Flag("listen-dev", "dev server address").String(&in.ListenDev).Default(":35729")
 		cli.Flag("embed", "embed assets").Bool(&in.Flag.Embed).Default(false)
 		cli.Flag("hot", "hot reloading").Bool(&in.Flag.Hot).Default(true)

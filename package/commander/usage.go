@@ -28,13 +28,18 @@ func (u *usage) Name() string {
 	return u.root.name
 }
 
-func (u *usage) Usage() string {
-	out := new(strings.Builder)
-	out.WriteString(u.cmd.full)
-	if u.cmd.run == nil && len(u.cmd.commands) > 0 {
-		out.WriteString(dim())
-		if u.cmd.full != "" {
-			out.WriteString(":")
+type generateCommands []*generateCommand
+
+func (cmds generateCommands) Usage() (string, error) {
+	buf := new(bytes.Buffer)
+	tw := tabwriter.NewWriter(buf, 0, 0, 2, ' ', 0)
+	for _, cmd := range cmds {
+		if cmd.c.hidden {
+			continue
+		}
+		tw.Write([]byte("\t\t" + cmd.c.name))
+		if cmd.c.usage != "" {
+			tw.Write([]byte("\t" + dim() + cmd.c.usage + reset()))
 		}
 		out.WriteString("command")
 		out.WriteString(reset())
