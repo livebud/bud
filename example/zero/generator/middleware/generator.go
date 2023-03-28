@@ -37,24 +37,24 @@ type Stack = middleware.Stack
 
 func New(
 	csrf *csrf.Middleware,
-	session *session.Middleware,
+	// session *session.Middleware,
 	wraprw *wraprw.Middleware,
 ) *Middleware {
 	return &Middleware{
 		csrf,
-		session,
+		// session,
 		wraprw,
 		Stack{
 			wraprw,
 			csrf,
-			session,
+			// session,
 		},
 	}
 }
 
 type Middleware struct {
 	CSRF    *csrf.Middleware
-	Session *session.Middleware
+	// Session *session.Middleware
 	WrapRW  *wraprw.Middleware
 	stack   Stack
 }
@@ -83,7 +83,7 @@ func (g *Generator) generateFile(fsys generator.FS, file *generator.File) error 
 	// TODO: generate these
 	imset.AddNamed("wraprw", g.module.Import("middleware/wraprw"))
 	imset.AddNamed("csrf", g.module.Import("middleware/csrf"))
-	imset.AddNamed("session", g.module.Import("middleware/session"))
+	// imset.AddNamed("session", g.module.Import("middleware/session"))
 	code, err := gen.Generate(&State{
 		Imports: imset.List(),
 	})

@@ -3,14 +3,17 @@ package web
 import (
 	"net/http"
 
+	"github.com/livebud/bud/example/zero/bud/pkg/sessions"
 	"github.com/livebud/bud/example/zero/bud/pkg/web/controller"
 	"github.com/livebud/bud/example/zero/bud/pkg/web/middleware"
 	"github.com/livebud/bud/example/zero/bud/pkg/web/view"
+	"github.com/livebud/bud/example/zero/env"
 	"github.com/livebud/bud/example/zero/mw"
 	"github.com/livebud/bud/package/router"
 )
 
 type Web struct {
+	Env        *env.Env
 	Controller *controller.Controller
 	Middleware *middleware.Middleware
 	MW         *mw.Middleware
@@ -28,7 +31,7 @@ type Web struct {
 // }
 
 func (w *Web) Stack(s middleware.Stack) middleware.Interface {
-	return append(s, w.Middleware)
+	return append(s, w.Middleware, sessions.New(w.Env.Session.Key))
 }
 
 // TODO: use a router interface

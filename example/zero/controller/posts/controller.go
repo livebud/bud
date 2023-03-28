@@ -14,6 +14,10 @@ type IndexContext struct {
 }
 
 func (c *Controller) Index(ctx *IndexContext) (string, error) {
-	fmt.Println("got session", ctx.Session)
+	fmt.Println("got session user id", ctx.Session.UserID)
+	fmt.Println("is logged in?", !ctx.Session.Visitor())
+	id := 10
+	ctx.Session.UserID = &id
+	// fmt.Println("got session", ctx.Session)
 	return "Welcome to my blog!", nil
 }
