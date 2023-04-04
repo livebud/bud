@@ -1,0 +1,16 @@
+
+  {{bold}}Usage:{{reset}}
+    {{ $.Name }}{{ if $.Flags }} {{dim}}[flags]{{reset}}{{ end }}{{ range $arg := $.Args }} {{dim}}{{$arg}}{{reset}}{{ end }}
+
+{{- if $.Flags}}
+
+  {{bold}}Flags:{{reset}}
+    {{ $.Flags.Usage }}
+{{- end }}
+
+{{- if $.Commands }}
+
+  {{bold}}Commands:{{reset}}
+    {{ $.Commands.Usage }}
+{{- end }}
+

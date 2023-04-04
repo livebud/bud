@@ -1,0 +1,17 @@
+package main
+
+{{ $.Imports }}
+
+func main() {
+	commands, err := {{ $.Provider.Name }}()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	if err := commands.Parse(context.Background(), os.Args[1:]...); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+}
+
+{{ $.Provider.Function }}

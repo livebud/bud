@@ -1,0 +1,260 @@
+package commands
+
+{{- if $.Imports }}
+
+import (
+	{{- range $import := $.Imports }}
+	{{$import.Name}} "{{$import.Path}}"
+	{{- end }}
+)
+{{- end }}
+
+func New(
+	addonsCmd *addons.Command,
+	psCmd *ps.Command,
+	psAutoscaleCmd *autoscale.Command,
+) *CLI {
+	var commands []*runtime.Command
+
+	{ // addons
+		in := addons.Addons{
+			Global: new(command.Global),
+		}
+		commands = append(commands, &runtime.Command{
+			Name: "addons",
+			Help: "lists your add-ons and attachments",
+			Flags: []*runtime.Flag{
+				{
+					Name: "app",
+					Short: 'a',
+					Help: "app to run command against",
+					Value: &runtime.String{
+						Value: &in.App,
+					},
+				},
+				{
+					Name: "remote",
+					Short: 'r',
+					Help: "git remote of app to use",
+					Value: &runtime.String{
+						Value: in.Remote,
+						Optional: true,
+					},
+				},
+				{
+					Name: "all",
+					Help: "show add-ons and attachments for all accessible apps",
+					Value: &runtime.Bool{
+						Value: &in.All,
+						Default: false,
+					},
+				},
+				{
+					Name: "json",
+					Help: "return add-ons in json format",
+					Value: &runtime.Bool{
+						Value: &in.Json,
+						Default: false,
+					},
+				},
+			},
+			Commands: []*runtime.Command{
+				{
+					Name: "addons:attach",
+					Help: "attach an existing add-on resource to an app",
+				},
+				{
+					Name: "addons:create",
+					Help: "",
+				},
+				{
+					Name: "addons:destroy",
+					Help: "destroy an add-on resource permanently",
+				},
+				{
+					Name: "addons:info",
+					Help: "info shows detailed add-on resource and attachment information",
+				},
+				{
+					Name: "addons:services",
+					Help: "",
+				},
+			},
+			Run: func(ctx context.Context) error {
+				return addonsCmd.Addons(ctx, &in)
+			},
+		})
+	}
+
+	{ // addons:attach
+		in := addons.Attach{
+			Global: new(command.Global),
+		}
+		commands = append(commands, &runtime.Command{
+			Name: "addons:attach",
+			Help: "attach an existing add-on resource to an app",
+			Flags: []*runtime.Flag{
+				{
+					Name: "app",
+					Short: 'a',
+					Help: "app to run command against",
+					Value: &runtime.String{
+						Value: &in.App,
+					},
+				},
+				{
+					Name: "remote",
+					Short: 'r',
+					Help: "git remote of app to use",
+					Value: &runtime.String{
+						Value: in.Remote,
+						Optional: true,
+					},
+				},
+				{
+					Name: "as",
+					Help: "name for add-on attachment",
+					Value: &runtime.String{
+						Value: in.As,
+						Optional: true,
+					},
+				},
+			},
+			Args: []*runtime.Arg{
+				{
+					Name: "addon_name",
+					Help: "name of the addon",
+					Value: &runtime.String{
+						Value: &in.Name,
+					},
+				},
+			},
+			Run: func(ctx context.Context) error {
+				return addonsCmd.Attach(ctx, &in)
+			},
+		})
+	}
+
+	{ // addons:create
+		var in addons.Create
+		commands = append(commands, &runtime.Command{
+			Name: "addons:create",
+			Run: func(ctx context.Context) error {
+				return addonsCmd.Create(ctx, &in)
+			},
+		})
+	}
+
+	{ // addons:destroy
+		var in addons.Destroy
+		commands = append(commands, &runtime.Command{
+			Name: "addons:destroy",
+			Run: func(ctx context.Context) error {
+				return addonsCmd.Destroy(ctx, &in)
+			},
+		})
+	}
+
+	{ // addons:info
+		var in addons.Info
+		commands = append(commands, &runtime.Command{
+			Name: "addons:info",
+			Run: func(ctx context.Context) error {
+				return addonsCmd.Info(ctx, &in)
+			},
+		})
+	}
+
+	{ // addons:services
+		var in addons.Services
+		commands = append(commands, &runtime.Command{
+			Name: "addons:services",
+			Run: func(ctx context.Context) error {
+				return addonsCmd.Services(ctx, &in)
+			},
+		})
+	}
+
+	{ // ps
+		var in ps.Ps
+		commands = append(commands, &runtime.Command{
+			Name: "ps",
+			Run: func(ctx context.Context) error {
+				return psCmd.Ps(ctx, &in)
+			},
+		})
+	}
+
+	{ // ps:exec
+		var in ps.Exec
+		commands = append(commands, &runtime.Command{
+			Name: "ps:exec",
+			Run: func(ctx context.Context) error {
+				return psCmd.Exec(ctx, &in)
+			},
+		})
+	}
+
+	{ // ps:scale
+		var in ps.Scale
+		commands = append(commands, &runtime.Command{
+			Name: "ps:scale",
+			Run: func(ctx context.Context) error {
+				return psCmd.Scale(ctx, &in)
+			},
+		})
+	}
+
+	{ // ps:stop
+		var in ps.Stop
+		commands = append(commands, &runtime.Command{
+			Name: "ps:stop",
+			Run: func(ctx context.Context) error {
+				return psCmd.Stop(ctx, &in)
+			},
+		})
+	}
+
+	{ // ps:wait
+		var in ps.Wait
+		commands = append(commands, &runtime.Command{
+			Name: "ps:wait",
+			Run: func(ctx context.Context) error {
+				return psCmd.Wait(ctx, &in)
+			},
+		})
+	}
+
+	{ // ps:autoscale
+		commands = append(commands, &runtime.Command{
+			Name: "ps:autoscale",
+		})
+	}
+
+	{ // ps:autoscale:enable
+		var in autoscale.Enable
+		commands = append(commands, &runtime.Command{
+			Name: "ps:autoscale:enable",
+			Run: func(ctx context.Context) error {
+				return psAutoscaleCmd.Enable(ctx, &in)
+			},
+		})
+	}
+
+	{ // ps:autoscale:disable
+		var in autoscale.Disable
+		commands = append(commands, &runtime.Command{
+			Name: "ps:autoscale:disable",
+			Run: func(ctx context.Context) error {
+				return psAutoscaleCmd.Disable(ctx, &in)
+			},
+		})
+	}
+
+	return runtime.New(&runtime.Command{
+		Name: "app.com",
+		Commands: commands,
+	})
+}
+
+type CLI = runtime.CLI

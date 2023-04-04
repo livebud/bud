@@ -66,6 +66,7 @@ type Dir struct {
 
 var _ fs.FS = (*Dir)(nil)
 var _ fs.StatFS = (*Dir)(nil)
+var _ virtual.FS = (*Dir)(nil)
 
 const goMod = `
 	module app.com
@@ -229,6 +230,18 @@ func (d *Dir) Directory() string {
 
 func (d *Dir) Open(name string) (fs.File, error) {
 	return d.to.Open(name)
+}
+
+func (d *Dir) WriteFile(path string, data []byte, perm fs.FileMode) error {
+	return d.to.WriteFile(path, data, perm)
+}
+
+func (d *Dir) MkdirAll(path string, perm fs.FileMode) error {
+	return d.to.MkdirAll(path, perm)
+}
+
+func (d *Dir) Sub(path string) (virtual.FS, error) {
+	return d.to.Sub(path)
 }
 
 func (d *Dir) Stat(name string) (fs.FileInfo, error) {

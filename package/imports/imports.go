@@ -112,6 +112,22 @@ func (s *Set) List() (imports []*Import) {
 	return imports
 }
 
+func (s *Set) String() string {
+	var b strings.Builder
+	b.WriteString("import (\n")
+	for _, imp := range s.List() {
+		b.WriteString("\t")
+		if imp.Name != "" {
+			b.WriteString(imp.Name)
+			b.WriteString(" ")
+		}
+		b.WriteString(strconv.Quote(imp.Path))
+		b.WriteString("\n")
+	}
+	b.WriteString(")")
+	return b.String()
+}
+
 // Import struct returned by list
 type Import struct {
 	// Package identifier name
