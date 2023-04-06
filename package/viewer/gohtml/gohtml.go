@@ -10,25 +10,31 @@ import (
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/router"
 	"github.com/livebud/bud/package/viewer"
+	"github.com/livebud/bud/package/virtual"
 	"github.com/livebud/bud/runtime/transpiler"
 )
 
 // TODO: may want a viewer.FS that is a wrapper around a fs.Sub(module, "view")
-func New(fsys viewer.FS, log log.Log, tr transpiler.Interface) *Viewer {
-	return &Viewer{fsys, log, tr}
+func Load(finder viewer.Finder, fsys viewer.FS, log log.Log, tr transpiler.Interface) (*Viewer, error) {
+	pages, err := finder.Find(".")
+	if err != nil {
+		return nil, err
+	}
+	return &Viewer{pages, fsys, log, tr}, nil
 }
 
 type Viewer struct {
-	fsys viewer.FS
-	log  log.Log
-	tr   transpiler.Interface
+	pages viewer.Pages
+	fsys  viewer.FS
+	log   log.Log
+	tr    transpiler.Interface
 }
 
 var _ viewer.Viewer = (*Viewer)(nil)
 
-func (v *Viewer) Register(r *router.Router, pages []*viewer.Page) {
+// func (v *Viewer) Register(r *router.Router, pages []*viewer.Page) {
 
-}
+// }
 
 func (v *Viewer) Mount(r *router.Router) error {
 	return nil
@@ -69,7 +75,11 @@ func render(ctx context.Context, tpl *template.Template, props interface{}) ([]b
 	return out.Bytes(), nil
 }
 
-func (v *Viewer) Render(ctx context.Context, page *viewer.Page, propMap viewer.PropMap) ([]byte, error) {
+func (v *Viewer) Render(ctx context.Context, key string, propMap viewer.PropMap) ([]byte, error) {
+	page, ok := v.pages[key]
+	if !ok {
+		return nil, fmt.Errorf("gohtml unable to find page from key %q", key)
+	}
 	v.log.Info("rendering gohtml", page.Path)
 	html, err := v.render(ctx, page.Path, propMap[page.Key])
 	if err != nil {
@@ -92,7 +102,11 @@ func (v *Viewer) Render(ctx context.Context, page *viewer.Page, propMap viewer.P
 	return html, nil
 }
 
-func (v *Viewer) RenderError(ctx context.Context, page *viewer.Page, propMap viewer.PropMap, originalError error) []byte {
+func (v *Viewer) RenderError(ctx context.Context, key string, propMap viewer.PropMap, originalError error) []byte {
+	page, ok := v.pages[key]
+	if !ok {
+		return []byte(fmt.Sprintf("unable to find page from key %q to render error %s", key, originalError))
+	}
 	v.log.Info("rendering gohtml", page.Error.Path)
 	errorEntry, err := v.parseTemplate(page.Error.Path)
 	if err != nil {
@@ -120,49 +134,49 @@ type errorState struct {
 	Message string
 }
 
-func (v *Viewer) Bundle(ctx context.Context, pages viewer.Pages, embeds viewer.Embeds) (err error) {
-	for _, page := range pages {
+func (v *Viewer) Bundle(ctx context.Context, fs virtual.Tree) (err error) {
+	for _, page := range v.pages {
 		// Embed the page
 		pageEmbed, err := v.embedView(page.Path)
 		if err != nil {
 			return err
 		}
-		embeds[page.Path] = pageEmbed
+		fs[page.Path] = pageEmbed
 
 		// Embed the layout
 		if page.Layout != nil {
-			if _, ok := embeds[page.Layout.Path]; ok {
+			if _, ok := fs[page.Layout.Path]; ok {
 				continue
 			}
 			layoutEmbed, err := v.embedView(page.Layout.Path)
 			if err != nil {
 				return err
 			}
-			embeds[page.Layout.Path] = layoutEmbed
+			fs[page.Layout.Path] = layoutEmbed
 		}
 
 		// Embed the frames
 		for _, frame := range page.Frames {
-			if _, ok := embeds[frame.Path]; ok {
+			if _, ok := fs[frame.Path]; ok {
 				continue
 			}
 			frameEmbed, err := v.embedView(frame.Path)
 			if err != nil {
 				return err
 			}
-			embeds[frame.Path] = frameEmbed
+			fs[frame.Path] = frameEmbed
 		}
 
 		// Embed the error
 		if page.Error != nil {
-			if _, ok := embeds[page.Error.Path]; ok {
+			if _, ok := fs[page.Error.Path]; ok {
 				continue
 			}
 			errorEmbed, err := v.embedView(page.Error.Path)
 			if err != nil {
 				return err
 			}
-			embeds[page.Error.Path] = errorEmbed
+			fs[page.Error.Path] = errorEmbed
 		}
 	}
 	return nil

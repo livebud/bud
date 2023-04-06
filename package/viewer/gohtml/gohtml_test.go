@@ -18,11 +18,11 @@ func TestPage(t *testing.T) {
 	fsys := virtual.Map{
 		"index.gohtml": "Hello {{ .Planet }}!",
 	}
-	pages, err := viewer.Find(fsys)
+	finder := viewer.NewFinder(fsys)
+	viewer, err := gohtml.Load(finder, fsys, log, transpiler.New())
 	is.NoErr(err)
-	viewer := gohtml.New(fsys, log, transpiler.New())
 	ctx := context.Background()
-	html, err := viewer.Render(ctx, pages["index"], map[string]interface{}{
+	html, err := viewer.Render(ctx, "index", map[string]interface{}{
 		"index": map[string]interface{}{
 			"Planet": "Earth",
 		},
@@ -38,11 +38,11 @@ func TestLayout(t *testing.T) {
 		"index.gohtml":  "Hello {{ .Planet }}!",
 		"layout.gohtml": "<html>{{ . }}</html>",
 	}
-	pages, err := viewer.Find(fsys)
+	finder := viewer.NewFinder(fsys)
+	viewer, err := gohtml.Load(finder, fsys, log, transpiler.New())
 	is.NoErr(err)
-	viewer := gohtml.New(fsys, log, transpiler.New())
 	ctx := context.Background()
-	html, err := viewer.Render(ctx, pages["index"], map[string]interface{}{
+	html, err := viewer.Render(ctx, "index", map[string]interface{}{
 		"index": map[string]interface{}{
 			"Planet": "Earth",
 		},

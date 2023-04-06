@@ -57,8 +57,8 @@ type Embeds = map[string]*Embed
 type Pages map[Key]*Page
 
 type Viewer interface {
-	Register(r *router.Router, pages []*Page)
-	Render(ctx context.Context, page *Page, propMap PropMap) ([]byte, error)
-	RenderError(ctx context.Context, page *Page, propMap PropMap, err error) []byte
-	Bundle(ctx context.Context, pages Pages, embed Embeds) error
+	Mount(r *router.Router) error
+	Render(ctx context.Context, key Key, propMap PropMap) ([]byte, error)
+	RenderError(ctx context.Context, key Key, propMap PropMap, err error) []byte
+	Bundle(ctx context.Context, embed virtual.Tree) error
 }

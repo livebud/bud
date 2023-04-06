@@ -6,6 +6,22 @@ import (
 	"path/filepath"
 )
 
+func NewFinder(fsys fs.FS) Finder {
+	return &finder{fsys}
+}
+
+type finder struct {
+	fsys fs.FS
+}
+
+func (f *finder) Find(root string) (pages Pages, err error) {
+	return Find(f.fsys)
+}
+
+type Finder interface {
+	Find(root string) (Pages, error)
+}
+
 // Find pages
 func Find(fsys fs.FS) (pages map[Key]*Page, err error) {
 	pages = make(map[Key]*Page)
