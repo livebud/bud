@@ -16,6 +16,7 @@ curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
   2. Allows flags and args after the command to be in any order.
 
 - **Breaking:** As a result of the CLI change, `bud new controller` is now `bud new:controller`
+- **Breaking:** The `tool` subcommand has been dropped. For example, `bud tool fs cat` is now `bud fs:cat`.
 - **Deprecated:** `bud create <dir>` is now deprecated. Use `bud new <dir>` when you want to scaffold a new Bud project.
 
 ## v0.2.8
