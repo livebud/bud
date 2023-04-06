@@ -10,6 +10,8 @@ import (
 	"github.com/livebud/transpiler"
 )
 
+// TODO: replace with package/transpiler
+
 type File = transpiler.File
 type Interface = transpiler.Interface
 
