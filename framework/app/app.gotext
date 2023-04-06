@@ -27,12 +27,12 @@ func run(ctx context.Context, args ...string) int {
 
 // Parse the arguments
 func parse(ctx context.Context, args ...string) error {
-	cli := commander.New("bud")
+	cli := commander.New("app", "app built by bud")
 	app := new(App)
 	cli.Flag("listen", "address to listen to").String(&app.Listen).Default(":3000")
 	cli.Flag("log", "filter logs with a pattern").Short('L').String(&app.Log).Default("info")
 	cli.Run(app.Run)
-	return cli.Parse(ctx, args)
+	return cli.Parse(ctx, args...)
 }
 
 // App command

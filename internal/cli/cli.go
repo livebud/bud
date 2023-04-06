@@ -121,25 +121,25 @@ func (c *CLI) Parse(ctx context.Context, args ...string) error {
 
 	// $ bud [args...]
 	in := &Custom{}
-	cli := commander.New("bud").Writer(c.Stdout)
+	cli := commander.New("bud", "Full-stack web framework for Go").Writer(c.Stdout)
 	cli.Flag("chdir", "change the working directory").Short('C').String(&c.Dir).Default(c.Dir)
 	cli.Flag("help", "show this help message").Short('h').Bool(&in.Help).Default(false)
 	cli.Flag("log", "filter logs with this pattern").Short('L').String(&c.Log).Default("info")
-	cli.Args("args").Strings(&in.Args)
+	cli.Args("args").Optional().Strings(&in.Args)
 	cli.Run(func(ctx context.Context) error { return c.Custom(ctx, in) })
 
 	{ // $ bud create <dir>
 		in := &Create{}
-		cli := cli.Command("create", "create a new app")
+		cli := cli.Command("create", "create a new app").Hidden()
 		cli.Flag("dev", "link to the development version").Short('D').Bool(&in.Dev).Default(versions.Bud == "latest")
-		cli.Flag("module", "module path for go.mod").String(&in.Module).Optional()
+		cli.Flag("module", "module path for go.mod").String(&in.Module).Default("")
 		cli.Arg("dir").String(&c.Dir)
 		cli.Run(func(ctx context.Context) error { return c.Create(ctx, in) })
 	}
 
 	{ // $ bud generate [packages...]
 		in := &Generate{Flag: &framework.Flag{}}
-		cli := cli.Command("generate", "generate bud packages")
+		cli := cli.Command("generate", "manually generate bud packages").Advanced()
 		cli.Flag("listen-dev", "dev server address").String(&in.ListenDev).Default(":35729")
 		cli.Flag("listen-afs", "app file server address").String(&in.ListenAFS).Default(":0")
 		cli.Flag("embed", "embed assets").Bool(&in.Flag.Embed).Default(false)
@@ -170,104 +170,105 @@ func (c *CLI) Parse(ctx context.Context, args ...string) error {
 		cli.Run(func(ctx context.Context) error { return c.Build(ctx, in) })
 	}
 
-	{ // $ bud new
+	{ // $ bud new <dir>
+		in := &Create{}
 		cli := cli.Command("new", "scaffold code for your app")
+		cli.Flag("dev", "link to the development version").Short('D').Bool(&in.Dev).Default(versions.Bud == "latest")
+		cli.Flag("module", "module path for go.mod").String(&in.Module).Default("")
+		cli.Arg("dir").String(&c.Dir)
+		cli.Run(func(ctx context.Context) error { return c.Create(ctx, in) })
 
-		{ // $ bud new controller <name> [actions...]
+		{ // $ bud new:controller <name> [actions...]
 			in := &NewController{}
 			cli := cli.Command("controller", "scaffold a new controller")
 			cli.Arg("path").String(&in.Path)
-			cli.Args("actions").Strings(&in.Actions)
+			cli.Args("actions").Optional().Strings(&in.Actions)
 			cli.Run(func(ctx context.Context) error { return c.NewController(ctx, in) })
 		}
 
 	}
 
-	{ // $ bud tool
-		cli := cli.Command("tool", "extra tools")
+	{ // $ bud ds
+		in := &ToolDS{Flag: &framework.Flag{}}
+		cli := cli.Command("bs", "run the bud server").Advanced()
+		cli.Flag("embed", "embed assets").Bool(&in.Flag.Embed).Default(false)
+		cli.Flag("hot", "hot reloading").Bool(&in.Flag.Hot).Default(true)
+		cli.Flag("minify", "minify assets").Bool(&in.Flag.Minify).Default(false)
+		cli.Flag("listen-dev", "dev server address").String(&in.ListenDev).Default(":35729")
+		cli.Run(func(ctx context.Context) error { return c.ToolDS(ctx, in) })
+	}
 
-		{ // $ bud tool ds
-			in := &ToolDS{Flag: &framework.Flag{}}
-			cli := cli.Command("bs", "run the bud server")
+	{ // $ bud di
+		in := &ToolDi{}
+		cli := cli.Command("di", "dependency injection generator").Advanced()
+		cli.Flag("name", "name of the function").String(&in.Name).Default("Load")
+		cli.Flag("dependency", "generate dependency provider").Short('d').Strings(&in.Dependencies)
+		cli.Flag("external", "mark dependency as external").Short('e').Optional().Strings(&in.Externals)
+		cli.Flag("map", "map interface types to concrete types").Short('m').StringMap(&in.Map).Optional()
+		cli.Flag("target", "target import path").Short('t').String(&in.Target)
+		cli.Flag("hoist", "hoist dependencies that depend on externals").Bool(&in.Hoist).Default(false)
+		cli.Flag("verbose", "verbose logging").Short('v').Bool(&in.Verbose).Default(false)
+		cli.Run(func(ctx context.Context) error { return c.ToolDi(ctx, in) })
+	}
+
+	{ // $ bud fs
+		cli := cli.Command("fs", "filesystem tools").Advanced()
+
+		{ // $ bud fs:ls [dir]
+			in := &ToolFsLs{Flag: &framework.Flag{}}
+			cli := cli.Command("ls", "list a directory")
 			cli.Flag("embed", "embed assets").Bool(&in.Flag.Embed).Default(false)
-			cli.Flag("hot", "hot reloading").Bool(&in.Flag.Hot).Default(true)
+			cli.Flag("hot", "hot reloading").Bool(&in.Flag.Hot).Default(false)
 			cli.Flag("minify", "minify assets").Bool(&in.Flag.Minify).Default(false)
-			cli.Flag("listen-dev", "dev server address").String(&in.ListenDev).Default(":35729")
-			cli.Run(func(ctx context.Context) error { return c.ToolDS(ctx, in) })
+			cli.Arg("dir").String(&in.Path).Default(".")
+			cli.Run(func(ctx context.Context) error { return c.ToolFsLs(ctx, in) })
 		}
 
-		{ // $ bud tool di
-			in := &ToolDi{}
-			cli := cli.Command("di", "dependency injection generator")
-			cli.Flag("name", "name of the function").String(&in.Name).Default("Load")
-			cli.Flag("dependency", "generate dependency provider").Short('d').Strings(&in.Dependencies)
-			cli.Flag("external", "mark dependency as external").Short('e').Strings(&in.Externals).Optional()
-			cli.Flag("map", "map interface types to concrete types").Short('m').StringMap(&in.Map).Optional()
-			cli.Flag("target", "target import path").Short('t').String(&in.Target)
-			cli.Flag("hoist", "hoist dependencies that depend on externals").Bool(&in.Hoist).Default(false)
-			cli.Flag("verbose", "verbose logging").Short('v').Bool(&in.Verbose).Default(false)
-			cli.Run(func(ctx context.Context) error { return c.ToolDi(ctx, in) })
+		{ // $ bud fs:cat [path]
+			// TODO: better align with the unix `cat` command
+			in := &ToolFsCat{Flag: &framework.Flag{}}
+			cli := cli.Command("cat", "print a file")
+			cli.Flag("embed", "embed assets").Bool(&in.Flag.Embed).Default(false)
+			cli.Flag("hot", "hot reloading").Bool(&in.Flag.Hot).Default(false)
+			cli.Flag("minify", "minify assets").Bool(&in.Flag.Minify).Default(false)
+			cli.Arg("path").String(&in.Path)
+			cli.Run(func(ctx context.Context) error { return c.ToolFsCat(ctx, in) })
 		}
 
-		{ // $ bud tool fs
-			cli := cli.Command("fs", "filesystem tools")
-
-			{ // $ bud tool fs ls [dir]
-				in := &ToolFsLs{Flag: &framework.Flag{}}
-				cli := cli.Command("ls", "list a directory")
-				cli.Flag("embed", "embed assets").Bool(&in.Flag.Embed).Default(false)
-				cli.Flag("hot", "hot reloading").Bool(&in.Flag.Hot).Default(false)
-				cli.Flag("minify", "minify assets").Bool(&in.Flag.Minify).Default(false)
-				cli.Arg("dir").String(&in.Path).Default(".")
-				cli.Run(func(ctx context.Context) error { return c.ToolFsLs(ctx, in) })
-			}
-
-			{ // $ bud tool fs cat [path]
-				// TODO: better align with the unix `cat` command
-				in := &ToolFsCat{Flag: &framework.Flag{}}
-				cli := cli.Command("cat", "print a file")
-				cli.Flag("embed", "embed assets").Bool(&in.Flag.Embed).Default(false)
-				cli.Flag("hot", "hot reloading").Bool(&in.Flag.Hot).Default(false)
-				cli.Flag("minify", "minify assets").Bool(&in.Flag.Minify).Default(false)
-				cli.Arg("path").String(&in.Path)
-				cli.Run(func(ctx context.Context) error { return c.ToolFsCat(ctx, in) })
-			}
-
-			{ // $ bud tool fs tree [dir]
-				in := &ToolFsTree{Flag: &framework.Flag{}}
-				cli := cli.Command("tree", "list the file tree")
-				cli.Flag("embed", "embed assets").Bool(&in.Flag.Embed).Default(false)
-				cli.Flag("hot", "hot reloading").Bool(&in.Flag.Hot).Default(false)
-				cli.Flag("minify", "minify assets").Bool(&in.Flag.Minify).Default(false)
-				cli.Arg("dir").String(&in.Path).Default(".")
-				cli.Run(func(ctx context.Context) error { return c.ToolFsTree(ctx, in) })
-			}
-
-			{ // $ bud tool fs txtar [dir]
-				in := &ToolFsTxtar{Flag: &framework.Flag{}}
-				cli := cli.Command("txtar", "generate and print a txtar archive to stdout")
-				cli.Arg("dir").String(&in.Path).Default(".")
-				cli.Flag("embed", "embed assets").Bool(&in.Flag.Embed).Default(false)
-				cli.Flag("hot", "hot reloading").Bool(&in.Flag.Hot).Default(false)
-				cli.Flag("minify", "minify assets").Bool(&in.Flag.Minify).Default(false)
-				cli.Run(func(ctx context.Context) error { return c.ToolFsTxtar(ctx, in) })
-			}
+		{ // $ bud fs:tree [dir]
+			in := &ToolFsTree{Flag: &framework.Flag{}}
+			cli := cli.Command("tree", "list the file tree")
+			cli.Flag("embed", "embed assets").Bool(&in.Flag.Embed).Default(false)
+			cli.Flag("hot", "hot reloading").Bool(&in.Flag.Hot).Default(false)
+			cli.Flag("minify", "minify assets").Bool(&in.Flag.Minify).Default(false)
+			cli.Arg("dir").String(&in.Path).Default(".")
+			cli.Run(func(ctx context.Context) error { return c.ToolFsTree(ctx, in) })
 		}
 
-		{ // $ bud tool v8
-			in := &ToolV8{}
-			cli := cli.Command("v8", "execute Javascript with V8 from stdin")
-			cli.Run(func(ctx context.Context) error { return c.ToolV8(ctx, in) })
+		{ // $ bud fs:txtar [dir]
+			in := &ToolFsTxtar{Flag: &framework.Flag{}}
+			cli := cli.Command("txtar", "generate and print a txtar archive to stdout")
+			cli.Arg("dir").String(&in.Path).Default(".")
+			cli.Flag("embed", "embed assets").Bool(&in.Flag.Embed).Default(false)
+			cli.Flag("hot", "hot reloading").Bool(&in.Flag.Hot).Default(false)
+			cli.Flag("minify", "minify assets").Bool(&in.Flag.Minify).Default(false)
+			cli.Run(func(ctx context.Context) error { return c.ToolFsTxtar(ctx, in) })
 		}
+	}
 
-		{ // $ bud tool cache
-			cli := cli.Command("cache", "manage the build cache")
+	{ // $ bud v8
+		in := &ToolV8{}
+		cli := cli.Command("v8", "execute Javascript with V8 from stdin").Advanced()
+		cli.Run(func(ctx context.Context) error { return c.ToolV8(ctx, in) })
+	}
 
-			{ // $ bud tool cache clean
-				in := &ToolCacheClean{}
-				cli := cli.Command("clean", "clear the cache directory")
-				cli.Run(func(ctx context.Context) error { return c.ToolCacheClean(ctx, in) })
-			}
+	{ // $ bud cache
+		cli := cli.Command("cache", "manage the build cache").Advanced()
+
+		{ // $ bud cache clean
+			in := &ToolCacheClean{}
+			cli := cli.Command("clean", "clear the cache directory")
+			cli.Run(func(ctx context.Context) error { return c.ToolCacheClean(ctx, in) })
 		}
 	}
 
@@ -278,7 +279,7 @@ func (c *CLI) Parse(ctx context.Context, args ...string) error {
 		cli.Run(func(ctx context.Context) error { return c.Version(ctx, in) })
 	}
 
-	if err := cli.Parse(ctx, args); err != nil {
+	if err := cli.Parse(ctx, args...); err != nil {
 		if !errors.Is(err, context.Canceled) {
 			return err
 		}

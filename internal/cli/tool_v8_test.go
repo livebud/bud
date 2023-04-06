@@ -18,7 +18,7 @@ func TestToolV8(t *testing.T) {
 	is.NoErr(err)
 	cli := testcli.New(td.Directory())
 	cli.Stdin = bytes.NewBufferString("2+2")
-	result, err := cli.Run(ctx, "tool", "v8")
+	result, err := cli.Run(ctx, "v8")
 	is.NoErr(err)
 	is.Equal(result.Stderr(), "")
 	is.Equal(strings.TrimSpace(result.Stdout()), "4")

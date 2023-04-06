@@ -1,8 +1,8 @@
 package commander
 
 import (
+	"html/template"
 	"os"
-	"text/template"
 )
 
 var reset = color("\033[0m")

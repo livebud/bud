@@ -25,7 +25,7 @@ func main() {
 
 func run(ctx context.Context) error {
 	cmd := new(Command)
-	cli := commander.New("afs")
+	cli := commander.New("afs", "app filesystem for bud")
 	cli.Flag("chdir", "change the working directory").Short('C').String(&cmd.Dir).Default(".")
 	cli.Flag("embed", "embed assets").Bool(&cmd.Flag.Embed).Default(false)
 	cli.Flag("hot", "hot reloading").Bool(&cmd.Flag.Hot).Default(true)
@@ -33,7 +33,7 @@ func run(ctx context.Context) error {
 	cli.Flag("listen", "address to serve from").String(&cmd.Listen).Default(":65000")
 	cli.Flag("log", "filter logs with this pattern").Short('L').String(&cmd.Log).Default("info")
 	cli.Run(cmd.Serve)
-	return cli.Parse(ctx, os.Args[1:])
+	return cli.Parse(ctx, os.Args[1:]...)
 }
 
 type Command struct {

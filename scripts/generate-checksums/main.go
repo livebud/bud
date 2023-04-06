@@ -23,9 +23,9 @@ func main() {
 
 func run() error {
 	cmd := new(Command)
-	cli := commander.New("generate-checksums")
+	cli := commander.New("generate-checksums", "generate checksums")
 	cli.Run(cmd.Run)
-	return cli.Parse(context.Background(), os.Args[1:])
+	return cli.Parse(context.Background(), os.Args...)
 }
 
 type Command struct {
