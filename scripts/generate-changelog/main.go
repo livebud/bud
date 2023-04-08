@@ -29,10 +29,10 @@ func main() {
 
 func run() error {
 	cmd := new(Command)
-	cli := commander.New("generate-changelog")
+	cli := commander.New("generate-changelog", "generates a changelog for the given version")
 	cli.Arg("version").String(&cmd.Version)
 	cli.Run(cmd.Run)
-	return cli.Parse(context.Background(), os.Args[1:])
+	return cli.Parse(context.Background(), os.Args...)
 }
 
 type Command struct {

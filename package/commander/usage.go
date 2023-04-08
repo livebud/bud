@@ -2,67 +2,68 @@ package commander
 
 import (
 	"bytes"
+	_ "embed"
+	"flag"
 	"sort"
 	"strings"
 	"text/tabwriter"
 	"text/template"
 )
 
-func generateUsage(template *template.Template, c *Subcommand) (string, error) {
-	buf := new(bytes.Buffer)
-	if err := template.Execute(buf, &generateCommand{c}); err != nil {
-		return "", err
-	}
-	return buf.String(), nil
+func Usage() error {
+	return flag.ErrHelp
 }
 
-type generateCommand struct {
-	c *Subcommand
+//go:embed usage.gotext
+var usageTemplate string
+
+var defaultUsage = template.Must(template.New("usage").Funcs(colors).Parse(usageTemplate))
+
+type usage struct {
+	cmd  *subcommand
+	root *subcommand
 }
 
-func (g *generateCommand) Name() string {
-	return g.c.name
+func (u *usage) Name() string {
+	return u.root.name
 }
 
-type generateCommands []*generateCommand
-
-func (cmds generateCommands) Usage() (string, error) {
-	buf := new(bytes.Buffer)
-	tw := tabwriter.NewWriter(buf, 0, 0, 2, ' ', 0)
-	for _, cmd := range cmds {
-		tw.Write([]byte("\t\t" + cmd.c.name))
-		if cmd.c.usage != "" {
-			tw.Write([]byte("\t" + dim() + cmd.c.usage + reset()))
+func (u *usage) Usage() string {
+	out := new(strings.Builder)
+	out.WriteString(u.cmd.full)
+	if u.cmd.run == nil && len(u.cmd.commands) > 0 {
+		out.WriteString(dim())
+		if u.cmd.full != "" {
+			out.WriteString(":")
 		}
-		tw.Write([]byte("\n"))
+		out.WriteString("command")
+		out.WriteString(reset())
 	}
-	if err := tw.Flush(); err != nil {
-		return "", err
+	if len(u.cmd.args) > 0 {
+		for i, arg := range u.cmd.args {
+			if i > 0 || u.cmd.full != "" {
+				out.WriteString(" ")
+			}
+			out.WriteString(dim())
+			out.WriteString("<")
+			out.WriteString(arg.name)
+			out.WriteString(">")
+			out.WriteString(reset())
+		}
 	}
-	return strings.TrimSpace(buf.String()), nil
+	return out.String()
 }
 
-func (g *generateCommand) Args() (args []string) {
-	for i, arg := range g.c.args {
-		// TODO: differentiate between required and optional args
-		if i == 0 && len(g.c.commands) > 0 {
-			args = append(args, "<command|"+arg.Name+">")
+func (u *usage) Description() string {
+	return u.cmd.help
+}
+
+func (u *usage) Commands() (commands usageCommands) {
+	for _, cmd := range u.cmd.commands {
+		if cmd.advanced || cmd.hidden {
 			continue
 		}
-		args = append(args, "<"+arg.Name+">")
-	}
-	if len(args) == 0 && len(g.c.commands) > 0 {
-		args = append(args, "[command]")
-	}
-	return args
-}
-
-func (g *generateCommand) Commands() (commands generateCommands) {
-	commands = make(generateCommands, len(g.c.commands))
-	i := 0
-	for _, cmd := range g.c.commands {
-		commands[i] = &generateCommand{cmd}
-		i++
+		commands = append(commands, &usageCommand{cmd})
 	}
 	// Sort by name
 	sort.Slice(commands, func(i, j int) bool {
@@ -71,10 +72,24 @@ func (g *generateCommand) Commands() (commands generateCommands) {
 	return commands
 }
 
-func (g *generateCommand) Flags() (flags generateFlags) {
-	flags = make(generateFlags, len(g.c.flags))
-	for i, flag := range g.c.flags {
-		flags[i] = &generateFlag{flag}
+func (u *usage) Advanced() (commands usageCommands) {
+	for _, cmd := range u.cmd.commands {
+		if !cmd.advanced || cmd.hidden {
+			continue
+		}
+		commands = append(commands, &usageCommand{cmd})
+	}
+	// Sort by name
+	sort.Slice(commands, func(i, j int) bool {
+		return commands[i].c.name < commands[j].c.name
+	})
+	return commands
+}
+
+func (u *usage) Flags() (flags usageFlags) {
+	flags = make(usageFlags, len(u.cmd.flags))
+	for i, flag := range u.cmd.flags {
+		flags[i] = &usageFlag{flag}
 	}
 	// Sort by name
 	sort.Slice(flags, func(i, j int) bool {
@@ -88,21 +103,35 @@ func (g *generateCommand) Flags() (flags generateFlags) {
 	return flags
 }
 
-func hasShort(flag *generateFlag) bool {
-	return flag.f.short != 0
+type usageCommand struct {
+	c *subcommand
 }
 
-type generateFlag struct {
+type usageCommands []*usageCommand
+
+func (cmds usageCommands) Usage() (string, error) {
+	buf := new(bytes.Buffer)
+	tw := tabwriter.NewWriter(buf, 0, 0, 2, ' ', 0)
+	for _, cmd := range cmds {
+		tw.Write([]byte("\t\t" + cmd.c.full))
+		if cmd.c.help != "" {
+			tw.Write([]byte("\t" + dim() + cmd.c.help + reset()))
+		}
+		tw.Write([]byte("\n"))
+	}
+	if err := tw.Flush(); err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(buf.String()), nil
+}
+
+type usageFlag struct {
 	f *Flag
 }
 
-func (g *generateFlag) Name() string {
-	return g.f.name
-}
+type usageFlags []*usageFlag
 
-type generateFlags []*generateFlag
-
-func (flags generateFlags) Usage() (string, error) {
+func (flags usageFlags) Usage() (string, error) {
 	buf := new(bytes.Buffer)
 	tw := tabwriter.NewWriter(buf, 0, 0, 2, ' ', 0)
 	for _, flag := range flags {
@@ -111,9 +140,9 @@ func (flags generateFlags) Usage() (string, error) {
 			tw.Write([]byte("-" + string(flag.f.short) + ", "))
 		}
 		tw.Write([]byte("--" + flag.f.name))
-		if flag.f.usage != "" {
+		if flag.f.help != "" {
 			tw.Write([]byte("\t"))
-			tw.Write([]byte(dim() + flag.f.usage + reset()))
+			tw.Write([]byte(dim() + flag.f.help + reset()))
 		}
 		tw.Write([]byte("\n"))
 	}
@@ -121,4 +150,8 @@ func (flags generateFlags) Usage() (string, error) {
 		return "", err
 	}
 	return strings.TrimSpace(buf.String()), nil
+}
+
+func hasShort(flag *usageFlag) bool {
+	return flag.f.short != 0
 }

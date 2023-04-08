@@ -23,11 +23,11 @@ func main() {
 
 func run() error {
 	cmd := new(Command)
-	cli := commander.New("test-cache-diff")
+	cli := commander.New("test-cache-diff", "test cache diffing")
 	cli.Arg("left").String(&cmd.Left)
 	cli.Arg("right").String(&cmd.Right)
 	cli.Run(cmd.Run)
-	return cli.Parse(context.Background(), os.Args[1:])
+	return cli.Parse(context.Background(), os.Args...)
 }
 
 type Command struct {
@@ -60,7 +60,7 @@ func (c *Command) Run(ctx context.Context) error {
 			continue
 		}
 	}
-	for path, _ := range rightMap {
+	for path := range rightMap {
 		_, ok := leftMap[path]
 		if !ok {
 			fmt.Println(c.Left, "missing", path)

@@ -55,11 +55,10 @@ func TestChdirHelp(t *testing.T) {
 	result, err := cli.Run(ctx, "--chdir", td.Directory(), "--help")
 	is.NoErr(err)
 	is.Equal(result.Stderr(), "")
-	is.In(result.Stdout(), "  bud")
+	is.In(result.Stdout(), "$ bud")
 	is.In(result.Stdout(), "  build")
 	is.In(result.Stdout(), "  run")
 	is.In(result.Stdout(), "  new")
-	is.In(result.Stdout(), "  tool")
 	is.In(result.Stdout(), "  version")
 	is.NoErr(td.NotExists("bud/app"))
 }
@@ -80,7 +79,6 @@ func TestOutsideModule(t *testing.T) {
 	is.In(result.Stdout(), "  build")
 	is.In(result.Stdout(), "  run")
 	is.In(result.Stdout(), "  new")
-	is.In(result.Stdout(), "  tool")
 	is.In(result.Stdout(), "  version")
 	is.NoErr(td.NotExists(
 		"bud/cmd/app",
@@ -104,7 +102,6 @@ func TestOutsideModuleHelp(t *testing.T) {
 	is.In(result.Stdout(), "  build")
 	is.In(result.Stdout(), "  run")
 	is.In(result.Stdout(), "  new")
-	is.In(result.Stdout(), "  tool")
 	is.In(result.Stdout(), "  version")
 	is.NoErr(td.NotExists(
 		"bud/cmd/app",

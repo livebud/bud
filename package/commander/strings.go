@@ -6,16 +6,13 @@ import (
 )
 
 type Strings struct {
-	target *[]string
-	defval *[]string // default value
+	target   *[]string
+	defval   *[]string // default value
+	optional bool
 }
 
 func (v *Strings) Default(values ...string) {
 	v.defval = &values
-}
-
-func (v *Strings) Optional() {
-	v.defval = new([]string)
 }
 
 type stringsValue struct {
@@ -28,6 +25,8 @@ func (v *stringsValue) verify(displayName string) error {
 		return nil
 	} else if v.inner.defval != nil {
 		*v.inner.target = *v.inner.defval
+		return nil
+	} else if v.inner.optional {
 		return nil
 	}
 	return fmt.Errorf("missing %s", displayName)

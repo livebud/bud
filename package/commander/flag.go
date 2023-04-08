@@ -2,14 +2,18 @@ package commander
 
 type Flag struct {
 	name  string
-	usage string
-	value value
+	help  string
 	short byte
+	value value
 }
 
 func (f *Flag) Short(short byte) *Flag {
 	f.short = short
 	return f
+}
+
+func (f *Flag) Optional() *OptionalFlag {
+	return &OptionalFlag{f}
 }
 
 func (f *Flag) Int(target *int) *Int {
@@ -53,6 +57,35 @@ func (f *Flag) Custom(fn func(string) error) *Custom {
 
 func (f *Flag) verify(name string) error {
 	return f.value.verify("--" + name)
+}
+
+type OptionalFlag struct {
+	f *Flag
+}
+
+func (f *OptionalFlag) String(target **string) *OptionalString {
+	value := &OptionalString{target: target}
+	f.f.value = &optionalStringValue{inner: value}
+	return value
+}
+
+func (f *OptionalFlag) Int(target **int) *OptionalInt {
+	value := &OptionalInt{target: target}
+	f.f.value = &optionalIntValue{inner: value}
+	return value
+}
+
+func (f *OptionalFlag) Bool(target **bool) *OptionalBool {
+	value := &OptionalBool{target: target}
+	f.f.value = &optionalBoolValue{inner: value}
+	return value
+}
+
+func (f *OptionalFlag) Strings(target *[]string) *Strings {
+	*target = []string{}
+	value := &Strings{target: target, optional: true}
+	f.f.value = &stringsValue{inner: value}
+	return value
 }
 
 func verifyFlags(flags []*Flag) error {

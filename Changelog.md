@@ -6,6 +6,19 @@ Get the latest release of Bud by running the following in your terminal:
 curl -sf https://raw.githubusercontent.com/livebud/bud/main/install.sh | sh
 ```
 
+## Unreleased
+
+- Changed the CLI to use colon-based commands instead of space-based commands.
+
+  This is similar to how the Heroku CLI behaves. This has two advantages:
+
+  1. Clearer difference between args and commands.
+  2. Allows flags and args after the command to be in any order.
+
+- **Breaking:** As a result of the CLI change, `bud new controller` is now `bud new:controller`
+- **Breaking:** The `tool` subcommand has been dropped. For example, `bud tool fs cat` is now `bud fs:cat`.
+- **Deprecated:** `bud create <dir>` is now deprecated. Use `bud new <dir>` when you want to scaffold a new Bud project.
+
 ## v0.2.8
 
 - Added beta support for `generator/` and `transpiler/` generators. Docs coming in a later release, but you can look at the tests for example usage if you're feeling adventurous.
