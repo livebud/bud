@@ -1,0 +1,37 @@
+{{/* dom_entry.gotext is the entrypoint for hydrating a page */}}
+
+{{- range $import := $.Imports }}
+import {{ $import.Name }} from "/view/index.svelte.js"
+{{- end }}
+
+import { mount } from "svelte_dom_runtime";
+{{- if $.Hot }}
+import Hot from "livebud/runtime/hot"
+{{- end }}
+
+const components = {
+	"{{ $.Page.Key }}": {{ $.Page.Component }},
+	{{- range $i, $frame := $.Page.Frames }}
+	"{{ $frame.Key }}": {{ $frame.Component }},
+	{{- end }}
+	{{- if $.Page.Error }}
+	"{{ $.Page.Error.Key }}": {{ $.Page.Error.Component }},
+	{{- end }}
+}
+
+mount({
+	key: "{{ $.Page.Key }}",
+	frames: [
+	{{- range $i, $frame := $.Page.Frames }}
+		"{{ $frame.Key }}",
+	{{- end }}
+	],
+	{{- if $.Page.Error }}
+	error: "{{ $.Page.Error.Key }}",
+	{{- end }}
+	components: components,
+	client: "{{ $.Page.Client }}",
+	{{- if $.Hot }}
+	hot: new Hot("http://127.0.0.1:35729/bud/hot/{{$.Page.Key}}", components),
+	{{- end }}
+})

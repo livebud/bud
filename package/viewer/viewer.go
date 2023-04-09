@@ -37,7 +37,7 @@ type View struct {
 // Client is the standard route for specific views. This is typically used for
 // hot reloading individual views.
 func (v *View) Client() string {
-	return "/bud/" + path.Clean(v.Path) + ".js"
+	return "/view/" + path.Clean(v.Path) + ".js"
 }
 
 type Page struct {
@@ -49,7 +49,7 @@ type Page struct {
 
 // Client is the standard entry route for pages that need a client
 func (p *Page) Client() string {
-	return "/bud/" + path.Clean(p.View.Path) + ".entry.js"
+	return "/view/" + path.Clean(p.View.Path) + ".entry.js"
 }
 
 type Embed = virtual.File
@@ -58,7 +58,7 @@ type Pages map[Key]*Page
 
 type Viewer interface {
 	Mount(r *router.Router) error
-	Render(ctx context.Context, key Key, propMap PropMap) ([]byte, error)
-	RenderError(ctx context.Context, key Key, propMap PropMap, err error) []byte
+	Render(ctx context.Context, key string, propMap PropMap) ([]byte, error)
+	RenderError(ctx context.Context, key string, propMap PropMap, err error) []byte
 	Bundle(ctx context.Context, embed virtual.Tree) error
 }

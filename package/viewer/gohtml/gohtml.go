@@ -14,27 +14,18 @@ import (
 	"github.com/livebud/bud/runtime/transpiler"
 )
 
-// TODO: may want a viewer.FS that is a wrapper around a fs.Sub(module, "view")
-func Load(finder viewer.Finder, fsys viewer.FS, log log.Log, tr transpiler.Interface) (*Viewer, error) {
-	pages, err := finder.Find(".")
-	if err != nil {
-		return nil, err
-	}
-	return &Viewer{pages, fsys, log, tr}, nil
+func New(fsys viewer.FS, log log.Log, pages viewer.Pages, tr transpiler.Interface) *Viewer {
+	return &Viewer{fsys, log, pages, tr}
 }
 
 type Viewer struct {
-	pages viewer.Pages
 	fsys  viewer.FS
 	log   log.Log
+	pages viewer.Pages
 	tr    transpiler.Interface
 }
 
 var _ viewer.Viewer = (*Viewer)(nil)
-
-// func (v *Viewer) Register(r *router.Router, pages []*viewer.Page) {
-
-// }
 
 func (v *Viewer) Mount(r *router.Router) error {
 	return nil
@@ -44,12 +35,12 @@ func (v *Viewer) parseTemplate(templatePath string) (*template.Template, error) 
 	// TODO: decide if we want to scope to the view path or module path
 	code, err := fs.ReadFile(v.fsys, templatePath)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse template %q. %w", templatePath, err)
+		return nil, fmt.Errorf("gohtml: unable to parse template %q. %w", templatePath, err)
 	}
 	// TODO: don't transpile when embedded
 	code, err = v.tr.Transpile(templatePath, ".gohtml", code)
 	if err != nil {
-		return nil, fmt.Errorf("gohtml unable to transpile %s: %w", templatePath, err)
+		return nil, fmt.Errorf("gohtml: unable to transpile %s: %w", templatePath, err)
 	}
 	tpl, err := template.New(templatePath).Parse(string(code))
 	if err != nil {
@@ -78,9 +69,9 @@ func render(ctx context.Context, tpl *template.Template, props interface{}) ([]b
 func (v *Viewer) Render(ctx context.Context, key string, propMap viewer.PropMap) ([]byte, error) {
 	page, ok := v.pages[key]
 	if !ok {
-		return nil, fmt.Errorf("gohtml unable to find page from key %q", key)
+		return nil, fmt.Errorf("gohtml: unable to find page from key %q", key)
 	}
-	v.log.Info("rendering gohtml", page.Path)
+	v.log.Info("gohtml: rendering", page.Path)
 	html, err := v.render(ctx, page.Path, propMap[page.Key])
 	if err != nil {
 		return nil, err
@@ -105,27 +96,27 @@ func (v *Viewer) Render(ctx context.Context, key string, propMap viewer.PropMap)
 func (v *Viewer) RenderError(ctx context.Context, key string, propMap viewer.PropMap, originalError error) []byte {
 	page, ok := v.pages[key]
 	if !ok {
-		return []byte(fmt.Sprintf("unable to find page from key %q to render error %s", key, originalError))
+		return []byte(fmt.Sprintf("gohtml: unable to find page from key %q to render error %s", key, originalError))
 	}
-	v.log.Info("rendering gohtml", page.Error.Path)
+	v.log.Info("gohtml: rendering error", page.Error.Path)
 	errorEntry, err := v.parseTemplate(page.Error.Path)
 	if err != nil {
-		return []byte(fmt.Sprintf("unable to read error template %q to render error %s. %s", page.Error.Path, err, originalError))
+		return []byte(fmt.Sprintf("gohtml: unable to read error template %q to render error %s. %s", page.Error.Path, err, originalError))
 	}
 	layout, err := v.parseTemplate(page.Layout.Path)
 	if err != nil {
-		return []byte(fmt.Sprintf("unable to parse layout template %q to render error %s. %s", page.Error.Path, err, originalError))
+		return []byte(fmt.Sprintf("gohtml: unable to parse layout template %q to render error %s. %s", page.Error.Path, err, originalError))
 	}
 	state := errorState{
 		Message: originalError.Error(),
 	}
 	html, err := render(ctx, errorEntry, state)
 	if err != nil {
-		return []byte(fmt.Sprintf("unable to render error template %q to render error %s. %s", page.Error.Path, err, originalError))
+		return []byte(fmt.Sprintf("gohtml: unable to render error template %q to render error %s. %s", page.Error.Path, err, originalError))
 	}
 	html, err = render(ctx, layout, template.HTML(html))
 	if err != nil {
-		return []byte(fmt.Sprintf("unable to render layout template %q to render error %s. %s", page.Error.Path, err, originalError))
+		return []byte(fmt.Sprintf("gohtml: unable to render layout template %q to render error %s. %s", page.Error.Path, err, originalError))
 	}
 	return html
 }

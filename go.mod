@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
+	github.com/RyanCarrier/dijkstra v1.1.0
 	github.com/ajg/form v1.5.2-0.20200323032839-9aeb3cf462e1
 	github.com/aybabtme/rgbterm v0.0.0-20170906152045-cc83f3b3ce59
 	github.com/bep/debounce v1.2.1
@@ -18,6 +19,7 @@ require (
 	github.com/keegancsmith/rpc v1.3.0
 	github.com/lithammer/dedent v1.1.0
 	github.com/livebud/bud-test-plugin v0.0.9
+	github.com/livebud/js v0.0.0-20221112072017-b9e63b92aad5
 	github.com/livebud/transpiler v0.0.3
 	github.com/matthewmueller/diff v0.0.0-20220104030700-cb2fe910d90c
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac
@@ -39,9 +41,11 @@ require (
 
 require (
 	github.com/BurntSushi/toml v0.4.1 // indirect
-	github.com/RyanCarrier/dijkstra v1.1.0 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
+	github.com/dlclark/regexp2 v1.7.0 // indirect
+	github.com/dop251/goja v0.0.0-20220730095050-d11430fb5f72 // indirect
 	github.com/gedex/inflector v0.0.0-20170307190818-16278e9db813 // indirect
+	github.com/go-sourcemap/sourcemap v2.1.3+incompatible // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
@@ -54,6 +58,7 @@ require (
 	golang.org/x/exp/typeparams v0.0.0-20220218215828-6cf2b201936e // indirect
 	golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f // indirect
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
+	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	mvdan.cc/gofumpt v0.2.0 // indirect
 )
