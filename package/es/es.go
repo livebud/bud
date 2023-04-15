@@ -11,16 +11,24 @@ import (
 	"github.com/livebud/bud/package/log"
 )
 
-func New(flag *framework.Flag, log log.Log, module *gomod.Module) *Builder {
-	return &Builder{flag, module}
+type Builder interface {
+	Serve(serve *Serve) (*File, error)
+	Bundle(bundle *Bundle) ([]File, error)
 }
 
-type Builder struct {
+func New(flag *framework.Flag, log log.Log, module *gomod.Module) Builder {
+	return &builder{flag, module}
+}
+
+type builder struct {
 	flag   *framework.Flag
 	module *gomod.Module
 }
 
+var _ Builder = (*builder)(nil)
+
 type File = esbuild.OutputFile
+type Plugin = esbuild.Plugin
 
 type Platform uint8
 
@@ -35,7 +43,7 @@ type Serve struct {
 	Platform Platform
 }
 
-func (b *Builder) serveOptions(serve *Serve) esbuild.BuildOptions {
+func (b *builder) serveOptions(serve *Serve) esbuild.BuildOptions {
 	switch serve.Platform {
 	case DOM:
 		return b.dom([]string{serve.Entry}, serve.Plugins)
@@ -46,7 +54,7 @@ func (b *Builder) serveOptions(serve *Serve) esbuild.BuildOptions {
 
 var ErrNotRelative = fmt.Errorf("es: entry must be relative")
 
-func (b *Builder) Serve(serve *Serve) (*File, error) {
+func (b *builder) Serve(serve *Serve) (*File, error) {
 	if !isRelativeEntry(serve.Entry) {
 		return nil, fmt.Errorf("%w %q", ErrNotRelative, serve.Entry)
 	}
@@ -75,7 +83,7 @@ type Bundle struct {
 	Platform Platform
 }
 
-func (b *Builder) bundleOptions(bundle *Bundle) esbuild.BuildOptions {
+func (b *builder) bundleOptions(bundle *Bundle) esbuild.BuildOptions {
 	switch bundle.Platform {
 	case DOM:
 		return b.dom(bundle.Entries, bundle.Plugins)
@@ -84,7 +92,7 @@ func (b *Builder) bundleOptions(bundle *Bundle) esbuild.BuildOptions {
 	}
 }
 
-func (b *Builder) Bundle(bundle *Bundle) ([]File, error) {
+func (b *builder) Bundle(bundle *Bundle) ([]File, error) {
 	for _, entry := range bundle.Entries {
 		if !isRelativeEntry(entry) {
 			return nil, fmt.Errorf("%w %q", ErrNotRelative, entry)
@@ -108,7 +116,7 @@ const outDir = "./"
 const globalName = "bud"
 
 // SSR creates a server-rendered preset
-func (b *Builder) ssr(entries []string, plugins []esbuild.Plugin) esbuild.BuildOptions {
+func (b *builder) ssr(entries []string, plugins []esbuild.Plugin) esbuild.BuildOptions {
 	options := esbuild.BuildOptions{
 		EntryPoints:   entries,
 		Plugins:       plugins,
@@ -129,7 +137,7 @@ func (b *Builder) ssr(entries []string, plugins []esbuild.Plugin) esbuild.BuildO
 }
 
 // DOM creates a dom-rendered preset
-func (b *Builder) dom(entries []string, plugins []esbuild.Plugin) esbuild.BuildOptions {
+func (b *builder) dom(entries []string, plugins []esbuild.Plugin) esbuild.BuildOptions {
 	options := esbuild.BuildOptions{
 		EntryPoints:   entries,
 		Plugins:       plugins,

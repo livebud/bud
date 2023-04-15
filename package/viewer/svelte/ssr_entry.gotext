@@ -1,0 +1,38 @@
+{{/* ssr_entry.gotext is the entrypoint for server-pages */}}
+
+{{- range $import := $.Imports }}
+import {{ $import.Name }} from "./{{ $import.Path }}"
+{{- end }}
+
+import { Page } from "svelte_ssr_runtime";
+
+const page = new Page({
+	key: "{{ $.Page.Key }}",
+	Component: {{ $.Page.Component }},
+	client: "{{ $.Page.Client }}",
+	{{- if $.Page.Layout }}
+	layout: {
+		key: "{{ $.Page.Layout.Key }}",
+		Component: {{ $.Page.Layout.Component }},
+	},
+	{{- end }}
+	frames: [
+	{{- range $i, $frame := $.Page.Frames }}
+		{
+			key: "{{ $frame.Key }}",
+			Component: {{ $frame.Component }},
+		},
+	{{- end }}
+	],
+	{{- if $.Page.Error }}
+	error: {
+		key: "{{ $.Page.Error.Key }}",
+		Component: {{ $.Page.Error.Component }},
+	},
+	{{- end }}
+})
+
+// Render the page
+export function render(props) {
+	return page.render(props)
+};
