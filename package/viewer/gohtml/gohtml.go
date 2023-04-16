@@ -96,33 +96,48 @@ func (v *Viewer) Render(ctx context.Context, key string, propMap viewer.PropMap)
 func (v *Viewer) RenderError(ctx context.Context, key string, propMap viewer.PropMap, originalError error) []byte {
 	page, ok := v.pages[key]
 	if !ok {
-		return []byte(fmt.Sprintf("gohtml: unable to find page from key %q to render error %s", key, originalError))
+		return []byte(fmt.Sprintf("gohtml: unable to find page from key %q to render error. %s", key, originalError))
 	}
-	v.log.Info("gohtml: rendering error", page.Error.Path)
-	errorEntry, err := v.parseTemplate(page.Error.Path)
+	if page.Error == nil {
+		return []byte(fmt.Sprintf("gohtml: page %q has no error page to render error. %s", key, originalError))
+	}
+	errorPage, ok := v.pages[page.Error.Key]
+	if !ok {
+		return []byte(fmt.Sprintf("gohtml: unable to find error page from key %q to render error. %s", page.Error.Key, originalError))
+	}
+	v.log.Info("gohtml: rendering error", errorPage.Path)
+	errorEntry, err := v.parseTemplate(errorPage.Path)
 	if err != nil {
-		return []byte(fmt.Sprintf("gohtml: unable to read error template %q to render error %s. %s", page.Error.Path, err, originalError))
+		return []byte(fmt.Sprintf("gohtml: unable to read error template %q to render error %s. %s", errorPage.Path, err, originalError))
 	}
-	layout, err := v.parseTemplate(page.Layout.Path)
+	frames := make([]*template.Template, len(errorPage.Frames))
+	for i, frame := range errorPage.Frames {
+		frameEntry, err := v.parseTemplate(frame.Path)
+		if err != nil {
+			return []byte(fmt.Sprintf("gohtml: unable to read frame template %q to render error %s. %s", frame.Path, err, originalError))
+		}
+		frames[i] = frameEntry
+	}
+	layout, err := v.parseTemplate(errorPage.Layout.Path)
 	if err != nil {
-		return []byte(fmt.Sprintf("gohtml: unable to parse layout template %q to render error %s. %s", page.Error.Path, err, originalError))
+		return []byte(fmt.Sprintf("gohtml: unable to parse layout template %q to render error %s. %s", errorPage.Path, err, originalError))
 	}
-	state := errorState{
-		Message: originalError.Error(),
-	}
-	html, err := render(ctx, errorEntry, state)
+	html, err := render(ctx, errorEntry, viewer.Error(originalError))
 	if err != nil {
-		return []byte(fmt.Sprintf("gohtml: unable to render error template %q to render error %s. %s", page.Error.Path, err, originalError))
+		return []byte(fmt.Sprintf("gohtml: unable to render error template %q to render error %s. %s", errorPage.Path, err, originalError))
+	}
+	for i, frame := range errorPage.Frames {
+		// TODO: support other props
+		html, err = render(ctx, frames[i], template.HTML(html))
+		if err != nil {
+			return []byte(fmt.Sprintf("gohtml: unable to render frame template %q to render error %s. %s", frame.Path, err, originalError))
+		}
 	}
 	html, err = render(ctx, layout, template.HTML(html))
 	if err != nil {
-		return []byte(fmt.Sprintf("gohtml: unable to render layout template %q to render error %s. %s", page.Error.Path, err, originalError))
+		return []byte(fmt.Sprintf("gohtml: unable to render layout template %q to render error %s. %s", errorPage.Path, err, originalError))
 	}
 	return html
-}
-
-type errorState struct {
-	Message string
 }
 
 func (v *Viewer) Bundle(ctx context.Context, fs virtual.Tree) (err error) {
@@ -160,14 +175,14 @@ func (v *Viewer) Bundle(ctx context.Context, fs virtual.Tree) (err error) {
 
 		// Embed the error
 		if page.Error != nil {
-			if _, ok := fs[page.Error.Path]; ok {
+			if _, ok := fs[page.Path]; ok {
 				continue
 			}
-			errorEmbed, err := v.embedView(page.Error.Path)
+			errorEmbed, err := v.embedView(page.Path)
 			if err != nil {
 				return err
 			}
-			fs[page.Error.Path] = errorEmbed
+			fs[page.Path] = errorEmbed
 		}
 	}
 	return nil

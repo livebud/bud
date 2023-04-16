@@ -11,7 +11,6 @@ type Page = {
   components: {
     [key: string]: typeof SvelteComponentTyped
   }
-  client: string
   hot?: Hot
 }
 

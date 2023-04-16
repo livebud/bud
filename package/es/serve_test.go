@@ -9,7 +9,6 @@ import (
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/es"
-	"github.com/livebud/bud/package/gomod"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/testdir"
@@ -48,10 +47,9 @@ func TestServeSSR(t *testing.T) {
 	`
 	is.NoErr(td.Write(ctx))
 	flag := &framework.Flag{}
-	module, err := gomod.Find(td.Directory())
-	is.NoErr(err)
-	esb := es.New(flag, log, module)
+	esb := es.New(flag, log)
 	file, err := esb.Serve(&es.Serve{
+		AbsDir:   td.Directory(),
 		Entry:    "./view/index.jsx",
 		Platform: es.SSR,
 	})
@@ -97,12 +95,14 @@ func TestServeDOM(t *testing.T) {
 	`
 	is.NoErr(td.Write(ctx))
 	flag := &framework.Flag{}
-	module, err := gomod.Find(td.Directory())
-	is.NoErr(err)
-	esb := es.New(flag, log, module)
+	esb := es.New(flag, log)
 	file, err := esb.Serve(&es.Serve{
+		AbsDir:   td.Directory(),
 		Entry:    "./view/index.jsx",
 		Platform: es.DOM,
+		Plugins: []es.Plugin{
+			es.ExternalNodeModules("/node_modules"),
+		},
 	})
 	is.NoErr(err)
 	code := string(file.Contents)
@@ -128,10 +128,9 @@ func TestServeModuleDOM(t *testing.T) {
 	`
 	is.NoErr(td.Write(ctx))
 	flag := &framework.Flag{}
-	module, err := gomod.Find(td.Directory())
-	is.NoErr(err)
-	esb := es.New(flag, log, module)
+	esb := es.New(flag, log)
 	file, err := esb.Serve(&es.Serve{
+		AbsDir:   td.Directory(),
 		Entry:    "react",
 		Platform: es.DOM,
 	})
@@ -155,10 +154,9 @@ func TestServeRelModuleDOM(t *testing.T) {
 	`
 	is.NoErr(td.Write(ctx))
 	flag := &framework.Flag{}
-	module, err := gomod.Find(td.Directory())
-	is.NoErr(err)
-	esb := es.New(flag, log, module)
+	esb := es.New(flag, log)
 	file, err := esb.Serve(&es.Serve{
+		AbsDir:   td.Directory(),
 		Entry:    "./node_modules/react",
 		Platform: es.DOM,
 	})
@@ -184,10 +182,9 @@ func TestServeRelModuleSubpathDOM(t *testing.T) {
 	`
 	is.NoErr(td.Write(ctx))
 	flag := &framework.Flag{}
-	module, err := gomod.Find(td.Directory())
-	is.NoErr(err)
-	esb := es.New(flag, log, module)
+	esb := es.New(flag, log)
 	file, err := esb.Serve(&es.Serve{
+		AbsDir:   td.Directory(),
 		Entry:    "./node_modules/react/client",
 		Platform: es.DOM,
 	})
@@ -213,10 +210,9 @@ func TestServeScopedModuleDOM(t *testing.T) {
 	`
 	is.NoErr(td.Write(ctx))
 	flag := &framework.Flag{}
-	module, err := gomod.Find(td.Directory())
-	is.NoErr(err)
-	esb := es.New(flag, log, module)
+	esb := es.New(flag, log)
 	file, err := esb.Serve(&es.Serve{
+		AbsDir:   td.Directory(),
 		Entry:    "@pkg/slugify",
 		Platform: es.DOM,
 	})
@@ -244,10 +240,9 @@ func TestServeRelScopedModuleSubpathDOM(t *testing.T) {
 	`
 	is.NoErr(td.Write(ctx))
 	flag := &framework.Flag{}
-	module, err := gomod.Find(td.Directory())
-	is.NoErr(err)
-	esb := es.New(flag, log, module)
+	esb := es.New(flag, log)
 	file, err := esb.Serve(&es.Serve{
+		AbsDir:   td.Directory(),
 		Entry:    "./node_modules/@pkg/slugify/client",
 		Platform: es.DOM,
 	})
@@ -258,7 +253,6 @@ func TestServeRelScopedModuleSubpathDOM(t *testing.T) {
 	is.In(code, "export {\n  slugify as default\n};")
 }
 
-// TODO: Test serve DOM node_module entry (e.g. "./node_modules/react")
 // TODO: test resolving different relative path extensions (e.g. ./Header.svelte)
 // TODO: test resolving different node_modules path extensions (e.g. "./node_modules/@ui/Grid.svelte")
 // TODO: test dependencies of dependencies

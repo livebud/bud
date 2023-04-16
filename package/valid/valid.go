@@ -37,17 +37,22 @@ func PluginDir(name string) bool {
 		strings.ToLower(name) != name // Has uppercase letters
 }
 
-// ViewEntry validates that name matches a valid view entrypoint
-func ViewEntry(name string) bool {
-	return !invalidViewEntry(name)
+// View validates that name matches a valid view
+func View(name string) bool {
+	return !invalidView(name)
 }
 
-// Invalid view entry check
-func invalidViewEntry(name string) bool {
+// Invalid view check
+func invalidView(name string) bool {
+	ext := path.Ext(name)
 	return len(name) == 0 || // Empty string
 		name[0] == '_' || // Starts with _
 		name[0] == '.' || // Starts with .
 		name == "bud" || // Named bud (reserved)
+		ext == "" || // No extension
+		ext == ".go" || // Go files
+		name == "go.sum" || name == "go.mod" || // Go mod files
+		name == "package.json" || // Node package file
 		unicode.IsUpper(firstRune(name)) // Starts with a capital letter
 }
 

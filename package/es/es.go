@@ -1,13 +1,12 @@
 package es
 
 import (
+	"encoding/json"
 	"fmt"
-	"path"
 	"strings"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log"
 )
 
@@ -16,13 +15,13 @@ type Builder interface {
 	Bundle(bundle *Bundle) ([]File, error)
 }
 
-func New(flag *framework.Flag, log log.Log, module *gomod.Module) Builder {
-	return &builder{flag, module}
+func New(flag *framework.Flag, log log.Log) Builder {
+	return &builder{flag, log}
 }
 
 type builder struct {
-	flag   *framework.Flag
-	module *gomod.Module
+	flag *framework.Flag
+	log  log.Log
 }
 
 var _ Builder = (*builder)(nil)
@@ -38,6 +37,7 @@ const (
 )
 
 type Serve struct {
+	AbsDir   string
 	Entry    string
 	Plugins  []esbuild.Plugin
 	Platform Platform
@@ -46,9 +46,9 @@ type Serve struct {
 func (b *builder) serveOptions(serve *Serve) esbuild.BuildOptions {
 	switch serve.Platform {
 	case DOM:
-		return b.dom([]string{serve.Entry}, serve.Plugins)
+		return b.dom(serve.AbsDir, []string{serve.Entry}, serve.Plugins)
 	default:
-		return b.ssr([]string{serve.Entry}, serve.Plugins)
+		return b.ssr(serve.AbsDir, []string{serve.Entry}, serve.Plugins)
 	}
 }
 
@@ -58,17 +58,10 @@ func (b *builder) Serve(serve *Serve) (*File, error) {
 	if !isRelativeEntry(serve.Entry) {
 		return nil, fmt.Errorf("%w %q", ErrNotRelative, serve.Entry)
 	}
-	// Externalize dependencies in development on non-dependency entries
-	if serve.Platform == DOM && !b.flag.Embed && !isNodeModuleEntry(serve.Entry) {
-		serve.Plugins = append(serve.Plugins, domExternalize())
-	}
 	result := esbuild.Build(b.serveOptions(serve))
 	// Check if there were errors
 	if result.Errors != nil {
-		errors := esbuild.FormatMessages(result.Errors, esbuild.FormatMessagesOptions{
-			Kind: esbuild.ErrorMessage,
-		})
-		return nil, fmt.Errorf("es: %s", strings.Join(errors, "\n"))
+		return nil, &Error{result.Errors}
 	} else if len(result.OutputFiles) == 0 {
 		return nil, fmt.Errorf("es: no output files")
 	}
@@ -78,6 +71,7 @@ func (b *builder) Serve(serve *Serve) (*File, error) {
 }
 
 type Bundle struct {
+	AbsDir   string
 	Entries  []string
 	Plugins  []esbuild.Plugin
 	Platform Platform
@@ -86,9 +80,9 @@ type Bundle struct {
 func (b *builder) bundleOptions(bundle *Bundle) esbuild.BuildOptions {
 	switch bundle.Platform {
 	case DOM:
-		return b.dom(bundle.Entries, bundle.Plugins)
+		return b.dom(bundle.AbsDir, bundle.Entries, bundle.Plugins)
 	default:
-		return b.ssr(bundle.Entries, bundle.Plugins)
+		return b.ssr(bundle.AbsDir, bundle.Entries, bundle.Plugins)
 	}
 }
 
@@ -101,10 +95,7 @@ func (b *builder) Bundle(bundle *Bundle) ([]File, error) {
 	result := esbuild.Build(b.bundleOptions(bundle))
 	// Check if there were errors
 	if result.Errors != nil {
-		errors := esbuild.FormatMessages(result.Errors, esbuild.FormatMessagesOptions{
-			Kind: esbuild.ErrorMessage,
-		})
-		return nil, fmt.Errorf("es: %s", strings.Join(errors, "\n"))
+		return nil, &Error{result.Errors}
 	} else if len(result.OutputFiles) == 0 {
 		return nil, fmt.Errorf("es: no output files")
 	}
@@ -116,11 +107,11 @@ const outDir = "./"
 const globalName = "bud"
 
 // SSR creates a server-rendered preset
-func (b *builder) ssr(entries []string, plugins []esbuild.Plugin) esbuild.BuildOptions {
+func (b *builder) ssr(absDir string, entries []string, plugins []esbuild.Plugin) esbuild.BuildOptions {
 	options := esbuild.BuildOptions{
 		EntryPoints:   entries,
 		Plugins:       plugins,
-		AbsWorkingDir: b.module.Directory(),
+		AbsWorkingDir: absDir,
 		Outdir:        outDir,
 		Format:        esbuild.FormatIIFE,
 		Platform:      esbuild.PlatformNeutral,
@@ -137,11 +128,11 @@ func (b *builder) ssr(entries []string, plugins []esbuild.Plugin) esbuild.BuildO
 }
 
 // DOM creates a dom-rendered preset
-func (b *builder) dom(entries []string, plugins []esbuild.Plugin) esbuild.BuildOptions {
+func (b *builder) dom(absDir string, entries []string, plugins []esbuild.Plugin) esbuild.BuildOptions {
 	options := esbuild.BuildOptions{
 		EntryPoints:   entries,
 		Plugins:       plugins,
-		AbsWorkingDir: b.module.Directory(),
+		AbsWorkingDir: absDir,
 		Outdir:        outDir,
 		Format:        esbuild.FormatESModule,
 		Platform:      esbuild.PlatformBrowser,
@@ -163,44 +154,36 @@ func (b *builder) dom(entries []string, plugins []esbuild.Plugin) esbuild.BuildO
 	return options
 }
 
-func domExternalize() esbuild.Plugin {
-	return esbuild.Plugin{
-		Name: "dom_external_modules",
-		Setup: func(epb esbuild.PluginBuild) {
-			epb.OnResolve(esbuild.OnResolveOptions{Filter: ".*"}, func(args esbuild.OnResolveArgs) (result esbuild.OnResolveResult, err error) {
-				// Externalize node modules
-				if args.Importer != "" && isNodeModule(args.Path) {
-					result.Path = "/" + path.Join("node_modules", args.Path)
-					result.External = true
-					return result, nil
-				}
-				// Don't externalize the entry file or any local files
-				return result, nil
-			})
-		},
-	}
-}
-
-func isNodeModuleEntry(importPath string) bool {
-	importPath = path.Clean(importPath)
-	if len(importPath) == 0 {
-		return false
-	}
-	if importPath[0] == '/' {
-		return strings.HasPrefix(importPath, "/node_modules/")
-	}
-	return strings.HasPrefix(importPath, "node_modules/")
-}
-
 func isRelativeEntry(entry string) bool {
 	return strings.HasPrefix(entry, "./")
 }
 
-func isNodeModule(path string) bool {
-	switch path[0] {
-	case '.', '/', '\\':
-		return false
-	default:
-		return true
+type Error struct {
+	messages []esbuild.Message
+}
+
+func (e *Error) Error() string {
+	errors := esbuild.FormatMessages(e.messages, esbuild.FormatMessagesOptions{
+		Color: true,
+	})
+	return strings.Join(errors, "\n\n")
+}
+
+func (e *Error) Errors() []error {
+	errors := make([]error, len(e.messages))
+	for i, message := range e.messages {
+		errors[i] = errorMessage(message)
 	}
+	return errors
+}
+
+type errorMessage esbuild.Message
+
+func (e errorMessage) Error() string {
+	return e.Text
+}
+
+// TODO: wrap esbuild.Message to use lowercase field names
+func (e errorMessage) MarshalJSON() ([]byte, error) {
+	return json.Marshal((esbuild.Message)(e))
 }

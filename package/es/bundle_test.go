@@ -2,13 +2,11 @@ package es_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/es"
-	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log/testlog"
 	"github.com/livebud/bud/package/testdir"
 )
@@ -55,10 +53,9 @@ func TestBundleSSR(t *testing.T) {
 	`
 	is.NoErr(td.Write(ctx))
 	flag := &framework.Flag{}
-	module, err := gomod.Find(td.Directory())
-	is.NoErr(err)
-	esb := es.New(flag, log, module)
+	esb := es.New(flag, log)
 	files, err := esb.Bundle(&es.Bundle{
+		AbsDir:   td.Directory(),
 		Entries:  []string{"./view/index.jsx", "./view/show.jsx"},
 		Platform: es.SSR,
 	})
@@ -67,8 +64,8 @@ func TestBundleSSR(t *testing.T) {
 	// TODO: figure out a better test
 	// SSR would typically be just one big file anyway
 	// DOM is where you chunk the files
-	fmt.Println(string(files[0].Contents))
-	fmt.Println(string(files[1].Contents))
+	// fmt.Println(string(files[0].Contents))
+	// fmt.Println(string(files[1].Contents))
 
 	// vm, err := v8.Load()
 	// is.NoErr(err)

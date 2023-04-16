@@ -8,6 +8,7 @@ require (
 	github.com/ajg/form v1.5.2-0.20200323032839-9aeb3cf462e1
 	github.com/aybabtme/rgbterm v0.0.0-20170906152045-cc83f3b3ce59
 	github.com/bep/debounce v1.2.1
+	github.com/buildkite/terminal-to-html v3.2.0+incompatible
 	github.com/cespare/xxhash v1.1.0
 	github.com/evanw/esbuild v0.14.11
 	github.com/fatih/structtag v1.2.0
@@ -19,7 +20,7 @@ require (
 	github.com/keegancsmith/rpc v1.3.0
 	github.com/lithammer/dedent v1.1.0
 	github.com/livebud/bud-test-plugin v0.0.9
-	github.com/livebud/js v0.0.0-20221112072017-b9e63b92aad5
+	github.com/livebud/js v0.0.0-20230416184227-ef633a94787b
 	github.com/livebud/transpiler v0.0.3
 	github.com/matthewmueller/diff v0.0.0-20220104030700-cb2fe910d90c
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac
@@ -32,7 +33,7 @@ require (
 	github.com/xlab/treeprint v1.1.0
 	go.kuoruan.net/v8go-polyfills v0.5.1-0.20220727011656-c74c5b408ebd
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	golang.org/x/sync v0.1.0
 	golang.org/x/tools v0.1.11-0.20220513221640-090b14e8501f
 	honnef.co/go/tools v0.3.3
 	rogchap.com/v8go v0.8.0
