@@ -30,7 +30,6 @@ mount({
 	error: "{{ $.Page.Error.Key }}",
 	{{- end }}
 	components: components,
-	client: "{{ $.Page.Client }}",
 	{{- if $.Hot }}
 	hot: new Hot("http://127.0.0.1:35729/bud/hot/{{$.Page.Key}}", components),
 	{{- end }}

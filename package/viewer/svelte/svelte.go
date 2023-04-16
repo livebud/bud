@@ -47,9 +47,9 @@ var _ viewer.Viewer = (*Viewer)(nil)
 func (v *Viewer) Mount(r *router.Router) error {
 	for _, page := range v.pages {
 		// Serve the entrypoints (for hydrating)
-		r.Get(page.Client, v.serveClientEntry(page))
+		r.Get(page.Client.Route, v.serveDOMEntry(page))
 		// Serve the individual views themselves (for hot reloads)
-		r.Get(page.View.Client, v.serveClientView(page.View))
+		r.Get(page.View.Client.Route, v.serveDOMView(page.View))
 	}
 	return nil
 }
@@ -60,21 +60,7 @@ func (v *Viewer) Render(ctx context.Context, key string, propMap viewer.PropMap)
 		return nil, fmt.Errorf("svelte: unable to find page from key %q", key)
 	}
 	v.log.Info("svelte: rendering", page.Path)
-	file, err := v.es.Serve(&es.Serve{
-		AbsDir:   v.module.Directory(),
-		Entry:    "./" + page.Path + ".js",
-		Platform: es.SSR,
-		Plugins: []es.Plugin{
-			v.ssrEntryPlugin(page),
-			v.ssrRuntimePlugin(),
-			v.ssrTranspile(ctx),
-			es.HTTP(http.DefaultClient),
-			es.ImportMap(v.log, map[string]string{
-				"svelte":  "https://esm.run/svelte@" + versions.Svelte,
-				"svelte/": "https://esm.run/svelte@" + versions.Svelte + "/",
-			}),
-		},
-	})
+	file, err := v.compileSSR(ctx, page)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +68,6 @@ func (v *Viewer) Render(ctx context.Context, key string, propMap viewer.PropMap)
 	if err != nil {
 		return nil, err
 	}
-	// fmt.Println(string(file.Contents))
 	expr := fmt.Sprintf(`%s; bud.render(%s)`, string(file.Contents), propBytes)
 	html, err := v.js.Evaluate(ctx, page.Path, expr)
 	if err != nil {
@@ -104,21 +89,7 @@ func (v *Viewer) RenderError(ctx context.Context, key string, propMap viewer.Pro
 		return []byte(fmt.Sprintf("svelte: unable to find error page for %q to render error. %s", page.Error.Key, originalError))
 	}
 	v.log.Info("svelte: rendering error", errorPage.Path)
-	file, err := v.es.Serve(&es.Serve{
-		AbsDir:   v.module.Directory(),
-		Entry:    "./" + errorPage.Path + ".js",
-		Platform: es.SSR,
-		Plugins: []es.Plugin{
-			v.ssrEntryPlugin(errorPage),
-			v.ssrRuntimePlugin(),
-			v.ssrTranspile(ctx),
-			es.HTTP(http.DefaultClient),
-			es.ImportMap(v.log, map[string]string{
-				"svelte":  "https://esm.run/svelte@" + versions.Svelte,
-				"svelte/": "https://esm.run/svelte@" + versions.Svelte + "/",
-			}),
-		},
-	})
+	file, err := v.compileSSR(ctx, errorPage)
 	if err != nil {
 		return []byte(fmt.Sprintf("svelte: unable to serve error page %q to render error. %s. %s", errorPage.Path, err, originalError))
 	}
@@ -135,8 +106,55 @@ func (v *Viewer) RenderError(ctx context.Context, key string, propMap viewer.Pro
 	return []byte(html)
 }
 
+func (v *Viewer) compileSSR(ctx context.Context, page *viewer.Page) (*es.File, error) {
+	return v.es.Serve(&es.Serve{
+		AbsDir:   v.module.Directory(),
+		Entry:    "./" + page.Path + ".js",
+		Platform: es.SSR,
+		Plugins: []es.Plugin{
+			v.ssrEntryPlugin(page),
+			v.ssrRuntimePlugin(),
+			v.ssrTranspile(ctx),
+			es.HTTP(http.DefaultClient),
+			es.ImportMap(v.log, map[string]string{
+				"svelte":  "https://esm.run/svelte@" + versions.Svelte,
+				"svelte/": "https://esm.run/svelte@" + versions.Svelte + "/",
+			}),
+		},
+	})
+}
+
 func (v *Viewer) Bundle(ctx context.Context, embed virtual.Tree) error {
-	return fmt.Errorf("svelte: bundle not implemented")
+	for _, page := range v.pages {
+		file, err := v.compileSSR(ctx, page)
+		if err != nil {
+			return err
+		}
+		embed[page.Path] = &virtual.File{
+			Path: page.Path,
+			Mode: 0644,
+			Data: file.Contents,
+		}
+		file, err = v.compileDOMEntry(ctx, page)
+		if err != nil {
+			return err
+		}
+		embed[page.Client.Path] = &virtual.File{
+			Path: page.Client.Path,
+			Mode: 0644,
+			Data: file.Contents,
+		}
+		file, err = v.compileDOMView(ctx, page.View)
+		if err != nil {
+			return err
+		}
+		embed[page.View.Client.Path] = &virtual.File{
+			Path: page.View.Client.Path,
+			Mode: 0644,
+			Data: file.Contents,
+		}
+	}
+	return nil
 }
 
 // Handler serves the page as a static view
@@ -145,12 +163,12 @@ func (v *Viewer) Handler(page *viewer.Page) http.Handler {
 		ctx := r.Context()
 		propMap, err := viewer.StaticPropMap(page, r)
 		if err != nil {
-			v.handleError(ctx, w, page, propMap, err)
+			v.renderError(ctx, w, page, propMap, err)
 			return
 		}
 		html, err := v.Render(ctx, page.Key, propMap)
 		if err != nil {
-			v.handleError(ctx, w, page, propMap, err)
+			v.renderError(ctx, w, page, propMap, err)
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -159,7 +177,7 @@ func (v *Viewer) Handler(page *viewer.Page) http.Handler {
 	})
 }
 
-func (v *Viewer) handleError(ctx context.Context, w http.ResponseWriter, page *viewer.Page, propMap map[string]interface{}, err error) {
+func (v *Viewer) renderError(ctx context.Context, w http.ResponseWriter, page *viewer.Page, propMap map[string]interface{}, err error) {
 	html := v.RenderError(ctx, page.Key, propMap, err)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusInternalServerError)
@@ -185,7 +203,7 @@ func (v *Viewer) ssrEntryPlugin(page *viewer.Page) es.Plugin {
 					Path      string
 					Key       string
 					Component string
-					Client    string
+					Client    *viewer.Client
 				}
 				type Page struct {
 					*View
@@ -300,26 +318,11 @@ func (v *Viewer) ssrTranspile(ctx context.Context) esbuild.Plugin {
 	}
 }
 
-// serveClient serves the entrypoints (for hydrating)
-func (v *Viewer) serveClientEntry(page *viewer.Page) http.Handler {
+// serveDOM serves the entrypoints (for hydrating)
+func (v *Viewer) serveDOMEntry(page *viewer.Page) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		v.log.Info("svelte: serving client entry", r.URL.Path)
-		domJSCode, err := v.es.Serve(&es.Serve{
-			AbsDir:   v.module.Directory(),
-			Entry:    "./" + page.Path + ".js",
-			Platform: es.DOM,
-			Plugins: []es.Plugin{
-				v.domEntryPlugin(page),
-				v.domRuntimePlugin(),
-				v.domExternals(),
-				v.domTranspile(r.Context()),
-				es.ExternalHTTP(),
-				es.ExternalImportMap(v.log, map[string]string{
-					"svelte":  "https://esm.run/svelte@" + versions.Svelte,
-					"svelte/": "https://esm.run/svelte@" + versions.Svelte + "/",
-				}),
-			},
-		})
+		domJSCode, err := v.compileDOMEntry(r.Context(), page)
 		if err != nil {
 			// TODO: hydrate a nice error message in the client
 			w.Header().Set("Content-Type", "text/plain")
@@ -333,23 +336,31 @@ func (v *Viewer) serveClientEntry(page *viewer.Page) http.Handler {
 	})
 }
 
-// serveClient serves the individual views themselves (for hot reloads)
-func (v *Viewer) serveClientView(view *viewer.View) http.Handler {
+// Compile DOM entrypoint
+func (v *Viewer) compileDOMEntry(ctx context.Context, page *viewer.Page) (*es.File, error) {
+	return v.es.Serve(&es.Serve{
+		AbsDir:   v.module.Directory(),
+		Entry:    "./" + page.Path + ".js",
+		Platform: es.DOM,
+		Plugins: []es.Plugin{
+			v.domEntryPlugin(page),
+			v.domRuntimePlugin(),
+			v.domExternals(),
+			v.domTranspile(ctx),
+			es.ExternalHTTP(),
+			es.ExternalImportMap(v.log, map[string]string{
+				"svelte":  "https://esm.run/svelte@" + versions.Svelte,
+				"svelte/": "https://esm.run/svelte@" + versions.Svelte + "/",
+			}),
+		},
+	})
+}
+
+// serveDOM serves the individual views themselves (for hot reloads)
+func (v *Viewer) serveDOMView(view *viewer.View) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		v.log.Info("svelte: serving client view", r.URL.Path)
-		domJsCode, err := v.es.Serve(&es.Serve{
-			AbsDir:   v.module.Directory(),
-			Entry:    "./" + view.Path,
-			Platform: es.DOM,
-			Plugins: []es.Plugin{
-				v.domTranspile(r.Context()),
-				es.ExternalHTTP(),
-				es.ExternalImportMap(v.log, map[string]string{
-					"svelte":  "https://esm.run/svelte@" + versions.Svelte,
-					"svelte/": "https://esm.run/svelte@" + versions.Svelte + "/",
-				}),
-			},
-		})
+		domJsCode, err := v.compileDOMView(r.Context(), view)
 		if err != nil {
 			// TODO: hydrate a nice error message in the client
 			w.Header().Set("Content-Type", "text/plain")
@@ -360,6 +371,23 @@ func (v *Viewer) serveClientView(view *viewer.View) http.Handler {
 		w.Header().Set("Content-Type", "application/javascript")
 		w.WriteHeader(http.StatusOK)
 		w.Write(domJsCode.Contents)
+	})
+}
+
+// Compile DOM view
+func (v *Viewer) compileDOMView(ctx context.Context, view *viewer.View) (*es.File, error) {
+	return v.es.Serve(&es.Serve{
+		AbsDir:   v.module.Directory(),
+		Entry:    "./" + view.Path,
+		Platform: es.DOM,
+		Plugins: []es.Plugin{
+			v.domTranspile(ctx),
+			es.ExternalHTTP(),
+			es.ExternalImportMap(v.log, map[string]string{
+				"svelte":  "https://esm.run/svelte@" + versions.Svelte,
+				"svelte/": "https://esm.run/svelte@" + versions.Svelte + "/",
+			}),
+		},
 	})
 }
 
@@ -382,7 +410,6 @@ func (v *Viewer) domEntryPlugin(page *viewer.Page) es.Plugin {
 					Path      string
 					Key       string
 					Component string
-					Client    string
 				}
 				type Page struct {
 					*View
@@ -402,21 +429,21 @@ func (v *Viewer) domEntryPlugin(page *viewer.Page) es.Plugin {
 					View: &View{
 						Path:      page.Path,
 						Key:       page.Key,
-						Component: imports.AddNamed(gotext.Pascal(page.Key), path.Join("/view", page.Path+".js")),
+						Component: imports.AddNamed(gotext.Pascal(page.Key), page.View.Client.Route),
 					},
 				}
 				if page.Error != nil {
 					state.Page.Error = &View{
 						Path:      page.Error.Path,
 						Key:       page.Error.Key,
-						Component: imports.AddNamed(gotext.Pascal(page.Error.Key), path.Join("/view", page.Error.Path+".js")),
+						Component: imports.AddNamed(gotext.Pascal(page.Error.Key), page.Error.Client.Route),
 					}
 				}
 				for _, frame := range page.Frames {
 					state.Page.Frames = append(state.Page.Frames, &View{
 						Path:      frame.Path,
 						Key:       frame.Key,
-						Component: imports.AddNamed(gotext.Pascal(frame.Key), "/"+path.Join("view", frame.Path+".js")),
+						Component: imports.AddNamed(gotext.Pascal(frame.Key), frame.Client.Route),
 					})
 				}
 				state.Imports = imports.List()

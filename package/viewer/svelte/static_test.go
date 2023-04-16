@@ -18,11 +18,12 @@ import (
 	"github.com/livebud/bud/package/transpiler"
 	"github.com/livebud/bud/package/viewer"
 	"github.com/livebud/bud/package/viewer/svelte"
+	"github.com/livebud/bud/package/virtual"
 	"github.com/livebud/js"
 	"github.com/livebud/js/goja"
 )
 
-func loadViewer(dir string) (*svelte.Viewer, error) {
+func loadStatic(ctx context.Context, dir string) (*svelte.StaticViewer, error) {
 	log := testlog.New()
 	module, err := gomod.Find(dir)
 	if err != nil {
@@ -60,10 +61,14 @@ func loadViewer(dir string) (*svelte.Viewer, error) {
 		return nil
 	})
 	viewer := svelte.New(esb, flag, js, log, module, pages, tr)
-	return viewer, nil
+	fsys := virtual.Tree{}
+	if err := viewer.Bundle(ctx, fsys); err != nil {
+		return nil, err
+	}
+	return svelte.Static(fsys, js, log, pages), nil
 }
 
-func TestPage(t *testing.T) {
+func TestStaticPage(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	td, err := testdir.Load()
@@ -75,7 +80,7 @@ func TestPage(t *testing.T) {
 		<h1>Hello {planet}!</h1>
 	`
 	is.NoErr(td.Write(ctx))
-	viewer, err := loadViewer(td.Directory())
+	viewer, err := loadStatic(ctx, td.Directory())
 	is.NoErr(err)
 	html, err := viewer.Render(ctx, "index", map[string]interface{}{
 		"index": map[string]interface{}{
@@ -115,7 +120,7 @@ func TestPage(t *testing.T) {
 	is.Equal(res.StatusCode, 200)
 }
 
-func TestLayout(t *testing.T) {
+func TestStaticLayout(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	td, err := testdir.Load()
@@ -145,7 +150,7 @@ func TestLayout(t *testing.T) {
 		</html>
 	`
 	is.NoErr(td.Write(ctx))
-	viewer, err := loadViewer(td.Directory())
+	viewer, err := loadStatic(ctx, td.Directory())
 	is.NoErr(err)
 	html, err := viewer.Render(ctx, "show", map[string]interface{}{
 		"layout": map[string]interface{}{
@@ -198,7 +203,7 @@ func TestLayout(t *testing.T) {
 	is.Equal(res.StatusCode, 404)
 }
 
-func TestRenderError(t *testing.T) {
+func TestStaticRenderError(t *testing.T) {
 	is := is.New(t)
 	ctx := context.Background()
 	td, err := testdir.Load()
@@ -225,7 +230,7 @@ func TestRenderError(t *testing.T) {
 		<div class="error">{message}</div>
 	`
 	is.NoErr(td.Write(ctx))
-	svelte, err := loadViewer(td.Directory())
+	svelte, err := loadStatic(ctx, td.Directory())
 	is.NoErr(err)
 	html := svelte.RenderError(ctx, "posts/index", map[string]interface{}{
 		"layout":      map[string]interface{}{"title": "welcome"},

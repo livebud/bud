@@ -51,6 +51,8 @@ func invalidView(name string) bool {
 		name == "bud" || // Named bud (reserved)
 		ext == "" || // No extension
 		ext == ".go" || // Go files
+		name == "go.sum" || name == "go.mod" || // Go mod files
+		name == "package.json" || // Node package file
 		unicode.IsUpper(firstRune(name)) // Starts with a capital letter
 }
 

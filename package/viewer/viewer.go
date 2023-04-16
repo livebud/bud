@@ -36,7 +36,7 @@ type View struct {
 	Key    Key
 	Path   string
 	Ext    string
-	Client string // View client
+	Client *Client // View client
 }
 
 type Page struct {
@@ -47,7 +47,12 @@ type Page struct {
 	Layout *View
 	Error  *View
 	Route  string
-	Client string // Entry client
+	Client *Client // Entry client
+}
+
+type Client struct {
+	Path  string
+	Route string
 }
 
 type Embed = virtual.File

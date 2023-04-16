@@ -193,10 +193,18 @@ func extless(path string) string {
 	return path
 }
 
-func viewClient(fpath string) string {
-	return "/view/" + path.Clean(fpath) + ".js"
+func viewClient(fpath string) *Client {
+	viewPath := path.Clean(fpath) + ".js"
+	return &Client{
+		Path:  viewPath,
+		Route: "/view/" + viewPath,
+	}
 }
 
-func entryClient(fpath string) string {
-	return "/view/" + path.Clean(fpath) + ".entry.js"
+func entryClient(fpath string) *Client {
+	entryPath := path.Clean(fpath) + ".entry.js"
+	return &Client{
+		Path:  entryPath,
+		Route: "/view/" + entryPath,
+	}
 }

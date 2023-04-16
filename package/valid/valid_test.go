@@ -47,6 +47,9 @@ func TestView(t *testing.T) {
 	is.True(!valid.View("A"))
 	is.True(!valid.View("Ab"))
 	is.True(!valid.View("bud"))
+	is.True(!valid.View("go.mod"))
+	is.True(!valid.View("go.sum"))
+	is.True(!valid.View("package.json"))
 }
 
 func TestControllerFile(t *testing.T) {
