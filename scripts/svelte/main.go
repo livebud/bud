@@ -6,8 +6,11 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/livebud/bud/package/hot"
+
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/current"
+	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/package/es"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log"
@@ -29,12 +32,12 @@ func main() {
 }
 
 func run() error {
-	// return serve()
-	fsys := virtual.Tree{}
-	if err := bundle(fsys); err != nil {
-		return err
-	}
-	return static(fsys)
+	return serve()
+	// fsys := virtual.Tree{}
+	// if err := bundle(fsys); err != nil {
+	// 	return err
+	// }
+	// return static(fsys)
 }
 
 func serve() error {
@@ -48,7 +51,10 @@ func serve() error {
 	if err != nil {
 		return err
 	}
-	svelte, err := loadViewer(log, module, pages)
+	flag := &framework.Flag{
+		Hot: true,
+	}
+	svelte, err := loadViewer(flag, log, module, pages)
 	if err != nil {
 		return err
 	}
@@ -59,7 +65,8 @@ func serve() error {
 	for _, page := range pages {
 		router.Get(page.Route, svelte.Handler(page))
 	}
-
+	ps := pubsub.New()
+	router.Get("/bud/hot/path*", hot.New(log, ps))
 	log.Info("listening on http://localhost:3000")
 	return http.ListenAndServe(":3000", router)
 }
@@ -75,7 +82,8 @@ func bundle(fsys virtual.Tree) error {
 	if err != nil {
 		return err
 	}
-	svelte, err := loadViewer(log, module, pages)
+	flag := &framework.Flag{}
+	svelte, err := loadViewer(flag, log, module, pages)
 	if err != nil {
 		return err
 	}
@@ -109,12 +117,11 @@ func static(fsys fs.FS) error {
 	return http.ListenAndServe(":3000", router)
 }
 
-func loadViewer(log log.Log, module *gomod.Module, pages map[string]*viewer.Page) (*svelte.Viewer, error) {
+func loadViewer(flag *framework.Flag, log log.Log, module *gomod.Module, pages map[string]*viewer.Page) (*svelte.Viewer, error) {
 	js := goja.New(&js.Console{
 		Log:   os.Stdout,
 		Error: os.Stderr,
 	})
-	flag := &framework.Flag{}
 	esb := es.New(flag, log)
 	svelteCompiler, err := svelte.Load(flag, js)
 	if err != nil {
