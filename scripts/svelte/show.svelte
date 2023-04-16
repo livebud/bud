@@ -4,6 +4,6 @@
   export let count = 0
 </script>
 
-<h1>Hello {planet} from {id}!</h1>
+<h1>Hello {planet} from {id}</h1>
 
 <button on:click={() => count++}>Total: {count}</button>

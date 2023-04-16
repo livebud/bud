@@ -448,7 +448,8 @@ func (v *Viewer) domEntryPlugin(page *viewer.Page) es.Plugin {
 				}
 				state.Imports = imports.List()
 				if v.flag.Hot {
-					state.Hot = `http://127.0.0.1:35729/bud/hot/` + page.Key + `.js`
+					// TODO: configurable
+					state.Hot = `http://127.0.0.1:35729/bud/hot?path=` + page.Path
 				}
 				code := new(bytes.Buffer)
 				if err := domEntryTemplate.Execute(code, state); err != nil {

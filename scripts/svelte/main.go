@@ -6,13 +6,12 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/livebud/bud/package/hot"
-
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/current"
 	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/package/es"
 	"github.com/livebud/bud/package/gomod"
+	"github.com/livebud/bud/package/hot"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/log/console"
 	"github.com/livebud/bud/package/router"
@@ -20,8 +19,10 @@ import (
 	"github.com/livebud/bud/package/viewer"
 	"github.com/livebud/bud/package/viewer/svelte"
 	"github.com/livebud/bud/package/virtual"
+	"github.com/livebud/bud/package/watcher"
 	"github.com/livebud/js"
 	"github.com/livebud/js/goja"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -40,7 +41,14 @@ func run() error {
 	// return static(fsys)
 }
 
+func hotServer(log log.Log, ps pubsub.Client) error {
+	router := router.New()
+	router.Get("/bud/hot/:path*", hot.New(log, ps))
+	return http.ListenAndServe(":35729", router)
+}
+
 func serve() error {
+	ctx := context.Background()
 	dir, err := current.Directory()
 	if err != nil {
 		return err
@@ -66,9 +74,21 @@ func serve() error {
 		router.Get(page.Route, svelte.Handler(page))
 	}
 	ps := pubsub.New()
-	router.Get("/bud/hot/path*", hot.New(log, ps))
-	log.Info("listening on http://localhost:3000")
-	return http.ListenAndServe(":3000", router)
+	eg := new(errgroup.Group)
+	eg.Go(func() error {
+		return hotServer(log, ps)
+	})
+	eg.Go(func() error {
+		return http.ListenAndServe(":3000", router)
+	})
+	eg.Go(func() error {
+		return watcher.Watch(ctx, dir, func(events []watcher.Event) error {
+			// Just do a backend update for now to trigger a full reload.
+			ps.Publish("backend:update", nil)
+			return nil
+		})
+	})
+	return eg.Wait()
 }
 
 func bundle(fsys virtual.Tree) error {
