@@ -80,6 +80,8 @@ github.com/livebud/bud-test-plugin v0.0.9 h1:JmS4aj+NV52RUroteLs+ld6rcbkBwio7p9q
 github.com/livebud/bud-test-plugin v0.0.9/go.mod h1:GTxMZ8W4BIyGIOgAA4hvPHMDDTkaZtfcuhnOcSu3y8M=
 github.com/livebud/js v0.0.0-20221112072017-b9e63b92aad5 h1:7fYJMOnT4WrnjRhJ8B6HiJBGcDVFd9jam0205gn9y1k=
 github.com/livebud/js v0.0.0-20221112072017-b9e63b92aad5/go.mod h1:TDkks+mVAlB96mxcbIAftAxpGteCxoBYGVF1JThjcLk=
+github.com/livebud/js v0.0.0-20230416184227-ef633a94787b h1:blPLG/F7wT8E20kMLPHsWL3hyWSw4M/2a6JgRwFXJPg=
+github.com/livebud/js v0.0.0-20230416184227-ef633a94787b/go.mod h1:Xkuu9hOX5C6DVDx9MLyIqwRC/mT2VfR5KlEJWL/HNOs=
 github.com/livebud/transpiler v0.0.3 h1:OFKPsmfTOywBDoOE/ZFMVjAupk/xVXFlXoAgZNRhh5Q=
 github.com/livebud/transpiler v0.0.3/go.mod h1:vQYMN//Y2cnM55tw0lOmLGbEETugP7alxTyhQHzNdTI=
 github.com/matryer/is v1.4.0 h1:sosSmIWwkYITGrxZ25ULNDeKiMNzFSr4V/eqBQP0PeE=
@@ -153,6 +155,7 @@ golang.org/x/net v0.0.0-20211015210444-4f30a5c0130f/go.mod h1:9nx3DQGgdP8bBQD5qx
 golang.org/x/sync v0.0.0-20190423024810-112230192c58/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20210220032951-036812b2e83c h1:5KslGYwFpkhGh+Q16bwMP3cOontH8FOep7tGV86Y7SQ=
 golang.org/x/sync v0.0.0-20210220032951-036812b2e83c/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
+golang.org/x/sync v0.1.0/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190412213103-97732733099d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20201119102817-f84b799fce68/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
