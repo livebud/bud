@@ -6,9 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/livebud/auth/httpbuffer"
+	"github.com/livebud/bud/internal/is"
 	"github.com/livebud/bud/package/log/testlog"
-	"github.com/matryer/is"
+	"github.com/livebud/bud/package/middleware/httpbuffer"
 )
 
 func TestHeadersNormal(t *testing.T) {
