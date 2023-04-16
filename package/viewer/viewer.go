@@ -2,11 +2,13 @@ package viewer
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io/fs"
 	"net/http"
 
 	"github.com/livebud/bud/framework/controller/controllerrt/request"
+	"github.com/livebud/bud/internal/errs"
 
 	"github.com/livebud/bud/package/router"
 	"github.com/livebud/bud/package/virtual"
@@ -27,7 +29,7 @@ type FS = fs.FS
 type Interface interface {
 	Mount(r *router.Router) error
 	Render(ctx context.Context, key string, propMap PropMap) ([]byte, error)
-	RenderError(ctx context.Context, key string, propMap PropMap, err error) []byte
+	RenderError(ctx context.Context, key string, propMap PropMap) []byte
 }
 
 type View struct {
@@ -38,7 +40,9 @@ type View struct {
 }
 
 type Page struct {
-	*View  // Entry
+	*View // Entry
+	// Frames are the views that are rendered inside the layout. Frames start with
+	// the innermost view first and end with the outermost view.
 	Frames []*View
 	Layout *View
 	Error  *View
@@ -75,4 +79,46 @@ func StaticPropMap(page *Page, r *http.Request) (PropMap, error) {
 		propMap[page.Error.Key] = props
 	}
 	return propMap, nil
+}
+
+func Error(err error) error {
+	ve := &viewerError{
+		original: err,
+		Message:  err.Error(),
+	}
+	// TODO: add a stack trace, if we have one
+	if errs, ok := err.(errs.Errors); ok {
+		for _, err := range errs.Errors() {
+			ve.Errors = append(ve.Errors, Error(err))
+		}
+	}
+	return ve
+}
+
+type viewerError struct {
+	original error
+	Message  string
+	Stack    []*StackFrame
+	Errors   []error
+}
+
+func (v *viewerError) Error() string {
+	return v.Message
+}
+
+func (v *viewerError) MarshalJSON() ([]byte, error) {
+	if marshaler, ok := v.original.(json.Marshaler); ok {
+		return marshaler.MarshalJSON()
+	}
+	return json.Marshal(map[string]interface{}{
+		"message": v.Message,
+		"stack":   v.Stack,
+		"errors":  v.Errors,
+	})
+}
+
+type StackFrame struct {
+	Path   string
+	Line   int
+	Column int
 }

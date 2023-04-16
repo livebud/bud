@@ -1,6 +1,7 @@
 package es
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -60,11 +61,7 @@ func (b *builder) Serve(serve *Serve) (*File, error) {
 	result := esbuild.Build(b.serveOptions(serve))
 	// Check if there were errors
 	if result.Errors != nil {
-		errors := esbuild.FormatMessages(result.Errors, esbuild.FormatMessagesOptions{
-			Kind:  esbuild.ErrorMessage,
-			Color: true,
-		})
-		return nil, fmt.Errorf("es: %s", strings.Join(errors, "\n"))
+		return nil, &Error{result.Errors}
 	} else if len(result.OutputFiles) == 0 {
 		return nil, fmt.Errorf("es: no output files")
 	}
@@ -98,11 +95,7 @@ func (b *builder) Bundle(bundle *Bundle) ([]File, error) {
 	result := esbuild.Build(b.bundleOptions(bundle))
 	// Check if there were errors
 	if result.Errors != nil {
-		errors := esbuild.FormatMessages(result.Errors, esbuild.FormatMessagesOptions{
-			Kind:  esbuild.ErrorMessage,
-			Color: true,
-		})
-		return nil, fmt.Errorf("es: %s", strings.Join(errors, "\n"))
+		return nil, &Error{result.Errors}
 	} else if len(result.OutputFiles) == 0 {
 		return nil, fmt.Errorf("es: no output files")
 	}
@@ -163,4 +156,34 @@ func (b *builder) dom(absDir string, entries []string, plugins []esbuild.Plugin)
 
 func isRelativeEntry(entry string) bool {
 	return strings.HasPrefix(entry, "./")
+}
+
+type Error struct {
+	messages []esbuild.Message
+}
+
+func (e *Error) Error() string {
+	errors := esbuild.FormatMessages(e.messages, esbuild.FormatMessagesOptions{
+		Color: true,
+	})
+	return strings.Join(errors, "\n\n")
+}
+
+func (e *Error) Errors() []error {
+	errors := make([]error, len(e.messages))
+	for i, message := range e.messages {
+		errors[i] = errorMessage(message)
+	}
+	return errors
+}
+
+type errorMessage esbuild.Message
+
+func (e errorMessage) Error() string {
+	return e.Text
+}
+
+// TODO: wrap esbuild.Message to use lowercase field names
+func (e errorMessage) MarshalJSON() ([]byte, error) {
+	return json.Marshal((esbuild.Message)(e))
 }

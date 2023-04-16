@@ -27,6 +27,11 @@ func Join(errs ...error) error {
 	return agg
 }
 
+// Errors is an optional interface that be used to unwrap multiple errors
+type Errors interface {
+	Errors() []error
+}
+
 // Format reverses the error order to make the cause come first
 func Format(err error) string {
 	// Most errors in Bud are joined by a period

@@ -56,18 +56,17 @@ func find(fsys FS, ignore func(path string) bool, pages map[Key]*Page, inherited
 		switch extless {
 		case "layout":
 			inherited.Layout[ext] = &View{
-				Path:   fpath,
-				Key:    key,
-				Ext:    ext,
-				Client: viewClient(fpath),
+				Path: fpath,
+				Key:  key,
+				Ext:  ext,
 			}
 		case "frame":
-			inherited.Frames[ext] = append(inherited.Frames[ext], &View{
+			inherited.Frames[ext] = append([]*View{&View{
 				Path:   fpath,
 				Key:    key,
 				Ext:    ext,
 				Client: viewClient(fpath),
-			})
+			}}, inherited.Frames[ext]...)
 		case "error":
 			inherited.Error[ext] = &View{
 				Path:   fpath,
@@ -89,8 +88,25 @@ func find(fsys FS, ignore func(path string) bool, pages map[Key]*Page, inherited
 		}
 		extless := extless(de.Name())
 		switch extless {
-		case "layout", "frame", "error":
+		case "layout", "frame":
 			continue
+		// Errors are treated just like regular pages with frames and layouts
+		case "error":
+			key := path.Join(dir, extless)
+			fpath := path.Join(dir, de.Name())
+			pages[key] = &Page{
+				View: &View{
+					Path:   fpath,
+					Key:    key,
+					Ext:    ext,
+					Client: viewClient(fpath),
+				},
+				Layout: inherited.Layout[ext],
+				Frames: inherited.Frames[ext],
+				Error:  nil, // Error pages can't have their own error page
+				Route:  route(dir, extless),
+				Client: entryClient(fpath),
+			}
 		default:
 			key := path.Join(dir, extless)
 			fpath := path.Join(dir, de.Name())

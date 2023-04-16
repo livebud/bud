@@ -133,6 +133,7 @@ func TestLayout(t *testing.T) {
 		<html>
 		<head>
 			<title>{title}</title>
+			<slot name="head" />
 		</head>
 		<body>
 			<slot />
@@ -151,7 +152,8 @@ func TestLayout(t *testing.T) {
 		},
 	})
 	is.NoErr(err)
-	is.In(string(html), `<head><title>Hello</title></head>`)
+	is.In(string(html), `<head><title>Hello</title>`)
+	is.In(string(html), `<script src="/view/show.svelte.entry.js" type="module" async defer></script></head>`)
 	is.In(string(html), `<script id="bud_state" type="text/template">{"props":{"show":{"planet":"Earth"}}}</script>`)
 	is.In(string(html), `<h1>Hello Earth!</h1>`)
 
@@ -193,16 +195,21 @@ func TestLayout(t *testing.T) {
 }
 
 func TestRenderError(t *testing.T) {
-	t.Skip("not done yet")
 	is := is.New(t)
 	ctx := context.Background()
 	td, err := testdir.Load()
 	is.NoErr(err)
-	td.Files["index.svelte"] = `
+	td.Files["posts/index.svelte"] = `
 		<script>
 			export let planet = 'Mars'
 		</script>
 		<h1>Hello {planet}!</h1>
+	`
+	td.Files["posts/frame.svelte"] = `
+		<div class="posts"><slot /></div>
+	`
+	td.Files["frame.svelte"] = `
+		<main><slot /></main>
 	`
 	td.Files["layout.svelte"] = `
 		<html><slot /></html>
@@ -214,15 +221,14 @@ func TestRenderError(t *testing.T) {
 		<div class="error">{message}</div>
 	`
 	is.NoErr(td.Write(ctx))
-	viewer, err := loadViewer(td.Directory())
+	svelte, err := loadViewer(td.Directory())
 	is.NoErr(err)
-	html := viewer.RenderError(ctx, "index", map[string]interface{}{
-		"index": map[string]interface{}{
-			"Planet": "Earth",
-		},
+	html := svelte.RenderError(ctx, "posts/index", map[string]interface{}{
+		"layout":      map[string]interface{}{"title": "welcome"},
+		"posts/index": map[string]interface{}{"planet": "Earth"},
 	}, errors.New("some error"))
 	is.NoErr(err)
-	is.Equal(string(html), `<html><div class="error">some error</div></html>`)
+	is.In(string(html), `<html><div id="bud_target"><main><div class="error">some error</div></main></div>`)
 }
 
 func TestBundle(t *testing.T) {

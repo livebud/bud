@@ -15,7 +15,6 @@ import (
 	esbuild "github.com/evanw/esbuild/pkg/api"
 
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/internal/terminal"
 	"github.com/livebud/bud/internal/versions"
 	"github.com/livebud/bud/package/es"
 	"github.com/livebud/bud/package/gomod"
@@ -93,46 +92,47 @@ func (v *Viewer) Render(ctx context.Context, key string, propMap viewer.PropMap)
 }
 
 func (v *Viewer) RenderError(ctx context.Context, key string, propMap viewer.PropMap, originalError error) []byte {
-	// page, ok := v.pages[key]
-	// if !ok {
-	// 	return []byte(fmt.Sprintf("svelte: unable to find page from key %q to render error %s", key, originalError))
-	// }
-	// v.log.Info("svelte: rendering error", page.Error.Path)
-	// file, err := v.es.Serve(&es.Serve{
-	// 	AbsDir:   v.module.Directory(),
-	// 	Entry:    "./" + page.Path + ".js",
-	// 	Platform: es.SSR,
-	// 	Plugins: []es.Plugin{
-	// 		v.ssrEntryPlugin(page),
-	// 		v.ssrRuntimePlugin(),
-	// 		v.ssrTranspile(ctx),
-	// 		es.HTTP(http.DefaultClient),
-	// 		es.ImportMap(v.log, map[string]string{
-	// 			"svelte":  "https://esm.run/svelte@" + versions.Svelte,
-	// 			"svelte/": "https://esm.run/svelte@" + versions.Svelte + "/",
-	// 		}),
-	// 	},
-	// })
-	// if err != nil {
-	// 	return []byte(fmt.Sprintf("svelte: unable to serve error page %q to render error. %s. %s", page.Error.Path, err, originalError))
-	// }
-	// propBytes, err := json.Marshal(propMap)
-	// if err != nil {
-	// 	return []byte(fmt.Sprintf("svelte: unable to marshal props for %q to render error. %s. %s", page.Error.Path, err, originalError))
-	// }
-	// // fmt.Println(string(file.Contents))
-	// expr := fmt.Sprintf(`%s; bud.render(%s)`, string(file.Contents), propBytes)
-	// html, err := v.js.Evaluate(ctx, page.Path, expr)
-	// if err != nil {
-	// 	return []byte(fmt.Sprintf("svelte: unable to evaluate javascript to render %q to render error. %s. %s", page.Error.Path, err, originalError))
-	// }
-	// return []byte(html)
-	var b bytes.Buffer
-	b.Write([]byte("<style>"))
-	b.Write(terminal.CSS())
-	b.Write([]byte("</style>"))
-	b.Write(terminal.Pre([]byte(originalError.Error())))
-	return b.Bytes()
+	page, ok := v.pages[key]
+	if !ok {
+		return []byte(fmt.Sprintf("svelte: unable to find page from key %q to render error. %s", key, originalError))
+	}
+	if page.Error == nil {
+		return []byte(fmt.Sprintf("svelte: no error page for %q to render error. %s", key, originalError))
+	}
+	errorPage, ok := v.pages[page.Error.Key]
+	if !ok {
+		return []byte(fmt.Sprintf("svelte: unable to find error page for %q to render error. %s", page.Error.Key, originalError))
+	}
+	v.log.Info("svelte: rendering error", errorPage.Path)
+	file, err := v.es.Serve(&es.Serve{
+		AbsDir:   v.module.Directory(),
+		Entry:    "./" + errorPage.Path + ".js",
+		Platform: es.SSR,
+		Plugins: []es.Plugin{
+			v.ssrEntryPlugin(errorPage),
+			v.ssrRuntimePlugin(),
+			v.ssrTranspile(ctx),
+			es.HTTP(http.DefaultClient),
+			es.ImportMap(v.log, map[string]string{
+				"svelte":  "https://esm.run/svelte@" + versions.Svelte,
+				"svelte/": "https://esm.run/svelte@" + versions.Svelte + "/",
+			}),
+		},
+	})
+	if err != nil {
+		return []byte(fmt.Sprintf("svelte: unable to serve error page %q to render error. %s. %s", errorPage.Path, err, originalError))
+	}
+	propMap[errorPage.Key] = viewer.Error(originalError)
+	propBytes, err := json.Marshal(propMap)
+	if err != nil {
+		return []byte(fmt.Sprintf("svelte: unable to marshal props for %q to render error. %s. %s", errorPage.Path, err, originalError))
+	}
+	expr := fmt.Sprintf(`%s; bud.render(%s)`, string(file.Contents), propBytes)
+	html, err := v.js.Evaluate(ctx, errorPage.Path, expr)
+	if err != nil {
+		return []byte(fmt.Sprintf("svelte: unable to evaluate javascript to render %q to render error. %s. %s", errorPage.Path, err, originalError))
+	}
+	return []byte(html)
 }
 
 func (v *Viewer) Bundle(ctx context.Context, embed virtual.Tree) error {
@@ -145,24 +145,25 @@ func (v *Viewer) Handler(page *viewer.Page) http.Handler {
 		ctx := r.Context()
 		propMap, err := viewer.StaticPropMap(page, r)
 		if err != nil {
-			html := v.RenderError(ctx, page.Key, nil, err)
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write(html)
+			v.handleError(ctx, w, page, propMap, err)
 			return
 		}
 		html, err := v.Render(ctx, page.Key, propMap)
 		if err != nil {
-			html := v.RenderError(ctx, page.Key, propMap, err)
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write(html)
+			v.handleError(ctx, w, page, propMap, err)
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		w.Write(html)
 	})
+}
+
+func (v *Viewer) handleError(ctx context.Context, w http.ResponseWriter, page *viewer.Page, propMap map[string]interface{}, err error) {
+	html := v.RenderError(ctx, page.Key, propMap, err)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Write(html)
 }
 
 //go:embed ssr_entry.gotext
