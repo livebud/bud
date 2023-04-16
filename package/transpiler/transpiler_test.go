@@ -2,6 +2,7 @@ package transpiler_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -15,19 +16,20 @@ func TestTranspileSvelteToJSX(t *testing.T) {
 	tr := transpiler.New()
 	paths := []string{}
 	trace := []string{}
-	tr.Add(".svelte", ".jsx", func(file *transpiler.File) error {
+	tr.Add(".svelte", ".jsx", func(ctx context.Context, file *transpiler.File) error {
 		paths = append(paths, file.Path())
 		trace = append(trace, "svelte->jsx")
 		file.Data = []byte(`export default function() { return ` + string(file.Data) + ` }`)
 		return nil
 	})
-	tr.Add(".svelte", ".svelte", func(file *transpiler.File) error {
+	tr.Add(".svelte", ".svelte", func(ctx context.Context, file *transpiler.File) error {
 		paths = append(paths, file.Path())
 		trace = append(trace, "svelte->svelte")
 		file.Data = []byte("<main>" + string(file.Data) + "</main>")
 		return nil
 	})
-	result, err := tr.Transpile("hello.svelte", ".jsx", []byte("<h1>hi world</h1>"))
+	ctx := context.Background()
+	result, err := tr.Transpile(ctx, "hello.svelte", ".jsx", []byte("<h1>hi world</h1>"))
 	is.NoErr(err)
 	is.Equal(string(result), `export default function() { return <main><h1>hi world</h1></main> }`)
 	is.Equal(strings.Join(trace, " "), "svelte->svelte svelte->jsx")
@@ -44,13 +46,14 @@ func TestSvelteSvelte(t *testing.T) {
 	tr := transpiler.New()
 	trace := []string{}
 	paths := []string{}
-	tr.Add(".svelte", ".svelte", func(file *transpiler.File) error {
+	tr.Add(".svelte", ".svelte", func(ctx context.Context, file *transpiler.File) error {
 		paths = append(paths, file.Path())
 		trace = append(trace, "svelte->svelte")
 		file.Data = []byte("<main>" + string(file.Data) + "</main>")
 		return nil
 	})
-	result, err := tr.Transpile("hello.svelte", ".svelte", []byte("<h1>hi world</h1>"))
+	ctx := context.Background()
+	result, err := tr.Transpile(ctx, "hello.svelte", ".svelte", []byte("<h1>hi world</h1>"))
 	is.NoErr(err)
 	is.Equal(string(result), `<main><h1>hi world</h1></main>`)
 	is.Equal(strings.Join(trace, " "), "svelte->svelte")
@@ -64,11 +67,12 @@ func TestSvelteSvelte(t *testing.T) {
 func TestNoExt(t *testing.T) {
 	is := is.New(t)
 	tr := transpiler.New()
-	tr.Add(".svelte", ".svelte", func(file *transpiler.File) error {
+	tr.Add(".svelte", ".svelte", func(ctx context.Context, file *transpiler.File) error {
 		file.Data = []byte("<main>" + string(file.Data) + "</main>")
 		return nil
 	})
-	result, err := tr.Transpile("hello.svelte", ".jsx", []byte("<h1>hi world</h1>"))
+	ctx := context.Background()
+	result, err := tr.Transpile(ctx, "hello.svelte", ".jsx", []byte("<h1>hi world</h1>"))
 	is.True(err != nil)
 	is.True(errors.Is(err, transpiler.ErrNoPath))
 	is.Equal(result, nil)
@@ -81,15 +85,16 @@ func TestNoExt(t *testing.T) {
 func TestNoPath(t *testing.T) {
 	is := is.New(t)
 	tr := transpiler.New()
-	tr.Add(".svelte", ".svelte", func(file *transpiler.File) error {
+	tr.Add(".svelte", ".svelte", func(ctx context.Context, file *transpiler.File) error {
 		file.Data = []byte("<main>" + string(file.Data) + "</main>")
 		return nil
 	})
-	tr.Add(".jsx", ".jsx", func(file *transpiler.File) error {
+	tr.Add(".jsx", ".jsx", func(ctx context.Context, file *transpiler.File) error {
 		file.Data = []byte("<main>" + string(file.Data) + "</main>")
 		return nil
 	})
-	result, err := tr.Transpile("hello.svelte", ".jsx", []byte("<h1>hi world</h1>"))
+	ctx := context.Background()
+	result, err := tr.Transpile(ctx, "hello.svelte", ".jsx", []byte("<h1>hi world</h1>"))
 	is.True(err != nil)
 	is.True(errors.Is(err, transpiler.ErrNoPath))
 	is.Equal(result, nil)
@@ -104,38 +109,39 @@ func TestMultiStep(t *testing.T) {
 	tr := transpiler.New()
 	trace := []string{}
 	path := []string{}
-	tr.Add(".jsx", ".jsx", func(file *transpiler.File) error {
+	tr.Add(".jsx", ".jsx", func(ctx context.Context, file *transpiler.File) error {
 		path = append(path, file.Path())
 		trace = append(trace, "jsx->jsx")
 		file.Data = []byte("/* some prelude */ " + string(file.Data))
 		return nil
 	})
-	tr.Add(".svelte", ".jsx", func(file *transpiler.File) error {
+	tr.Add(".svelte", ".jsx", func(ctx context.Context, file *transpiler.File) error {
 		path = append(path, file.Path())
 		trace = append(trace, "svelte->jsx")
 		file.Data = []byte(`export default function() { return ` + string(file.Data) + ` }`)
 		return nil
 	})
-	tr.Add(".svelte", ".svelte", func(file *transpiler.File) error {
+	tr.Add(".svelte", ".svelte", func(ctx context.Context, file *transpiler.File) error {
 		path = append(path, file.Path())
 		trace = append(trace, "1:svelte->svelte")
 		file.Data = []byte("<main>" + string(file.Data) + "</main>")
 		return nil
 	})
-	tr.Add(".svelte", ".svelte", func(file *transpiler.File) error {
+	tr.Add(".svelte", ".svelte", func(ctx context.Context, file *transpiler.File) error {
 		path = append(path, file.Path())
 		trace = append(trace, "2:svelte->svelte")
 		file.Data = []byte("<div>" + string(file.Data) + "</div>")
 		return nil
 	})
-	tr.Add(".md", ".svelte", func(file *transpiler.File) error {
+	tr.Add(".md", ".svelte", func(ctx context.Context, file *transpiler.File) error {
 		path = append(path, file.Path())
 		trace = append(trace, "md->svelte")
 		file.Data = bytes.TrimPrefix(file.Data, []byte("# "))
 		file.Data = []byte("<h1>" + string(file.Data) + "</h1>")
 		return nil
 	})
-	result, err := tr.Transpile("hello.md", ".jsx", []byte("# hi world"))
+	ctx := context.Background()
+	result, err := tr.Transpile(ctx, "hello.md", ".jsx", []byte("# hi world"))
 	is.NoErr(err)
 	is.Equal(strings.Join(trace, " "), "md->svelte 1:svelte->svelte 2:svelte->svelte svelte->jsx jsx->jsx")
 	is.Equal(strings.Join(path, " "), "hello.md hello.svelte hello.svelte hello.svelte hello.jsx")
@@ -151,14 +157,15 @@ func TestMultiStep(t *testing.T) {
 func TestTranspileSSRJS(t *testing.T) {
 	is := is.New(t)
 	tr := transpiler.New()
-	tr.Add(".svelte", ".ssr.js", func(file *transpiler.File) error {
+	tr.Add(".svelte", ".ssr.js", func(ctx context.Context, file *transpiler.File) error {
 		file.Data = []byte(`module.exports = "` + string(file.Data) + `"`)
 		return nil
 	})
-	code, err := tr.Transpile("hello.svelte", ".ssr.js", []byte("<h1>hello</h1>"))
+	ctx := context.Background()
+	code, err := tr.Transpile(ctx, "hello.svelte", ".ssr.js", []byte("<h1>hello</h1>"))
 	is.NoErr(err)
 	is.Equal(string(code), `module.exports = "<h1>hello</h1>"`)
-	code, err = tr.Transpile("hello.svelte", ".ssr.js", []byte("<h1>world</h1>"))
+	code, err = tr.Transpile(ctx, "hello.svelte", ".ssr.js", []byte("<h1>world</h1>"))
 	is.NoErr(err)
 	is.Equal(string(code), `module.exports = "<h1>world</h1>"`)
 }
@@ -166,7 +173,8 @@ func TestTranspileSSRJS(t *testing.T) {
 func TestTranspileNoPath(t *testing.T) {
 	is := is.New(t)
 	tr := transpiler.New()
-	code, err := tr.Transpile("hello.jsx", ".ssr.js", []byte("<h1>hello</h1>"))
+	ctx := context.Background()
+	code, err := tr.Transpile(ctx, "hello.jsx", ".ssr.js", []byte("<h1>hello</h1>"))
 	is.True(err != nil)
 	is.True(errors.Is(err, transpiler.ErrNoPath))
 	is.Equal(code, nil)
@@ -177,51 +185,51 @@ func TestTranspileBest(t *testing.T) {
 	tr := transpiler.New()
 	trace := []string{}
 	path := []string{}
-	tr.Add(".jsx", ".js", func(file *transpiler.File) error {
+	tr.Add(".jsx", ".js", func(ctx context.Context, file *transpiler.File) error {
 		path = append(path, file.Path())
 		trace = append(trace, "jsx->js")
 		file.Data = []byte("// " + string(file.Data))
 		return nil
 	})
-	tr.Add(".jsx", ".jsx", func(file *transpiler.File) error {
+	tr.Add(".jsx", ".jsx", func(ctx context.Context, file *transpiler.File) error {
 		path = append(path, file.Path())
 		trace = append(trace, "jsx->jsx")
 		file.Data = []byte("/* some prelude */ " + string(file.Data))
 		return nil
 	})
-	tr.Add(".svelte", ".jsx", func(file *transpiler.File) error {
+	tr.Add(".svelte", ".jsx", func(ctx context.Context, file *transpiler.File) error {
 		path = append(path, file.Path())
 		trace = append(trace, "svelte->jsx")
 		file.Data = []byte(`export default function() { return ` + string(file.Data) + ` }`)
 		return nil
 	})
-	tr.Add(".svelte", ".svelte", func(file *transpiler.File) error {
+	tr.Add(".svelte", ".svelte", func(ctx context.Context, file *transpiler.File) error {
 		path = append(path, file.Path())
 		trace = append(trace, "1:svelte->svelte")
 		file.Data = []byte("<main>" + string(file.Data) + "</main>")
 		return nil
 	})
-	tr.Add(".svelte", ".svelte", func(file *transpiler.File) error {
+	tr.Add(".svelte", ".svelte", func(ctx context.Context, file *transpiler.File) error {
 		path = append(path, file.Path())
 		trace = append(trace, "2:svelte->svelte")
 		file.Data = []byte("<div>" + string(file.Data) + "</div>")
 		return nil
 	})
-	tr.Add(".md", ".svelte", func(file *transpiler.File) error {
+	tr.Add(".md", ".svelte", func(ctx context.Context, file *transpiler.File) error {
 		path = append(path, file.Path())
 		trace = append(trace, "md->svelte")
 		file.Data = bytes.TrimPrefix(file.Data, []byte("# "))
 		file.Data = []byte("<h1>" + string(file.Data) + "</h1>")
 		return nil
 	})
-	tr.Add(".md", ".jsx", func(file *transpiler.File) error {
+	tr.Add(".md", ".jsx", func(ctx context.Context, file *transpiler.File) error {
 		path = append(path, file.Path())
 		trace = append(trace, "md->jsx")
 		file.Data = bytes.TrimPrefix(file.Data, []byte("# "))
 		file.Data = []byte("<h1>" + string(file.Data) + "</h1>")
 		return nil
 	})
-	tr.Add(".png", ".jpg", func(file *transpiler.File) error {
+	tr.Add(".png", ".jpg", func(ctx context.Context, file *transpiler.File) error {
 		path = append(path, file.Path())
 		trace = append(trace, "png->jpg")
 		file.Data = []byte("jpg")

@@ -103,6 +103,7 @@ func (v *Viewer) RenderError(ctx context.Context, key string, propMap viewer.Pro
 	if err != nil {
 		return []byte(fmt.Sprintf("gohtml: unable to read error template %q to render error %s. %s", page.Error.Path, err, originalError))
 	}
+	// TODO: support frames
 	layout, err := v.parseTemplate(page.Layout.Path)
 	if err != nil {
 		return []byte(fmt.Sprintf("gohtml: unable to parse layout template %q to render error %s. %s", page.Error.Path, err, originalError))

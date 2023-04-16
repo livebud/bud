@@ -142,7 +142,7 @@ func listViews(fsys fs.FS, tree *tree, dir string) (views []*View, err error) {
 			views = append(views, subviews...)
 			continue
 		}
-		if !valid.ViewEntry(name) {
+		if !valid.View(name) {
 			continue
 		}
 		ext := path.Ext(name)

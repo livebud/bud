@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"io/fs"
-	"path"
+	"net/http"
+
+	"github.com/livebud/bud/framework/controller/controllerrt/request"
 
 	"github.com/livebud/bud/package/router"
 	"github.com/livebud/bud/package/virtual"
@@ -29,15 +31,10 @@ type Interface interface {
 }
 
 type View struct {
-	Key  Key
-	Path string
-	Ext  string
-}
-
-// Client is the standard route for specific views. This is typically used for
-// hot reloading individual views.
-func (v *View) Client() string {
-	return "/view/" + path.Clean(v.Path) + ".js"
+	Key    Key
+	Path   string
+	Ext    string
+	Client string // View client
 }
 
 type Page struct {
@@ -45,11 +42,8 @@ type Page struct {
 	Frames []*View
 	Layout *View
 	Error  *View
-}
-
-// Client is the standard entry route for pages that need a client
-func (p *Page) Client() string {
-	return "/view/" + path.Clean(p.View.Path) + ".entry.js"
+	Route  string
+	Client string // Entry client
 }
 
 type Embed = virtual.File
@@ -61,4 +55,24 @@ type Viewer interface {
 	Render(ctx context.Context, key string, propMap PropMap) ([]byte, error)
 	RenderError(ctx context.Context, key string, propMap PropMap, err error) []byte
 	Bundle(ctx context.Context, embed virtual.Tree) error
+}
+
+// StaticPropMap returns a prop map for static views based on the request data.
+func StaticPropMap(page *Page, r *http.Request) (PropMap, error) {
+	props := map[string]interface{}{}
+	if err := request.Unmarshal(r, &props); err != nil {
+		return nil, err
+	}
+	propMap := PropMap{}
+	propMap[page.Key] = props
+	if page.Layout != nil {
+		propMap[page.Layout.Key] = props
+	}
+	for _, frame := range page.Frames {
+		propMap[frame.Key] = props
+	}
+	if page.Error != nil {
+		propMap[page.Error.Key] = props
+	}
+	return propMap, nil
 }

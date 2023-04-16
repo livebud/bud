@@ -1,6 +1,7 @@
 package transpiler
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -30,14 +31,14 @@ func (f *File) Path() string {
 // the Transpiler struct.
 type Interface interface {
 	Best(fromExt string, accepts []string) (string, error)
-	Transpile(fromPath, toExt string, code []byte) ([]byte, error)
+	Transpile(ctx context.Context, fromPath, toExt string, code []byte) ([]byte, error)
 }
 
 func New() *Transpiler {
 	return &Transpiler{
 		ids:   map[string]int{},
 		exts:  map[int]string{},
-		fns:   map[string][]func(file *File) error{},
+		fns:   map[string][]func(ctx context.Context, file *File) error{},
 		graph: dijkstra.NewGraph(),
 	}
 }
@@ -45,9 +46,11 @@ func New() *Transpiler {
 // Transpiler is a generic multi-step tool for transpiling code from one
 // language to another.
 type Transpiler struct {
-	ids  map[string]int                      // ext -> id
-	exts map[int]string                      // id -> ext
-	fns  map[string][]func(file *File) error // map["ext>ext"][]fns
+	ids  map[string]int // ext -> id
+	exts map[int]string // id -> ext
+
+	// map["ext>ext"][]fns
+	fns map[string][]func(ctx context.Context, file *File) error
 
 	mu    sync.RWMutex
 	graph *dijkstra.Graph
@@ -62,13 +65,13 @@ func edgeKey(fromExt, toExt string) string {
 }
 
 // Add a tranpile function to go from one extension to another.
-func (t *Transpiler) Add(fromExt, toExt string, transpile func(file *File) error) {
+func (t *Transpiler) Add(fromExt, toExt string, transpile func(ctx context.Context, file *File) error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.add(fromExt, toExt, transpile)
 }
 
-func (t *Transpiler) add(fromExt, toExt string, transpile func(file *File) error) {
+func (t *Transpiler) add(fromExt, toExt string, transpile func(ctx context.Context, file *File) error) {
 	// Add the "from" extension to the graph
 	if _, ok := t.ids[fromExt]; !ok {
 		id := len(t.ids)
@@ -178,14 +181,14 @@ func (t *Transpiler) path(fromExt, toExt string) (hops []string, err error) {
 	return hops, nil
 }
 
-func (t *Transpiler) Transpile(fromPath, toExt string, code []byte) ([]byte, error) {
+func (t *Transpiler) Transpile(ctx context.Context, fromPath, toExt string, code []byte) ([]byte, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	return t.transpile(fromPath, toExt, code)
+	return t.transpile(ctx, fromPath, toExt, code)
 }
 
 // Transpile the code from one extension to another.
-func (t *Transpiler) transpile(fromPath, toExt string, code []byte) ([]byte, error) {
+func (t *Transpiler) transpile(ctx context.Context, fromPath, toExt string, code []byte) ([]byte, error) {
 	fromExt := filepath.Ext(fromPath)
 	// Find the shortest path
 	hops, err := t.path(fromExt, toExt)
@@ -205,7 +208,7 @@ func (t *Transpiler) transpile(fromPath, toExt string, code []byte) ([]byte, err
 			prevExt := hops[i-1]
 			edge := edgeKey(prevExt, ext)
 			for _, fn := range t.fns[edge] {
-				if err := fn(file); err != nil {
+				if err := fn(ctx, file); err != nil {
 					return nil, err
 				}
 			}
@@ -213,7 +216,7 @@ func (t *Transpiler) transpile(fromPath, toExt string, code []byte) ([]byte, err
 		file.ext = ext
 		// Call the loops (e.g. svelte => svelte)
 		for _, fn := range t.fns[edgeKey(ext, ext)] {
-			if err := fn(file); err != nil {
+			if err := fn(ctx, file); err != nil {
 				return nil, err
 			}
 		}

@@ -8,6 +8,7 @@ require (
 	github.com/ajg/form v1.5.2-0.20200323032839-9aeb3cf462e1
 	github.com/aybabtme/rgbterm v0.0.0-20170906152045-cc83f3b3ce59
 	github.com/bep/debounce v1.2.1
+	github.com/buildkite/terminal-to-html v3.2.0+incompatible
 	github.com/cespare/xxhash v1.1.0
 	github.com/evanw/esbuild v0.14.11
 	github.com/fatih/structtag v1.2.0

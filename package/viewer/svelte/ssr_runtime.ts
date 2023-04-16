@@ -59,7 +59,7 @@ export class Page {
       const layoutProps = props[layout.key] || {}
       // Don't pass layout props down to the client
       delete props[layout.key]
-      const clientScript = `<script src="${client}" async defer></script>`
+      const clientScript = `<script src="${client}" type="module" async defer></script>`
       const { head, css, html: layoutHTML } = layout.Component.render(layoutProps, {
         // context: new Map(Object.entries(page.layout?.context || {})),
         '$$slots': {

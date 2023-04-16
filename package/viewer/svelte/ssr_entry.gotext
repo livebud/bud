@@ -4,7 +4,7 @@
 import {{ $import.Name }} from "./{{ $import.Path }}"
 {{- end }}
 
-import { Page } from "svelte_ssr_runtime";
+import { Page } from ".svelte_ssr_runtime";
 
 const page = new Page({
 	key: "{{ $.Page.Key }}",
