@@ -12,6 +12,7 @@ require (
 	github.com/cespare/xxhash v1.1.0
 	github.com/evanw/esbuild v0.14.11
 	github.com/fatih/structtag v1.2.0
+	github.com/felixge/httpsnoop v1.0.3
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/gitchander/permutation v0.0.0-20201214100618-1f3e7285f953
 	github.com/go-logfmt/logfmt v0.5.1
