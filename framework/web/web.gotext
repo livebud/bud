@@ -25,12 +25,11 @@ func New(
 	{{- end }}
 	{{- end }}
 	// Compose the middleware together
-	middleware := middleware.Compose(
-		middleware.MethodOverride(),
-		router,
+	stack := middleware.Compose(
+		methodoverride.New(),
 	)
-	// 404 at the bottom of the middleware
-	handler := middleware.Middleware(http.NotFoundHandler())
+	// Add the router to the bottom of the middleware
+	handler := stack(router)
 	// Return the web server
 	return &Server{handler}
 }
