@@ -1,8 +1,10 @@
-package middleware
+package methodoverride
 
 import (
 	"net/http"
 	"strings"
+
+	"github.com/livebud/bud/package/middleware"
 )
 
 // Methods eligible for overriding
@@ -14,11 +16,11 @@ var eligible = map[string]struct{}{
 
 const formType = "application/x-www-form-urlencoded"
 
-// MethodOverride allows HTML <form method="post">'s to dispatch PATCH, PUT and
+// New allows HTML <form method="post">'s to dispatch PATCH, PUT and
 // DELETE requests by overriding the request method using a hidden "_method"
 // field in the form body.
-func MethodOverride() Middleware {
-	return Function(func(next http.Handler) http.Handler {
+func New() middleware.Middleware {
+	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Only override POST requests
 			if r.Method != http.MethodPost {
@@ -47,5 +49,5 @@ func MethodOverride() Middleware {
 			r.Method = override
 			next.ServeHTTP(w, r)
 		})
-	})
+	}
 }

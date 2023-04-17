@@ -6,37 +6,32 @@ import (
 
 	"github.com/felixge/httpsnoop"
 	"github.com/livebud/bud/package/log"
+	"github.com/livebud/bud/package/middleware"
 )
 
-func New(log log.Log) *Middleware {
-	return &Middleware{log}
-}
-
-type Middleware struct {
-	log log.Log
-}
-
-func (m *Middleware) Middleware(next http.Handler) http.Handler {
+func New(log log.Log) middleware.Middleware {
 	rw := &responseWriter{
 		code: 0,
 		body: new(bytes.Buffer),
 	}
-	return http.HandlerFunc(func(original http.ResponseWriter, r *http.Request) {
-		w := httpsnoop.Wrap(original, httpsnoop.Hooks{
-			WriteHeader: func(_ httpsnoop.WriteHeaderFunc) httpsnoop.WriteHeaderFunc {
-				return rw.WriteHeader
-			},
-			Write: func(_ httpsnoop.WriteFunc) httpsnoop.WriteFunc {
-				return rw.Write
-			},
-			Flush: func(flush httpsnoop.FlushFunc) httpsnoop.FlushFunc {
-				rw.writeTo(original)
-				return flush
-			},
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(original http.ResponseWriter, r *http.Request) {
+			w := httpsnoop.Wrap(original, httpsnoop.Hooks{
+				WriteHeader: func(_ httpsnoop.WriteHeaderFunc) httpsnoop.WriteHeaderFunc {
+					return rw.WriteHeader
+				},
+				Write: func(_ httpsnoop.WriteFunc) httpsnoop.WriteFunc {
+					return rw.Write
+				},
+				Flush: func(flush httpsnoop.FlushFunc) httpsnoop.FlushFunc {
+					rw.writeTo(original)
+					return flush
+				},
+			})
+			next.ServeHTTP(w, r)
+			rw.writeTo(original)
 		})
-		next.ServeHTTP(w, r)
-		rw.writeTo(original)
-	})
+	}
 }
 
 type responseWriter struct {

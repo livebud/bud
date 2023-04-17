@@ -50,6 +50,7 @@ func (l *loader) Load() (state *State, err error) {
 	// Add initial imports
 	l.imports.AddStd("net/http", "context")
 	l.imports.AddNamed("middleware", "github.com/livebud/bud/package/middleware")
+	l.imports.AddNamed("methodoverride", "github.com/livebud/bud/package/middleware/methodoverride")
 	l.imports.AddNamed("webrt", "github.com/livebud/bud/framework/web/webrt")
 	l.imports.AddNamed("router", "github.com/livebud/bud/package/router")
 	// Show the welcome page if we don't have any web resources
