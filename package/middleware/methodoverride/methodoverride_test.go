@@ -1,4 +1,4 @@
-package middleware_test
+package methodoverride_test
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/internal/is"
-	"github.com/livebud/bud/package/middleware"
+	"github.com/livebud/bud/package/middleware/methodoverride"
 	"github.com/livebud/bud/package/router"
 )
 
@@ -27,7 +27,8 @@ func TestNoMethod404(t *testing.T) {
 	w := httptest.NewRecorder()
 	router := router.New()
 	router.Patch("/", ok())
-	middleware.MethodOverride().Middleware(router).ServeHTTP(w, req)
+	middleware := methodoverride.New()
+	middleware(router).ServeHTTP(w, req)
 	res := w.Result()
 	is.Equal(res.StatusCode, 404)
 }
@@ -42,7 +43,8 @@ func TestPatch200(t *testing.T) {
 	w := httptest.NewRecorder()
 	router := router.New()
 	router.Patch("/", ok())
-	middleware.MethodOverride().Middleware(router).ServeHTTP(w, req)
+	middleware := methodoverride.New()
+	middleware(router).ServeHTTP(w, req)
 	res := w.Result()
 	is.Equal(res.StatusCode, 200)
 }
@@ -55,7 +57,8 @@ func TestPatchNoBody404(t *testing.T) {
 	w := httptest.NewRecorder()
 	router := router.New()
 	router.Patch("/", ok())
-	middleware.MethodOverride().Middleware(router).ServeHTTP(w, req)
+	middleware := methodoverride.New()
+	middleware(router).ServeHTTP(w, req)
 	res := w.Result()
 	is.Equal(res.StatusCode, 404)
 }
@@ -69,7 +72,8 @@ func TestPatchNoType404(t *testing.T) {
 	w := httptest.NewRecorder()
 	router := router.New()
 	router.Patch("/", ok())
-	middleware.MethodOverride().Middleware(router).ServeHTTP(w, req)
+	middleware := methodoverride.New()
+	middleware(router).ServeHTTP(w, req)
 	res := w.Result()
 	is.Equal(res.StatusCode, 404)
 }
@@ -84,7 +88,8 @@ func TestPatchInsensitive200(t *testing.T) {
 	w := httptest.NewRecorder()
 	router := router.New()
 	router.Patch("/", ok())
-	middleware.MethodOverride().Middleware(router).ServeHTTP(w, req)
+	middleware := methodoverride.New()
+	middleware(router).ServeHTTP(w, req)
 	res := w.Result()
 	is.Equal(res.StatusCode, 200)
 }
@@ -99,7 +104,8 @@ func TestDelete200(t *testing.T) {
 	w := httptest.NewRecorder()
 	router := router.New()
 	router.Delete("/", ok())
-	middleware.MethodOverride().Middleware(router).ServeHTTP(w, req)
+	middleware := methodoverride.New()
+	middleware(router).ServeHTTP(w, req)
 	res := w.Result()
 	is.Equal(res.StatusCode, 200)
 }
@@ -114,7 +120,8 @@ func TestPut200(t *testing.T) {
 	w := httptest.NewRecorder()
 	router := router.New()
 	router.Put("/", ok())
-	middleware.MethodOverride().Middleware(router).ServeHTTP(w, req)
+	middleware := methodoverride.New()
+	middleware(router).ServeHTTP(w, req)
 	res := w.Result()
 	is.Equal(res.StatusCode, 200)
 }
@@ -129,7 +136,8 @@ func TestGet404(t *testing.T) {
 	w := httptest.NewRecorder()
 	router := router.New()
 	router.Get("/", ok())
-	middleware.MethodOverride().Middleware(router).ServeHTTP(w, req)
+	middleware := methodoverride.New()
+	middleware(router).ServeHTTP(w, req)
 	res := w.Result()
 	is.Equal(res.StatusCode, 404)
 }
