@@ -99,7 +99,7 @@ func (g *Generator) generateFile(fsys generator.FS, file *generator.File) error 
 ////////////////////////////////////////////////
 
 func New(name string) *CLI {
-	return commander.New(name)
+	return commander.New(name, "zero app")
 }
 
 // Go starts a group of commands in goroutines and waits for them to finish

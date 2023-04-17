@@ -123,5 +123,5 @@ func run(log log.Log, loadCLI loadCLI) error {
 		return err
 	}
 	ctx := context.Background()
-	return cli.Parse(ctx, os.Args[1:])
+	return cli.Parse(ctx, os.Args[1:]...)
 }

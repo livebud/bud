@@ -49,13 +49,13 @@ func Main(load loadFn) {
 
 func run(ctx context.Context, load loadFn, args []string) error {
 	cmd := &Generate{new(framework.Flag), "info", load}
-	cli := commander.New("gen")
+	cli := commander.New("gen", "generator")
 	cli.Flag("embed", "embed assets").Bool(&cmd.flag.Embed).Default(false)
 	cli.Flag("hot", "hot reloading").Bool(&cmd.flag.Hot).Default(true)
 	cli.Flag("minify", "minify assets").Bool(&cmd.flag.Minify).Default(false)
 	cli.Flag("log", "filter logs with this pattern").Short('L').String(&cmd.lvl).Default("info")
 	cli.Run(cmd.Run)
-	return cli.Parse(ctx, args)
+	return cli.Parse(ctx, args...)
 }
 
 // Generate command
