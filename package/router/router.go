@@ -22,15 +22,15 @@ type Router struct {
 
 var _ http.Handler = (*Router)(nil)
 
-// Add a handler to a route
-func (rt *Router) Add(method, route string, handler http.Handler) error {
+// Set a handler manually
+func (rt *Router) Set(method, route string, handler http.Handler) error {
 	if !isMethod(method) {
 		return fmt.Errorf("router: %q is not a valid HTTP method", method)
 	}
-	return rt.add(method, route, handler)
+	return rt.set(method, route, handler)
 }
 
-func (rt *Router) add(method, route string, handler http.Handler) error {
+func (rt *Router) set(method, route string, handler http.Handler) error {
 	if route == "/" {
 		return rt.insert(method, route, handler)
 	}
@@ -49,27 +49,27 @@ func (rt *Router) insert(method, route string, handler http.Handler) error {
 
 // Get route
 func (rt *Router) Get(route string, handler http.Handler) error {
-	return rt.add(http.MethodGet, route, handler)
+	return rt.set(http.MethodGet, route, handler)
 }
 
 // Post route
 func (rt *Router) Post(route string, handler http.Handler) error {
-	return rt.add(http.MethodPost, route, handler)
+	return rt.set(http.MethodPost, route, handler)
 }
 
 // Put route
 func (rt *Router) Put(route string, handler http.Handler) error {
-	return rt.add(http.MethodPut, route, handler)
+	return rt.set(http.MethodPut, route, handler)
 }
 
 // Patch route
 func (rt *Router) Patch(route string, handler http.Handler) error {
-	return rt.add(http.MethodPatch, route, handler)
+	return rt.set(http.MethodPatch, route, handler)
 }
 
 // Delete route
 func (rt *Router) Delete(route string, handler http.Handler) error {
-	return rt.add(http.MethodDelete, route, handler)
+	return rt.set(http.MethodDelete, route, handler)
 }
 
 func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -104,6 +104,14 @@ func (rt *Router) Middleware(next http.Handler) http.Handler {
 		// Call the handler
 		match.Handler.ServeHTTP(w, r)
 	})
+}
+
+type Mount interface {
+	Mount(router *Router) error
+}
+
+func (rt *Router) Mount(m Mount) error {
+	return m.Mount(rt)
 }
 
 func trimTrailingSlash(path string) string {

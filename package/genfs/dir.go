@@ -16,7 +16,7 @@ type Dir struct {
 	tree   *tree
 }
 
-var _ Generators = (*Dir)(nil)
+var _ Directory = (*Dir)(nil)
 
 func (d *Dir) Target() string {
 	return d.target

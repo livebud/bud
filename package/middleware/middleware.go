@@ -19,6 +19,8 @@ func (fn Function) Middleware(next http.Handler) http.Handler {
 // Stack of middleware
 type Stack []Middleware
 
+var _ Middleware = Stack{}
+
 // Middleware fn
 func (stack Stack) Middleware(next http.Handler) http.Handler {
 	return Compose(stack...).Middleware(next)

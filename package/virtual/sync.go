@@ -13,6 +13,7 @@ import (
 )
 
 // Sync files from one filesystem to another at subpath
+// TODO switch to distinct subpaths (e.g. cmd/gen & internal/gen)
 func Sync(log log.Log, from fs.FS, to FS, subpaths ...string) error {
 	log.Debug("virtual: syncing")
 	target := path.Join(subpaths...)
@@ -20,8 +21,7 @@ func Sync(log log.Log, from fs.FS, to FS, subpaths ...string) error {
 		target = "."
 	}
 	now := time.Now()
-
-	ops, err := diff(log, from, to, target)
+	ops, err := diff(log, from, to, ".")
 	if err != nil {
 		return err
 	}

@@ -364,3 +364,28 @@ func TestSyncDeleteNotExist(t *testing.T) {
 	is.True(errors.Is(err, fs.ErrNotExist))
 	is.Equal(data, nil)
 }
+
+func TestDeleteFile(t *testing.T) {
+	is := is.New(t)
+	log := testlog.New()
+	// starting points
+	to := virtual.Tree{
+		"bud/cmd/app/main.go":    &virtual.File{Data: []byte("package main")},
+		"bud/cmd/app/random.txt": &virtual.File{Data: []byte("random")},
+	}
+	excluded := virtual.Exclude(to, func(path string) bool {
+		return strings.HasPrefix(path, "bud")
+	})
+	gen := genfs.New(dag.Discard, excluded, log)
+	gen.FileGenerator("bud/cmd/app/main.go", &genfs.Embed{
+		Data: []byte("package main"),
+	})
+	err := virtual.Sync(log, gen, to, "bud")
+	is.NoErr(err)
+	data, err := fs.ReadFile(to, "bud/cmd/app/main.go")
+	is.NoErr(err)
+	is.Equal(string(data), "package main")
+	data, err = fs.ReadFile(to, "bud/cmd/app/random.txt")
+	is.True(errors.Is(err, fs.ErrNotExist))
+	is.Equal(data, nil)
+}

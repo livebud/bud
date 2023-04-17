@@ -22,6 +22,7 @@ require (
 	github.com/livebud/bud-test-plugin v0.0.9
 	github.com/livebud/js v0.0.0-20230416184227-ef633a94787b
 	github.com/livebud/transpiler v0.0.3
+	github.com/matryer/is v1.4.0
 	github.com/matthewmueller/diff v0.0.0-20220104030700-cb2fe910d90c
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac
 	github.com/matthewmueller/text v0.0.0-20210424201111-ec1e4af8dfe8
@@ -32,6 +33,7 @@ require (
 	github.com/timewasted/go-accept-headers v0.0.0-20130320203746-c78f304b1b09
 	github.com/xlab/treeprint v1.1.0
 	go.kuoruan.net/v8go-polyfills v0.5.1-0.20220727011656-c74c5b408ebd
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
 	golang.org/x/sync v0.1.0
 	golang.org/x/tools v0.1.11-0.20220513221640-090b14e8501f
