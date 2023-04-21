@@ -139,6 +139,22 @@ go.build.linux:
 	@ tar -czf release/bud_v$(BUD_VERSION)_linux_amd64.tar.gz -C release bud_v$(BUD_VERSION)_linux_amd64
 	@ rm -rf release/bud_v$(BUD_VERSION)_linux_amd64
 
+go.build.linux.arm64:
+	@ xgo \
+		--targets=linux/arm64 \
+		--dest=release \
+		--out=bud \
+		--trimpath \
+		--ldflags="-s -w \
+			-X 'github.com/livebud/bud/internal/version.Bud=$(BUD_VERSION)' \
+		" \
+		./ 1> /dev/null
+	@ mkdir -p release/bud_v$(BUD_VERSION)_linux_arm64
+	@ mv release/bud-linux-arm64 release/bud_v$(BUD_VERSION)_linux_arm64/bud
+	@ cp {Changelog,License,Readme}.md release/bud_v$(BUD_VERSION)_linux_arm64
+	@ tar -czf release/bud_v$(BUD_VERSION)_linux_arm64.tar.gz -C release bud_v$(BUD_VERSION)_linux_arm64
+	@ rm -rf release/bud_v$(BUD_VERSION)_linux_arm64
+
 # v8go on Windows isn't supported at the moment.
 # You'll encounter: "/usr/bin/x86_64-w64-mingw32-ld: cannot find -lv8"
 # See:
@@ -197,7 +213,8 @@ build:
 	@ $(MAKE) --no-print-directory -j4 \
 		go.build.darwin.amd64 \
 		go.build.darwin.arm64 \
-		go.build.linux
+		go.build.linux \
+		go.build.linux.arm64
 	@ go run scripts/generate-checksums/main.go
 
 ##
