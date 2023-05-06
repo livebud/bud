@@ -32,7 +32,7 @@ import (
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/log/console"
-	"github.com/livebud/bud/package/log/levelfilter"
+	"github.com/livebud/bud/package/log/logfilter"
 	"github.com/livebud/bud/package/parser"
 	"github.com/livebud/bud/package/remotefs"
 	"github.com/livebud/bud/package/socket"
@@ -325,7 +325,7 @@ func (c *CLI) loadLog() (log.Log, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.log = log.New(levelfilter.New(console.New(c.Stderr), level))
+	c.log = log.New(logfilter.New(console.New(c.Stderr), level))
 	return c.log, nil
 }
 

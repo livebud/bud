@@ -9,6 +9,7 @@ require (
 	github.com/aybabtme/rgbterm v0.0.0-20170906152045-cc83f3b3ce59
 	github.com/bep/debounce v1.2.1
 	github.com/buildkite/terminal-to-html v3.2.0+incompatible
+	github.com/caarlos0/env/v8 v8.0.0
 	github.com/cespare/xxhash v1.1.0
 	github.com/evanw/esbuild v0.14.11
 	github.com/fatih/structtag v1.2.0

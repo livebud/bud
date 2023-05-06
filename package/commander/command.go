@@ -9,12 +9,14 @@ import (
 
 type Command interface {
 	Command(name, help string) Command
+	// Desc(desc string) Command
 	Flag(name, help string) *Flag
 	Arg(name string) *Arg
 	Args(name string) *Args
 	Run(fn func(ctx context.Context) error)
 	Advanced() Command
 	Hidden() Command
+	Use(name string, user User)
 }
 
 type subcommand struct {
@@ -85,6 +87,12 @@ func (c *subcommand) Advanced() Command {
 func (c *subcommand) Hidden() Command {
 	c.hidden = true
 	return c
+}
+
+func (c *subcommand) Use(name string, user User) {
+	cmd := c.Command(name, "")
+	user.Use(cmd)
+	cmd.Run(user.Run)
 }
 
 func (c *subcommand) extract(fset *flag.FlagSet, arguments []string) (args []string, err error) {

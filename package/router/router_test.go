@@ -60,7 +60,7 @@ func ok(t testing.TB, test *test) {
 		case http.MethodDelete:
 			err = router.Delete(route.route, handler(route.route))
 		default:
-			err = router.Add(route.method, route.route, handler(route.route))
+			err = router.Set(route.method, route.route, handler(route.route))
 		}
 		if err != nil {
 			is.Equal(route.err, err.Error())
@@ -222,10 +222,10 @@ func TestPut(t *testing.T) {
 	is.Equal("id=10", string(body))
 }
 
-func TestAdd(t *testing.T) {
+func TestSet(t *testing.T) {
 	is := is.New(t)
 	router := router.New()
-	is.NoErr(router.Add(http.MethodHead, "/:id", handler("/:id")))
+	is.NoErr(router.Set(http.MethodHead, "/:id", handler("/:id")))
 	req := httptest.NewRequest(http.MethodHead, "/10", nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)

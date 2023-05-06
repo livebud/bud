@@ -8,6 +8,9 @@ import (
 
 // Trap cancels the context based on a signal
 func Trap(ctx context.Context, signals ...os.Signal) context.Context {
+	if len(signals) == 0 {
+		return ctx
+	}
 	ret, cancel := context.WithCancel(ctx)
 	ch := make(chan os.Signal, len(signals))
 	go func() {

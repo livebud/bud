@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/livebud/bud/package/log/levelfilter"
+	"github.com/livebud/bud/package/log/logfilter"
 
 	log "github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/log/console"
@@ -26,5 +26,5 @@ func New() log.Log {
 	if err != nil {
 		panic(fmt.Sprintf("testlog: invalid --log=[level] %q" + *logFlag))
 	}
-	return log.New(levelfilter.New(console.New(os.Stderr), level))
+	return log.New(logfilter.New(console.New(os.Stderr), level))
 }

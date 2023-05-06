@@ -16,7 +16,7 @@ import (
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/log/console"
-	"github.com/livebud/bud/package/log/levelfilter"
+	"github.com/livebud/bud/package/log/logfilter"
 	"github.com/livebud/bud/package/remotefs"
 
 	"github.com/livebud/bud/internal/extrafile"
@@ -28,7 +28,7 @@ func Logger(level string) (log.Log, error) {
 	if err != nil {
 		return nil, err
 	}
-	logger := log.New(levelfilter.New(console.New(os.Stderr), lvl))
+	logger := log.New(logfilter.New(console.New(os.Stderr), lvl))
 	return logger, nil
 }
 

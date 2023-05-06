@@ -1,4 +1,4 @@
-package levelfilter
+package logfilter
 
 import (
 	log "github.com/livebud/bud/package/log"

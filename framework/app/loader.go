@@ -41,7 +41,7 @@ func (l *loader) Load() (state *State, err error) {
 	l.imports.AddStd("os", "context", "errors")
 	l.imports.AddNamed("commander", "github.com/livebud/bud/package/commander")
 	l.imports.AddNamed("console", "github.com/livebud/bud/package/log/console")
-	l.imports.AddNamed("levelfilter", "github.com/livebud/bud/package/log/levelfilter")
+	l.imports.AddNamed("logfilter", "github.com/livebud/bud/package/log/logfilter")
 	l.imports.AddNamed("log", "github.com/livebud/bud/package/log")
 	l.imports.AddNamed("budhttp", "github.com/livebud/bud/package/budhttp")
 	l.imports.Add(l.module.Import("bud/internal/web"))

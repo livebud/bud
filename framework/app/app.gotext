@@ -47,7 +47,7 @@ func (a *App) logger() (log.Log, error) {
 	if err != nil {
 		return nil, err
 	}
-	return log.New(levelfilter.New(console.New(os.Stderr), level)), nil
+	return log.New(logfilter.New(console.New(os.Stderr), level)), nil
 }
 
 // Run your app

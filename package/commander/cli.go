@@ -10,6 +10,7 @@ import (
 	"text/template"
 
 	"github.com/livebud/bud/internal/sig"
+	"github.com/livebud/bud/package/log/console"
 )
 
 var ErrCommandNotFound = errors.New("command not found")
@@ -40,6 +41,15 @@ func New(name, help string) *CLI {
 	}
 }
 
+func Run(cli *CLI, args ...string) int {
+	ctx := context.Background()
+	if err := cli.Parse(ctx, args...); err != nil && !errors.Is(err, context.Canceled) {
+		console.Error(err.Error())
+		return 1
+	}
+	return 0
+}
+
 type CLI struct {
 	*subcommand
 	signals []os.Signal
@@ -62,6 +72,16 @@ func (c *CLI) Usage(usage *template.Template) *CLI {
 func (c *CLI) Signals(signals ...os.Signal) *CLI {
 	c.signals = signals
 	return c
+}
+
+// TODO: rename
+type User interface {
+	Use(cmd Command)
+	Run(ctx context.Context) error
+}
+
+func (c *CLI) Use(name string, user User) {
+	c.subcommand.Use(name, user)
 }
 
 func (c *CLI) Parse(ctx context.Context, args ...string) error {
