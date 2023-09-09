@@ -1,0 +1,28 @@
+
+  {{bold}}Usage:{{reset}}
+    $ {{ $.Name }} {{- if $.Usage }} {{ $.Usage }}{{ end }}
+
+{{- if $.Description}}
+
+  {{bold}}Description:{{reset}}
+    {{ $.Description }}
+{{- end }}
+
+{{- if $.Flags}}
+
+  {{bold}}Flags:{{reset}}
+    {{ $.Flags.Usage }}
+{{- end }}
+
+{{- if $.Commands }}
+
+  {{bold}}Commands:{{reset}}
+    {{ $.Commands.Usage }}
+{{- end }}
+
+{{- if $.Advanced }}
+
+  {{bold}}Advanced Commands:{{reset}}
+    {{ $.Advanced.Usage }}
+{{- end }}
+
