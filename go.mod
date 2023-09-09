@@ -6,6 +6,7 @@ require (
 	github.com/go-logfmt/logfmt v0.6.0
 	github.com/matryer/is v1.4.1
 	github.com/matthewmueller/diff v0.0.0-20220110044814-1b370be97fd0
+	golang.org/x/mod v0.12.0
 	golang.org/x/sync v0.3.0
 )
 

@@ -212,8 +212,8 @@ func Provide[Dep, Func any](in Injector, fn Func) error {
 	return nil
 }
 
-// When a dependency is loaded, call this function as well
-func When[Dep, Func any](in Injector, fn Func) error {
+// Register a dependency is loaded, call this function as well
+func Register[Dep, Func any](in Injector, fn Func) error {
 	var dep Dep
 	depType := typeOf(dep)
 	depID, err := reflector.ID(depType)
