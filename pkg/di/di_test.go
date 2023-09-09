@@ -22,8 +22,24 @@ type Log struct {
 	lvl string
 }
 
+func (l *Log) Info(msg string) {
+}
+
 func loadLog(env *Env) (*Log, error) {
 	return &Log{env: env, lvl: "info"}, nil
+}
+
+type Logger interface {
+	Info(msg string)
+}
+
+type DB struct {
+	env *Env
+	log Logger
+}
+
+func loadDB(env *Env, log Logger) (*DB, error) {
+	return &DB{env: env, log: log}, nil
 }
 
 func TestDI(t *testing.T) {
@@ -118,6 +134,20 @@ func TestClone(t *testing.T) {
 	is.True(err != nil)
 	is.True(errors.Is(err, di.ErrNoProvider))
 	is.Equal(log, nil)
+}
+
+func TestInterface(t *testing.T) {
+	is := is.New(t)
+	in := di.New()
+	is.NoErr(di.Provide[*Env](in, loadEnv))
+	is.NoErr(di.Provide[Logger](in, loadLog))
+	is.NoErr(di.Provide[*DB](in, loadDB))
+	log, err := di.Load[Logger](in)
+	is.NoErr(err)
+	is.True(log != nil)
+	db, err := di.Load[*DB](in)
+	is.NoErr(err)
+	is.True(db != nil)
 }
 
 func ExampleLoad() {

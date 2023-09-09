@@ -128,9 +128,18 @@ func New() Injector {
 	}
 }
 
+func typeOf[Dep any](dep Dep) reflect.Type {
+	depType := reflect.TypeOf(dep)
+	// Handle interfaces
+	if depType == nil {
+		depType = reflect.TypeOf(new(Dep)).Elem()
+	}
+	return depType
+}
+
 // Load a dependency. Requires a corresponding provider.
 func Load[Dep any](in Injector) (d Dep, err error) {
-	depType := reflect.TypeOf(d)
+	depType := typeOf(d)
 	depId, err := reflector.ID(depType)
 	if err != nil {
 		return d, err
@@ -160,7 +169,7 @@ func Provide[Dep, Func any](in Injector, fn Func) error {
 		return fmt.Errorf("di: %s must be a function", fnType)
 	}
 	var dep Dep
-	depType := reflect.TypeOf(dep)
+	depType := typeOf(dep)
 	depID, err := reflector.ID(depType)
 	if err != nil {
 		return err
@@ -175,7 +184,7 @@ func Provide[Dep, Func any](in Injector, fn Func) error {
 		if err != nil {
 			return err
 		}
-		if resultID != depID && !depType.Implements(resultType) {
+		if resultID != depID && !resultType.Implements(depType) {
 			return fmt.Errorf("di: invalid provider for %s", fnType)
 		}
 	}
@@ -206,7 +215,7 @@ func Provide[Dep, Func any](in Injector, fn Func) error {
 // When a dependency is loaded, call this function as well
 func When[Dep, Func any](in Injector, fn Func) error {
 	var dep Dep
-	depType := reflect.TypeOf(dep)
+	depType := typeOf(dep)
 	depID, err := reflector.ID(depType)
 	if err != nil {
 		return err
