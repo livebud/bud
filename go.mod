@@ -7,6 +7,7 @@ require (
 	github.com/matryer/is v1.4.1
 	github.com/matthewmueller/diff v0.0.0-20220110044814-1b370be97fd0
 	github.com/matthewmueller/gotext v0.0.0-20210424201144-265ed61725ac
+	github.com/yuin/goldmark v1.5.6
 	golang.org/x/mod v0.12.0
 	golang.org/x/sync v0.3.0
 )
