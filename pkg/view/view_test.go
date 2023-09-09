@@ -223,7 +223,7 @@ func TestRenderMultiple(t *testing.T) {
 func TestContext(t *testing.T) {
 	is := is.New(t)
 	fsys := fstest.MapFS{
-		"index.gohtml": &fstest.MapFile{Data: []byte("{{ $.CSRF }} {{ $.Context.Path }}")},
+		"index.gohtml": &fstest.MapFile{Data: []byte("{{ $.Context.CSRF }} {{ $.Context.Path }}")},
 	}
 	renderers := map[string]view.Renderer{
 		".gohtml": gohtml.New(),

@@ -25,9 +25,9 @@ func (r *renderer) Render(ctx context.Context, s view.Slot, file view.File, data
 }
 
 type templateData struct {
-	data  view.Data
-	Props any
-	slot  view.Slot
+	Context view.Data
+	Props   any
+	slot    view.Slot
 }
 
 // Slot returns slot data, if there is any. Otherwise returns an empty string
@@ -39,8 +39,12 @@ func (d *templateData) Slot() (template.HTML, error) {
 	return template.HTML(html), nil
 }
 
-func (d *templateData) CSRF() string {
-	return d.data["csrf"].(string)
+func (d *templateData) CSRF() (string, error) {
+	csrf, ok := d.Context["csrf"].(string)
+	if !ok {
+		return "", fmt.Errorf("gohtml: unable to get csrf value")
+	}
+	return csrf, nil
 }
 
 func (r *renderer) parseTemplate(ctx context.Context, file view.File) (*template.Template, error) {
