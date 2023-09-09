@@ -1,9 +1,0 @@
-{
-  "name": "hn",
-  "version": "0.0.0",
-  "private": true,
-  "dependencies": {
-    "svelte": "3.44.1",
-    "timeago.js": "4.0.2"
-  }
-}
