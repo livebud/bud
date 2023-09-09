@@ -16,9 +16,16 @@ func (f *formWriter) WriteEmpty(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusSeeOther)
 }
 
+type redirector interface {
+	Redirect(r *http.Request) string
+}
+
 func (f *formWriter) WriteOutput(w http.ResponseWriter, r *http.Request, out any) {
-	// TODO: look at `out` during a POST/PATCH for the redirect key
-	w.Header().Add("Location", backPath(r))
+	redirectPath := r.URL.Path
+	if redirector, ok := out.(redirector); ok {
+		redirectPath = redirector.Redirect(r)
+	}
+	w.Header().Add("Location", redirectPath)
 	w.WriteHeader(http.StatusSeeOther)
 }
 

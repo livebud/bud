@@ -4,8 +4,8 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/livebud/bud/pkg/bud"
 	"github.com/livebud/bud/pkg/cli"
+	"github.com/livebud/bud/pkg/command"
 	"github.com/livebud/bud/pkg/controller"
 	"github.com/livebud/bud/pkg/di"
 	"github.com/livebud/bud/pkg/env"
@@ -23,8 +23,8 @@ func New() di.Injector {
 	di.Provide[*cli.CLI](in, cli.Default)
 	di.Provide[cli.Parser](in, cliParser)
 	di.Provide[cli.Command](in, cliCommand)
-	di.Provide[*bud.Command](in, bud.New)
-	di.Register[*cli.CLI](in, bud.Register)
+	di.Provide[*command.Bud](in, command.New)
+	di.Register[*cli.CLI](in, command.Register)
 	di.Provide[*env.Bud](in, env.Load[*env.Bud])
 	di.Provide[*slog.Logger](in, log.Default)
 	di.Provide[*mux.Router](in, mux.New)

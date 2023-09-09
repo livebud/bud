@@ -1,4 +1,4 @@
-package bud
+package command
 
 import (
 	"context"
@@ -12,11 +12,11 @@ import (
 	"github.com/livebud/bud/pkg/web"
 )
 
-func New(env *env.Bud, log *slog.Logger, router *mux.Router, server *web.Server) *Command {
-	return &Command{env, log, router, server}
+func New(env *env.Bud, log *slog.Logger, router *mux.Router, server *web.Server) *Bud {
+	return &Bud{env, log, router, server}
 }
 
-func Register(cli cli.Command, cmd *Command) {
+func Register(cli cli.Command, cmd *Bud) {
 	// Run is the root command
 	run := &Run{}
 	cli.Run(func(ctx context.Context) error {
@@ -26,7 +26,7 @@ func Register(cli cli.Command, cmd *Command) {
 	routes.Run(cmd.Routes)
 }
 
-type Command struct {
+type Bud struct {
 	env    *env.Bud
 	log    *slog.Logger
 	router *mux.Router
@@ -38,7 +38,7 @@ type Run struct {
 	Listen string
 }
 
-func (c *Command) Run(ctx context.Context, in *Run) error {
+func (c *Bud) Run(ctx context.Context, in *Run) error {
 	ln, err := web.Listen(c.env.Listen)
 	if err != nil {
 		return err
@@ -47,7 +47,7 @@ func (c *Command) Run(ctx context.Context, in *Run) error {
 	return c.server.Serve(ctx, ln)
 }
 
-func (c *Command) Routes(ctx context.Context) error {
+func (c *Bud) Routes(ctx context.Context) error {
 	for _, route := range c.router.List() {
 		fmt.Println(route.String())
 	}
