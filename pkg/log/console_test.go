@@ -62,9 +62,8 @@ func TestConsole(t *testing.T) {
 
 func ExampleConsole() {
 	log := slog.New(&log.Console{
-		Color:     color.Ignore(),
-		Writer:    os.Stdout,
-		AddSource: false,
+		Color:  color.Ignore(),
+		Writer: os.Stdout,
 	})
 	log.WithGroup("hello").Debug("world", "args", 10)
 	log.Info("hello", "planet", "world", "args", 10)

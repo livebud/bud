@@ -37,7 +37,7 @@ func prefixes(color color.Writer) map[Level]string {
 type Console struct {
 	Color     color.Writer
 	Writer    io.Writer
-	AddSource bool
+	AddSource func(rec *slog.Record) bool
 	prefixes  map[Level]string
 	mu        sync.Mutex // mu protects the writer
 	once      sync.Once  // Called once to setup defaults
@@ -54,6 +54,9 @@ func (c *Console) setup() {
 	}
 	if c.Color == nil {
 		c.Color = color.Default()
+	}
+	if c.AddSource == nil {
+		c.AddSource = func(*slog.Record) bool { return false }
 	}
 	c.prefixes = prefixes(c.Color)
 }
@@ -81,7 +84,7 @@ func (c *Console) Handle(ctx context.Context, record slog.Record) error {
 			return true
 		})
 	}
-	if c.AddSource {
+	if c.AddSource(&record) {
 		enc.EncodeKeyval("source", c.source(record.PC))
 	}
 	enc.Reset()

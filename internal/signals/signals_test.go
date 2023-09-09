@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/livebud/bud/pkg/cli/internal/signals"
-	"github.com/livebud/bud/pkg/cli/internal/subtest"
+	"github.com/livebud/bud/internal/signals"
+	"github.com/livebud/bud/internal/subtest"
 	"github.com/matryer/is"
 )
 

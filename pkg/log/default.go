@@ -2,6 +2,7 @@ package log
 
 import (
 	"context"
+	"log/slog"
 	"os"
 
 	"github.com/livebud/bud/pkg/color"
@@ -13,9 +14,11 @@ func DefaultLevel() Level {
 
 func Default() *Logger {
 	return New(Filter(LevelInfo, &Console{
-		Writer:    os.Stderr,
-		Color:     color.Default(),
-		AddSource: true,
+		Writer: os.Stderr,
+		Color:  color.Default(),
+		AddSource: func(rec *slog.Record) bool {
+			return rec.Level >= LevelError
+		},
 	}))
 }
 
