@@ -4,6 +4,7 @@ go 1.21.0
 
 require (
 	github.com/ajg/form v1.5.2-0.20200323032839-9aeb3cf462e1
+	github.com/felixge/httpsnoop v1.0.3
 	github.com/go-logfmt/logfmt v0.6.0
 	github.com/matryer/is v1.4.1
 	github.com/matthewmueller/diff v0.0.0-20220110044814-1b370be97fd0

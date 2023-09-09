@@ -16,15 +16,16 @@ func New() view.Renderer {
 type renderer struct {
 }
 
-func (r *renderer) Render(ctx context.Context, s view.Slot, file view.File, props any) error {
+func (r *renderer) Render(ctx context.Context, s view.Slot, file view.File, data view.Data, props any) error {
 	tpl, err := r.parseTemplate(ctx, file)
 	if err != nil {
 		return err
 	}
-	return tpl.Execute(s, &templateData{props, s})
+	return tpl.Execute(s, &templateData{data, props, s})
 }
 
 type templateData struct {
+	data  view.Data
 	Props any
 	slot  view.Slot
 }
@@ -36,7 +37,10 @@ func (d *templateData) Slot() (template.HTML, error) {
 		return "", err
 	}
 	return template.HTML(html), nil
+}
 
+func (d *templateData) CSRF() string {
+	return d.data["csrf"].(string)
 }
 
 func (r *renderer) parseTemplate(ctx context.Context, file view.File) (*template.Template, error) {

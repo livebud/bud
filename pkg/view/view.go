@@ -37,7 +37,7 @@ type File interface {
 }
 
 type Renderer interface {
-	Render(ctx context.Context, s Slot, file File, props any) error
+	Render(ctx context.Context, s Slot, file File, data Data, props any) error
 }
 
 type Slot interface {
@@ -91,7 +91,8 @@ func (v *view) Render(ctx context.Context, s Slot, props any) error {
 		return err
 	}
 	defer file.Close()
-	return v.renderer.Render(ctx, s, &vfile{v.path, file}, props)
+	data := getAll(ctx)
+	return v.renderer.Render(ctx, s, &vfile{v.path, file}, data, props)
 }
 
 type inherited struct {

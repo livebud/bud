@@ -15,7 +15,7 @@ func New() view.Renderer {
 type renderer struct {
 }
 
-func (r *renderer) Render(ctx context.Context, s view.Slot, file view.File, props any) error {
+func (r *renderer) Render(ctx context.Context, s view.Slot, file view.File, data view.Data, props any) error {
 	code, err := io.ReadAll(file)
 	if err != nil {
 		return err

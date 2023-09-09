@@ -219,3 +219,27 @@ func TestRenderMultiple(t *testing.T) {
 	is.NoErr(err)
 	diff.TestString(t, editBytes.String(), "edit")
 }
+
+func TestContext(t *testing.T) {
+	is := is.New(t)
+	fsys := fstest.MapFS{
+		"index.gohtml": &fstest.MapFile{Data: []byte("{{ $.CSRF }} {{ $.Context.Path }}")},
+	}
+	renderers := map[string]view.Renderer{
+		".gohtml": gohtml.New(),
+	}
+	vf := view.New(fsys, renderers)
+	index, err := vf.FindPage("index")
+	is.NoErr(err)
+	indexBytes := newSlotBuffer()
+	ctx := context.Background()
+	ctx = view.Set(ctx, view.Data{
+		"CSRF": "123",
+	})
+	ctx = view.Set(ctx, view.Data{
+		"Path": "abc",
+	})
+	err = index.View.Render(ctx, indexBytes, nil)
+	is.NoErr(err)
+	diff.TestString(t, indexBytes.String(), "123 abc")
+}

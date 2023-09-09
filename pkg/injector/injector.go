@@ -10,6 +10,10 @@ import (
 	"github.com/livebud/bud/pkg/di"
 	"github.com/livebud/bud/pkg/env"
 	"github.com/livebud/bud/pkg/log"
+	"github.com/livebud/bud/pkg/middleware"
+	"github.com/livebud/bud/pkg/middleware/csrf"
+	"github.com/livebud/bud/pkg/middleware/httpwrap"
+	"github.com/livebud/bud/pkg/middleware/methodoverride"
 	"github.com/livebud/bud/pkg/mod"
 	"github.com/livebud/bud/pkg/mux"
 	"github.com/livebud/bud/pkg/view"
@@ -34,6 +38,10 @@ func New() di.Injector {
 	di.Provide[*controller.Router](in, controller.New)
 	di.Provide[*view.Viewer](in, viewViewer)
 	di.Provide[view.Finder](in, viewFinder)
+	di.Provide[middleware.Stack](in, middlewareStack)
+	di.Provide[*csrf.Middleware](in, csrf.Default)
+	di.Provide[*methodoverride.Middleware](in, methodoverride.Default)
+	di.Provide[httpwrap.Middleware](in, httpwrap.New)
 	return in
 }
 
@@ -45,8 +53,20 @@ func cliCommand(cli *cli.CLI) cli.Command {
 	return cli
 }
 
-func webHandler(router web.Router) web.Handler {
-	return router
+func middlewareStack(
+	methodoverride *methodoverride.Middleware,
+	csrf *csrf.Middleware,
+	httpwrap httpwrap.Middleware,
+) middleware.Stack {
+	return middleware.Stack{
+		methodoverride,
+		csrf,
+		httpwrap,
+	}
+}
+
+func webHandler(stack middleware.Stack, router web.Router) web.Handler {
+	return stack.Middleware(router)
 }
 
 func webRouter(router *mux.Router) web.Router {
