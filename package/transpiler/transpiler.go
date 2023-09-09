@@ -111,13 +111,6 @@ func (t *Transpiler) Best(fromExt string, accepts []string) (toExt string, err e
 	return t.best(fromExt, accepts)
 }
 
-// Candidate is a candidate extension we can transpile to with the number of
-// hops it would take to get there.
-// type candidate struct {
-// 	Ext  string
-// 	Hops int
-// }
-
 func (t *Transpiler) best(fromExt string, accepts []string) (string, error) {
 	fromID, ok := t.ids[fromExt]
 	if !ok {

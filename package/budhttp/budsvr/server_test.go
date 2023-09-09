@@ -7,10 +7,10 @@ import (
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/is"
-	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/package/budhttp/budsvr"
 	v8 "github.com/livebud/bud/package/js/v8"
 	"github.com/livebud/bud/package/log/testlog"
+	"github.com/livebud/bud/package/pubsub"
 	"github.com/livebud/bud/package/socket"
 	"github.com/livebud/bud/package/virtual"
 	"golang.org/x/sync/errgroup"

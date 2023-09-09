@@ -8,12 +8,12 @@ import (
 
 	"github.com/livebud/bud/framework"
 	"github.com/livebud/bud/internal/current"
-	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/package/es"
 	"github.com/livebud/bud/package/gomod"
 	"github.com/livebud/bud/package/hot"
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/log/console"
+	"github.com/livebud/bud/package/pubsub"
 	"github.com/livebud/bud/package/router"
 	"github.com/livebud/bud/package/transpiler"
 	"github.com/livebud/bud/package/viewer"

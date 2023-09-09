@@ -15,7 +15,7 @@ import (
 	"github.com/livebud/bud/package/log"
 	"github.com/livebud/bud/package/virtual"
 
-	"github.com/livebud/bud/internal/pubsub"
+	"github.com/livebud/bud/package/pubsub"
 
 	"github.com/livebud/bud/package/js"
 	"github.com/livebud/bud/package/router"

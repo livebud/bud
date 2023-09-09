@@ -17,11 +17,11 @@ import (
 	"github.com/livebud/bud/framework/view/nodemodules"
 	"github.com/livebud/bud/framework/view/ssr"
 	"github.com/livebud/bud/internal/is"
-	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/package/budhttp"
 	"github.com/livebud/bud/package/budhttp/budsvr"
 	"github.com/livebud/bud/package/gomod"
 	v8 "github.com/livebud/bud/package/js/v8"
+	"github.com/livebud/bud/package/pubsub"
 	"github.com/livebud/bud/package/svelte"
 	"github.com/livebud/bud/package/testdir"
 )

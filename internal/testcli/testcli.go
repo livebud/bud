@@ -18,7 +18,7 @@ import (
 	"github.com/lithammer/dedent"
 	"github.com/livebud/bud/internal/errs"
 	"github.com/livebud/bud/internal/once"
-	"github.com/livebud/bud/internal/pubsub"
+	"github.com/livebud/bud/package/pubsub"
 	"github.com/matthewmueller/diff"
 
 	"github.com/livebud/bud/package/hot"

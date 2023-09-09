@@ -8,9 +8,9 @@ import (
 	"net/http"
 
 	"github.com/livebud/bud/framework"
-	"github.com/livebud/bud/internal/pubsub"
 	"github.com/livebud/bud/package/js"
 	"github.com/livebud/bud/package/log"
+	"github.com/livebud/bud/package/pubsub"
 	"golang.org/x/sync/errgroup"
 )
 
