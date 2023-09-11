@@ -14,6 +14,7 @@ import (
 
 	"github.com/livebud/bud/pkg/controller"
 	"github.com/livebud/bud/pkg/di"
+	"github.com/livebud/bud/pkg/middleware/dim"
 	"github.com/livebud/bud/pkg/mux"
 	"github.com/livebud/bud/pkg/view"
 	"github.com/livebud/bud/pkg/view/gohtml"
@@ -1457,7 +1458,7 @@ func TestDepUsingRequest(t *testing.T) {
 	controller := controller.New(viewer, mux.New())
 	is.NoErr(controller.Register("/", &depRoot{}))
 	req := httptest.NewRequest("GET", "/", nil)
-	equal(t, di.Middleware(in)(controller), req, `
+	equal(t, dim.Provide(in).Middleware(controller), req, `
 		HTTP/1.1 200 OK
 		Connection: close
 		Content-Type: text/html

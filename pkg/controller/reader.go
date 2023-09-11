@@ -6,6 +6,7 @@ import (
 
 	"github.com/livebud/bud/pkg/controller/internal/request"
 	"github.com/livebud/bud/pkg/di"
+	"github.com/livebud/bud/pkg/middleware/dim"
 )
 
 type defaultReader struct {
@@ -16,7 +17,7 @@ var _ reader = (*defaultReader)(nil)
 func (defaultReader) ReadContext(r *http.Request, typ reflect.Type) (reflect.Value, error) {
 	val := reflect.New(typ)
 	in := val.Interface()
-	injector, err := di.FromContext(r.Context())
+	injector, err := dim.From(r.Context())
 	if err != nil {
 		return zeroValue, err
 	}

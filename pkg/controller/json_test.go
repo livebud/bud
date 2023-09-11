@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/livebud/bud/pkg/di"
+	"github.com/livebud/bud/pkg/middleware/dim"
 	"github.com/matryer/is"
 	"github.com/matthewmueller/diff"
 )
@@ -290,7 +291,7 @@ func TestJsonInjectedStruct(t *testing.T) {
 		called = true
 	})
 	is.NoErr(err)
-	jsonEqual(t, di.Middleware(in)(h), "GET /?message=hi", `
+	jsonEqual(t, dim.Provide(in).Middleware(h), "GET /?message=hi", `
 		HTTP/1.1 204 No Content
 		Connection: close
 	`)

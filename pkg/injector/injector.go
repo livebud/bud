@@ -12,6 +12,7 @@ import (
 	"github.com/livebud/bud/pkg/log"
 	"github.com/livebud/bud/pkg/middleware"
 	"github.com/livebud/bud/pkg/middleware/csrf"
+	"github.com/livebud/bud/pkg/middleware/dim"
 	"github.com/livebud/bud/pkg/middleware/httpwrap"
 	"github.com/livebud/bud/pkg/middleware/methodoverride"
 	"github.com/livebud/bud/pkg/mod"
@@ -42,6 +43,9 @@ func New() di.Injector {
 	di.Provide[*csrf.Middleware](in, csrf.Default)
 	di.Provide[*methodoverride.Middleware](in, methodoverride.Default)
 	di.Provide[httpwrap.Middleware](in, httpwrap.New)
+	di.Provide[dim.Middleware](in, func() dim.Middleware {
+		return dim.Provide(in)
+	})
 	return in
 }
 
@@ -57,11 +61,13 @@ func middlewareStack(
 	methodoverride *methodoverride.Middleware,
 	csrf *csrf.Middleware,
 	httpwrap httpwrap.Middleware,
+	dim dim.Middleware,
 ) middleware.Stack {
 	return middleware.Stack{
 		methodoverride,
 		csrf,
 		httpwrap,
+		dim,
 	}
 }
 
