@@ -8,9 +8,9 @@ import (
 	"reflect"
 
 	"github.com/livebud/bud/pkg/controller/internal/request"
-	"github.com/livebud/bud/pkg/controller/internal/slots"
 	"github.com/livebud/bud/pkg/mux"
 	"github.com/livebud/bud/pkg/view"
+	"github.com/livebud/bud/pkg/view/slots"
 	"golang.org/x/sync/errgroup"
 )
 

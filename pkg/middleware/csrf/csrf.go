@@ -33,7 +33,7 @@ var _ middleware.Middleware = (*Middleware)(nil)
 
 func (m *Middleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r = r.WithContext(view.Set(r.Context(), view.Data{
+		r = r.WithContext(view.SetContext(r.Context(), view.Context{
 			m.FormKey: "123",
 		}))
 		next.ServeHTTP(w, r)

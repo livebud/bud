@@ -2,28 +2,27 @@ package view
 
 import "context"
 
-type Data map[string]any
+type Context map[string]any
 
-type contextKey struct{}
+var contextKey = struct{}{}
 
-var dataKey contextKey
-
-func Set(ctx context.Context, data Data) context.Context {
-	dataMap, ok := ctx.Value(dataKey).(Data)
+// SetContext sets the fields in the context
+func SetContext(ctx context.Context, fields Context) context.Context {
+	contextMap, ok := ctx.Value(contextKey).(Context)
 	if !ok {
-		dataMap = Data{}
+		contextMap = Context{}
 	}
-	for k, v := range data {
-		dataMap[k] = v
+	for k, v := range fields {
+		contextMap[k] = v
 	}
-	return context.WithValue(ctx, dataKey, dataMap)
+	return context.WithValue(ctx, contextKey, contextMap)
 }
 
-// get all the data from the context
-func getAll(ctx context.Context) Data {
-	dataMap, ok := ctx.Value(dataKey).(Data)
+// GetContext gets fields from the context
+func GetContext(ctx context.Context) Context {
+	contextMap, ok := ctx.Value(contextKey).(Context)
 	if !ok {
-		return Data{}
+		return Context{}
 	}
-	return dataMap
+	return contextMap
 }

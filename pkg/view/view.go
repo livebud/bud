@@ -37,7 +37,7 @@ type File interface {
 }
 
 type Renderer interface {
-	Render(ctx context.Context, s Slot, file File, data Data, props any) error
+	Render(ctx context.Context, slot Slot, file File, props any) error
 }
 
 type Slot interface {
@@ -91,14 +91,33 @@ func (v *view) Render(ctx context.Context, s Slot, props any) error {
 		return err
 	}
 	defer file.Close()
-	data := getAll(ctx)
-	return v.renderer.Render(ctx, s, &vfile{v.path, file}, data, props)
+	return v.renderer.Render(ctx, s, &vfile{v.path, file}, props)
 }
 
 type inherited struct {
 	Layout map[string]View
 	Frames map[string][]View
 	Error  map[string]View
+}
+
+func (i *inherited) Clone() *inherited {
+	layouts := make(map[string]View)
+	for k, v := range i.Layout {
+		layouts[k] = v
+	}
+	frames := make(map[string][]View)
+	for k, v := range i.Frames {
+		frames[k] = v
+	}
+	errors := make(map[string]View)
+	for k, v := range i.Error {
+		errors[k] = v
+	}
+	return &inherited{
+		Layout: layouts,
+		Frames: frames,
+		Error:  errors,
+	}
 }
 
 type Viewer struct {
@@ -252,7 +271,7 @@ func (v *Viewer) findPagesInDir(pages map[string]*Page, inherited *inherited, di
 		if !de.IsDir() {
 			continue
 		}
-		if err := v.findPagesInDir(pages, inherited, path.Join(dir, de.Name())); err != nil {
+		if err := v.findPagesInDir(pages, inherited.Clone(), path.Join(dir, de.Name())); err != nil {
 			return err
 		}
 	}

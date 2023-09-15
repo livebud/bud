@@ -502,3 +502,17 @@ func TestNestedInput(t *testing.T) {
 	is.Equal(2, in.Op.Params[1].Version)
 	is.Equal(false, in.Op.Params[1].Update)
 }
+
+func TestMultipleErrors(t *testing.T) {
+	t.Skip("Multiple errors is flaky from the unordered map in github.com/ajg/form")
+	is := is.New(t)
+	type Input struct {
+		PostID int `json:"post_id"`
+		ID     int `json:"id"`
+	}
+	r := httptest.NewRequest("POST", "/?id=abc&post_id=def", nil)
+	var in Input
+	err := request.Unmarshal(r, &in)
+	is.True(err != nil)
+	is.Equal(err.Error(), `could not parse int from "abc"`)
+}

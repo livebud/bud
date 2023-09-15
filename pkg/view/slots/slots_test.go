@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/livebud/bud/pkg/controller/internal/slots"
+	"github.com/livebud/bud/pkg/view/slots"
 	"github.com/matryer/is"
 	"golang.org/x/sync/errgroup"
 )

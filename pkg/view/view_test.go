@@ -15,7 +15,7 @@ import (
 	"github.com/matthewmueller/diff"
 )
 
-func TestFindSample(t *testing.T) {
+func TestFindPageSample(t *testing.T) {
 	is := is.New(t)
 	fsys := fstest.MapFS{
 		"index.gohtml": &fstest.MapFile{Data: []byte("Hello {{ .Planet }}!")},
@@ -34,7 +34,7 @@ func TestFindSample(t *testing.T) {
 	is.Equal(page.Error, nil)
 }
 
-func TestFindNested(t *testing.T) {
+func TestFindPageNested(t *testing.T) {
 	is := is.New(t)
 	fsys := fstest.MapFS{
 		"layout.gohtml":               &fstest.MapFile{Data: []byte(`<slot />`)},
@@ -80,6 +80,64 @@ func TestFindNested(t *testing.T) {
 	is.True(page.Layout != nil)
 	is.Equal(page.Layout.Key(), "layout")
 	is.Equal(page.Layout.Path(), "layout.gohtml")
+}
+
+func TestFindPageTree(t *testing.T) {
+	is := is.New(t)
+	fsys := fstest.MapFS{
+		"index.gohtml":          &fstest.MapFile{Data: []byte(``)},
+		"posts/index.gohtml":    &fstest.MapFile{Data: []byte(``)},
+		"posts/frame.gohtml":    &fstest.MapFile{Data: []byte(``)},
+		"sessions/index.gohtml": &fstest.MapFile{Data: []byte(``)},
+		"sessions/error.gohtml": &fstest.MapFile{Data: []byte(``)},
+		"layout.gohtml":         &fstest.MapFile{Data: []byte(``)},
+		"error.gohtml":          &fstest.MapFile{Data: []byte(``)},
+	}
+	// Find the pages
+	finder := view.New(fsys, map[string]view.Renderer{
+		".gohtml": gohtml.New(),
+	})
+
+	page, err := finder.FindPage("index")
+	is.NoErr(err)
+	is.True(page.View != nil)
+	is.Equal(page.View.Key(), "index")
+	is.Equal(page.View.Path(), "index.gohtml")
+	is.Equal(len(page.Frames), 0)
+	is.True(page.Layout != nil)
+	is.Equal(page.Layout.Key(), "layout")
+	is.Equal(page.Layout.Path(), "layout.gohtml")
+	is.True(page.Error != nil)
+	is.Equal(page.Error.Key(), "error")
+	is.Equal(page.Error.Path(), "error.gohtml")
+
+	page, err = finder.FindPage("posts/index")
+	is.NoErr(err)
+	is.True(page.View != nil)
+	is.Equal(page.View.Key(), "posts/index")
+	is.Equal(page.View.Path(), "posts/index.gohtml")
+	is.Equal(len(page.Frames), 1)
+	is.True(page.Frames[0] != nil)
+	is.Equal(page.Frames[0].Key(), "posts/frame")
+	is.Equal(page.Frames[0].Path(), "posts/frame.gohtml")
+	is.True(page.Layout != nil)
+	is.Equal(page.Layout.Key(), "layout")
+	is.Equal(page.Layout.Path(), "layout.gohtml")
+	is.Equal(page.Error.Key(), "error")
+	is.Equal(page.Error.Path(), "error.gohtml")
+
+	page, err = finder.FindPage("sessions/index")
+	is.NoErr(err)
+	is.True(page.View != nil)
+	is.Equal(page.View.Key(), "sessions/index")
+	is.Equal(page.View.Path(), "sessions/index.gohtml")
+	is.Equal(len(page.Frames), 0)
+	is.True(page.Layout != nil)
+	is.Equal(page.Layout.Key(), "layout")
+	is.Equal(page.Layout.Path(), "layout.gohtml")
+	is.True(page.Error != nil)
+	is.Equal(page.Error.Key(), "sessions/error")
+	is.Equal(page.Error.Path(), "sessions/error.gohtml")
 }
 
 func TestFindView(t *testing.T) {
@@ -233,10 +291,10 @@ func TestContext(t *testing.T) {
 	is.NoErr(err)
 	indexBytes := newSlotBuffer()
 	ctx := context.Background()
-	ctx = view.Set(ctx, view.Data{
+	ctx = view.SetContext(ctx, view.Context{
 		"CSRF": "123",
 	})
-	ctx = view.Set(ctx, view.Data{
+	ctx = view.SetContext(ctx, view.Context{
 		"Path": "abc",
 	})
 	err = index.View.Render(ctx, indexBytes, nil)

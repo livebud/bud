@@ -16,16 +16,17 @@ func New() view.Renderer {
 type renderer struct {
 }
 
-func (r *renderer) Render(ctx context.Context, s view.Slot, file view.File, data view.Data, props any) error {
+func (r *renderer) Render(ctx context.Context, s view.Slot, file view.File, props any) error {
 	tpl, err := r.parseTemplate(ctx, file)
 	if err != nil {
 		return err
 	}
-	return tpl.Execute(s, &templateData{data, props, s})
+	context := view.GetContext(ctx)
+	return tpl.Execute(s, &templateData{context, props, s})
 }
 
 type templateData struct {
-	Context view.Data
+	Context view.Context
 	Props   any
 	slot    view.Slot
 }
