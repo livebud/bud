@@ -33,6 +33,7 @@ func (f *formWriter) WriteError(w http.ResponseWriter, r *http.Request, err erro
 	w.Header().Add("Location", backPath(r))
 	// TODO: add session flash
 	w.WriteHeader(http.StatusSeeOther)
+	w.Write([]byte(err.Error()))
 }
 
 func backPath(r *http.Request) (location string) {

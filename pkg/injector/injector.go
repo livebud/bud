@@ -17,6 +17,7 @@ import (
 	"github.com/livebud/bud/pkg/middleware/methodoverride"
 	"github.com/livebud/bud/pkg/mod"
 	"github.com/livebud/bud/pkg/mux"
+	"github.com/livebud/bud/pkg/session"
 	"github.com/livebud/bud/pkg/view"
 	"github.com/livebud/bud/pkg/view/gohtml"
 	"github.com/livebud/bud/pkg/web"
@@ -46,6 +47,7 @@ func New() di.Injector {
 	di.Provide[dim.Middleware](in, func() dim.Middleware {
 		return dim.Provide(in)
 	})
+	di.Provide[session.Middleware](in, session.New)
 	return in
 }
 
@@ -62,11 +64,13 @@ func middlewareStack(
 	csrf *csrf.Middleware,
 	httpwrap httpwrap.Middleware,
 	dim dim.Middleware,
+	session session.Middleware,
 ) middleware.Stack {
 	return middleware.Stack{
 		methodoverride,
 		csrf,
 		httpwrap,
+		session,
 		dim,
 	}
 }
