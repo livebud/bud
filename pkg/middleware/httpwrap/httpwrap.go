@@ -10,11 +10,11 @@ import (
 
 func New() Middleware {
 	return middleware.Func(func(next http.Handler) http.Handler {
-		rw := &responseWriter{
-			code: 0,
-			body: new(bytes.Buffer),
-		}
 		return http.HandlerFunc(func(original http.ResponseWriter, r *http.Request) {
+			rw := &responseWriter{
+				code: 0,
+				body: new(bytes.Buffer),
+			}
 			w := httpsnoop.Wrap(original, httpsnoop.Hooks{
 				WriteHeader: func(_ httpsnoop.WriteHeaderFunc) httpsnoop.WriteHeaderFunc {
 					return rw.WriteHeader

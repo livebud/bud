@@ -164,3 +164,22 @@ func TestFlushStatusWrapped(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(string(body), "Hello, world!yoyo")
 }
+
+func TestMultipleWriteHeaders(t *testing.T) {
+	is := is.New(t)
+	req, err := http.NewRequest("POST", "/", nil)
+	rec := httptest.NewRecorder()
+	is.NoErr(err)
+	h := httpwrap.New().Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusSeeOther)
+	}))
+	h.ServeHTTP(rec, req)
+	res := rec.Result()
+	is.Equal(res.StatusCode, http.StatusSeeOther)
+	req, err = http.NewRequest("POST", "/", nil)
+	is.NoErr(err)
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	res = rec.Result()
+	is.Equal(res.StatusCode, http.StatusSeeOther)
+}
