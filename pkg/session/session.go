@@ -19,8 +19,8 @@ func From[Session any](ctx context.Context) (session Session, err error) {
 	if !ok {
 		return session, ErrInvalidSession
 	}
-	if container.Session != nil {
-		session, ok := container.Session.(Session)
+	if container.Data != nil {
+		session, ok := container.Data.(Session)
 		if !ok {
 			return session, ErrInvalidSession
 		}
@@ -29,7 +29,7 @@ func From[Session any](ctx context.Context) (session Session, err error) {
 	if err := form.DecodeString(&session, container.Raw); err != nil {
 		return session, err
 	}
-	container.Session = session
+	container.Data = session
 	return session, nil
 }
 

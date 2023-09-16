@@ -18,7 +18,8 @@ type Middleware middleware.Middleware
 
 type wrapper struct {
 	Raw     string
-	Session any
+	Data    any
+	Flashes []string
 }
 
 func New() Middleware {
@@ -40,10 +41,10 @@ func New() Middleware {
 			container, ok := sessionValue.(*wrapper)
 			if !ok {
 				return
-			} else if container.Session == nil {
+			} else if container.Data == nil {
 				return
 			}
-			newValue, err := form.EncodeToString(container.Session)
+			newValue, err := form.EncodeToString(container.Data)
 			if err != nil {
 				// TODO: Handle this error.
 				panic(err)
