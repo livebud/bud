@@ -30,23 +30,57 @@ type injector struct {
 	cache map[string]reflect.Value
 }
 
-func (in *injector) provide(depId string, dep *dependency) {
+func (in *injector) getDep(depId string) (*dependency, bool) {
+	in.mu.RLock()
+	defer in.mu.RUnlock()
+	dep, ok := in.deps[depId]
+	return dep, ok
+}
+
+func (in *injector) setDep(depId string, dep *dependency) {
 	in.mu.Lock()
 	in.deps[depId] = dep
 	in.mu.Unlock()
 }
 
-func (in *injector) when(depId string, dep *dependency) {
+func (in *injector) getWhen(depId string) []*dependency {
+	in.mu.RLock()
+	defer in.mu.RUnlock()
+	return in.whens[depId]
+}
+
+func (in *injector) setWhen(depId string, dep *dependency) {
 	in.mu.Lock()
 	in.whens[depId] = append(in.whens[depId], dep)
 	in.mu.Unlock()
 }
 
+func (in *injector) getCache(depId string) (reflect.Value, bool) {
+	in.mu.RLock()
+	defer in.mu.RUnlock()
+	cache, ok := in.cache[depId]
+	return cache, ok
+}
+
+func (in *injector) setCache(depId string, val reflect.Value) {
+	in.mu.Lock()
+	in.cache[depId] = val
+	in.mu.Unlock()
+}
+
+func (in *injector) provide(depId string, dep *dependency) {
+	in.setDep(depId, dep)
+}
+
+func (in *injector) when(depId string, dep *dependency) {
+	in.setWhen(depId, dep)
+}
+
 func (in *injector) load(depId string) (val reflect.Value, err error) {
-	if val, ok := in.cache[depId]; ok {
+	if val, ok := in.getCache(depId); ok {
 		return val, nil
 	}
-	dep, ok := in.deps[depId]
+	dep, ok := in.getDep(depId)
 	if !ok {
 		return val, fmt.Errorf("%w for %s", ErrNoProvider, depId)
 	}
@@ -68,7 +102,7 @@ func (in *injector) load(depId string) (val reflect.Value, err error) {
 		}
 	}
 	val = results[0]
-	in.cache[depId] = val
+	in.setCache(depId, val)
 	if err := in.loadWhens(depId); err != nil {
 		return val, err
 	}
@@ -76,7 +110,7 @@ func (in *injector) load(depId string) (val reflect.Value, err error) {
 }
 
 func (in *injector) loadWhens(depId string) error {
-	for _, when := range in.whens[depId] {
+	for _, when := range in.getWhen(depId) {
 		args := make([]reflect.Value, len(when.ArgIDs))
 		for i, argId := range when.ArgIDs {
 			arg, err := in.load(argId)
