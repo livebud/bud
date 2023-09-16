@@ -17,49 +17,41 @@ type renderer struct {
 }
 
 func (r *renderer) Render(ctx context.Context, s view.Slot, file view.File, props any) error {
-	tpl, err := r.parseTemplate(ctx, file)
+	tpl, err := r.parseTemplate(ctx, s, file)
 	if err != nil {
 		return err
 	}
-	context := view.GetContext(ctx)
-	return tpl.Execute(s, &templateData{context, props, s})
+	return tpl.Execute(s, props)
 }
 
-type templateData struct {
-	Context view.Context
-	Props   any
-	slot    view.Slot
-}
-
-// Slot returns slot data, if there is any. Otherwise returns an empty string
-func (d *templateData) Slot() (template.HTML, error) {
-	html, err := io.ReadAll(d.slot)
-	if err != nil {
-		return "", err
-	}
-	return template.HTML(html), nil
-}
-
-func (d *templateData) CSRF() (string, error) {
-	csrf, ok := d.Context["csrf"].(string)
-	if !ok {
-		return "", fmt.Errorf("gohtml: unable to get csrf value")
-	}
-	return csrf, nil
-}
-
-func (r *renderer) parseTemplate(ctx context.Context, file view.File) (*template.Template, error) {
+func (r *renderer) parseTemplate(ctx context.Context, slot view.Slot, file view.File) (*template.Template, error) {
 	code, err := io.ReadAll(file)
 	if err != nil {
 		return nil, fmt.Errorf("gohtml: unable to parse template %q. %w", file.Path(), err)
 	}
-	tpl, err := template.New(file.Path()).Parse(withProps(string(code)))
+	contextData := view.GetContext(ctx)
+	fns := template.FuncMap{
+		"slot": func() (template.HTML, error) {
+			html, err := io.ReadAll(slot)
+			if err != nil {
+				return "", err
+			}
+			return template.HTML(html), nil
+		},
+		"context": func() view.Context {
+			return contextData
+		},
+		"csrf": func() (string, error) {
+			csrf, ok := contextData["csrf"].(string)
+			if !ok {
+				return "", fmt.Errorf("gohtml: csrf not found in context")
+			}
+			return csrf, nil
+		},
+	}
+	tpl, err := template.New(file.Path()).Funcs(fns).Parse(string(code))
 	if err != nil {
 		return nil, err
 	}
 	return tpl, nil
-}
-
-func withProps(template string) string {
-	return `{{ with $.Props }}` + template + `{{ else }}` + template + `{{ end }}`
 }
