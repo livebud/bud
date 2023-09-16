@@ -2202,9 +2202,9 @@ func (c *layoutFrameController) Index() layoutFrameIndex {
 func TestLayoutFrame(t *testing.T) {
 	is := is.New(t)
 	fsys := fstest.MapFS{
-		"layout.gohtml": &fstest.MapFile{Data: []byte(`<html><body>{{ $.Slot }}</body></html>`)},
-		"frame.gohtml":  &fstest.MapFile{Data: []byte(`<main>{{ $.Slot }}</main>`)},
-		"index.gohtml":  &fstest.MapFile{Data: []byte(`<p>{{ .Message }}</p>`)},
+		"layout.gohtml": &fstest.MapFile{Data: []byte(`<html><body>{{ slot }}</body></html>`)},
+		"frame.gohtml":  &fstest.MapFile{Data: []byte(`<main>{{ slot }}</main>`)},
+		"index.gohtml":  &fstest.MapFile{Data: []byte(`<p>{{ $.Message }}</p>`)},
 	}
 	viewer := view.New(fsys, map[string]view.Renderer{
 		".gohtml": gohtml.New(),
@@ -2242,8 +2242,8 @@ func (c *layoutFrameErrorController) Index() error {
 func TestLayoutFrameError(t *testing.T) {
 	is := is.New(t)
 	fsys := fstest.MapFS{
-		"layout.gohtml": &fstest.MapFile{Data: []byte(`<html><body>{{ $.Slot }}</body></html>`)},
-		"frame.gohtml":  &fstest.MapFile{Data: []byte(`<main>{{ $.Slot }}</main>`)},
+		"layout.gohtml": &fstest.MapFile{Data: []byte(`<html><body>{{ slot }}</body></html>`)},
+		"frame.gohtml":  &fstest.MapFile{Data: []byte(`<main>{{ slot }}</main>`)},
 		"index.gohtml":  &fstest.MapFile{Data: []byte(`<p>{{ .Message }}</p>`)},
 		"error.gohtml":  &fstest.MapFile{Data: []byte(`<p>{{ .Error }}</p>`)},
 	}
@@ -2282,7 +2282,7 @@ func (c *frameErrorController) Index() {
 func TestFrameError(t *testing.T) {
 	is := is.New(t)
 	fsys := fstest.MapFS{
-		"layout.gohtml": &fstest.MapFile{Data: []byte(`<html><body>{{ $.Slot }}</body></html>`)},
+		"layout.gohtml": &fstest.MapFile{Data: []byte(`<html><body>{{ slot }}</body></html>`)},
 		"frame.gohtml":  &fstest.MapFile{Data: []byte(`<main>{{ blah }}</main>`)},
 		"index.gohtml":  &fstest.MapFile{Data: []byte(`<p></p>`)},
 		"error.gohtml":  &fstest.MapFile{Data: []byte(`<p>{{ .Error }}</p>`)},
@@ -2320,7 +2320,7 @@ func (c *frameIndexErrorController) Index() error {
 func TestFrameIndexError(t *testing.T) {
 	is := is.New(t)
 	fsys := fstest.MapFS{
-		"layout.gohtml": &fstest.MapFile{Data: []byte(`<html><body>{{ $.Slot }}</body></html>`)},
+		"layout.gohtml": &fstest.MapFile{Data: []byte(`<html><body>{{ slot }}</body></html>`)},
 		"frame.gohtml":  &fstest.MapFile{Data: []byte(`<main>{{ blah }}</main>`)},
 		"index.gohtml":  &fstest.MapFile{Data: []byte(`<p>{{ .Message }}</p>`)},
 		"error.gohtml":  &fstest.MapFile{Data: []byte(`<p>{{ .Error }}</p>`)},
@@ -2376,8 +2376,8 @@ func (v *viewHandlers) Layout() viewHandler {
 func TestViewHandlers(t *testing.T) {
 	is := is.New(t)
 	fsys := fstest.MapFS{
-		"layout.gohtml": &fstest.MapFile{Data: []byte(`{{ .Message }} {{ $.Slot }}`)},
-		"frame.gohtml":  &fstest.MapFile{Data: []byte(`{{ .Message }} {{ $.Slot }}`)},
+		"layout.gohtml": &fstest.MapFile{Data: []byte(`{{ .Message }} {{ slot }}`)},
+		"frame.gohtml":  &fstest.MapFile{Data: []byte(`{{ .Message }} {{ slot }}`)},
 		"index.gohtml":  &fstest.MapFile{Data: []byte(`{{ .Message }}`)},
 	}
 	viewer := view.New(fsys, map[string]view.Renderer{
@@ -2435,9 +2435,9 @@ func (n *nestedFrameSessions) Index() viewHandler {
 func TestNestedFrame(t *testing.T) {
 	is := is.New(t)
 	fsys := fstest.MapFS{
-		"layout.gohtml":         &fstest.MapFile{Data: []byte(`{{ .Message }} {{ $.Slot }}`)},
-		"posts/frame.gohtml":    &fstest.MapFile{Data: []byte(`{{ .Message }} {{ $.Slot }}`)},
-		"posts/index.gohtml":    &fstest.MapFile{Data: []byte(`{{ .Message }} {{ $.Slot }}`)},
+		"layout.gohtml":         &fstest.MapFile{Data: []byte(`{{ .Message }} {{ slot }}`)},
+		"posts/frame.gohtml":    &fstest.MapFile{Data: []byte(`{{ .Message }} {{ slot }}`)},
+		"posts/index.gohtml":    &fstest.MapFile{Data: []byte(`{{ .Message }} {{ slot }}`)},
 		"sessions/index.gohtml": &fstest.MapFile{Data: []byte(`{{ .Message }}`)},
 		"index.gohtml":          &fstest.MapFile{Data: []byte(`{{ .Message }}`)},
 	}
