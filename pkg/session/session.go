@@ -95,6 +95,13 @@ func (s *Session) Int(key string) (int, bool) {
 	}
 }
 
+func (s *Session) Has(key string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	_, ok := s.state.Data[key]
+	return ok
+}
+
 func (s *Session) Increment(key string) int {
 	value, ok := s.Int(key)
 	if !ok {
@@ -130,9 +137,24 @@ func (s *Session) Flash(kind, message string) *Flash {
 		Type:    kind,
 		Message: message,
 	}
-	// s.data.Flashes = append(s.data.Flashes, f)
-	s.modified = true
+	flashes, ok := s.Get("flashes").([]*Flash)
+	if !ok {
+		flashes = []*Flash{}
+	}
+	flashes = append(flashes, f)
+	s.Set("flashes", flashes)
 	return f
+}
+
+func (s *Session) Flashes() []*Flash {
+	fmt.Println(s.state.Data)
+	flashes, ok := s.Get("flashes").([]*Flash)
+	if !ok {
+		fmt.Println("mah...")
+		return nil
+	}
+	s.Delete("flashes")
+	return flashes
 }
 
 type Store interface {

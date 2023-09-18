@@ -204,3 +204,44 @@ func TestSessionNested(t *testing.T) {
 		Set-Cookie: sid=eyJ2aXNpdHMiOjV9Cg
 	`)
 }
+
+func TestFlash(t *testing.T) {
+	t.Skip("TODO: fix this")
+	is := is.New(t)
+	jar, err := cookiejar.New(nil)
+	is.NoErr(err)
+	sessions := session.New(cookiestore.New(cookies.New()))
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		session, err := sessions.Load(r, "sid")
+		is.NoErr(err)
+		visits := session.Increment("visits")
+		if visits == 1 {
+			session.Flash("success", "it worked")
+		}
+		if visits == 2 {
+			flashes := session.Flashes()
+			is.Equal(len(flashes), 1)
+			is.Equal(flashes[0], "it worked")
+		}
+		err = sessions.Save(w, r, session)
+		is.NoErr(err)
+	})
+	req := httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
+	equal(t, jar, handler, req, `
+		HTTP/1.1 200 OK
+		Connection: close
+		Set-Cookie: sid=eyJmbGFzaGVzIjpbeyJUeXBlIjoic3VjY2VzcyIsIk1lc3NhZ2UiOiJpdCB3b3JrZWQifV0sInZpc2l0cyI6MX0K
+	`)
+	req = httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
+	equal(t, jar, handler, req, `
+		HTTP/1.1 200 OK
+		Connection: close
+		Set-Cookie: sid=eyJ2aXNpdHMiOjJ9Cg
+	`)
+	req = httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
+	equal(t, jar, handler, req, `
+		HTTP/1.1 200 OK
+		Connection: close
+		Set-Cookie: sid=eyJ2aXNpdHMiOjN9Cg
+	`)
+}

@@ -2,7 +2,6 @@ package cookiestore
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -39,27 +38,18 @@ type Store struct {
 
 var _ session.Store = (*Store)(nil)
 
-func generateRandom() (string, error) {
-	// generate a random 32 byte key with valid cookie value custom alphabet
-	b := make([]byte, 32)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return base64.RawURLEncoding.EncodeToString(b), nil
-}
-
-func (s *Store) loadSession(id string) (*session.State, error) {
+func freshSession(id string) *session.State {
 	return &session.State{
 		ID:   id,
 		Data: map[string]any{},
-	}, nil
+	}
 }
 
 func (s *Store) Load(r *http.Request, id string) (*session.State, error) {
 	cookie, err := s.cs.Read(r, id)
 	if err != nil {
 		if errors.Is(err, http.ErrNoCookie) {
-			return s.loadSession(id)
+			return freshSession(id), nil
 		}
 		return nil, err
 	}
@@ -70,7 +60,7 @@ func (s *Store) Load(r *http.Request, id string) (*session.State, error) {
 	var data session.Data
 	if err := s.Codec.Decode(bytes.NewBuffer(value), &data); err != nil {
 		// If there's any errors, just create a new session
-		return s.loadSession(id)
+		return freshSession(id), nil
 	}
 	return &session.State{
 		ID:      id,
