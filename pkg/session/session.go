@@ -18,12 +18,15 @@ type Flash struct {
 	Message string
 }
 
-type Data map[string]any
+type Payload struct {
+	Data    map[string]any `json:"data,omitempty"`
+	Flashes []*Flash       `json:"flashes,omitempty"`
+}
 
 type State struct {
-	ID      string    `json:"id,omitempty"`
-	Data    Data      `json:"data,omitempty"`
-	Expires time.Time `json:"expires,omitempty"`
+	ID      string
+	Payload *Payload
+	Expires time.Time
 }
 
 type Session struct {
@@ -41,7 +44,7 @@ func (s *Session) ID() string {
 func (s *Session) Set(key string, value any) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.state.Data[key] = value
+	s.state.Payload.Data[key] = value
 	s.modified = true
 }
 
@@ -54,7 +57,7 @@ func (s *Session) SetFunc(fn func(*State)) {
 func (s *Session) Get(key string) (value any) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.state.Data[key]
+	return s.state.Payload.Data[key]
 }
 
 func (s *Session) Int(key string) (int, bool) {
@@ -98,7 +101,7 @@ func (s *Session) Int(key string) (int, bool) {
 func (s *Session) Has(key string) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	_, ok := s.state.Data[key]
+	_, ok := s.state.Payload.Data[key]
 	return ok
 }
 
@@ -125,10 +128,10 @@ func (s *Session) Decrement(key string) int {
 func (s *Session) Delete(key string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, ok := s.state.Data[key]; !ok {
+	if _, ok := s.state.Payload.Data[key]; !ok {
 		return
 	}
-	delete(s.state.Data, key)
+	delete(s.state.Payload.Data, key)
 	s.modified = true
 }
 
@@ -137,23 +140,13 @@ func (s *Session) Flash(kind, message string) *Flash {
 		Type:    kind,
 		Message: message,
 	}
-	flashes, ok := s.Get("flashes").([]*Flash)
-	if !ok {
-		flashes = []*Flash{}
-	}
-	flashes = append(flashes, f)
-	s.Set("flashes", flashes)
+	s.state.Payload.Flashes = append(s.state.Payload.Flashes, f)
 	return f
 }
 
-func (s *Session) Flashes() []*Flash {
-	fmt.Println(s.state.Data)
-	flashes, ok := s.Get("flashes").([]*Flash)
-	if !ok {
-		fmt.Println("mah...")
-		return nil
-	}
-	s.Delete("flashes")
+func (s *Session) Flashes() (flashes []*Flash) {
+	flashes = append(flashes, s.state.Payload.Flashes...)
+	s.state.Payload.Flashes = nil
 	return flashes
 }
 

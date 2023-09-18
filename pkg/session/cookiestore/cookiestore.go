@@ -40,8 +40,11 @@ var _ session.Store = (*Store)(nil)
 
 func freshSession(id string) *session.State {
 	return &session.State{
-		ID:   id,
-		Data: map[string]any{},
+		ID: id,
+		Payload: &session.Payload{
+			Data:    map[string]any{},
+			Flashes: []*session.Flash{},
+		},
 	}
 }
 
@@ -57,21 +60,21 @@ func (s *Store) Load(r *http.Request, id string) (*session.State, error) {
 	if err != nil {
 		return nil, err
 	}
-	var data session.Data
-	if err := s.Codec.Decode(bytes.NewBuffer(value), &data); err != nil {
+	var payload session.Payload
+	if err := s.Codec.Decode(bytes.NewBuffer(value), &payload); err != nil {
 		// If there's any errors, just create a new session
 		return freshSession(id), nil
 	}
 	return &session.State{
 		ID:      id,
-		Data:    data,
+		Payload: &payload,
 		Expires: cookie.Expires,
 	}, nil
 }
 
 func (s *Store) Save(w http.ResponseWriter, r *http.Request, session *session.State) error {
 	buffer := new(bytes.Buffer)
-	if err := s.Codec.Encode(buffer, session.Data); err != nil {
+	if err := s.Codec.Encode(buffer, session.Payload); err != nil {
 		return err
 	}
 	cookie := &http.Cookie{
