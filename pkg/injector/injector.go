@@ -32,7 +32,7 @@ func New() di.Injector {
 	di.Provide[cli.Parser](in, cliParser)
 	di.Provide[cli.Command](in, cliCommand)
 	di.Provide[*command.Bud](in, command.New)
-	di.Register[*cli.CLI](in, command.Register)
+	di.Subscribe[*cli.CLI](in, command.Register)
 	di.Provide[*env.Bud](in, env.Load[*env.Bud])
 	di.Provide[*slog.Logger](in, log.Default)
 	di.Provide[*mux.Router](in, mux.New)
@@ -49,7 +49,7 @@ func New() di.Injector {
 	di.Provide[dim.Middleware](in, func() dim.Middleware {
 		return dim.Provide(in)
 	})
-	di.Register[dim.Injector](in, func(in dim.Injector) {
+	di.Subscribe[dim.Injector](in, func(in dim.Injector) {
 		di.Provide[*session.Session](in, session.From)
 	})
 	di.Provide[*session.Sessions](in, session.New)
