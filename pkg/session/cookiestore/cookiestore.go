@@ -2,31 +2,42 @@ package cookiestore
 
 import (
 	"bytes"
-	"context"
 	"crypto/rand"
-	"encoding/base32"
 	"encoding/base64"
-	"encoding/gob"
+	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 
 	"github.com/livebud/bud/pkg/session"
 	"github.com/livebud/bud/pkg/session/internal/cookies"
 )
 
+var defaultCodec = jsonCodec{}
+
+type jsonCodec struct{}
+
+func (jsonCodec) Encode(w io.Writer, value any) error {
+	return json.NewEncoder(w).Encode(value)
+}
+
+func (jsonCodec) Decode(r io.Reader, value any) error {
+	dec := json.NewDecoder(r)
+	return dec.Decode(value)
+}
+
 // New cookie store
 func New(cs cookies.Interface) *Store {
-	return &Store{cs, generateRandom}
+	return &Store{cs, defaultCodec}
 }
 
 // Store is a cookie store
 type Store struct {
-	cs         cookies.Interface
-	GenerateID func() (string, error)
+	cs    cookies.Interface
+	Codec session.Codec
 }
 
 var _ session.Store = (*Store)(nil)
-var _ session.StoreHTTP = (*Store)(nil)
 
 func generateRandom() (string, error) {
 	// generate a random 32 byte key with valid cookie value custom alphabet
@@ -37,68 +48,46 @@ func generateRandom() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
-func (c *Store) loadSession(id string) (data *session.Record, err error) {
-	if id == "" {
-		id, err = c.GenerateID()
-		if err != nil {
-			return nil, err
-		}
-	}
-	return &session.Record{
+func (s *Store) loadSession(id string) (*session.State, error) {
+	return &session.State{
 		ID:   id,
 		Data: map[string]any{},
 	}, nil
 }
 
-func (c *Store) LoadFrom(ctx context.Context, r *http.Request, id string) (*session.Record, error) {
-	cookie, err := c.cs.Read(r, id)
+func (s *Store) Load(r *http.Request, id string) (*session.State, error) {
+	cookie, err := s.cs.Read(r, id)
 	if err != nil {
 		if errors.Is(err, http.ErrNoCookie) {
-			return c.loadSession(id)
+			return s.loadSession(id)
 		}
 		return nil, err
 	}
-	value, err := base32.StdEncoding.DecodeString(cookie.Value)
+	value, err := base64.RawURLEncoding.DecodeString(cookie.Value)
 	if err != nil {
 		return nil, err
 	}
 	var data session.Data
-	if err := gob.NewDecoder(bytes.NewBuffer(value)).Decode(&data); err != nil {
+	if err := s.Codec.Decode(bytes.NewBuffer(value), &data); err != nil {
 		// If there's any errors, just create a new session
-		return c.loadSession(id)
+		return s.loadSession(id)
 	}
-	return &session.Record{
+	return &session.State{
 		ID:      id,
 		Data:    data,
 		Expires: cookie.Expires,
 	}, nil
 }
 
-func (c *Store) Load(ctx context.Context, id string) (*session.Record, error) {
-	return nil, errors.New("cookiestore: cannot load cookie sessions outside of the request-response lifecycle")
-}
-
-func (c *Store) SaveTo(ctx context.Context, w http.ResponseWriter, record *session.Record) error {
-	value := new(bytes.Buffer)
-	if err := gob.NewEncoder(value).Encode(record.Data); err != nil {
+func (s *Store) Save(w http.ResponseWriter, r *http.Request, session *session.State) error {
+	buffer := new(bytes.Buffer)
+	if err := s.Codec.Encode(buffer, session.Data); err != nil {
 		return err
 	}
 	cookie := &http.Cookie{
-		Name:    record.ID,
-		Value:   base32.StdEncoding.EncodeToString(value.Bytes()),
-		Expires: record.Expires,
+		Name:    session.ID,
+		Value:   base64.RawURLEncoding.EncodeToString(buffer.Bytes()),
+		Expires: session.Expires,
 	}
-	return c.cs.Write(w, cookie)
-}
-
-func (c *Store) Save(ctx context.Context, record *session.Record) error {
-	return errors.New("cookiestore: cannot save cookie sessions outside of a request-response lifecycle")
-}
-
-func (c *Store) delete(w http.ResponseWriter, id string) error {
-	cookie := &http.Cookie{
-		Name:   id,
-		MaxAge: -1,
-	}
-	return c.cs.Write(w, cookie)
+	return s.cs.Write(w, cookie)
 }

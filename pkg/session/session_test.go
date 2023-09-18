@@ -1,7 +1,7 @@
 package session_test
 
 import (
-	"fmt"
+	"encoding/gob"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -66,21 +66,35 @@ func TestSession(t *testing.T) {
 	is := is.New(t)
 	jar, err := cookiejar.New(nil)
 	is.NoErr(err)
-	// cookies := cookies.New()
-	// store := cookiestore.New(cookies)
+	sessions := session.New(cookiestore.New(cookies.New()))
+	lastValue := 0
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// store.Load()
-		// cookie, err := cookies.Read(r, "sid")
-		// is.NoErr(err)
-		// is.Equal(cookie.Value, "testId")
-		// session, err := store.Load(r.Context(), cookie.Value)
-		// is.NoErr(err)
-		// is.Equal(session.ID, "testId")
-		// is.Equal(session.Data, map[string]interface{}{})
-		// session.Data["foo"] = "bar"
+		session, err := sessions.Load(r, "sid")
+		is.NoErr(err)
+		visits := session.Increment("visits")
+		is.Equal(visits, lastValue+1)
+		lastValue++
+		err = sessions.Save(w, r, session)
+		is.NoErr(err)
 	})
 	req := httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
-	equal(t, jar, handler, req, ``)
+	equal(t, jar, handler, req, `
+		HTTP/1.1 200 OK
+		Connection: close
+		Set-Cookie: sid=eyJ2aXNpdHMiOjF9Cg
+	`)
+	req = httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
+	equal(t, jar, handler, req, `
+		HTTP/1.1 200 OK
+		Connection: close
+		Set-Cookie: sid=eyJ2aXNpdHMiOjJ9Cg
+	`)
+	req = httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
+	equal(t, jar, handler, req, `
+		HTTP/1.1 200 OK
+		Connection: close
+		Set-Cookie: sid=eyJ2aXNpdHMiOjN9Cg
+	`)
 }
 
 func TestSessionCounter(t *testing.T) {
@@ -91,16 +105,12 @@ func TestSessionCounter(t *testing.T) {
 		Visits int `json:"visits"`
 	}
 	cookies := cookies.New()
-	store := cookiestore.New(cookies)
-	store.GenerateID = func() (string, error) {
-		return "testId", nil
-	}
-	middleware := session.New(cookies, store)
+	sessions := session.New(cookiestore.New(cookies))
 	lastValue := -1
-	handler := middleware.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := sessions.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session, err := session.From(r.Context())
 		is.NoErr(err)
-		visits, ok := session.Get("visits").(int)
+		visits, ok := session.Int("visits")
 		if !ok {
 			visits = 0
 		}
@@ -113,22 +123,19 @@ func TestSessionCounter(t *testing.T) {
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: testId=CN7QIAIBARCGC5DBAH7YAAABBQARAAAACP7YAAABAZ3GS43JORZQG2LOOQCAEAAC
-		Set-Cookie: sid=testId; HttpOnly
+		Set-Cookie: sid=eyJ2aXNpdHMiOjF9Cg
 	`)
 	req = httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: testId=CN7QIAIBARCGC5DBAH7YAAABBQARAAAACP7YAAABAZ3GS43JORZQG2LOOQCAEAAE
-		Set-Cookie: sid=testId; HttpOnly
+		Set-Cookie: sid=eyJ2aXNpdHMiOjJ9Cg
 	`)
 	req = httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: testId=CN7QIAIBARCGC5DBAH7YAAABBQARAAAACP7YAAABAZ3GS43JORZQG2LOOQCAEAAG
-		Set-Cookie: sid=testId; HttpOnly
+		Set-Cookie: sid=eyJ2aXNpdHMiOjN9Cg
 	`)
 }
 
@@ -136,49 +143,64 @@ func TestSessionNested(t *testing.T) {
 	is := is.New(t)
 	jar, err := cookiejar.New(nil)
 	is.NoErr(err)
+
 	type User struct {
 		ID int `json:"id"`
 	}
 	type Session struct {
-		Visits int   `json:"visits"`
-		User   *User `json:"user,omitempty"`
+		Visits int  `json:"visits"`
+		User   User `json:"user,omitempty"`
 	}
-	cookies := cookies.New()
-	middleware := session.New(cookies, cookiestore.New(cookies))
-	handler := middleware.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	gob.Register(User{})
+	sessions := session.New(cookiestore.New(cookies.New()))
+	handler := sessions.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session, err := session.From(r.Context())
 		is.NoErr(err)
-		fmt.Println("got visits", session.Get("visits"))
-		// session.Visits++
-		// if session.Visits == 2 {
-		// 	session.User = &User{ID: 1}
-		// }
-		// if session.Visits == 4 {
-		// 	session.User = nil
-		// }
+		visits := session.Increment("visits")
+		if visits == 2 {
+			session.Set("user", &User{ID: 1})
+		}
+		if visits == 3 {
+			user, ok := session.Get("user").(map[string]any)
+			is.True(ok)
+			is.Equal(user["id"], float64(1))
+		}
+		if visits == 4 {
+			session.Delete("user")
+		}
+		if visits == 5 {
+			_, ok := session.Get("user").(map[string]any)
+			is.True(!ok)
+		}
 	}))
 	req := httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: sid=visits=1; HttpOnly
+		Set-Cookie: sid=eyJ2aXNpdHMiOjF9Cg
 	`)
 	req = httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: sid=user.id=1&visits=2; HttpOnly
+		Set-Cookie: sid=eyJ1c2VyIjp7ImlkIjoxfSwidmlzaXRzIjoyfQo
 	`)
 	req = httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: sid=user.id=1&visits=3; HttpOnly
+		Set-Cookie: sid=eyJ1c2VyIjp7ImlkIjoxfSwidmlzaXRzIjozfQo
 	`)
 	req = httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: sid=visits=4; HttpOnly
+		Set-Cookie: sid=eyJ2aXNpdHMiOjR9Cg
+	`)
+	req = httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
+	equal(t, jar, handler, req, `
+		HTTP/1.1 200 OK
+		Connection: close
+		Set-Cookie: sid=eyJ2aXNpdHMiOjV9Cg
 	`)
 }
