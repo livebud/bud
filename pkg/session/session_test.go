@@ -1,17 +1,16 @@
 package session_test
 
 import (
-	"encoding/gob"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/http/httputil"
 	"testing"
 
+	"github.com/livebud/bud/internal/cookies"
 	"github.com/livebud/bud/pkg/mux"
 	"github.com/livebud/bud/pkg/session"
 	"github.com/livebud/bud/pkg/session/cookiestore"
-	"github.com/livebud/bud/pkg/session/internal/cookies"
 	"github.com/matryer/is"
 	"github.com/matthewmueller/diff"
 )
@@ -81,19 +80,19 @@ func TestSession(t *testing.T) {
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6MX19Cg
+		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6MX19Cg; Path=/
 	`)
 	req = httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6Mn19Cg
+		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6Mn19Cg; Path=/
 	`)
 	req = httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6M319Cg
+		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6M319Cg; Path=/
 	`)
 }
 
@@ -101,9 +100,6 @@ func TestSessionCounter(t *testing.T) {
 	is := is.New(t)
 	jar, err := cookiejar.New(nil)
 	is.NoErr(err)
-	type Session struct {
-		Visits int `json:"visits"`
-	}
 	cookies := cookies.New()
 	sessions := session.New(cookiestore.New(cookies))
 	lastValue := -1
@@ -123,19 +119,19 @@ func TestSessionCounter(t *testing.T) {
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6MX19Cg
+		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6MX19Cg; Path=/
 	`)
 	req = httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6Mn19Cg
+		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6Mn19Cg; Path=/
 	`)
 	req = httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6M319Cg
+		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6M319Cg; Path=/
 	`)
 }
 
@@ -147,11 +143,6 @@ func TestSessionNested(t *testing.T) {
 	type User struct {
 		ID int `json:"id"`
 	}
-	type Session struct {
-		Visits int  `json:"visits"`
-		User   User `json:"user,omitempty"`
-	}
-	gob.Register(User{})
 	sessions := session.New(cookiestore.New(cookies.New()))
 	handler := sessions.Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		session, err := session.From(r.Context())
@@ -177,31 +168,31 @@ func TestSessionNested(t *testing.T) {
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6MX19Cg
+		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6MX19Cg; Path=/
 	`)
 	req = httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: sid=eyJkYXRhIjp7InVzZXIiOnsiaWQiOjF9LCJ2aXNpdHMiOjJ9fQo
+		Set-Cookie: sid=eyJkYXRhIjp7InVzZXIiOnsiaWQiOjF9LCJ2aXNpdHMiOjJ9fQo; Path=/
 	`)
 	req = httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: sid=eyJkYXRhIjp7InVzZXIiOnsiaWQiOjF9LCJ2aXNpdHMiOjN9fQo
+		Set-Cookie: sid=eyJkYXRhIjp7InVzZXIiOnsiaWQiOjF9LCJ2aXNpdHMiOjN9fQo; Path=/
 	`)
 	req = httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6NH19Cg
+		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6NH19Cg; Path=/
 	`)
 	req = httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6NX19Cg
+		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6NX19Cg; Path=/
 	`)
 }
 
@@ -234,18 +225,18 @@ func TestFlash(t *testing.T) {
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6MX0sImZsYXNoZXMiOlt7IlR5cGUiOiJzdWNjZXNzIiwiTWVzc2FnZSI6Iml0IHdvcmtlZCJ9XX0K
+		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6MX0sImZsYXNoZXMiOlt7IlR5cGUiOiJzdWNjZXNzIiwiTWVzc2FnZSI6Iml0IHdvcmtlZCJ9XX0K; Path=/
 	`)
 	req = httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6Mn19Cg
+		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6Mn19Cg; Path=/
 	`)
 	req = httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
 	equal(t, jar, handler, req, `
 		HTTP/1.1 200 OK
 		Connection: close
-		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6M319Cg
+		Set-Cookie: sid=eyJkYXRhIjp7InZpc2l0cyI6M319Cg; Path=/
 	`)
 }

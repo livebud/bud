@@ -7,8 +7,8 @@ import (
 	"io"
 	"testing"
 
-	"github.com/livebud/bud/pkg/session/internal/cipher"
-	"github.com/livebud/bud/pkg/session/internal/cipher/secretbox"
+	"github.com/livebud/bud/internal/cipher"
+	"github.com/livebud/bud/internal/cipher/secretbox"
 	"github.com/matryer/is"
 )
 

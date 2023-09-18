@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/livebud/bud/internal/cookies"
 	"github.com/livebud/bud/pkg/cli"
 	"github.com/livebud/bud/pkg/command"
 	"github.com/livebud/bud/pkg/controller"
@@ -18,6 +19,7 @@ import (
 	"github.com/livebud/bud/pkg/mod"
 	"github.com/livebud/bud/pkg/mux"
 	"github.com/livebud/bud/pkg/session"
+	"github.com/livebud/bud/pkg/session/cookiestore"
 	"github.com/livebud/bud/pkg/view"
 	"github.com/livebud/bud/pkg/view/gohtml"
 	"github.com/livebud/bud/pkg/web"
@@ -47,7 +49,12 @@ func New() di.Injector {
 	di.Provide[dim.Middleware](in, func() dim.Middleware {
 		return dim.Provide(in)
 	})
-	di.Provide[session.Middleware](in, session.New)
+	di.Register[dim.Injector](in, func(in dim.Injector) {
+		di.Provide[*session.Session](in, session.From)
+	})
+	di.Provide[*session.Sessions](in, session.New)
+	di.Provide[session.Store](in, cookiestore.New)
+	di.Provide[cookies.Interface](in, cookies.New)
 	return in
 }
 
@@ -64,7 +71,7 @@ func middlewareStack(
 	csrf *csrf.Middleware,
 	httpwrap httpwrap.Middleware,
 	dim dim.Middleware,
-	session session.Middleware,
+	session *session.Sessions,
 ) middleware.Stack {
 	return middleware.Stack{
 		methodoverride,

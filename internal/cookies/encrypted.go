@@ -9,13 +9,13 @@ import (
 )
 
 // Encrypted cookie store
-func Encrypted(c cipher.Cipher) Interface {
+func Encrypted(c cipher.Interface) Interface {
 	return &encrypted{c}
 }
 
 // Encrypted cookie store
 type encrypted struct {
-	c cipher.Cipher
+	c cipher.Interface
 }
 
 var _ Interface = (*encrypted)(nil)

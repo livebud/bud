@@ -8,8 +8,8 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/livebud/bud/internal/cookies"
 	"github.com/livebud/bud/pkg/session"
-	"github.com/livebud/bud/pkg/session/internal/cookies"
 )
 
 var defaultCodec = jsonCodec{}
@@ -65,6 +65,9 @@ func (s *Store) Load(r *http.Request, id string) (*session.State, error) {
 		// If there's any errors, just create a new session
 		return freshSession(id), nil
 	}
+	if payload.Data == nil {
+		payload.Data = map[string]any{}
+	}
 	return &session.State{
 		ID:      id,
 		Payload: &payload,
@@ -80,6 +83,7 @@ func (s *Store) Save(w http.ResponseWriter, r *http.Request, session *session.St
 	cookie := &http.Cookie{
 		Name:    session.ID,
 		Value:   base64.RawURLEncoding.EncodeToString(buffer.Bytes()),
+		Path:    "/",
 		Expires: session.Expires,
 	}
 	return s.cs.Write(w, cookie)

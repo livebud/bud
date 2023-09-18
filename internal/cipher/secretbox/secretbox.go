@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/livebud/bud/pkg/session/internal/cipher"
+	"github.com/livebud/bud/internal/cipher"
 	"golang.org/x/crypto/nacl/secretbox"
 )
 
