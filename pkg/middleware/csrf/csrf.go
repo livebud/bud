@@ -9,7 +9,7 @@ import (
 	"github.com/livebud/bud/pkg/view"
 )
 
-func Default() *Middleware {
+func New() *Middleware {
 	return &Middleware{
 		CookieName: "_csrf",
 		FormKey:    "csrf",

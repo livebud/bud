@@ -14,7 +14,6 @@ import (
 	"github.com/livebud/bud/pkg/middleware"
 	"github.com/livebud/bud/pkg/middleware/csrf"
 	"github.com/livebud/bud/pkg/middleware/dim"
-	"github.com/livebud/bud/pkg/middleware/httpwrap"
 	"github.com/livebud/bud/pkg/middleware/methodoverride"
 	"github.com/livebud/bud/pkg/mod"
 	"github.com/livebud/bud/pkg/mux"
@@ -43,9 +42,8 @@ func New() di.Injector {
 	di.Provide[*view.Viewer](in, viewViewer)
 	di.Provide[view.Finder](in, viewFinder)
 	di.Provide[middleware.Stack](in, middlewareStack)
-	di.Provide[*csrf.Middleware](in, csrf.Default)
+	di.Provide[*csrf.Middleware](in, csrf.New)
 	di.Provide[*methodoverride.Middleware](in, methodoverride.Default)
-	di.Provide[httpwrap.Middleware](in, httpwrap.New)
 	di.Provide[dim.Middleware](in, func() dim.Middleware {
 		return dim.Provide(in)
 	})
@@ -69,14 +67,12 @@ func cliCommand(cli *cli.CLI) cli.Command {
 func middlewareStack(
 	methodoverride *methodoverride.Middleware,
 	csrf *csrf.Middleware,
-	httpwrap httpwrap.Middleware,
 	dim dim.Middleware,
 	session *session.Sessions,
 ) middleware.Stack {
 	return middleware.Stack{
 		methodoverride,
 		csrf,
-		httpwrap,
 		session,
 		dim,
 	}

@@ -24,6 +24,7 @@ type Router interface {
 	Set(method string, route string, handler http.Handler) error
 }
 
+// TODO: consider calling this graceful instead
 type Server http.Server
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -34,16 +35,16 @@ func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	return Serve(ctx, (*http.Server)(s), ln)
 }
 
-func Listen(address string) (net.Listener, error) {
-	return socket.Listen(address)
-}
-
-func (s *Server) Listen(ctx context.Context, address string) error {
-	ln, err := Listen(address)
+func (s *Server) ListenAndServe(ctx context.Context) error {
+	ln, err := Listen(s.Addr)
 	if err != nil {
 		return err
 	}
 	return s.Serve(ctx, ln)
+}
+
+func Listen(address string) (net.Listener, error) {
+	return socket.Listen(address)
 }
 
 // Serve the handler at address

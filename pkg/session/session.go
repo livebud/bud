@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/livebud/bud/internal/httpwrap"
 )
 
 var ErrNotFound = fmt.Errorf("session not found")
@@ -202,7 +204,9 @@ func (s *Sessions) Middleware(next http.Handler) http.Handler {
 			return
 		}
 		ctx = context.WithValue(ctx, contextKey, session)
-		next.ServeHTTP(w, r.WithContext(ctx))
+		rw, flush := httpwrap.Wrap(w)
+		defer flush()
+		next.ServeHTTP(rw, r.WithContext(ctx))
 		if err := s.Save(w, r, session); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

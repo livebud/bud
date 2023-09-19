@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/livebud/bud/pkg/middleware/httpwrap"
+	"github.com/livebud/bud/internal/httpwrap"
 	"github.com/matryer/is"
 )
 
@@ -32,12 +32,14 @@ func TestHeadersWrapped(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/", nil)
 	is.NoErr(err)
-	h := httpwrap.New().Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("X-A", "A")
 		w.Write([]byte("Hello, world!"))
 		w.Header().Add("X-B", "B")
-	}))
-	h.ServeHTTP(rec, req)
+	})
+	rw, flush := httpwrap.Wrap(rec)
+	h.ServeHTTP(rw, req)
+	flush()
 	res := rec.Result()
 	is.Equal(res.StatusCode, 200)
 	is.Equal(res.Header.Get("X-A"), "A")
@@ -70,13 +72,15 @@ func TestWriteStatusWrapped(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/", nil)
 	is.NoErr(err)
-	h := httpwrap.New().Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("X-A", "A")
 		w.WriteHeader(201)
 		w.Write([]byte("Hello, world!"))
 		w.Header().Add("X-B", "B")
-	}))
-	h.ServeHTTP(rec, req)
+	})
+	rw, flush := httpwrap.Wrap(rec)
+	h.ServeHTTP(rw, req)
+	flush()
 	res := rec.Result()
 	is.Equal(res.StatusCode, 201)
 	is.Equal(res.Header.Get("X-A"), "A")
@@ -102,7 +106,9 @@ func TestFlushNormal(t *testing.T) {
 		}
 		w.Header().Add("X-B", "B")
 	})
-	h.ServeHTTP(rec, req)
+	rw, flush := httpwrap.Wrap(rec)
+	h.ServeHTTP(rw, req)
+	flush()
 	res := rec.Result()
 	is.Equal(res.StatusCode, 201)
 	is.Equal(res.Header.Get("X-A"), "A")
@@ -117,7 +123,7 @@ func TestFlushWrapped(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/", nil)
 	is.NoErr(err)
-	h := httpwrap.New().Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello, world!"))
 		w.Header().Add("X-A", "A")
 		flush, ok := w.(http.Flusher)
@@ -127,8 +133,10 @@ func TestFlushWrapped(t *testing.T) {
 			flush.Flush()
 		}
 		w.Header().Add("X-B", "B")
-	}))
-	h.ServeHTTP(rec, req)
+	})
+	rw, flush := httpwrap.Wrap(rec)
+	h.ServeHTTP(rw, req)
+	flush()
 	res := rec.Result()
 	is.Equal(res.StatusCode, 200)
 	is.Equal(res.Header.Get("X-A"), "A")
@@ -143,7 +151,7 @@ func TestFlushStatusWrapped(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req, err := http.NewRequest("GET", "/", nil)
 	is.NoErr(err)
-	h := httpwrap.New().Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello, world!"))
 		w.WriteHeader(201)
 		w.Header().Add("X-A", "A")
@@ -154,8 +162,10 @@ func TestFlushStatusWrapped(t *testing.T) {
 			flush.Flush()
 		}
 		w.Header().Add("X-B", "B")
-	}))
-	h.ServeHTTP(rec, req)
+	})
+	rw, flush := httpwrap.Wrap(rec)
+	h.ServeHTTP(rw, req)
+	flush()
 	res := rec.Result()
 	is.Equal(res.StatusCode, 201)
 	is.Equal(res.Header.Get("X-A"), "A")
@@ -170,16 +180,20 @@ func TestMultipleWriteHeaders(t *testing.T) {
 	req, err := http.NewRequest("POST", "/", nil)
 	rec := httptest.NewRecorder()
 	is.NoErr(err)
-	h := httpwrap.New().Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusSeeOther)
-	}))
-	h.ServeHTTP(rec, req)
+	})
+	rw, flush := httpwrap.Wrap(rec)
+	h.ServeHTTP(rw, req)
+	flush()
 	res := rec.Result()
 	is.Equal(res.StatusCode, http.StatusSeeOther)
 	req, err = http.NewRequest("POST", "/", nil)
 	is.NoErr(err)
 	rec = httptest.NewRecorder()
-	h.ServeHTTP(rec, req)
+	rw, flush = httpwrap.Wrap(rec)
+	h.ServeHTTP(rw, req)
+	flush()
 	res = rec.Result()
 	is.Equal(res.StatusCode, http.StatusSeeOther)
 }
