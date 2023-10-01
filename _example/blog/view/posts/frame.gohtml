@@ -1,0 +1,18 @@
+<hr />
+<ul>
+  {{- if .LoggedIn }}
+  <li>
+    <!--TODO rework /sessions/:id -->
+    <form method="post" action="/sessions/todo">
+      <input type="hidden" name="_csrf" value="{{ csrf }}" />
+      <input type="hidden" name="_method" value="delete" />
+      <input type="submit" value="Logout">
+    </form>
+  </li>
+  <li><a href="/new"><button>New Post</button></a></li>
+  {{- else }}
+  <li><a href="/sessions/new"><button>Login</button></a></li>
+  {{- end }}
+</ul>
+<hr />
+{{ slot }}

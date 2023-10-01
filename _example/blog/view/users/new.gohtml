@@ -1,0 +1,11 @@
+<h2>New User</h2>
+
+<form method="post" action="/users">
+  <input type="hidden" name="_csrf" value="{{ csrf }}" />
+  <input type="text" value="Matt" name="name" placeholder="name" /><br /><br />
+  <input type="text" value="matt@gmail.com" name="email" placeholder="email" /><br /><br />
+  <input type="password" value="testtest" name="password" placeholder="password" /><br /><br />
+  <input type="submit" value="Create User" />
+</form>
+
+<a href="/sessions/new">Login</a>

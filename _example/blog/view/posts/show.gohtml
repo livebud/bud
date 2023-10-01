@@ -1,0 +1,19 @@
+<h1>{{ $.Post.Title }}</h1>
+
+<p>
+  <span>{{ $.Post.Author }}</span>
+  <span> • </span>
+  <span>{{ $.Post.CreatedAgo }}</span>
+  <span> • </span>
+  <span>{{ $.Post.Status }}</span>
+  {{ if $.Post.IsAuthor }}
+  <span> • </span>
+  <span><a href="/{{ $.Post.Slug }}/edit">Edit</a></span>
+  {{- end }}
+</p>
+
+<article>{{ $.Post.Body }}</article>
+
+<hr/>
+
+<a href="/">Back</a>

@@ -1,0 +1,9 @@
+<h1>Hey {{ .Name }}!</h1>
+
+<hr />
+
+<form method="post" action="/sessions">
+  <input type="hidden" name="_csrf" value="{{ csrf }}" />
+  <input type="hidden" name="_method" value="delete" />
+  <input type="submit" value="Logout">
+</form>

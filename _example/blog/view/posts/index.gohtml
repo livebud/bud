@@ -1,0 +1,11 @@
+{{- if .Posts }}
+{{- range $post := .Posts }}
+<div class="post">
+  <h2>
+    <a href="/{{ $post.Slug }}">{{ $post.Title }}</a>
+  </h2>
+</div>
+{{- end }}
+{{- else }}
+<h2>No Posts</h2>
+{{- end }}
