@@ -1,4 +1,4 @@
-package web
+package mux
 
 import (
 	"net/http"
@@ -6,11 +6,11 @@ import (
 	"github.com/livebud/bud/internal/httpwrap"
 )
 
-func Merge(handlers ...http.Handler) http.Handler {
+func Chain(handlers ...http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rw, flush := httpwrap.Wrap(w)
 		defer flush()
-		for i := len(handlers) - 1; i >= 0; i-- {
+		for i := 0; i < len(handlers); i++ {
 			handlers[i].ServeHTTP(rw, r.Clone(r.Context()))
 		}
 	})

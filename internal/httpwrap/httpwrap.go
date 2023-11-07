@@ -7,18 +7,6 @@ import (
 	"github.com/felixge/httpsnoop"
 )
 
-// func New() Middleware {
-// 	return middleware.Func(func(next http.Handler) http.Handler {
-// 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-// 			rw, flush := Wrap(w)
-// 			next.ServeHTTP(rw, r)
-// 			flush()
-// 		})
-// 	})
-// }
-
-// type Middleware middleware.Middleware
-
 func Wrap(w http.ResponseWriter) (http.ResponseWriter, func()) {
 	rb := &responseBuffer{
 		code: 0,

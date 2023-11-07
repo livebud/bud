@@ -127,6 +127,14 @@ type Viewer struct {
 
 var _ Finder = (*Viewer)(nil)
 
+// func (v *Viewer) Render(w http.ResponseWriter, r *http.Request, key string, props any) error {
+// 	view, err := v.FindView(key)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return view.Render(r.Context(), w, props)
+// }
+
 func (v *Viewer) FindPage(key string) (*Page, error) {
 	pages, err := v.findPages()
 	if err != nil {

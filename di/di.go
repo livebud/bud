@@ -134,6 +134,10 @@ func Has[Dep any](in Injector) bool {
 	return false
 }
 
+func Validate(in Injector) error {
+	return nil
+}
+
 func Load[Dep any](in Injector) (dep Dep, err error) {
 	name, err := reflector.TypeOf(dep)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/livebud/bud/cli"
 	"github.com/livebud/bud/log"
+	"github.com/livebud/bud/mux"
 )
 
 // Run a program, returning an exit code.
@@ -21,4 +22,8 @@ func Run(cli cli.Parser) int {
 // Parse runs a program, returning an error if there is one.
 func Parse(ctx context.Context, cli cli.Parser, args ...string) error {
 	return cli.Parse(ctx, args...)
+}
+
+type Config struct {
+	Router func() *mux.Router
 }
