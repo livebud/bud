@@ -32,8 +32,6 @@ func Minify(minify bool) func(*Viewer) {
 	}
 }
 
-// func WithJS(vm )
-
 func New(module *mod.Module, options ...func(*Viewer)) *Viewer {
 	p := &Viewer{
 		module: module,
@@ -55,6 +53,11 @@ type Viewer struct {
 }
 
 func (v *Viewer) Render(w io.Writer, path string, data *view.Data) error {
+	return v.renderHTML(w, path, data)
+}
+
+// RenderJS renders the client-side for hydrating the server-side rendered HTML.
+func (v *Viewer) RenderJS(w io.Writer, path string, data *view.Data) error {
 	return v.renderHTML(w, path, data)
 }
 
@@ -103,11 +106,13 @@ func (v *Viewer) renderHTML(w io.Writer, path string, data *view.Data) error {
 	if err != nil {
 		return err
 	}
-	if ssr.Head != "" {
-		data.Slots.Slot("head").Write([]byte(ssr.Head))
+	if data.Slots != nil {
+		if ssr.Head != "" {
+			data.Slots.Slot("head").Write([]byte(ssr.Head))
+		}
+		data.Slots.Slot("head").Write([]byte(fmt.Sprintf(`<script id=".bud_props" type="text/template" defer>%s</script>`, props)))
+		data.Slots.Slot("head").Write([]byte(fmt.Sprintf(`<script src="/.preact/%s.js" defer></script>`, path)))
 	}
-	data.Slots.Slot("head").Write([]byte(fmt.Sprintf(`<script id=".bud_props" type="text/template" defer>%s</script>`, props)))
-	data.Slots.Slot("head").Write([]byte(fmt.Sprintf(`<script src="/.preact/%s.js" defer></script>`, path)))
 	w.Write([]byte(ssr.HTML))
 	return nil
 }
@@ -243,20 +248,3 @@ func (v *Viewer) CompileDOM(entry string) (*esb.File, error) {
 	}
 	return &result.OutputFiles[0], nil
 }
-
-// var jsxPlugin = esbuild.Plugin{
-// 	Name: "prepend-create-element",
-// 	Setup: func(epb esbuild.PluginBuild) {
-// 		epb.OnLoad(esbuild.OnLoadOptions{Filter: `\.[jt]sx`}, func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
-// 			contents := "import { createElement as h } from \"preact\"\n"
-// 			if result.Contents != nil {
-// 				contents += *result.Contents
-// 			}
-// 			code, err := esbuild.LoaderDefault
-// 			fmt.Println(args.Path)
-// 			fmt.Println(contents)
-// 			result.Contents = &contents
-// 			return result, nil
-// 		})
-// 	},
-// }

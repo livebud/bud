@@ -119,6 +119,12 @@ func (n *Node) insert(route *ast.Route, handler http.Handler, sections ast.Secti
 			n.Handler = handler
 			return nil
 		}
+		// Allow overwriting of routes if they were the result of being expanded
+		if n.Route.Expanded {
+			n.Route = route
+			n.Handler = handler
+			return nil
+		}
 		oldRoute := n.Route.String()
 		newRoute := route.String()
 		if oldRoute == newRoute {

@@ -24,7 +24,6 @@ var defaultFuncs = map[string]func(data *view.Data) any{
 				if err != nil {
 					return "", err
 				}
-				fmt.Println("got slot data", string(slot))
 				return template.HTML(slot), nil
 			}
 			sb := new(strings.Builder)

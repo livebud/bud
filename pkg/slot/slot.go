@@ -8,7 +8,6 @@ import (
 
 func New() *Slots {
 	return &Slots{
-		nth:    0,
 		reader: bytes.NewBuffer(nil),
 		inners: make(map[string]*pipe),
 		pipe:   newPipe(),
@@ -16,7 +15,6 @@ func New() *Slots {
 }
 
 type Slots struct {
-	nth     int
 	reader  io.Reader
 	pipe    *pipe
 	mu      sync.Mutex
@@ -44,7 +42,6 @@ func (s *Slots) Close() error {
 func (s *Slots) Next() *Slots {
 	pipe := newPipe()
 	return &Slots{
-		nth:    s.nth + 1,
 		reader: s.pipe,
 		inners: s.inners,
 		pipe:   pipe,

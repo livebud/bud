@@ -20,7 +20,10 @@ import (
 func handler(route string) *handlerFunc {
 	return &handlerFunc{
 		func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte(route + " " + r.URL.RawQuery))
+			w.Write([]byte(route))
+			if r.URL.RawQuery != "" {
+				w.Write([]byte(" " + r.URL.RawQuery))
+			}
 		},
 		http.Header{},
 	}
@@ -1107,7 +1110,7 @@ func TestMiddleware(t *testing.T) {
 			w.Header().Set("X-A", "A")
 			next.ServeHTTP(w, r)
 			// Note: Can't use a header here because we've already written
-			w.Write([]byte("(after)"))
+			w.Write([]byte(" (after)"))
 		})
 	}))
 	router.Get("/", handler("GET /"))
@@ -1155,4 +1158,66 @@ func TestPostBody(t *testing.T) {
 	router.ServeHTTP(rec, req)
 	is.Equal(rec.Code, http.StatusOK)
 	is.Equal(rec.Body.String(), `{"name":"jon"}`)
+}
+
+func TestPublicMatch(t *testing.T) {
+	is := is.New(t)
+
+	router := mux.New()
+	is.NoErr(router.Get("/{path*}", handler("GET /{path*}")))
+	is.NoErr(router.Get("/", handler("GET /")))
+	is.NoErr(router.Get("/index.js", handler("GET /index.js")))
+
+	match, err := router.Match(http.MethodGet, "/")
+	is.NoErr(err)
+	is.Equal(match.Route.String(), "/")
+	is.Equal(match.Path, "/")
+	is.Equal(len(match.Slots), 0)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	match.Handler.ServeHTTP(rec, req)
+	is.Equal(rec.Code, http.StatusOK)
+	is.Equal(rec.Body.String(), "GET /")
+
+	match, err = router.Match(http.MethodGet, "/index.js")
+	is.NoErr(err)
+	is.Equal(match.Route.String(), "/index.js")
+	is.Equal(match.Path, "/index.js")
+	is.Equal(len(match.Slots), 0)
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/index.js", nil)
+	match.Handler.ServeHTTP(rec, req)
+	is.Equal(rec.Code, http.StatusOK)
+	is.Equal(rec.Body.String(), "GET /index.js")
+
+	match, err = router.Match(http.MethodGet, "/images/image.png")
+	is.NoErr(err)
+	is.Equal(match.Route.String(), "/{path*}")
+	is.Equal(match.Path, "/images/image.png")
+	is.Equal(len(match.Slots), 1)
+	is.Equal(match.Slots[0].Key, "path")
+	is.Equal(match.Slots[0].Value, "images/image.png")
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/images/image.png", nil)
+	match.Handler.ServeHTTP(rec, req)
+	is.Equal(rec.Code, http.StatusOK)
+	is.Equal(rec.Body.String(), "GET /{path*}")
+
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/", nil)
+	router.ServeHTTP(rec, req)
+	is.Equal(rec.Code, http.StatusOK)
+	is.Equal(rec.Body.String(), "GET /")
+
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/index.js", nil)
+	router.ServeHTTP(rec, req)
+	is.Equal(rec.Code, http.StatusOK)
+	is.Equal(rec.Body.String(), "GET /index.js")
+
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/images/image.png", nil)
+	router.ServeHTTP(rec, req)
+	is.Equal(rec.Code, http.StatusOK)
+	is.Equal(rec.Body.String(), "GET /{path*} path=images%2Fimage.png")
 }

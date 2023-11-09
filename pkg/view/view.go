@@ -15,11 +15,9 @@ var ErrNotInContext = errors.New("viewer: not in context")
 
 // Data for a view
 type Data struct {
-	// TODO: consider splitting into slot.Slot and slot.Slots since this might
-	// simplify the slot API (no more ReadString, etc.)
-	Slots *slot.Slots
-	Attrs map[string]any
-	Props any
+	Slots *slot.Slots    // Can be nil
+	Attrs map[string]any // Can be nil
+	Props any            // Can be nil
 }
 
 // Viewer renders views

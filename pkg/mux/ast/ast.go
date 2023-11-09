@@ -23,6 +23,7 @@ type Routes []Route
 
 type Route struct {
 	Sections Sections
+	Expanded bool
 }
 
 func (r *Route) String() string {
@@ -31,6 +32,14 @@ func (r *Route) String() string {
 		s.WriteString(section.String())
 	}
 	return s.String()
+}
+
+func (r *Route) Priority() int {
+	priority := 0
+	for _, section := range r.Sections {
+		priority += section.Priority()
+	}
+	return priority
 }
 
 func trimRightSlash(r *Route) *Route {
@@ -54,6 +63,7 @@ func (r *Route) Expand() (routes []*Route) {
 			// Create route before the optional slot
 			routes = append(routes, trimRightSlash(&Route{
 				Sections: route.Sections[:i],
+				Expanded: true,
 			}))
 			// Create a new route with the slot required
 			route.Sections[i] = &RequiredSlot{
@@ -64,6 +74,7 @@ func (r *Route) Expand() (routes []*Route) {
 			// Create route before the wildcard slot
 			routes = append(routes, trimRightSlash(&Route{
 				Sections: route.Sections[:i],
+				Expanded: true,
 			}))
 		}
 	}
