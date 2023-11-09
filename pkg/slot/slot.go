@@ -1,4 +1,4 @@
-package slots
+package slot
 
 import (
 	"bytes"
@@ -13,10 +13,6 @@ func New() *Slots {
 		inners: make(map[string]*pipe),
 		pipe:   newPipe(),
 	}
-}
-
-type Pipe interface {
-	io.ReadWriter
 }
 
 type Slots struct {
@@ -55,7 +51,11 @@ func (s *Slots) Next() *Slots {
 	}
 }
 
-func (s *Slots) Pipe(name string) Pipe {
+type Slot interface {
+	io.ReadWriter
+}
+
+func (s *Slots) Slot(name string) Slot {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	pipe, ok := s.inners[name]

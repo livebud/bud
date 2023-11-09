@@ -1,0 +1,4 @@
+import { renderView } from "dom_runtime.tsx"
+import Index from "./index.jsx"
+
+renderView(Index)

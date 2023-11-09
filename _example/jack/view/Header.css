@@ -1,0 +1,204 @@
+.Header {
+  header {
+    background-color: #f4f9ff;
+    height: 450px;
+    width: 100%;
+    position: relative;
+  }
+
+  .scene {
+    margin: 0 auto;
+    max-width: 1000px;
+    height: 100%;
+    width: 100%;
+    position: relative;
+  }
+
+  .grass {
+    z-index: 1;
+    background-image: url("/images/grass.svg");
+    background-position: middle center;
+    bottom: -30px;
+    position: absolute;
+    height: 68px;
+    width: 100%;
+  }
+
+  .top-tagline {
+    position: absolute;
+    font-size: 28px;
+    color: #3b434b;
+    font-weight: 900;
+    left: 400px;
+    top: 260px;
+  }
+
+  .jack-text {
+    background-image: url("/images/jack-text.svg");
+    background-size: contain;
+    position: absolute;
+    left: 79px;
+    top: -2px;
+    height: 34px;
+    width: 77px;
+  }
+
+  .comma {
+    position: relative;
+    left: 95px;
+  }
+
+  .tagline {
+    font-size: 40px;
+    color: #3b434b;
+    font-weight: 900;
+    position: absolute;
+    top: 300px;
+    left: 400px;
+  }
+
+  .left-scene {
+    background-image: url("/images/grass.svg");
+    background-position: right;
+    position: absolute;
+    bottom: -30px;
+    left: -500px;
+    height: 68px;
+    width: 50%;
+  }
+
+  .right-scene {
+    position: absolute;
+    overflow: hidden;
+    bottom: -30px;
+    height: 68px;
+    width: 50%;
+    right: 0;
+  }
+
+  .right-scene-inner {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    right: -500px;
+    background-image: url("/images/grass.svg");
+    background-position: -185px;
+  }
+
+  .cloud-1 {
+    background-image: url("/images/cloud-1.svg");
+    position: absolute;
+    width: 159px;
+    height: 92px;
+    top: 50px;
+    right: 800px;
+    animation: float infinite 5s ease-in;
+  }
+
+  .cloud-2 {
+    background-image: url("/images/cloud-2.svg");
+    position: absolute;
+    height: 128px;
+    width: 228px;
+    right: 500px;
+    top: 30px;
+    animation: float infinite 5s ease-in;
+  }
+
+  .jack {
+    background-image: url("/images/jack.svg");
+    left: 60px;
+    bottom: -8px;
+    position: absolute;
+    cursor: pointer;
+    height: 241px;
+    width: 241px;
+  }
+
+  .buttons {
+    display: flex;
+    align-items: center;
+    position: absolute;
+    right: 10px;
+    top: 20px;
+  }
+
+  .buttons > :global(*) {
+    margin-right: 15px;
+  }
+
+  .buttons > :global(*:last-child) {
+    margin-right: 0px;
+  }
+
+  .mobile-buttons {
+    position: absolute;
+    text-align: center;
+    bottom: -90px;
+    width: 100%;
+    border-bottom: 2px solid #f5f5f5;
+    padding: 20px;
+    background: white;
+    display: none;
+  }
+
+  @keyframes float {
+    0% {
+      transform: translate(0, 0);
+    }
+
+    50% {
+      transform: translate(7px, 0px) rotate(5deg);
+    }
+  }
+
+  @media (max-width: 670px) {
+    header {
+      height: 450px;
+    }
+
+    .mobile-buttons {
+      display: block;
+    }
+
+    .cloud-1 {
+      right: 20px;
+      opacity: 0.4;
+    }
+
+    .cloud-2 {
+      display: none;
+    }
+
+    .top-tagline {
+      z-index: 1;
+      left: 30px;
+      top: 50px;
+      font-size: 20px;
+    }
+
+    .jack-text {
+      left: 54px;
+      top: -1px;
+      height: 24px;
+      width: 54px;
+    }
+
+    .comma {
+      left: 65px;
+    }
+
+    .tagline {
+      z-index: 1;
+      top: 80px;
+      left: 30px;
+      font-size: 30px;
+    }
+
+    .buttons {
+      display: none;
+      width: 100%;
+      text-align: center;
+    }
+  }
+}

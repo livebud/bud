@@ -1,0 +1,14 @@
+{
+  "include": ["lib/**/*.ts", "view/**/*.tsx"],
+  "compilerOptions": {
+    "noEmit": true,
+    "target": "es2016" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
+    "jsx": "preserve" /* Specify what JSX code is generated. */,
+    "jsxImportSource": "preact" /* Specify module specifier used to import the JSX factory functions when using 'jsx: react-jsx*'. */,
+    "module": "ESNext" /* Specify what module code is generated. */,
+    "moduleResolution": "Bundler",
+    "forceConsistentCasingInFileNames": true /* Ensure that casing is correct in imports. */,
+    "strict": true /* Enable all strict type-checking options. */,
+    "skipLibCheck": true /* Skip type checking all .d.ts files. */
+  }
+}

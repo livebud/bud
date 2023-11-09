@@ -1,4 +1,4 @@
-package slots_test
+package slot_test
 
 import (
 	"io"
@@ -7,13 +7,13 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/livebud/bud/internal/slots"
+	"github.com/livebud/bud/pkg/slot"
 	"github.com/matryer/is"
 )
 
 func TestSyncSlots(t *testing.T) {
 	is := is.New(t)
-	s1 := slots.New()
+	s1 := slot.New()
 	inner, err := io.ReadAll(s1)
 	is.NoErr(err)
 	is.Equal(string(inner), "")
@@ -43,7 +43,7 @@ func TestSyncSlots(t *testing.T) {
 
 func TestReadAfterClose(t *testing.T) {
 	is := is.New(t)
-	s1 := slots.New()
+	s1 := slot.New()
 	s1.Write([]byte("from s1"))
 	s2 := s1.Next()
 	s1.Close()
@@ -55,7 +55,7 @@ func TestReadAfterClose(t *testing.T) {
 
 func TestAsyncSlots(t *testing.T) {
 	is := is.New(t)
-	s1 := slots.New()
+	s1 := slot.New()
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
 	go func() {
@@ -104,7 +104,7 @@ func TestAsyncSlots(t *testing.T) {
 
 func TestSyncNestedSlots(t *testing.T) {
 	is := is.New(t)
-	s1 := slots.New()
+	s1 := slot.New()
 	inner, err := io.ReadAll(s1)
 	is.NoErr(err)
 	is.Equal(string(inner), "")
@@ -112,11 +112,11 @@ func TestSyncNestedSlots(t *testing.T) {
 	inner, err = io.ReadAll(s1)
 	is.NoErr(err)
 	is.Equal(string(inner), "")
-	s1a := s1.Pipe("s1a")
+	s1a := s1.Slot("s1a")
 	s1a.Write([]byte("from s1a"))
 	s1.Close()
 	s2 := s1.Next()
-	s2a := s1.Pipe("s1a")
+	s2a := s1.Slot("s1a")
 	s2a.Write([]byte(" from s2a"))
 	inner, err = io.ReadAll(s2)
 	is.NoErr(err)
@@ -133,7 +133,7 @@ func TestSyncNestedSlots(t *testing.T) {
 	inner, err = io.ReadAll(s3)
 	is.NoErr(err)
 	is.Equal(string(inner), "")
-	s3a := s3.Pipe("s1a")
+	s3a := s3.Slot("s1a")
 	inner, err = io.ReadAll(s3a)
 	is.NoErr(err)
 	is.Equal(string(inner), "from s1a from s2a")
@@ -142,7 +142,7 @@ func TestSyncNestedSlots(t *testing.T) {
 
 func TestAsyncNestedSlots(t *testing.T) {
 	is := is.New(t)
-	s1 := slots.New()
+	s1 := slot.New()
 	wg := new(sync.WaitGroup)
 	wg.Add(1)
 	go func() {
@@ -155,7 +155,7 @@ func TestAsyncNestedSlots(t *testing.T) {
 		inner, err = io.ReadAll(s1)
 		is.NoErr(err)
 		is.Equal(string(inner), "")
-		s1a := s1.Pipe("s1a")
+		s1a := s1.Slot("s1a")
 		s1a.Write([]byte("from s1a"))
 	}()
 	s2 := s1.Next()
@@ -170,7 +170,7 @@ func TestAsyncNestedSlots(t *testing.T) {
 		inner, err = io.ReadAll(s2)
 		is.NoErr(err)
 		is.Equal(string(inner), "")
-		s2a := s2.Pipe("s1a")
+		s2a := s2.Slot("s1a")
 		s2a.Write([]byte(" from s2a"))
 	}()
 	s3 := s2.Next()
@@ -190,7 +190,7 @@ func TestAsyncNestedSlots(t *testing.T) {
 	inner, err := io.ReadAll(s4)
 	is.NoErr(err)
 	is.Equal(string(inner), "from s3")
-	s4a := s4.Pipe("s1a")
+	s4a := s4.Slot("s1a")
 	inner, err = io.ReadAll(s4a)
 	is.NoErr(err)
 	is.Equal(string(inner), "from s1a from s2a")
@@ -211,7 +211,7 @@ func TestChain(t *testing.T) {
 	is := is.New(t)
 	handlers := []func(w http.ResponseWriter, r *http.Request){
 		func(w http.ResponseWriter, r *http.Request) {
-			slots, err := slots.From(r.Context())
+			slots, err := slot.FromContext(r.Context())
 			is.NoErr(err)
 			inner, err := io.ReadAll(slots)
 			is.NoErr(err)
@@ -220,7 +220,7 @@ func TestChain(t *testing.T) {
 			w.Write([]byte("</view>"))
 		},
 		func(w http.ResponseWriter, r *http.Request) {
-			slots, err := slots.From(r.Context())
+			slots, err := slot.FromContext(r.Context())
 			is.NoErr(err)
 			inner, err := io.ReadAll(slots)
 			is.NoErr(err)
@@ -229,7 +229,7 @@ func TestChain(t *testing.T) {
 			w.Write([]byte("</frame1>"))
 		},
 		func(w http.ResponseWriter, r *http.Request) {
-			slots, err := slots.From(r.Context())
+			slots, err := slot.FromContext(r.Context())
 			is.NoErr(err)
 			inner, err := io.ReadAll(slots)
 			is.NoErr(err)
@@ -238,7 +238,7 @@ func TestChain(t *testing.T) {
 			w.Write([]byte("</frame2>"))
 		},
 		func(w http.ResponseWriter, r *http.Request) {
-			slots, err := slots.From(r.Context())
+			slots, err := slot.FromContext(r.Context())
 			is.NoErr(err)
 			inner, err := io.ReadAll(slots)
 			is.NoErr(err)
@@ -248,9 +248,9 @@ func TestChain(t *testing.T) {
 		},
 	}
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		slots := slots.New()
+		slots := slot.New()
 		for i, handler := range handlers {
-			r = r.Clone(slots.To(r.Context()))
+			r = r.Clone(slot.ToContext(r.Context(), slots))
 			if i == len(handlers)-1 {
 				handler(w, r)
 				continue
@@ -275,29 +275,29 @@ func TestChainNestedSlots(t *testing.T) {
 	is := is.New(t)
 	handlers := []func(w http.ResponseWriter, r *http.Request){
 		func(w http.ResponseWriter, r *http.Request) {
-			slots, err := slots.From(r.Context())
+			slots, err := slot.FromContext(r.Context())
 			is.NoErr(err)
 			inner, err := io.ReadAll(slots)
 			is.NoErr(err)
-			headSlot := slots.Pipe("head")
+			headSlot := slots.Slot("head")
 			headSlot.Write([]byte("<title>some title</title>"))
 			w.Write([]byte("<view>"))
 			w.Write(inner)
 			w.Write([]byte("</view>"))
 		},
 		func(w http.ResponseWriter, r *http.Request) {
-			slots, err := slots.From(r.Context())
+			slots, err := slot.FromContext(r.Context())
 			is.NoErr(err)
 			inner, err := io.ReadAll(slots)
 			is.NoErr(err)
-			headSlot := slots.Pipe("head")
+			headSlot := slots.Slot("head")
 			headSlot.Write([]byte("<meta name='description' content='some description'/>"))
 			w.Write([]byte("<frame1>"))
 			w.Write(inner)
 			w.Write([]byte("</frame1>"))
 		},
 		func(w http.ResponseWriter, r *http.Request) {
-			slots, err := slots.From(r.Context())
+			slots, err := slot.FromContext(r.Context())
 			is.NoErr(err)
 			inner, err := io.ReadAll(slots)
 			is.NoErr(err)
@@ -306,9 +306,9 @@ func TestChainNestedSlots(t *testing.T) {
 			w.Write([]byte("</frame2>"))
 		},
 		func(w http.ResponseWriter, r *http.Request) {
-			slots, err := slots.From(r.Context())
+			slots, err := slot.FromContext(r.Context())
 			is.NoErr(err)
-			headSlot := slots.Pipe("head")
+			headSlot := slots.Slot("head")
 			head, err := io.ReadAll(headSlot)
 			is.NoErr(err)
 			inner, err := io.ReadAll(slots)
@@ -322,9 +322,9 @@ func TestChainNestedSlots(t *testing.T) {
 		},
 	}
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		slots := slots.New()
+		slots := slot.New()
 		for i, handler := range handlers {
-			r = r.Clone(slots.To(r.Context()))
+			r = r.Clone(slot.ToContext(r.Context(), slots))
 			if i == len(handlers)-1 {
 				handler(w, r)
 				continue
@@ -349,7 +349,7 @@ func TestBatch(t *testing.T) {
 	is := is.New(t)
 	handlers := []func(w http.ResponseWriter, r *http.Request){
 		func(w http.ResponseWriter, r *http.Request) {
-			slots, err := slots.From(r.Context())
+			slots, err := slot.FromContext(r.Context())
 			is.NoErr(err)
 			inner, err := io.ReadAll(slots)
 			is.NoErr(err)
@@ -358,7 +358,7 @@ func TestBatch(t *testing.T) {
 			w.Write([]byte("</view>"))
 		},
 		func(w http.ResponseWriter, r *http.Request) {
-			slots, err := slots.From(r.Context())
+			slots, err := slot.FromContext(r.Context())
 			is.NoErr(err)
 			inner, err := io.ReadAll(slots)
 			is.NoErr(err)
@@ -367,7 +367,7 @@ func TestBatch(t *testing.T) {
 			w.Write([]byte("</frame1>"))
 		},
 		func(w http.ResponseWriter, r *http.Request) {
-			slots, err := slots.From(r.Context())
+			slots, err := slot.FromContext(r.Context())
 			is.NoErr(err)
 			inner, err := io.ReadAll(slots)
 			is.NoErr(err)
@@ -376,7 +376,7 @@ func TestBatch(t *testing.T) {
 			w.Write([]byte("</frame2>"))
 		},
 		func(w http.ResponseWriter, r *http.Request) {
-			slots, err := slots.From(r.Context())
+			slots, err := slot.FromContext(r.Context())
 			is.NoErr(err)
 			inner, err := io.ReadAll(slots)
 			is.NoErr(err)
@@ -387,28 +387,28 @@ func TestBatch(t *testing.T) {
 	}
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wg := new(sync.WaitGroup)
-		slot := slots.New()
+		slots := slot.New()
 		for i, handler := range handlers {
 			i := i
 			handler := handler
-			r := r.Clone(slot.To(r.Context()))
+			r := r.Clone(slot.ToContext(r.Context(), slots))
 			if i == len(handlers)-1 {
 				wg.Add(1)
-				go func(slot *slots.Slots) {
+				go func(slot *slot.Slots) {
 					defer wg.Done()
 					defer slot.Close()
 					handler(w, r)
-				}(slot)
+				}(slots)
 				continue
 			}
-			w := &responseWriter{w, slot}
+			w := &responseWriter{w, slots}
 			wg.Add(1)
-			go func(slot *slots.Slots) {
+			go func(slot *slot.Slots) {
 				defer wg.Done()
 				defer slot.Close()
 				handler(w, r)
-			}(slot)
-			slot = slot.Next()
+			}(slots)
+			slots = slots.Next()
 		}
 		wg.Wait()
 	})
@@ -426,18 +426,18 @@ func TestBatchNestedSlots(t *testing.T) {
 	is := is.New(t)
 	handlers := []func(w http.ResponseWriter, r *http.Request){
 		func(w http.ResponseWriter, r *http.Request) {
-			slots, err := slots.From(r.Context())
+			slots, err := slot.FromContext(r.Context())
 			is.NoErr(err)
 			inner, err := io.ReadAll(slots)
 			is.NoErr(err)
-			headSlot := slots.Pipe("head")
+			headSlot := slots.Slot("head")
 			headSlot.Write([]byte("<title>some title</title>"))
 			w.Write([]byte("<view>"))
 			w.Write(inner)
 			w.Write([]byte("</view>"))
 		},
 		func(w http.ResponseWriter, r *http.Request) {
-			slots, err := slots.From(r.Context())
+			slots, err := slot.FromContext(r.Context())
 			is.NoErr(err)
 			inner, err := io.ReadAll(slots)
 			is.NoErr(err)
@@ -446,22 +446,22 @@ func TestBatchNestedSlots(t *testing.T) {
 			w.Write([]byte("</frame1>"))
 		},
 		func(w http.ResponseWriter, r *http.Request) {
-			slots, err := slots.From(r.Context())
+			slots, err := slot.FromContext(r.Context())
 			is.NoErr(err)
 			inner, err := io.ReadAll(slots)
 			is.NoErr(err)
-			headSlot := slots.Pipe("head")
+			headSlot := slots.Slot("head")
 			headSlot.Write([]byte("<meta name='description' content='some description'/>"))
 			w.Write([]byte("<frame2>"))
 			w.Write(inner)
 			w.Write([]byte("</frame2>"))
 		},
 		func(w http.ResponseWriter, r *http.Request) {
-			slots, err := slots.From(r.Context())
+			slots, err := slot.FromContext(r.Context())
 			is.NoErr(err)
 			inner, err := io.ReadAll(slots)
 			is.NoErr(err)
-			headSlot := slots.Pipe("head")
+			headSlot := slots.Slot("head")
 			head, err := io.ReadAll(headSlot)
 			is.NoErr(err)
 			w.Write([]byte("<layout>"))
@@ -474,28 +474,28 @@ func TestBatchNestedSlots(t *testing.T) {
 	}
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		wg := new(sync.WaitGroup)
-		slot := slots.New()
+		s := slot.New()
 		for i, handler := range handlers {
 			i := i
 			handler := handler
-			r := r.Clone(slot.To(r.Context()))
+			r := r.Clone(slot.ToContext(r.Context(), s))
 			if i == len(handlers)-1 {
 				wg.Add(1)
-				go func(slot *slots.Slots) {
+				go func(slot *slot.Slots) {
 					defer wg.Done()
 					defer slot.Close()
 					handler(w, r)
-				}(slot)
+				}(s)
 				continue
 			}
-			w := &responseWriter{w, slot}
+			w := &responseWriter{w, s}
 			wg.Add(1)
-			go func(slot *slots.Slots) {
+			go func(slot *slot.Slots) {
 				defer wg.Done()
 				defer slot.Close()
 				handler(w, r)
-			}(slot)
-			slot = slot.Next()
+			}(s)
+			s = s.Next()
 		}
 		wg.Wait()
 	})

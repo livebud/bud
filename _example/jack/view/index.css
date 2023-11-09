@@ -1,0 +1,243 @@
+.index {
+  min-height: 100%;
+  min-width: 100%;
+
+  .banner {
+    display: none;
+    padding: 10px;
+    text-align: center;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1;
+    position: absolute;
+  }
+
+  .banner[data-success="true"],
+  .banner[data-failure="true"] {
+    display: block;
+  }
+
+  .banner[data-success] {
+    background: #20d93f;
+    color: #2b8a3e;
+  }
+
+  .banner[data-failure] {
+    background: #ffa8a8;
+    color: #c92a2a;
+  }
+
+  .footer {
+    overflow: hidden;
+    margin-top: -178px;
+    width: 100%;
+  }
+}
+
+.Walkthrough {
+  background: #ffffff;
+  max-width: 1000px;
+  margin: 0 auto;
+  color: #4f433b;
+  width: 100%;
+
+  .list {
+    margin: 0 20px;
+    padding: 60px 0 0 0;
+    border-left: 2px solid #f4f4f4;
+    border-right: 2px solid #f4f4f4;
+  }
+
+  .item {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    list-style: none;
+    padding-bottom: 50px;
+    padding-right: 20px;
+    margin-bottom: 50px;
+    border-bottom: 1px solid #f5f5f5;
+  }
+  .item[data-final] {
+    border-bottom: none;
+    margin-bottom: 0;
+    height: 388px;
+  }
+  .item[data-final] .left {
+    width: 60%;
+  }
+  .item[data-final] .right {
+    width: 40%;
+  }
+  .item[data-final] .casablanca a {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .slack-button {
+    position: relative;
+    left: -100px;
+    top: -60px;
+  }
+
+  .count {
+    text-align: center;
+    line-height: 27px;
+    margin-left: -18px;
+    border: 3px solid #3386ff;
+    border-radius: 50%;
+    height: 33px;
+    width: 33px;
+    background: white;
+    font-size: 17px;
+    font-weight: 900;
+  }
+
+  .count.checkmark {
+    background-image: url("/images/checkmark.svg");
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: contain;
+  }
+
+  .left {
+    padding-right: 20px;
+    padding-left: 40px;
+    width: 45%;
+  }
+  .left h3 {
+    font-size: 26px;
+    font-weight: 800;
+  }
+  .left p {
+    color: #aaaaaa;
+    font-size: 17px;
+    font-weight: 400;
+    line-height: 1.2em;
+  }
+
+  .right {
+    text-align: center;
+    width: 55%;
+  }
+
+  .button-container {
+    margin-top: 50px;
+  }
+
+  .feature-list {
+    color: #212529;
+    padding: 20px 0 0 0;
+    list-style-type: none;
+    font-size: 16px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .feature-inner {
+    margin: 0 auto;
+    padding-left: 30px;
+  }
+
+  .feature {
+    margin-top: 8px;
+    display: flex;
+    line-height: 1.25;
+  }
+
+  .feature img {
+    height: 20px;
+    margin-right: 8px;
+  }
+
+  .image-container {
+    width: 100%;
+    padding: 20px;
+    border-radius: 10px;
+    border: 2px solid #f4f4f4;
+  }
+
+  .image-container > img {
+    max-width: 100%;
+  }
+
+  .image {
+    height: 100%;
+    background-size: contain;
+    background-repeat: no-repeat;
+  }
+  .image[data-start] {
+    background-image: url("/images/start.png");
+    padding-bottom: 49.8%;
+  }
+  .image[data-update] {
+    background-image: url("/images/update.png");
+    padding-bottom: 92.926%;
+  }
+  .image[data-standup] {
+    background-image: url("/images/standup.png");
+    padding-bottom: 131%;
+  }
+
+  .privacy {
+    position: relative;
+    left: 0px;
+    top: 10px;
+  }
+
+  .privacy > a {
+    text-decoration: none;
+    font-size: 14px;
+    color: gray;
+  }
+
+  .privacy > a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 670px) {
+    .item {
+      flex-direction: column;
+      padding-left: 15px;
+      padding-right: 15px;
+      padding-bottom: 15px;
+      margin-bottom: 15px;
+    }
+    .item:first-child {
+      padding-top: 50px;
+    }
+    .item[data-final] {
+      height: initial;
+      padding-bottom: 220px;
+    }
+    .item[data-final] .left {
+      width: 100%;
+    }
+    .item[data-final] .right {
+      width: 100%;
+    }
+
+    .left {
+      text-align: left;
+      padding-left: 10px;
+      padding-right: 0;
+      width: 100%;
+    }
+    .left h3 {
+      font-size: 24px;
+      text-align: center;
+    }
+
+    .right {
+      padding-top: 5px;
+      width: 100%;
+    }
+    .right .slack-button {
+      left: 0;
+      top: 0;
+    }
+  }
+}

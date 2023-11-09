@@ -1,4 +1,4 @@
-package slots
+package slot
 
 import (
 	"bytes"
