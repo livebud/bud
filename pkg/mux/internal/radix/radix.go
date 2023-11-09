@@ -125,6 +125,10 @@ func (n *Node) insert(route *ast.Route, handler http.Handler, sections ast.Secti
 			n.Handler = handler
 			return nil
 		}
+		// Ignore duplicate routes that were the result of being expanded
+		if route.Expanded {
+			return nil
+		}
 		oldRoute := n.Route.String()
 		newRoute := route.String()
 		if oldRoute == newRoute {
