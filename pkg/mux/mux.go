@@ -11,7 +11,7 @@ import (
 	"github.com/livebud/bud/pkg/middleware"
 	"github.com/livebud/bud/pkg/mux/ast"
 	"github.com/livebud/bud/pkg/mux/internal/radix"
-	"github.com/livebud/bud/pkg/slot"
+	"github.com/livebud/bud/pkg/slots"
 )
 
 var (
@@ -56,7 +56,7 @@ func New(options ...func(*router)) *router {
 		methods: map[string]*radix.Tree{},
 		layouts: radix.New(),
 		errors:  radix.New(),
-		batch:   slot.Batch,
+		batch:   slots.Batch,
 	}
 }
 

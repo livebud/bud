@@ -1,7 +1,5 @@
 // _document is only rendered on the server side and not on the client side
-import Document from "./Document"
-const { Head, Page, Scripts } = Document
-import { h } from "preact"
+import Document, { Head, Page, Scripts } from "./Document"
 
 const site = {
   lang: "en",
@@ -42,32 +40,8 @@ export default class Base extends Document {
           <meta httpEquiv="X-UA-Compatible" content="IE=edge,chrome=1" />
           <meta charSet="utf-8" />
 
-          <style
-            dangerouslySetInnerHTML={{
-              __html: `
-              * {
-                box-sizing: border-box;
-                text-rendering: optimizeLegibility;
-                -webkit-font-smoothing: antialiased;
-              }
-
-              html,
-              body,
-              #__next {
-                margin: 0;
-              }
-
-              html {
-              }
-
-              body {
-                font-family: -system-ui, sans-serif;
-                font-size: 16px;
-                background: #ffffff;
-              }
-            `,
-            }}
-          />
+          <link rel="stylesheet" href="/view/layout.css" />
+          {/* <link rel="stylesheet" href="/view/index.css" /> */}
         </Head>
         <body>
           <Page />
@@ -76,17 +50,7 @@ export default class Base extends Document {
             async
             src="https://www.googletagmanager.com/gtag/js?id=UA-10351690-15"
           />
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-
-                gtag('config', 'UA-10351690-15');
-              `,
-            }}
-          />
+          <script src="/js/ga.js" async defer></script>
         </body>
       </html>
     )

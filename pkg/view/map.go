@@ -5,8 +5,6 @@ import (
 	"io"
 	"net/http"
 	"path"
-
-	"github.com/livebud/bud/pkg/mux"
 )
 
 type Map map[string]Viewer
@@ -19,11 +17,11 @@ func (m Map) Render(w io.Writer, viewPath string, data *Data) error {
 	return viewer.Render(w, viewPath, data)
 }
 
-func (m Map) Routes(router mux.Router) {
-	for _, viewer := range m {
-		viewer.Routes(router)
-	}
-}
+// func (m Map) Routes(router mux.Router) {
+// 	for _, viewer := range m {
+// 		viewer.Routes(router)
+// 	}
+// }
 
 func (m Map) Middleware(next http.Handler) http.Handler {
 	return Middleware(m).Middleware(next)

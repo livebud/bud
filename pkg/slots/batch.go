@@ -1,4 +1,4 @@
-package slot
+package slots
 
 import "net/http"
 

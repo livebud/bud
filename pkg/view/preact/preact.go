@@ -10,13 +10,13 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"github.com/dop251/goja"
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/livebud/bud/internal/esb"
 	"github.com/livebud/bud/internal/js"
 	"github.com/livebud/bud/pkg/mod"
-	"github.com/livebud/bud/pkg/mux"
 	"github.com/livebud/bud/pkg/view"
 )
 
@@ -53,58 +53,74 @@ type Viewer struct {
 }
 
 func (v *Viewer) Render(w io.Writer, path string, data *view.Data) error {
-	return v.renderHTML(w, path, data)
+	html, err := v.evaluateSSR(path, data)
+	if err != nil {
+		return fmt.Errorf("preact: unable to evaluate html for %q. %w", path, err)
+	}
+	_, err = w.Write(html)
+	return err
+}
+
+func (v *Viewer) RenderHTML(w http.ResponseWriter, path string, data *view.Data) error {
+	w.Header().Set("Content-Type", "text/html")
+	return v.Render(w, path, data)
 }
 
 // RenderJS renders the client-side for hydrating the server-side rendered HTML.
-func (v *Viewer) RenderJS(w io.Writer, path string, data *view.Data) error {
-	return v.renderHTML(w, path, data)
+func (v *Viewer) RenderJS(w http.ResponseWriter, path string, data *view.Data) error {
+	entry, err := v.CompileDOM("./" + path)
+	if err != nil {
+		return fmt.Errorf("preact: unable to compile dom %q. %w", path, err)
+	}
+	w.Header().Set("Content-Type", "application/javascript")
+	w.Write(entry.Contents)
+	return nil
 }
 
-func (v *Viewer) Routes(router mux.Router) {
-	router.Get("/.preact/{path*}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		viewPath := strings.TrimSuffix(r.URL.Query().Get("path"), ".js")
-		if viewPath == "" {
-			http.Error(w, fmt.Sprintf("preact: client view %q not found", r.URL.Path), http.StatusNotFound)
-			return
-		}
-		entry, err := v.CompileDOM("./" + viewPath)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("preact: unable to compile %q. %s", viewPath, err), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/javascript")
-		w.Write(entry.Contents)
-	}))
-}
+// func (v *Viewer) Routes(router mux.Router) {
+// 	router.Get("/.preact/{path*}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		viewPath := strings.TrimSuffix(r.URL.Query().Get("path"), ".js")
+// 		if viewPath == "" {
+// 			http.Error(w, fmt.Sprintf("preact: client view %q not found", r.URL.Path), http.StatusNotFound)
+// 			return
+// 		}
+// 		entry, err := v.CompileDOM("./" + viewPath)
+// 		if err != nil {
+// 			http.Error(w, fmt.Sprintf("preact: unable to compile %q. %s", viewPath, err), http.StatusInternalServerError)
+// 			return
+// 		}
+// 		w.Header().Set("Content-Type", "application/javascript")
+// 		w.Write(entry.Contents)
+// 	}))
+// }
 
-func (v *Viewer) renderHTML(w io.Writer, path string, data *view.Data) error {
+func (v *Viewer) evaluateSSR(path string, data *view.Data) ([]byte, error) {
 	entry, err := v.CompileSSR("./" + path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// TODO: optimize
 	program, err := goja.Compile(path, string(entry.Contents), false)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	vm := js.New()
 	_, err = vm.RunProgram(program)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	props, err := json.Marshal(data.Props)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	result, err := vm.RunString(fmt.Sprintf("bud.render(%s)", props))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	var ssr SSR
 	err = json.Unmarshal([]byte(result.String()), &ssr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if data.Slots != nil {
 		if ssr.Head != "" {
@@ -113,8 +129,7 @@ func (v *Viewer) renderHTML(w io.Writer, path string, data *view.Data) error {
 		data.Slots.Slot("head").Write([]byte(fmt.Sprintf(`<script id=".bud_props" type="text/template" defer>%s</script>`, props)))
 		data.Slots.Slot("head").Write([]byte(fmt.Sprintf(`<script src="/.preact/%s.js" defer></script>`, path)))
 	}
-	w.Write([]byte(ssr.HTML))
-	return nil
+	return []byte(ssr.HTML), nil
 }
 
 type SSR struct {
@@ -141,10 +156,25 @@ func (v *Viewer) ssrRuntime(entry string) func(esbuild.OnLoadArgs) (esbuild.OnLo
 //go:embed ssr_entry.gotext
 var ssrEntry string
 
+var ssrEntryTemplate = template.Must(template.New("ssr_entry.gotext").Parse(ssrEntry))
+
 func (v *Viewer) ssrEntry(entry string) func(esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
 	return func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
-		result.Contents = &ssrEntry
-		result.ResolveDir = filepath.Dir(args.Path)
+		resolveDir := filepath.Dir(args.Path)
+		relPath, err := filepath.Rel(resolveDir, entry)
+		if err != nil {
+			return result, err
+		}
+		props := map[string]interface{}{
+			"Entry": relPath,
+		}
+		code := new(strings.Builder)
+		if err := ssrEntryTemplate.Execute(code, props); err != nil {
+			return result, err
+		}
+		contents := code.String()
+		result.Contents = &contents
+		result.ResolveDir = resolveDir
 		result.Loader = esbuild.LoaderJS
 		return result, nil
 	}
@@ -159,13 +189,9 @@ func (v *Viewer) CompileSSR(entry string) (*esb.File, error) {
 	if !isRelativeEntry(entry) {
 		return nil, fmt.Errorf("entry must be relative %q", entry)
 	}
-	absDir, err := filepath.Abs(v.module.Directory())
-	if err != nil {
-		return nil, err
-	}
 	ssrEntry := spliceExt(entry, ".ssr")
 	options := esbuild.BuildOptions{
-		AbsWorkingDir:   absDir,
+		AbsWorkingDir:   v.module.Directory(),
 		EntryPoints:     []string{ssrEntry},
 		Format:          esbuild.FormatIIFE,
 		Platform:        esbuild.PlatformNeutral,
@@ -188,6 +214,8 @@ func (v *Viewer) CompileSSR(entry string) (*esb.File, error) {
 	return &result.OutputFiles[0], nil
 }
 
+// TODO: can we just check if it's not absolute and make this an implementation
+// detail inside CompileSSR?
 func isRelativeEntry(entry string) bool {
 	return strings.HasPrefix(entry, "./")
 }
@@ -207,11 +235,26 @@ func (v *Viewer) domRuntime(entry string) func(esbuild.OnLoadArgs) (esbuild.OnLo
 //go:embed dom_entry.gotext
 var domEntry string
 
+var domEntryTemplate = template.Must(template.New("dom_entry.gotext").Parse(domEntry))
+
 func (v *Viewer) domEntry(entry string) func(esbuild.OnLoadArgs) (esbuild.OnLoadResult, error) {
 	return func(args esbuild.OnLoadArgs) (result esbuild.OnLoadResult, err error) {
-		result.Contents = &domEntry
+		resolveDir := filepath.Dir(args.Path)
+		relPath, err := filepath.Rel(resolveDir, entry)
+		if err != nil {
+			return result, err
+		}
+		props := map[string]interface{}{
+			"Entry": relPath,
+		}
+		code := new(strings.Builder)
+		if err := domEntryTemplate.Execute(code, props); err != nil {
+			return result, err
+		}
+		contents := code.String()
+		result.Contents = &contents
 		result.ResolveDir = filepath.Dir(args.Path)
-		result.Loader = esbuild.LoaderJS
+		result.Loader = esbuild.LoaderTSX
 		return result, nil
 	}
 }

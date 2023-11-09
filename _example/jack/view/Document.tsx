@@ -1,16 +1,14 @@
-import { Component, JSX } from "preact"
+import { Component, JSX, Fragment } from "preact"
 
 export type DocumentProps = {
-  common?: any
-  script?: any
-  head?: any
-  style?: any
-  page?: any
-  props?: any
+  script?: string
+  head?: string
+  style?: string
+  page?: string
 }
 
 type DocumentContext = {
-  _documentProps: DocumentProps
+  _docProps: DocumentProps
 }
 
 export default class Document extends Component<DocumentProps> {
@@ -22,7 +20,10 @@ export default class Document extends Component<DocumentProps> {
   }
   getChildContext(): DocumentContext {
     return {
-      _documentProps: {},
+      _docProps: {
+        head: this.props.head,
+        page: this.props.page,
+      },
     }
   }
   render(): JSX.Element {
@@ -32,18 +33,26 @@ export default class Document extends Component<DocumentProps> {
 
 export class Head extends Component {
   render() {
-    return undefined
+    const docProps = this.context._docProps || {}
+    // TODO: merge with dangerouslySetInnerHTML={{ __html: docProps.head }}
+    return <head>{this.props.children}</head>
   }
 }
 
 export class Page extends Component {
   render() {
-    return undefined
+    const docProps = this.context._docProps || {}
+    return (
+      <div
+        id="bud#target"
+        dangerouslySetInnerHTML={{ __html: docProps.page }}
+      ></div>
+    )
   }
 }
 
 export class Scripts extends Component {
   render() {
-    return undefined
+    return []
   }
 }

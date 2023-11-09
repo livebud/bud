@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/livebud/bud/pkg/middleware"
-	"github.com/livebud/bud/pkg/mux"
 	"github.com/livebud/bud/pkg/view"
 )
 
@@ -82,9 +81,6 @@ func (v *Viewer) Render(w io.Writer, path string, data *view.Data) error {
 		return err
 	}
 	return tpl.Execute(w, data.Props)
-}
-
-func (v *Viewer) Routes(router mux.Router) {
 }
 
 func (v *Viewer) Middleware(next http.Handler) http.Handler {

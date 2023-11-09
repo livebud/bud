@@ -6,7 +6,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/livebud/bud/pkg/slot"
+	"github.com/livebud/bud/pkg/slots"
 	"github.com/livebud/bud/pkg/view"
 	"github.com/livebud/bud/pkg/view/gohtml"
 	"github.com/matryer/is"
@@ -43,7 +43,7 @@ func TestSlot(t *testing.T) {
 	})
 	views := gohtml.New(fsys)
 	buf := new(bytes.Buffer)
-	slots := slot.New()
+	slots := slots.New()
 	slots.Write([]byte("<h2>Hello World!</h2>"))
 	slots.Close()
 	err := views.Render(buf, "layout.gohtml", &view.Data{

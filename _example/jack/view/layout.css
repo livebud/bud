@@ -1,0 +1,17 @@
+* {
+  box-sizing: border-box;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+html,
+body,
+#__next {
+  margin: 0;
+}
+
+body {
+  font-family: -system-ui, sans-serif;
+  font-size: 16px;
+  background: #ffffff;
+}

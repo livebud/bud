@@ -7,23 +7,20 @@ import (
 	"net/http"
 
 	"github.com/livebud/bud/pkg/middleware"
-	"github.com/livebud/bud/pkg/mux"
-	"github.com/livebud/bud/pkg/slot"
+	"github.com/livebud/bud/pkg/slots"
 )
 
 var ErrNotInContext = errors.New("viewer: not in context")
 
 // Data for a view
 type Data struct {
-	Slots *slot.Slots    // Can be nil
+	Slots *slots.Slots   // Can be nil
 	Attrs map[string]any // Can be nil
 	Props any            // Can be nil
 }
 
 // Viewer renders views
 type Viewer interface {
-	// TODO: make this an optional interface
-	mux.Routes
 	Render(w io.Writer, path string, data *Data) error
 }
 
