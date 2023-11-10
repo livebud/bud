@@ -6,7 +6,7 @@ type FooterProps = {
 
 export default function Footer(props: FooterProps) {
   return (
-    <footer>
+    <footer class="Footer">
       <div className="left-scene" />
       <div className="scene">
         <div className="grass" />

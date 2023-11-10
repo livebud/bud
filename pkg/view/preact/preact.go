@@ -126,8 +126,6 @@ func (v *Viewer) evaluateSSR(path string, data *view.Data) ([]byte, error) {
 		if ssr.Head != "" {
 			data.Slots.Slot("head").Write([]byte(ssr.Head))
 		}
-		data.Slots.Slot("head").Write([]byte(fmt.Sprintf(`<script id=".bud_props" type="text/template" defer>%s</script>`, props)))
-		data.Slots.Slot("head").Write([]byte(fmt.Sprintf(`<script src="/.preact/%s.js" defer></script>`, path)))
 	}
 	return []byte(ssr.HTML), nil
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"github.com/livebud/bud/pkg/logs"
 	"github.com/livebud/bud/pkg/mod"
 	"github.com/livebud/bud/pkg/mux"
+	"github.com/livebud/bud/pkg/request"
 	"github.com/livebud/bud/pkg/slots"
 	"github.com/livebud/bud/pkg/view"
 	"github.com/livebud/bud/pkg/view/css"
@@ -23,8 +25,15 @@ func main() {
 	preact := preact.New(module)
 	css := css.New(module)
 	router.Get("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var props struct {
+			Success *bool `json:"success"`
+		}
+		if err := request.Unmarshal(r, &props); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		slot := slots.New()
-		if err := preact.Render(slot, "view/index.tsx", &view.Data{Slots: slot}); err != nil {
+		if err := preact.Render(slot, "view/index.tsx", &view.Data{Props: props, Slots: slot}); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -40,6 +49,13 @@ func main() {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		jsonProps, err := json.Marshal(props)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		slot.Slot("head").Write([]byte(fmt.Sprintf(`<script id="bud#props" type="text/template" defer>%s</script>`, string(jsonProps))))
+		slot.Slot("head").Write([]byte(fmt.Sprintf(`<script src="/%s.js" defer></script>`, r.URL.Path)))
 		if err := preact.RenderHTML(w, "view/layout.tsx", &view.Data{
 			Props: map[string]interface{}{
 				"page": string(page),
@@ -99,9 +115,7 @@ func main() {
 			http.Error(w, fmt.Sprintf("%q not found", r.URL.Path), http.StatusNotFound)
 		}
 	}))
-	router.Get("/{path*}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.FileServer(http.Dir("public")).ServeHTTP(w, r)
-	}))
+	router.Get("/{path*}", http.FileServer(http.Dir("public")))
 	log.Infof("Listening on http://localhost%s", ":8080")
 	http.ListenAndServe(":8080", router)
 }

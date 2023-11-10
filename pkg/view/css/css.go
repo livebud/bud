@@ -41,6 +41,7 @@ func (v *Viewer) Compile(entryPath string) (*esbuild.OutputFile, error) {
 			".jpg":  esbuild.LoaderDataURL,
 			".png":  esbuild.LoaderDataURL,
 			".svg":  esbuild.LoaderDataURL,
+			// TODO: fonts
 		},
 		// This is needed now to make sure CSS nesting works correctly.
 		Engines: []esbuild.Engine{
@@ -54,7 +55,7 @@ func (v *Viewer) Compile(entryPath string) (*esbuild.OutputFile, error) {
 				Name: "externalize-css-assets",
 				Setup: func(epb esbuild.PluginBuild) {
 					epb.OnResolve(esbuild.OnResolveOptions{Filter: "^."}, func(args esbuild.OnResolveArgs) (result esbuild.OnResolveResult, err error) {
-						if filepath.Ext(args.Importer) != ".css" {
+						if filepath.Ext(args.Importer) != ".css" || filepath.Ext(args.Path) == ".css" {
 							return result, nil
 						}
 						result.Path = args.Path

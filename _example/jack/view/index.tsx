@@ -4,27 +4,27 @@ import Head from "./Head"
 import Footer from "./Footer"
 
 type IndexProps = {
-  url?: {
-    query: {
-      success?: boolean
-    }
-  }
+  success: boolean
 }
 
-export default function Index(props: IndexProps = {}, context = {}) {
-  const url = props.url || {
-    query: {},
-  }
+export default function Index(props: IndexProps) {
   return (
     <div className="index page">
       <Head>
         <title>Standup Jack</title>
       </Head>
-      <Header success={url.query.success} />
-      <Walkthrough success={url.query.success} />
-      <div className="footer">
-        <Footer success={url.query.success} />
+      <div className="banner" data-success={!!props.success}>
+        Jack was successfully added to your team. Catch you on Slack!
       </div>
+      <div
+        className="banner"
+        data-failure={typeof props.success === "boolean" && !props.success}
+      >
+        There was an error adding Jack to your Slack. Second time's a charm?
+      </div>
+      <Header success={props.success} />
+      <Walkthrough success={props.success} />
+      <Footer success={props.success} />
     </div>
   )
 }
