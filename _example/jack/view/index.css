@@ -1,3 +1,8 @@
+@import url("./Header.css");
+@import url("./SlackButton.css");
+@import url("./Button.css");
+@import url("./Footer.css");
+
 .index {
   min-height: 100%;
   min-width: 100%;

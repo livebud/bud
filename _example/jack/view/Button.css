@@ -12,12 +12,12 @@ button {
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-}
 
-button:hover {
-  border-color: #aaa;
-}
+  &:hover {
+    border-color: #aaa;
+  }
 
-button:active {
-  border-color: #aaa;
+  &:active {
+    border-color: #aaa;
+  }
 }

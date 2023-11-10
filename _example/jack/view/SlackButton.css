@@ -1,19 +1,17 @@
 .SlackButton {
-  a {
-    display: inline-flex;
-    align-items: center;
-    text-decoration: none;
-    background: white;
-    color: inherit;
-    user-select: none;
-    border: 1px solid #ccced1;
-    text-decoration: none;
-    background: white;
-    border-radius: 6px;
-    padding: 10px 15px;
-  }
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  background: white;
+  color: inherit;
+  user-select: none;
+  border: 1px solid #ccced1;
+  text-decoration: none;
+  background: white;
+  border-radius: 6px;
+  padding: 10px 15px;
 
-  a:hover {
+  &:hover {
     border-color: #aaa;
   }
 
@@ -25,50 +23,18 @@
     margin-left: 10px;
     top: 1px;
   }
-
-  @keyframes jiggle {
-    0% {
-      transform: rotate(0deg);
-    }
-
-    50% {
-      transform: rotate(0deg);
-    }
-
-    60% {
-      transform: rotate(15deg);
-    }
-
-    70% {
-      transform: rotate(-15deg);
-    }
-
-    80% {
-      transform: rotate(15deg);
-    }
-
-    90% {
-      transform: rotate(-15deg);
-    }
-
-    100% {
-      transform: rotate(0deg);
-    }
-  }
 }
 
 .SlackButton-success {
-  button {
-    display: inline-flex;
-    align-items: center;
-    border: 1px solid #20d93f;
-    text-decoration: none;
-    background: white;
-    border-radius: 6px;
-    color: inherit;
-    padding: 8px 15px 8px 11px;
-    user-select: none;
-  }
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #20d93f;
+  text-decoration: none;
+  background: white;
+  border-radius: 6px;
+  color: inherit;
+  padding: 8px 15px 8px 11px;
+  user-select: none;
 
   .checkmark {
     background: url("/images/checkmark-green.svg") no-repeat;
@@ -83,5 +49,35 @@
     font-size: 22px;
     font-weight: 600;
     margin-left: 5px;
+  }
+}
+
+@keyframes jiggle {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  50% {
+    transform: rotate(0deg);
+  }
+
+  60% {
+    transform: rotate(15deg);
+  }
+
+  70% {
+    transform: rotate(-15deg);
+  }
+
+  80% {
+    transform: rotate(15deg);
+  }
+
+  90% {
+    transform: rotate(-15deg);
+  }
+
+  100% {
+    transform: rotate(0deg);
   }
 }

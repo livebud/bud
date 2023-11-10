@@ -3,6 +3,7 @@ package css
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 
 	esbuild "github.com/evanw/esbuild/pkg/api"
 	"github.com/livebud/bud/internal/esb"
@@ -29,11 +30,32 @@ func (v *Viewer) Render(w io.Writer, path string, data *view.Data) error {
 	return nil
 }
 
-func (v *Viewer) Compile(path string) (*esbuild.OutputFile, error) {
+func (v *Viewer) Compile(entryPath string) (*esbuild.OutputFile, error) {
 	options := esbuild.BuildOptions{
 		AbsWorkingDir: v.module.Directory(),
-		EntryPoints:   []string{path},
-		// PublicPath:    "/public/",
+		EntryPoints:   []string{entryPath},
+		// These are suplanted by the plugin below
+		Loader: map[string]esbuild.Loader{
+			".jpeg": esbuild.LoaderDataURL,
+			".jpg":  esbuild.LoaderDataURL,
+			".png":  esbuild.LoaderDataURL,
+			".svg":  esbuild.LoaderDataURL,
+		},
+		Plugins: []esbuild.Plugin{
+			{
+				Name: "externalize-css-assets",
+				Setup: func(epb esbuild.PluginBuild) {
+					epb.OnResolve(esbuild.OnResolveOptions{Filter: "^."}, func(args esbuild.OnResolveArgs) (result esbuild.OnResolveResult, err error) {
+						if filepath.Ext(args.Importer) != ".css" {
+							return result, nil
+						}
+						result.Path = args.Path
+						result.External = true
+						return result, nil
+					})
+				},
+			},
+		},
 		Bundle: true,
 	}
 	result := esbuild.Build(options)
