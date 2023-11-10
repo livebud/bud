@@ -51,6 +51,35 @@ func main() {
 		}
 		slot.Close()
 	}))
+	router.Get("/faq", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		slot := slots.New()
+		if err := preact.Render(slot, "view/faq.tsx", &view.Data{Slots: slot}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		slot.Close()
+		slot = slot.Next()
+		page, err := io.ReadAll(slot)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		head, err := io.ReadAll(slot.Slot("head"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if err := preact.RenderHTML(w, "view/layout.tsx", &view.Data{
+			Props: map[string]interface{}{
+				"page": string(page),
+				"head": string(head),
+			},
+		}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		slot.Close()
+	}))
 	router.Get("/view/{path*}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		viewPath := strings.TrimPrefix(r.URL.Path, "/")
 		switch path.Ext(r.URL.Path) {

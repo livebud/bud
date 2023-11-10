@@ -34,12 +34,20 @@ func (v *Viewer) Compile(entryPath string) (*esbuild.OutputFile, error) {
 	options := esbuild.BuildOptions{
 		AbsWorkingDir: v.module.Directory(),
 		EntryPoints:   []string{entryPath},
-		// These are suplanted by the plugin below
+		// These are supplanted by the plugin below, in the future we may want to
+		// not externalize assets under a certain size.
 		Loader: map[string]esbuild.Loader{
 			".jpeg": esbuild.LoaderDataURL,
 			".jpg":  esbuild.LoaderDataURL,
 			".png":  esbuild.LoaderDataURL,
 			".svg":  esbuild.LoaderDataURL,
+		},
+		// This is needed now to make sure CSS nesting works correctly.
+		Engines: []esbuild.Engine{
+			{Name: esbuild.EngineChrome, Version: "119"},
+			{Name: esbuild.EngineEdge, Version: "118"},
+			{Name: esbuild.EngineFirefox, Version: "118"},
+			{Name: esbuild.EngineSafari, Version: "17"},
 		},
 		Plugins: []esbuild.Plugin{
 			{

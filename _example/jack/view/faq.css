@@ -1,0 +1,170 @@
+@import url("./Header.css");
+@import url("./SlackButton.css");
+@import url("./Button.css");
+@import url("./Footer.css");
+
+.faq {
+  min-height: 800px;
+  max-width: 36em;
+  margin: 0 auto;
+  padding: 75px 0;
+  color: #3b434b;
+  width: 100%;
+
+  .buttons {
+    margin-top: 40px;
+    border-top: 2px solid #e8f2ff;
+    padding-top: 40px;
+    text-align: center;
+  }
+
+  .subtext {
+    font-weight: 700;
+    font-size: 18px;
+    padding-right: 10px;
+    position: relative;
+    top: -6px;
+  }
+
+  .image {
+    height: 100%;
+    background-size: contain;
+    background-repeat: no-repeat;
+    border: 10px solid #fff;
+  }
+
+  .footer {
+    overflow: hidden;
+    width: 100%;
+  }
+
+  .markdown {
+    font-size: 18px;
+    font-weight: 400;
+    color: #4c4c36;
+    padding: 1.875em 0;
+  }
+
+  a {
+    cursor: pointer;
+    color: #4c4c36;
+    font-weight: 400;
+    transition: color 0.1s ease-in-out;
+  }
+  a:hover {
+    color: #2b00ad;
+  }
+
+  hr {
+    clear: both;
+    float: none;
+    width: 80%;
+    height: 1px;
+    margin: 1.4em auto;
+    border: none;
+    background-image: linear-gradient(
+      to left,
+      rgba(204, 204, 204, 0),
+      rgba(204, 204, 204, 0.75),
+      rgba(204, 204, 204, 0)
+    );
+  }
+
+  p:first-child {
+    font-size: 1.15em;
+  }
+
+  p {
+    word-wrap: break-word;
+    line-height: 1.75em;
+  }
+
+  h1 {
+    padding-top: 2em;
+    padding-bottom: 0.3em;
+    color: #3386ff;
+    margin: 0;
+  }
+
+  h2 {
+    font-size: 1.25em;
+  }
+
+  h3 {
+    font-size: 1em;
+  }
+
+  h2,
+  h4,
+  h5 {
+    margin: 0;
+    font-weight: bold;
+    color: #3b434b;
+    padding: 1em 0;
+  }
+
+  h3,
+  h4,
+  h5 {
+    color: #4c4c36;
+    padding: 1em 0;
+    padding-bottom: 0.25em;
+    padding-top: 1.5em;
+  }
+
+  img {
+    text-align: center;
+    max-width: 100%;
+  }
+
+  p > img {
+    padding: 1em 0;
+  }
+
+  pre {
+    overflow: visible;
+    width: 100%;
+  }
+
+  blockquote {
+    border-left: 6px solid #2900b3;
+    margin-left: 15px;
+    padding-left: 15px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    font-style: italic;
+  }
+
+  code {
+    font-size: 14px;
+    overflow-x: scroll;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  ol,
+  ul {
+    margin: 0;
+  }
+
+  ol > li,
+  ul > li {
+    line-height: 1.75em;
+  }
+
+  ol > li:last-child,
+  ul > li:last-child {
+    padding-bottom: 1em;
+  }
+
+  ol > li {
+    list-style: lower-roman;
+  }
+
+  ul > li {
+    list-style: square;
+  }
+
+  iframe {
+    width: 100%;
+  }
+}

@@ -42,6 +42,7 @@ export default class Base extends Document {
 
           <link rel="stylesheet" href="/view/layout.css" />
           <link rel="stylesheet" href="/view/index.css" />
+          <link rel="stylesheet" href="/view/faq.css" />
         </Head>
         <body>
           <Page />

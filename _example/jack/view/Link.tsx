@@ -7,7 +7,6 @@ type LinkProps = {
 
 export default class Link extends Component<LinkProps> {
   render() {
-    // TODO: fill in
-    return this.props.children
+    return <a href={this.props.href}>{this.props.children}</a>
   }
 }
