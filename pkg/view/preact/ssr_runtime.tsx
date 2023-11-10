@@ -5,7 +5,7 @@ const heads: any[] = []
 
 class HeadProvider extends Component<any> {
   getChildContext() {
-    return { head: heads }
+    return { heads: heads }
   }
 
   render() {

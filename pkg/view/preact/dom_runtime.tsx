@@ -4,7 +4,7 @@ const heads: any[] = []
 
 class HeadProvider extends Component<any> {
   getChildContext() {
-    return { head: heads }
+    return { heads: heads }
   }
 
   render() {
@@ -12,9 +12,9 @@ class HeadProvider extends Component<any> {
   }
 }
 
-const target = document.getElementById(".bud") || document.body
+const target = document.getElementById("bud") || document.body
 const props = JSON.parse(
-  document.getElementById(".bud_props")?.textContent || "{}"
+  document.getElementById("bud#props")?.textContent || "{}"
 )
 
 export function renderView(View: FunctionComponent): void {

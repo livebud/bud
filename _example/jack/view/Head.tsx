@@ -2,7 +2,7 @@ import { Component } from "preact"
 
 export default class Head extends Component {
   render() {
-    // console.log(this.props.children)
+    this.context.heads.push(this.props.children)
     return undefined
   }
 }
