@@ -2,5 +2,5 @@ import { renderView } from "ssr_runtime.tsx"
 import View from "./{{ .Entry }}"
 
 export function render(props) {
-  return renderView(View, props)
+  return renderView("{{ .Entry }}", View, props)
 }

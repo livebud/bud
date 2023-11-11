@@ -1,5 +1,5 @@
 import renderToString from "preact-render-to-string"
-import { FunctionComponent, Component, JSX } from "preact"
+import { h, FunctionComponent, Component, JSX, VNode } from "preact"
 
 const heads: JSX.Element[] = []
 
@@ -13,7 +13,11 @@ class HeadProvider extends Component<any> {
   }
 }
 
-export function renderView(View: FunctionComponent, props: any): string {
+export function renderView(
+  path: string,
+  View: FunctionComponent,
+  props: any
+): string {
   const html = renderToString(
     <HeadProvider>
       <View {...props} />
@@ -21,14 +25,53 @@ export function renderView(View: FunctionComponent, props: any): string {
   )
   return JSON.stringify({
     html: html,
-    // head: heads.map((head) => renderToJson(head)),
-    head: heads.map((head) => renderToString(head)).join(""),
+    heads: heads
+      .map(renderToJson)
+      .concat(propScript(props), clientScript(path)),
   })
 }
 
-type VNode = {}
+function renderToJson(el: JSX.Element): VNode<any> {
+  if (typeof el.type === "function") {
+    throw new Error("rendering components inside head is not supported yet")
+  }
+  const props = el.props
+  if (el.props.children) {
+    // children can be undefined, an array, a component, or just a string
+    props.children = Array.isArray(el.props.children)
+      ? el.props.children.map(renderToJson)
+      : el.props.children.type !== undefined
+      ? renderToJson(el.props.children)
+      : el.props.children
+  }
+  return {
+    type: el.type,
+    props: props,
+    key: el.key,
+  }
+}
 
-function renderToJson(vnode: JSX.Element): VNode {
-  console.log("vnode", JSON.stringify(vnode))
-  return {}
+function propScript(props: any): VNode<any> {
+  return {
+    type: "script",
+    props: {
+      id: "bud#props",
+      type: "text/template",
+      defer: true,
+      dangerouslySetInnerHTML: { __html: JSON.stringify(props) },
+    },
+    key: undefined,
+  }
+}
+
+function clientScript(path: any): VNode<any> {
+  return {
+    type: "script",
+    props: {
+      src: `/view/${path}.js`,
+      type: "application/javascript",
+      defer: true,
+    },
+    key: undefined,
+  }
 }

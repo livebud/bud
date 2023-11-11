@@ -25,3 +25,13 @@ func FromContext(ctx context.Context) (*Slots, error) {
 	}
 	return s, nil
 }
+
+// From returns the slots from the context. If the slots are not in the context,
+// ErrNotInContext is returned.
+func MustFromContext(ctx context.Context) *Slots {
+	slots, err := FromContext(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return slots
+}

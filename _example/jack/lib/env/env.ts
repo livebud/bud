@@ -20,12 +20,12 @@ type Output<T> = {
 
 
 export default function env<Schema extends Input>(schema: Schema): Output<Schema> {
-  // TODO: type output, it's difficult with all the inference
+  // TODO: type output
   const out: any = {}
   for (let key in schema) {
     const value = ENV[key]
-    // ENV[key] is undefined
-    if (typeof value === 'undefined') {
+    // ENV[key] is undefined or an empty string
+    if (typeof value === 'undefined' || value === '') {
       if (baseType(value)) {
         throw new Error(`environment variable "${key}" is not defined`)
       }

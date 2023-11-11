@@ -40,64 +40,30 @@ func main() {
 	}))
 	css := css.New(module)
 	router.Layout("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var props struct {
-			Success *bool `json:"success"`
-		}
-		if err := request.Unmarshal(r, &props); err != nil {
+		slot, err := slots.FromContext(r.Context())
+		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		slot := slots.New()
 		page, err := io.ReadAll(slot)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		jsonProps, err := json.Marshal(props)
+		heads, err := io.ReadAll(slot.Slot("heads"))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		slot.Slot("head").Write([]byte(fmt.Sprintf(`<script id="bud#props" type="text/template" defer>%s</script>`, string(jsonProps))))
-		slot.Slot("head").Write([]byte(fmt.Sprintf(`<script src="/view/%s.js" defer></script>`, "index.jsx")))
-		head, err := io.ReadAll(slot.Slot("head"))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		_ = head
 		if err := preact.RenderHTML(w, "view/layout.tsx", &view.Data{
 			Props: map[string]interface{}{
-				"page": string(page),
-				"head": []VNode{
-					{
-						Name:     "title",
-						Children: []string{"Standup Jack"},
-					},
-					{
-						Name: "script",
-						Attrs: map[string]string{
-							"id":    "bud#props",
-							"type":  "text/template",
-							"defer": "",
-						},
-						Children: []string{"{}"},
-					},
-					{
-						Name: "script",
-						Attrs: map[string]string{
-							"src":   "/view/index.jsx.js",
-							"type":  "application/javascript",
-							"defer": "",
-						},
-					},
-				},
+				"page":  string(page),
+				"heads": json.RawMessage(heads),
 			},
 		}); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		slot.Close()
 	}))
 	router.Get("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var props struct {
@@ -107,65 +73,33 @@ func main() {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		slot := slots.New()
+		slot, err := slots.FromContext(r.Context())
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		if err := preact.Render(slot, "view/index.tsx", &view.Data{Props: props, Slots: slot}); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		slot.Close()
-		slot = slot.Next()
 	}))
 	router.Get("/faq", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		slot := slots.New()
-		if err := preact.Render(slot, "view/faq.tsx", &view.Data{Slots: slot}); err != nil {
+		var props struct {
+			Success *bool `json:"success"`
+		}
+		if err := request.Unmarshal(r, &props); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		slot.Close()
-		slot = slot.Next()
-		page, err := io.ReadAll(slot)
+		slot, err := slots.FromContext(r.Context())
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		head, err := io.ReadAll(slot.Slot("head"))
-		if err != nil {
+		if err := preact.Render(slot, "view/faq.tsx", &view.Data{Props: props, Slots: slot}); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		_ = head
-		if err := preact.RenderHTML(w, "view/layout.tsx", &view.Data{
-			Props: map[string]interface{}{
-				"page": string(page),
-				"head": []VNode{
-					{
-						Name:     "title",
-						Children: []string{"FAQ"},
-					},
-					{
-						Name: "script",
-						Attrs: map[string]string{
-							"id":    "bud#props",
-							"type":  "text/template",
-							"defer": "",
-						},
-						Children: []string{"{}"},
-					},
-					{
-						Name: "script",
-						Attrs: map[string]string{
-							"src":   "/view/faq.jsx.js",
-							"type":  "application/javascript",
-							"defer": "",
-						},
-					},
-				},
-			},
-		}); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		slot.Close()
 	}))
 	router.Get("/view/{path*}", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		viewPath := strings.TrimPrefix(r.URL.Path, "/")

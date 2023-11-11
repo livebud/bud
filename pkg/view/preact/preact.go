@@ -131,16 +131,16 @@ func (v *Viewer) evaluateSSR(path string, data *view.Data) ([]byte, error) {
 		return nil, err
 	}
 	if data.Slots != nil {
-		if ssr.Head != "" {
-			data.Slots.Slot("head").Write([]byte(ssr.Head))
+		if ssr.Heads != nil {
+			data.Slots.Slot("heads").Write(ssr.Heads)
 		}
 	}
 	return []byte(ssr.HTML), nil
 }
 
 type SSR struct {
-	HTML string `json:"html"`
-	Head string `json:"head"`
+	HTML  string          `json:"html"`
+	Heads json.RawMessage `json:"heads"`
 }
 
 func (v *Viewer) Middleware(next http.Handler) http.Handler {

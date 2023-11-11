@@ -1,14 +1,14 @@
 import { Component, JSX, Fragment, h } from "preact"
 
 type VNode = {
-  name: string
-  attrs: Record<string, string>
-  children: (VNode | string)[]
+  type: string
+  props: Record<string, string>
+  // children: (VNode | string)[]
 }
 
 export type DocumentProps = {
   script?: string
-  head?: VNode[]
+  heads: VNode[]
   style?: string
   page?: string
 }
@@ -24,7 +24,7 @@ export default class Document extends Component<DocumentProps> {
   getChildContext(): DocumentContext {
     return {
       _docProps: {
-        head: this.props.head,
+        heads: this.props.heads,
         page: this.props.page,
       },
     }
@@ -35,29 +35,13 @@ export default class Document extends Component<DocumentProps> {
 }
 
 export class Head extends Component {
-  getName(node: VNode): typeof Fragment | string {
-    if (node.name === "Fragment") {
-      return Fragment
-    }
-    return node.name
-  }
-
-  hydrate(node: VNode): JSX.Element {
-    return h(
-      node.name,
-      node.attrs || {},
-      (node.children || []).map((child) =>
-        typeof child === "string" ? child : this.hydrate(child)
-      )
-    )
-  }
-
   render() {
     const docProps = this.context._docProps || {}
+    const heads = docProps.heads || []
     return (
       <head>
         {(this.props.children || ([] as any)).concat(
-          docProps.head.map((head: VNode) => this.hydrate(head))
+          heads.map((node: VNode) => h(node.type, node.props))
         )}
       </head>
     )

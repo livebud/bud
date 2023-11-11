@@ -2,6 +2,7 @@ package preact_test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -39,7 +40,7 @@ func TestCompileSSR(t *testing.T) {
 	is.NoErr(err)
 	result, err := vm.RunString("bud.render({})")
 	is.NoErr(err)
-	is.Equal(result.String(), `{"html":"<h1>Hello World!</h1>","head":""}`)
+	is.Equal(result.String(), `{"html":"<h1>Hello World!</h1>","heads":[{"type":"script","props":{"id":"bud#props","type":"text/template","defer":true,"dangerouslySetInnerHTML":{"__html":"{}"}}},{"type":"script","props":{"src":"/view/index.jsx.js","type":"application/javascript","defer":true}}]}`)
 }
 
 func TestCompileSSRWithHead(t *testing.T) {
@@ -51,7 +52,7 @@ func TestCompileSSRWithHead(t *testing.T) {
 		"index.jsx": `
 			import { createElement } from "preact";
 			export default function(props, context) {
-				context.head.push(<title>hello</title>)
+				context.heads.push(<title>hello</title>)
 				return <h1>Hello World!</h1>
 			}
 		`,
@@ -68,7 +69,7 @@ func TestCompileSSRWithHead(t *testing.T) {
 	is.NoErr(err)
 	result, err := vm.RunString("bud.render({})")
 	is.NoErr(err)
-	is.Equal(result.String(), `{"html":"<h1>Hello World!</h1>","head":"<title>hello</title>"}`)
+	is.Equal(result.String(), `{"html":"<h1>Hello World!</h1>","heads":[{"type":"title","props":{"children":"hello"}},{"type":"script","props":{"id":"bud#props","type":"text/template","defer":true,"dangerouslySetInnerHTML":{"__html":"{}"}}},{"type":"script","props":{"src":"/view/index.jsx.js","type":"application/javascript","defer":true}}]}`)
 }
 
 func TestCompileDOM(t *testing.T) {
@@ -90,6 +91,7 @@ func TestCompileDOM(t *testing.T) {
 	preact := preact.New(module)
 	entry, err := preact.CompileDOM("./index.jsx")
 	is.NoErr(err)
-	is.True(strings.Contains(string(entry.Contents), `var target = document.getElementById(".bud") || document.body;`))
-	is.True(strings.Contains(string(entry.Contents), `document.getElementById(".bud_props")?.textContent || "{}"`))
+	fmt.Println(string(entry.Contents))
+	is.True(strings.Contains(string(entry.Contents), `var target = document.getElementById("bud") || document.body;`))
+	is.True(strings.Contains(string(entry.Contents), `document.getElementById("bud#props")?.textContent || "{}"`))
 }

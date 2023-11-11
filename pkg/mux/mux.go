@@ -56,7 +56,7 @@ func New(options ...func(*router)) *router {
 		methods: map[string]*radix.Tree{},
 		layouts: radix.New(),
 		errors:  radix.New(),
-		batch:   slots.Batch,
+		batch:   slots.Chain,
 	}
 }
 
