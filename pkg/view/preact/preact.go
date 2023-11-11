@@ -20,15 +20,21 @@ import (
 	"github.com/livebud/bud/pkg/view"
 )
 
-func Embed(embed bool) func(*Viewer) {
+func WithEmbed(embed bool) func(*Viewer) {
 	return func(v *Viewer) {
 		v.embed = embed
 	}
 }
 
-func Minify(minify bool) func(*Viewer) {
+func WithMinify(minify bool) func(*Viewer) {
 	return func(v *Viewer) {
 		v.minify = minify
+	}
+}
+
+func WithEnv(obj any) func(*Viewer) {
+	return func(v *Viewer) {
+		v.env = obj
 	}
 }
 
@@ -37,6 +43,7 @@ func New(module *mod.Module, options ...func(*Viewer)) *Viewer {
 		module: module,
 		embed:  false,
 		minify: false,
+		env:    map[string]any{},
 	}
 	for _, option := range options {
 		option(p)
@@ -50,6 +57,7 @@ type Viewer struct {
 	module *mod.Module
 	embed  bool
 	minify bool
+	env    any
 }
 
 func (v *Viewer) Render(w io.Writer, path string, data *view.Data) error {
@@ -200,6 +208,7 @@ func (v *Viewer) CompileSSR(entry string) (*esb.File, error) {
 		Plugins: []esbuild.Plugin{
 			esb.Virtual("ssr_runtime.tsx", v.ssrRuntime(entry)),
 			esb.Virtual(ssrEntry, v.ssrEntry(entry)),
+			esb.Env("bud/env.json", v.env),
 			esb.HTTP(http.DefaultClient),
 		},
 	}
@@ -278,6 +287,7 @@ func (v *Viewer) CompileDOM(entry string) (*esb.File, error) {
 		Plugins: []esbuild.Plugin{
 			esb.Virtual("dom_runtime.tsx", v.domRuntime(entry)),
 			esb.Virtual(domEntry, v.domEntry(entry)),
+			esb.Env("bud/env.json", v.env),
 			esb.HTTP(http.DefaultClient),
 		},
 	}

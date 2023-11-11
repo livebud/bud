@@ -1,3 +1,8 @@
+// This module is provided by ESBuild
+// TODO: make this a valid empty file
+// @ts-expect-error
+import ENV from 'bud/env.json'
+
 interface Input {
   [key: string]: string | typeof String | number | typeof Number | boolean | typeof Boolean
 }
@@ -13,8 +18,6 @@ type Output<T> = {
   : never
 }
 
-// This gets filled in by the bundler
-const ENV: Record<string, any> = {}
 
 export default function env<Schema extends Input>(schema: Schema): Output<Schema> {
   // TODO: type output, it's difficult with all the inference

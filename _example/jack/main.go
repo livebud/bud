@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"path"
 	"strings"
 
@@ -29,9 +30,16 @@ func main() {
 	log := logs.Default()
 	module := mod.MustFind()
 	router := mux.New()
-	preact := preact.New(module)
+	preact := preact.New(module, preact.WithEnv(map[string]any{
+		"API_URL":            os.Getenv("API_URL"),
+		"SLACK_CLIENT_ID":    os.Getenv("SLACK_CLIENT_ID"),
+		"SLACK_REDIRECT_URL": os.Getenv("SLACK_REDIRECT_URL"),
+		"SLACK_SCOPE":        os.Getenv("SLACK_SCOPE"),
+		"SLACK_USER_SCOPE":   os.Getenv("SLACK_USER_SCOPE"),
+		"STRIPE_CLIENT_KEY":  os.Getenv("STRIPE_CLIENT_KEY"),
+	}))
 	css := css.New(module)
-	router.Get("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	router.Layout("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var props struct {
 			Success *bool `json:"success"`
 		}
@@ -40,12 +48,6 @@ func main() {
 			return
 		}
 		slot := slots.New()
-		if err := preact.Render(slot, "view/index.tsx", &view.Data{Props: props, Slots: slot}); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		slot.Close()
-		slot = slot.Next()
 		page, err := io.ReadAll(slot)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -96,6 +98,22 @@ func main() {
 			return
 		}
 		slot.Close()
+	}))
+	router.Get("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var props struct {
+			Success *bool `json:"success"`
+		}
+		if err := request.Unmarshal(r, &props); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		slot := slots.New()
+		if err := preact.Render(slot, "view/index.tsx", &view.Data{Props: props, Slots: slot}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		slot.Close()
+		slot = slot.Next()
 	}))
 	router.Get("/faq", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		slot := slots.New()
