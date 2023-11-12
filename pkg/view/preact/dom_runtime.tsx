@@ -1,6 +1,6 @@
-import { render, FunctionComponent, Component } from "preact"
+import { render, FunctionComponent, Component, JSX } from "preact"
 
-const heads: HTMLCollection = document.head.children || []
+const heads: JSX.Element[] = []
 
 // TODO: support dynamically changing the <head> tag
 class HeadProvider extends Component<any> {
