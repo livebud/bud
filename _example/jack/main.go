@@ -1,8 +1,11 @@
 package main
 
+//go:generate go run . -generate
+
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,6 +19,7 @@ import (
 	"github.com/livebud/bud/pkg/request"
 	"github.com/livebud/bud/pkg/slots"
 	"github.com/livebud/bud/pkg/sse"
+	"github.com/livebud/bud/pkg/u"
 	"github.com/livebud/bud/pkg/view"
 	"github.com/livebud/bud/pkg/view/css"
 	"github.com/livebud/bud/pkg/view/preact"
@@ -30,13 +34,19 @@ type VNode struct {
 	Value    string            `json:"value,omitempty"`
 }
 
+var generate = flag.Bool("generate", false, "generate")
+
 func main() {
+	flag.Parse()
+	if *generate {
+		fmt.Println("generating!")
+		return
+	}
 	log := logs.Default()
-	module := mod.MustFind()
+	module := u.Must(mod.Find())
 	router := mux.New()
 	se := sse.New(log)
 	ctx := context.Background()
-	router.Get("/live.js", se)
 	preact := preact.New(module, preact.WithLive("/live.js"), preact.WithEnv(map[string]any{
 		"API_URL":            os.Getenv("API_URL"),
 		"SLACK_CLIENT_ID":    os.Getenv("SLACK_CLIENT_ID"),
@@ -46,6 +56,7 @@ func main() {
 		"STRIPE_CLIENT_KEY":  os.Getenv("STRIPE_CLIENT_KEY"),
 	}))
 	css := css.New(module)
+	router.Get("/live.js", se)
 	router.Layout("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		slot, err := slots.FromContext(r.Context())
 		if err != nil {
