@@ -58,13 +58,3 @@ func Chain(handlers ...http.Handler) http.Handler {
 		w.Write(body)
 	})
 }
-
-func newResponseWriter(w http.ResponseWriter) http.ResponseWriter {
-	return httpsnoop.Wrap(w, httpsnoop.Hooks{})
-}
-
-type responseWriter struct {
-	http.ResponseWriter
-}
-
-// func

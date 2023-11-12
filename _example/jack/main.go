@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,9 +15,12 @@ import (
 	"github.com/livebud/bud/pkg/mux"
 	"github.com/livebud/bud/pkg/request"
 	"github.com/livebud/bud/pkg/slots"
+	"github.com/livebud/bud/pkg/sse"
 	"github.com/livebud/bud/pkg/view"
 	"github.com/livebud/bud/pkg/view/css"
 	"github.com/livebud/bud/pkg/view/preact"
+	"github.com/livebud/bud/pkg/watcher"
+	"golang.org/x/sync/errgroup"
 )
 
 type VNode struct {
@@ -30,7 +34,10 @@ func main() {
 	log := logs.Default()
 	module := mod.MustFind()
 	router := mux.New()
-	preact := preact.New(module, preact.WithEnv(map[string]any{
+	se := sse.New(log)
+	ctx := context.Background()
+	router.Get("/live.js", se)
+	preact := preact.New(module, preact.WithLive("/live.js"), preact.WithEnv(map[string]any{
 		"API_URL":            os.Getenv("API_URL"),
 		"SLACK_CLIENT_ID":    os.Getenv("SLACK_CLIENT_ID"),
 		"SLACK_REDIRECT_URL": os.Getenv("SLACK_REDIRECT_URL"),
@@ -121,6 +128,25 @@ func main() {
 		}
 	}))
 	router.Get("/{path*}", http.FileServer(http.Dir("public")))
-	log.Infof("Listening on http://localhost%s", ":8080")
-	http.ListenAndServe(":8080", router)
+	eg := new(errgroup.Group)
+	eg.Go(func() error {
+		log.Infof("Listening on http://localhost%s", ":8080")
+		return http.ListenAndServe(":8080", router)
+	})
+	eg.Go(func() error {
+		return watcher.Watch(ctx, ".", func(events *watcher.Events) error {
+			eventData, err := json.Marshal(events)
+			if err != nil {
+				log.Error(err)
+			}
+			if err := se.Publish(ctx, &sse.Event{Data: []byte(eventData)}); err != nil {
+				log.Error(err)
+			}
+			return nil
+		})
+	})
+	if err := eg.Wait(); err != nil {
+		log.Error(err)
+		os.Exit(1)
+	}
 }

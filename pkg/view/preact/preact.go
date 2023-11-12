@@ -32,6 +32,12 @@ func WithMinify(minify bool) func(*Viewer) {
 	}
 }
 
+func WithLive(liveUrl string) func(*Viewer) {
+	return func(v *Viewer) {
+		v.liveUrl = liveUrl
+	}
+}
+
 func WithEnv(obj any) func(*Viewer) {
 	return func(v *Viewer) {
 		v.env = obj
@@ -40,10 +46,11 @@ func WithEnv(obj any) func(*Viewer) {
 
 func New(module *mod.Module, options ...func(*Viewer)) *Viewer {
 	p := &Viewer{
-		module: module,
-		embed:  false,
-		minify: false,
-		env:    map[string]any{},
+		module:  module,
+		embed:   false,
+		minify:  false,
+		liveUrl: "",
+		env:     map[string]any{},
 	}
 	for _, option := range options {
 		option(p)
@@ -54,10 +61,11 @@ func New(module *mod.Module, options ...func(*Viewer)) *Viewer {
 var _ view.Viewer = (*Viewer)(nil)
 
 type Viewer struct {
-	module *mod.Module
-	embed  bool
-	minify bool
-	env    any
+	module  *mod.Module
+	embed   bool
+	minify  bool
+	liveUrl string
+	env     any
 }
 
 func (v *Viewer) Render(w io.Writer, path string, data *view.Data) error {
@@ -121,7 +129,7 @@ func (v *Viewer) evaluateSSR(path string, data *view.Data) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	result, err := vm.RunString(fmt.Sprintf("bud.render(%s)", props))
+	result, err := vm.RunString(fmt.Sprintf("bud.render(%s, { liveUrl: %q })", props, v.liveUrl))
 	if err != nil {
 		return nil, err
 	}

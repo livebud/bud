@@ -2,7 +2,6 @@ package preact_test
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/livebud/bud/pkg/mod"
 	"github.com/livebud/bud/pkg/view/preact"
 	"github.com/matryer/is"
+	"github.com/matthewmueller/diff"
 )
 
 func TestCompileSSR(t *testing.T) {
@@ -40,7 +40,7 @@ func TestCompileSSR(t *testing.T) {
 	is.NoErr(err)
 	result, err := vm.RunString("bud.render({})")
 	is.NoErr(err)
-	is.Equal(result.String(), `{"html":"<h1>Hello World!</h1>","heads":[{"type":"script","props":{"id":"bud#props","type":"text/template","defer":true,"dangerouslySetInnerHTML":{"__html":"{}"}}},{"type":"script","props":{"src":"/view/index.jsx.js","type":"application/javascript","defer":true}}]}`)
+	diff.TestString(t, result.String(), `{"html":"<h1>Hello World!</h1>","heads":[{"type":"script","props":{"id":"bud#props","type":"text/template","defer":true,"dangerouslySetInnerHTML":{"__html":"{}"}}},{"type":"script","props":{"src":"/view/index.jsx.js","type":"text/javascript","defer":true}}]}`)
 }
 
 func TestCompileSSRWithHead(t *testing.T) {
@@ -69,7 +69,7 @@ func TestCompileSSRWithHead(t *testing.T) {
 	is.NoErr(err)
 	result, err := vm.RunString("bud.render({})")
 	is.NoErr(err)
-	is.Equal(result.String(), `{"html":"<h1>Hello World!</h1>","heads":[{"type":"title","props":{"children":"hello"}},{"type":"script","props":{"id":"bud#props","type":"text/template","defer":true,"dangerouslySetInnerHTML":{"__html":"{}"}}},{"type":"script","props":{"src":"/view/index.jsx.js","type":"application/javascript","defer":true}}]}`)
+	diff.TestString(t, result.String(), `{"html":"<h1>Hello World!</h1>","heads":[{"type":"title","props":{"children":"hello"}},{"type":"script","props":{"id":"bud#props","type":"text/template","defer":true,"dangerouslySetInnerHTML":{"__html":"{}"}}},{"type":"script","props":{"src":"/view/index.jsx.js","type":"text/javascript","defer":true}}]}`)
 }
 
 func TestCompileDOM(t *testing.T) {
@@ -91,7 +91,6 @@ func TestCompileDOM(t *testing.T) {
 	preact := preact.New(module)
 	entry, err := preact.CompileDOM("./index.jsx")
 	is.NoErr(err)
-	fmt.Println(string(entry.Contents))
 	is.True(strings.Contains(string(entry.Contents), `var target = document.getElementById("bud") || document.body;`))
-	is.True(strings.Contains(string(entry.Contents), `document.getElementById("bud#props")?.textContent || "{}"`))
+	is.True(strings.Contains(string(entry.Contents), `getProps(document.getElementById("bud#props"));`))
 }

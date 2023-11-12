@@ -13,22 +13,31 @@ class HeadProvider extends Component<any> {
   }
 }
 
+type Options = {
+  liveUrl: string
+}
+
 export function renderView(
   path: string,
   View: FunctionComponent,
-  props: any
+  props: any,
+  options: Options
 ): string {
   const html = renderToString(
     <HeadProvider>
       <View {...props} />
     </HeadProvider>
   )
-  return JSON.stringify({
+  const out = {
     html: html,
     heads: heads
       .map(renderToJson)
       .concat(propScript(props), clientScript(path)),
-  })
+  }
+  if (options.liveUrl) {
+    out.heads.push(liveScript(options.liveUrl))
+  }
+  return JSON.stringify(out)
 }
 
 function renderToJson(el: JSX.Element): VNode<any> {
@@ -69,7 +78,19 @@ function clientScript(path: any): VNode<any> {
     type: "script",
     props: {
       src: `/view/${path}.js`,
-      type: "application/javascript",
+      type: "text/javascript",
+      defer: true,
+    },
+    key: undefined,
+  }
+}
+
+function liveScript(liveUrl: string): VNode<any> {
+  return {
+    type: "script",
+    props: {
+      src: liveUrl,
+      type: "text/javascript",
       defer: true,
     },
     key: undefined,

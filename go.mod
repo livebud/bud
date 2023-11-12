@@ -4,13 +4,16 @@ go 1.21.0
 
 require (
 	github.com/ajg/form v1.5.2-0.20200323032839-9aeb3cf462e1
+	github.com/bep/debounce v1.2.1
 	github.com/dop251/goja v0.0.0-20231027120936-b396bb4c349d
 	github.com/evanw/esbuild v0.19.5
 	github.com/felixge/httpsnoop v1.0.4
+	github.com/fsnotify/fsnotify v1.7.0
 	github.com/go-logfmt/logfmt v0.6.0
 	github.com/lithammer/dedent v1.1.0
 	github.com/matryer/is v1.4.1
 	github.com/matthewmueller/diff v0.0.1
+	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06
 	github.com/segmentio/ksuid v1.0.4
 	github.com/timewasted/go-accept-headers v0.0.0-20130320203746-c78f304b1b09
 	github.com/yuin/goldmark v1.4.13
