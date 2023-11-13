@@ -31,3 +31,19 @@ func TestReadDir(t *testing.T) {
 	is.NoErr(err)
 	is.True(len(des) > 0)
 }
+
+func TestSub(t *testing.T) {
+	is := is.New(t)
+	wd, err := os.Getwd()
+	is.NoErr(err)
+	module, err := mod.Find(wd)
+	is.NoErr(err)
+	subdir := module.Sub("pkg", "mod")
+	des, err := fs.ReadDir(subdir, ".")
+	is.NoErr(err)
+	is.True(len(des) >= 4)
+	is.Equal(des[0].Name(), "mod.go")
+	is.Equal(des[1].Name(), "mod_test.go")
+	is.Equal(des[2].Name(), "module.go")
+	is.Equal(des[3].Name(), "module_test.go")
+}
