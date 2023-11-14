@@ -1,19 +1,19 @@
-package genfscache
+package gencache
 
 import (
 	"errors"
 
-	"github.com/livebud/bud/pkg/genfs"
+	"github.com/livebud/bud/pkg/gen"
 	"github.com/livebud/bud/pkg/virt"
 )
 
-func Discard() genfs.Cache {
+func Discard() gen.Cache {
 	return discard{}
 }
 
 type discard struct{}
 
-var _ genfs.Cache = (*discard)(nil)
+var _ gen.Cache = (*discard)(nil)
 
 func (discard) Get(path string) (*virt.File, error) {
 	return nil, errors.New("not found")

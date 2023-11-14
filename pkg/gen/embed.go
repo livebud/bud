@@ -1,4 +1,4 @@
-package genfs
+package gen
 
 type Embed struct {
 	Data []byte

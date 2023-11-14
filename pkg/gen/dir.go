@@ -1,4 +1,4 @@
-package genfs
+package gen
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ type Dir struct {
 	tree   *tree
 }
 
-var _ Generators = (*Dir)(nil)
+var _ Generator = (*Dir)(nil)
 
 func (d *Dir) Target() string {
 	return d.target

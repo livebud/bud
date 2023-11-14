@@ -1,4 +1,4 @@
-package genfs
+package gen
 
 import (
 	"errors"
@@ -13,10 +13,11 @@ import (
 type FileSystem interface {
 	fs.FS
 	fs.ReadDirFS
-	Generators
+	Generator
+	Add(generators Generators)
 }
 
-type Generators interface {
+type Generator interface {
 	GenerateFile(path string, fn func(fsys FS, file *File) error)
 	FileGenerator(path string, generator FileGenerator)
 	GenerateDir(path string, fn func(fsys FS, dir *Dir) error)
@@ -56,6 +57,14 @@ type fileSystem struct {
 }
 
 var _ FileSystem = (*fileSystem)(nil)
+
+type Generators interface {
+	Generators(gen Generator)
+}
+
+func (f *fileSystem) Add(gens Generators) {
+	gens.Generators(f)
+}
 
 func (f *fileSystem) GenerateFile(path string, fn func(fsys FS, file *File) error) {
 	fileg := &fileGenerator{f.cache, fn, f, path}

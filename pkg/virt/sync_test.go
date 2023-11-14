@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/livebud/bud/pkg/genfs"
-	"github.com/livebud/bud/pkg/genfs/genfscache"
+	"github.com/livebud/bud/pkg/gen"
+	"github.com/livebud/bud/pkg/gen/gencache"
 	"github.com/livebud/bud/pkg/logs"
 	"github.com/livebud/bud/pkg/virt"
 	"github.com/matryer/is"
@@ -186,8 +186,8 @@ func TestSyncSkipNotExist(t *testing.T) {
 	log := logs.Default()
 
 	// starting points
-	from := genfs.New(genfscache.Discard(), virt.List{}, log)
-	from.GenerateFile("bud/generate/main.go", func(fsys genfs.FS, file *genfs.File) error {
+	from := gen.New(gencache.Discard(), virt.List{}, log)
+	from.GenerateFile("bud/generate/main.go", func(fsys gen.FS, file *gen.File) error {
 		return fs.ErrNotExist
 	})
 	to := virt.List{}
@@ -203,8 +203,8 @@ func TestSyncSkipDirNotExist(t *testing.T) {
 	log := logs.Default()
 
 	// starting points
-	from := genfs.New(genfscache.Discard(), virt.List{}, log)
-	from.GenerateDir("bud/generate", func(fsys genfs.FS, dir *genfs.Dir) error {
+	from := gen.New(gencache.Discard(), virt.List{}, log)
+	from.GenerateDir("bud/generate", func(fsys gen.FS, dir *gen.Dir) error {
 		return fs.ErrNotExist
 	})
 	to := virt.List{}
@@ -224,8 +224,8 @@ func TestSyncErrorGenerator(t *testing.T) {
 	virt.Now = func() time.Time { return after }
 
 	// starting points
-	from := genfs.New(genfscache.Discard(), virt.List{}, log)
-	from.GenerateFile("bud/generate/main.go", func(fsys genfs.FS, file *genfs.File) error {
+	from := gen.New(gencache.Discard(), virt.List{}, log)
+	from.GenerateFile("bud/generate/main.go", func(fsys gen.FS, file *gen.File) error {
 		return errors.New("uh oh")
 	})
 	to := virt.List{}
@@ -338,9 +338,9 @@ func TestSyncDeleteNotExist(t *testing.T) {
 	log := logs.Default()
 
 	// starting points
-	from := genfs.New(genfscache.Discard(), virt.List{}, log)
+	from := gen.New(gencache.Discard(), virt.List{}, log)
 	notExist := false
-	from.GenerateFile("bud/generate/main.go", func(fsys genfs.FS, file *genfs.File) error {
+	from.GenerateFile("bud/generate/main.go", func(fsys gen.FS, file *gen.File) error {
 		if notExist {
 			return fs.ErrNotExist
 		}
