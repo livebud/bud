@@ -1952,3 +1952,45 @@ func TestFilesWithinServe(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(string(code), "e/f.txt")
 }
+
+func TestGenerateSameDir(t *testing.T) {
+	t.Skip("not implemented yet")
+	is := is.New(t)
+	fsys := virt.Tree{
+		"view/index.css": &virt.File{Data: []byte("body { background: blue }")},
+		"view/index.jsx": &virt.File{Data: []byte("export default function() { return <h2>Index</h2> }")},
+		"view/about.jsx": &virt.File{Data: []byte("export default function() { return <h2>About</h2> }")},
+	}
+	log := logs.Default()
+	cache := genfscache.Discard()
+	bfs := genfs.New(cache, fsys, log)
+	bfs.GenerateDir(".bud/view", func(fsys genfs.FS, dir *genfs.Dir) error {
+		cssFiles, err := fs.Glob(fsys, "*.css")
+		if err != nil {
+			return err
+		}
+		for _, cssFile := range cssFiles {
+			dir.GenerateFile(path.Base(cssFile), func(fsys genfs.FS, file *genfs.File) error {
+				file.Data = []byte("/* " + cssFile + " */")
+				return nil
+			})
+		}
+		return nil
+	})
+	bfs.GenerateDir(".bud/view", func(fsys genfs.FS, dir *genfs.Dir) error {
+		jsxFiles, err := fs.Glob(fsys, "*.jsx")
+		if err != nil {
+			return err
+		}
+		for _, jsxFile := range jsxFiles {
+			dir.GenerateFile(path.Base(jsxFile), func(fsys genfs.FS, file *genfs.File) error {
+				file.Data = []byte("export default function() { return <h2>" + jsxFile + "</h2> }")
+				return nil
+			})
+		}
+		return nil
+	})
+	des, err := fs.ReadDir(bfs, ".bud/view")
+	is.NoErr(err)
+	is.Equal(len(des), 3)
+}
