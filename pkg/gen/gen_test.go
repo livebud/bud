@@ -1998,7 +1998,7 @@ func TestGenerateSameDir(t *testing.T) {
 type testGenerator struct {
 }
 
-func (g *testGenerator) Generators(generator gen.Generator) {
+func (g *testGenerator) Generator(generator gen.Generator) {
 	generator.GenerateFile("bud/a.txt", func(fsys gen.FS, file *gen.File) error {
 		file.Data = []byte("a")
 		return nil

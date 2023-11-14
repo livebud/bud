@@ -14,7 +14,7 @@ type FileSystem interface {
 	fs.FS
 	fs.ReadDirFS
 	Generator
-	Add(generators Generators)
+	Add(plugin Plugin)
 }
 
 type Generator interface {
@@ -58,12 +58,12 @@ type fileSystem struct {
 
 var _ FileSystem = (*fileSystem)(nil)
 
-type Generators interface {
-	Generators(gen Generator)
+type Plugin interface {
+	Generator(gen Generator)
 }
 
-func (f *fileSystem) Add(gens Generators) {
-	gens.Generators(f)
+func (f *fileSystem) Add(plugin Plugin) {
+	plugin.Generator(f)
 }
 
 func (f *fileSystem) GenerateFile(path string, fn func(fsys FS, file *File) error) {
