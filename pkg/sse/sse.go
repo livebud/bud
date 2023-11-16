@@ -12,23 +12,23 @@ import (
 )
 
 // New server-sent event (SSE) handler
-func New(log logs.Log) *SSE {
-	return &SSE{
+func New(log logs.Log) *Handler {
+	return &Handler{
 		pub: newPublishers(log),
 		log: log,
 	}
 }
 
-type SSE struct {
+type Handler struct {
 	id  atomic.Int64
 	pub *publishers
 	log logs.Log
 }
 
-var _ http.Handler = (*SSE)(nil)
-var _ Publisher = (*SSE)(nil)
+var _ http.Handler = (*Handler)(nil)
+var _ Publisher = (*Handler)(nil)
 
-func (s *SSE) Publish(ctx context.Context, event *Event) error {
+func (s *Handler) Publish(ctx context.Context, event *Event) error {
 	return s.pub.Publish(ctx, event)
 }
 
@@ -36,7 +36,7 @@ const defaultUrl = "/live.js"
 
 // Middleware for serving live reload events and passing the live url along
 // TODO: middleware should support options with configurable url
-func (s *SSE) Middleware() func(next http.Handler) http.Handler {
+func (s *Handler) Middleware() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// If the request is for the live route, serve it
@@ -51,7 +51,7 @@ func (s *SSE) Middleware() func(next http.Handler) http.Handler {
 	}
 }
 
-func (s *SSE) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch request.Accept(r, "text/javascript", "text/event-stream") {
 	case "text/javascript":
 		s.serveJS(w, r)
@@ -63,7 +63,7 @@ func (s *SSE) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *SSE) serveJS(w http.ResponseWriter, r *http.Request) {
+func (s *Handler) serveJS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/javascript")
 	w.Write([]byte(`(function() {
 		var source = new EventSource("` + r.URL.String() + `");
@@ -87,7 +87,7 @@ func (s *SSE) serveJS(w http.ResponseWriter, r *http.Request) {
 	})();`))
 }
 
-func (s *SSE) acceptClient(w http.ResponseWriter, r *http.Request) {
+func (s *Handler) acceptClient(w http.ResponseWriter, r *http.Request) {
 	publisher, err := Create(w)
 	if err != nil {
 		s.log.Errorf("sse: unable to create publisher: %w", err)

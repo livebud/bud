@@ -54,8 +54,7 @@ func main() {
 	module := loadModule(log, ".")
 	fsys := loadGenerator(log, module)
 	sse := sse.New(log)
-	router := router.New(fsys)
-	router.Use(sse.Middleware())
+	router := router.New(fsys, sse)
 	ctx := context.Background()
 
 	serve := cmds.Serve(log, router)
