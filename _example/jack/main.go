@@ -55,7 +55,6 @@ func main() {
 	fsys := loadGenerator(log, module)
 	sse := sse.New(log)
 	router := router.New(fsys, sse)
-	ctx := context.Background()
 
 	serve := cmds.Serve(log, router)
 	watch := cmds.Watch(log, module, sse)
@@ -66,6 +65,7 @@ func main() {
 	cmd.Command("serve", "serve the app").Add(serve)
 	cmd.Add(cli.All(serve, watch))
 
+	ctx := context.Background()
 	if err := cmd.Parse(ctx, os.Args[1:]...); err != nil {
 		log.Error(err)
 		os.Exit(1)
