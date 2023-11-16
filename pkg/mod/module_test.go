@@ -38,7 +38,7 @@ func TestSub(t *testing.T) {
 	is.NoErr(err)
 	module, err := mod.Find(wd)
 	is.NoErr(err)
-	subdir := module.Sub("pkg", "mod")
+	subdir := module.In("pkg", "mod")
 	des, err := fs.ReadDir(subdir, ".")
 	is.NoErr(err)
 	is.True(len(des) >= 4)

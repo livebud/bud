@@ -2,6 +2,7 @@ package mux_test
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -10,40 +11,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/livebud/bud/pkg/middleware"
 	"github.com/livebud/bud/pkg/mux"
 	"github.com/matryer/is"
 	"github.com/matthewmueller/diff"
 )
 
 // Handler returns the raw query
-func handler(route string) *handlerFunc {
-	return &handlerFunc{
-		func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte(route))
-			if r.URL.RawQuery != "" {
-				w.Write([]byte(" " + r.URL.RawQuery))
-			}
-		},
-		http.Header{},
+func handler(route string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(route))
+		if r.URL.RawQuery != "" {
+			w.Write([]byte(" " + r.URL.RawQuery))
+		}
 	}
-}
-
-type handlerFunc struct {
-	fn      func(w http.ResponseWriter, r *http.Request)
-	headers http.Header
-}
-
-func (h *handlerFunc) Set(name, value string) *handlerFunc {
-	h.headers.Set(name, value)
-	return h
-}
-
-func (h *handlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	for key := range h.headers {
-		w.Header().Set(key, h.headers.Get(key))
-	}
-	h.fn(w, r)
 }
 
 func requestEqual(t testing.TB, router http.Handler, request string, expect string) {
@@ -693,7 +673,9 @@ func TestFind(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(route.Method, "GET")
 	is.Equal(route.Route, "/{id}")
-	is.Equal(route.Handler, h)
+	rec := httptest.NewRecorder()
+	route.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/10", nil))
+	is.Equal(rec.Body.String(), "GET /{id}")
 	route, err = router.Find("POST", "/{id}")
 	is.True(errors.Is(err, mux.ErrNoMatch))
 	is.Equal(route, nil)
@@ -838,7 +820,7 @@ func TestLayout(t *testing.T) {
 	router.Post("/users", createUsers)
 	listUsers := handler("GET /users")
 	router.Get("/users", listUsers)
-	layout := handler("/")
+	layout := handler("layout /")
 	router.Layout("/", layout)
 	userLayout := handler("/users")
 	router.Layout("/users", userLayout)
@@ -850,10 +832,15 @@ func TestLayout(t *testing.T) {
 	is.Equal(match.Route.String(), "/")
 	is.Equal(match.Path, "/")
 	is.Equal(len(match.Slots), 0)
-	is.Equal(match.Handler, root)
+	rec := httptest.NewRecorder()
+	match.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+	is.Equal(rec.Body.String(), "GET /")
+	fmt.Println(match.Layout)
 	is.True(match.Layout != nil)
 	is.Equal(match.Layout.Route, "/")
-	is.Equal(match.Layout.Handler, layout)
+	rec = httptest.NewRecorder()
+	match.Layout.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+	is.Equal(rec.Body.String(), "layout /")
 	is.True(match.Error == nil)
 
 	// Find /
@@ -861,10 +848,14 @@ func TestLayout(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(route.Method, http.MethodGet)
 	is.Equal(route.Route, "/")
-	is.Equal(route.Handler, root)
+	rec = httptest.NewRecorder()
+	route.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+	is.Equal(rec.Body.String(), "GET /")
 	is.True(route.Layout != nil)
 	is.Equal(route.Layout.Route, "/")
-	is.Equal(route.Layout.Handler, layout)
+	rec = httptest.NewRecorder()
+	match.Layout.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+	is.Equal(rec.Body.String(), "layout /")
 	is.True(route.Error == nil)
 
 	// Match /signup
@@ -874,10 +865,14 @@ func TestLayout(t *testing.T) {
 	is.Equal(match.Route.String(), "/signup")
 	is.Equal(match.Path, "/signup")
 	is.Equal(len(match.Slots), 0)
-	is.Equal(match.Handler, signup)
+	rec = httptest.NewRecorder()
+	match.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/signup", nil))
+	is.Equal(rec.Body.String(), "GET /signup")
 	is.True(match.Layout != nil)
 	is.Equal(match.Layout.Route, "/")
-	is.Equal(match.Layout.Handler, layout)
+	rec = httptest.NewRecorder()
+	match.Layout.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+	is.Equal(rec.Body.String(), "layout /")
 	is.True(match.Error == nil)
 
 	// Find /
@@ -885,10 +880,14 @@ func TestLayout(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(route.Method, http.MethodGet)
 	is.Equal(route.Route, "/signup")
-	is.Equal(route.Handler, signup)
+	rec = httptest.NewRecorder()
+	route.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/signup", nil))
+	is.Equal(rec.Body.String(), "GET /signup")
 	is.True(route.Layout != nil)
 	is.Equal(route.Layout.Route, "/")
-	is.Equal(route.Layout.Handler, layout)
+	rec = httptest.NewRecorder()
+	match.Layout.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+	is.Equal(rec.Body.String(), "layout /")
 	is.True(route.Error == nil)
 
 	// Match POST /users
@@ -898,7 +897,9 @@ func TestLayout(t *testing.T) {
 	is.Equal(match.Route.String(), "/users")
 	is.Equal(match.Path, "/users")
 	is.Equal(len(match.Slots), 0)
-	is.Equal(match.Handler, createUsers)
+	rec = httptest.NewRecorder()
+	match.Handler.ServeHTTP(rec, httptest.NewRequest("POST", "/users", nil))
+	is.Equal(rec.Body.String(), "POST /users")
 	is.True(match.Layout == nil)
 	is.True(match.Error == nil)
 
@@ -907,7 +908,9 @@ func TestLayout(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(route.Method, http.MethodPost)
 	is.Equal(route.Route, "/users")
-	is.Equal(route.Handler, createUsers)
+	rec = httptest.NewRecorder()
+	route.Handler.ServeHTTP(rec, httptest.NewRequest("POST", "/users", nil))
+	is.Equal(rec.Body.String(), "POST /users")
 	is.True(route.Layout == nil)
 	is.True(route.Error == nil)
 
@@ -918,10 +921,14 @@ func TestLayout(t *testing.T) {
 	is.Equal(match.Route.String(), "/users")
 	is.Equal(match.Path, "/users")
 	is.Equal(len(match.Slots), 0)
-	is.Equal(match.Handler, listUsers)
+	rec = httptest.NewRecorder()
+	match.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/users", nil))
+	is.Equal(rec.Body.String(), "GET /users")
 	is.True(match.Layout != nil)
 	is.Equal(match.Layout.Route, "/users")
-	is.Equal(match.Layout.Handler, userLayout)
+	rec = httptest.NewRecorder()
+	match.Layout.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/users", nil))
+	is.Equal(rec.Body.String(), "/users")
 	is.True(match.Error == nil)
 
 	// Find GET /users
@@ -929,10 +936,14 @@ func TestLayout(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(route.Method, http.MethodGet)
 	is.Equal(route.Route, "/users")
-	is.Equal(route.Handler, listUsers)
+	rec = httptest.NewRecorder()
+	match.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/users", nil))
+	is.Equal(rec.Body.String(), "GET /users")
 	is.True(route.Layout != nil)
 	is.Equal(route.Layout.Route, "/users")
-	is.Equal(route.Layout.Handler, userLayout)
+	rec = httptest.NewRecorder()
+	match.Layout.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/users", nil))
+	is.Equal(rec.Body.String(), "/users")
 	is.True(route.Error == nil)
 }
 
@@ -947,9 +958,9 @@ func TestError(t *testing.T) {
 	router.Post("/users", createUsers)
 	listUsers := handler("GET /users")
 	router.Get("/users", listUsers)
-	errorHandler := handler("/")
+	errorHandler := handler("error /")
 	router.Error("/", errorHandler)
-	userErrorHandler := handler("/users")
+	userErrorHandler := handler("error /users")
 	router.Error("/users", userErrorHandler)
 
 	// Match /
@@ -959,22 +970,30 @@ func TestError(t *testing.T) {
 	is.Equal(match.Route.String(), "/")
 	is.Equal(match.Path, "/")
 	is.Equal(len(match.Slots), 0)
-	is.Equal(match.Handler, root)
+	rec := httptest.NewRecorder()
+	match.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+	is.Equal(rec.Body.String(), "GET /")
 	is.True(match.Layout == nil)
 	is.True(match.Error != nil)
 	is.Equal(match.Error.Route, "/")
-	is.Equal(match.Error.Handler, errorHandler)
+	rec = httptest.NewRecorder()
+	match.Error.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+	is.Equal(rec.Body.String(), "error /")
 
 	// Find /
 	route, err := router.Find(http.MethodGet, "/")
 	is.NoErr(err)
 	is.Equal(route.Method, http.MethodGet)
 	is.Equal(route.Route, "/")
-	is.Equal(route.Handler, root)
+	rec = httptest.NewRecorder()
+	route.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+	is.Equal(rec.Body.String(), "GET /")
 	is.True(route.Layout == nil)
 	is.True(route.Error != nil)
 	is.Equal(route.Error.Route, "/")
-	is.Equal(route.Error.Handler, errorHandler)
+	rec = httptest.NewRecorder()
+	route.Error.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+	is.Equal(rec.Body.String(), "error /")
 
 	// Match /signup
 	match, err = router.Match(http.MethodGet, "/signup")
@@ -983,22 +1002,30 @@ func TestError(t *testing.T) {
 	is.Equal(match.Route.String(), "/signup")
 	is.Equal(match.Path, "/signup")
 	is.Equal(len(match.Slots), 0)
-	is.Equal(match.Handler, signup)
+	rec = httptest.NewRecorder()
+	match.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/signup", nil))
+	is.Equal(rec.Body.String(), "GET /signup")
 	is.True(match.Layout == nil)
 	is.True(match.Error != nil)
 	is.Equal(match.Error.Route, "/")
-	is.Equal(match.Error.Handler, errorHandler)
+	rec = httptest.NewRecorder()
+	match.Error.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/signup", nil))
+	is.Equal(rec.Body.String(), "error /")
 
 	// Find /signup
 	route, err = router.Find(http.MethodGet, "/signup")
 	is.NoErr(err)
 	is.Equal(route.Method, http.MethodGet)
 	is.Equal(route.Route, "/signup")
-	is.Equal(route.Handler, signup)
+	rec = httptest.NewRecorder()
+	route.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/signup", nil))
+	is.Equal(rec.Body.String(), "GET /signup")
 	is.True(route.Layout == nil)
 	is.True(route.Error != nil)
 	is.Equal(route.Error.Route, "/")
-	is.Equal(route.Error.Handler, errorHandler)
+	rec = httptest.NewRecorder()
+	match.Error.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/signup", nil))
+	is.Equal(rec.Body.String(), "error /")
 
 	// Match POST /users
 	match, err = router.Match(http.MethodPost, "/users")
@@ -1007,7 +1034,9 @@ func TestError(t *testing.T) {
 	is.Equal(match.Route.String(), "/users")
 	is.Equal(match.Path, "/users")
 	is.Equal(len(match.Slots), 0)
-	is.Equal(match.Handler, createUsers)
+	rec = httptest.NewRecorder()
+	match.Handler.ServeHTTP(rec, httptest.NewRequest("POST", "/users", nil))
+	is.Equal(rec.Body.String(), "POST /users")
 	is.True(match.Layout == nil)
 	is.True(match.Error == nil)
 
@@ -1016,7 +1045,9 @@ func TestError(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(route.Method, http.MethodPost)
 	is.Equal(route.Route, "/users")
-	is.Equal(route.Handler, createUsers)
+	rec = httptest.NewRecorder()
+	route.Handler.ServeHTTP(rec, httptest.NewRequest("POST", "/users", nil))
+	is.Equal(rec.Body.String(), "POST /users")
 	is.True(route.Layout == nil)
 	is.True(route.Error == nil)
 
@@ -1027,21 +1058,29 @@ func TestError(t *testing.T) {
 	is.Equal(match.Route.String(), "/users")
 	is.Equal(match.Path, "/users")
 	is.Equal(len(match.Slots), 0)
-	is.Equal(match.Handler, listUsers)
+	rec = httptest.NewRecorder()
+	match.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/users", nil))
+	is.Equal(rec.Body.String(), "GET /users")
 	is.True(match.Layout == nil)
 	is.True(match.Error != nil)
 	is.Equal(match.Error.Route, "/users")
-	is.Equal(match.Error.Handler, userErrorHandler)
+	rec = httptest.NewRecorder()
+	match.Error.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/signup", nil))
+	is.Equal(rec.Body.String(), "error /users")
 
 	route, err = router.Find(http.MethodGet, "/users")
 	is.NoErr(err)
 	is.Equal(route.Method, http.MethodGet)
 	is.Equal(route.Route, "/users")
-	is.Equal(route.Handler, listUsers)
+	rec = httptest.NewRecorder()
+	route.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/users", nil))
+	is.Equal(rec.Body.String(), "GET /users")
 	is.True(route.Layout == nil)
 	is.True(route.Error != nil)
 	is.Equal(route.Error.Route, "/users")
-	is.Equal(route.Error.Handler, userErrorHandler)
+	rec = httptest.NewRecorder()
+	match.Error.Handler.ServeHTTP(rec, httptest.NewRequest("GET", "/users", nil))
+	is.Equal(rec.Body.String(), "error /users")
 }
 
 // func TestLayoutRequest(t *testing.T) {
@@ -1093,26 +1132,29 @@ func TestLayoutNonHTMLRequest(t *testing.T) {
 		w.Write(inner)
 		w.Write([]byte("</layout>"))
 	}))
-	router.Get("/posts/{post_id}/comments.js", handler("console.log('hi')").Set("Content-Type", "application/javascript"))
+	router.Get("/posts/{post_id}/comments.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/javascript")
+		w.Write([]byte("console.log('hi')"))
+	})
 	requestEqual(t, router, "GET /posts/10/comments.js", `
 		HTTP/1.1 200 OK
 		Connection: close
 		Content-Type: application/javascript
 
-		console.log('hi') post_id=10
+		console.log('hi')
 	`)
 }
 
 func TestMiddleware(t *testing.T) {
 	router := mux.New()
-	router.Use(middleware.Func(func(next http.Handler) http.Handler {
+	router.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("X-A", "A")
 			next.ServeHTTP(w, r)
 			// Note: Can't use a header here because we've already written
 			w.Write([]byte(" (after)"))
 		})
-	}))
+	})
 	router.Get("/", handler("GET /"))
 	requestEqual(t, router, "GET /", `
 		HTTP/1.1 200 OK
@@ -1126,12 +1168,12 @@ func TestMiddleware(t *testing.T) {
 
 func TestMiddlewareWrapsNonMatches(t *testing.T) {
 	router := mux.New()
-	router.Use(middleware.Func(func(next http.Handler) http.Handler {
+	router.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("X-A", "A")
 			next.ServeHTTP(w, r)
 		})
-	}))
+	})
 	router.Get("/", handler("GET /"))
 	requestEqual(t, router, "POST /", `
 		HTTP/1.1 404 Not Found

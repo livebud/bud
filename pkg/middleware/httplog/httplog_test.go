@@ -15,7 +15,7 @@ import (
 func TestMiddleware(t *testing.T) {
 	is := is.New(t)
 	buffer := logs.Buffer()
-	handler := httplog.New(buffer).Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := httplog.New(buffer)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log, err := logs.FromContext(r.Context())
 		is.NoErr(err)
 		log.Field("cool", "story").Info("hello")
@@ -70,7 +70,7 @@ func TestCustomRequestID(t *testing.T) {
 	requestId := httplog.WithRequestId(func(*http.Request) string {
 		return "custom-request-id"
 	})
-	handler := httplog.New(buffer, requestId).Middleware(inner)
+	handler := httplog.New(buffer, requestId)(inner)
 	req := httptest.NewRequest("GET", "http://livebud.com/docs", nil)
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)

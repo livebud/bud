@@ -1,4 +1,4 @@
-package oldcli
+package cli
 
 import (
 	"os"

@@ -4,9 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
-	"net/http"
 
-	"github.com/livebud/bud/pkg/middleware"
 	"github.com/livebud/bud/pkg/slots"
 )
 
@@ -24,14 +22,14 @@ type Viewer interface {
 	Render(w io.Writer, path string, data *Data) error
 }
 
-// Middleware to load viewers into the context
-func Middleware(viewer Viewer) middleware.Middleware {
-	return middleware.Func(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			next.ServeHTTP(w, r.WithContext(WithViewer(r.Context(), viewer)))
-		})
-	})
-}
+// // Middleware to load viewers into the context
+// func Middleware(viewer Viewer) middleware.Middleware {
+// 	return middleware.Func(func(next http.Handler) http.Handler {
+// 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 			next.ServeHTTP(w, r.WithContext(WithViewer(r.Context(), viewer)))
+// 		})
+// 	})
+// }
 
 type contextKey string
 

@@ -1,4 +1,4 @@
-package oldcli
+package cli
 
 type Flag struct {
 	name  string

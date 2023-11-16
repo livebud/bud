@@ -1,38 +1,113 @@
 package sse
 
 import (
-	"bytes"
+	"context"
+	"net/http"
 	"strconv"
+	"sync/atomic"
+
+	"github.com/livebud/bud/pkg/locals"
+	"github.com/livebud/bud/pkg/logs"
+	"github.com/livebud/bud/pkg/request"
 )
 
-// https://html.spec.whatwg.org/multipage/server-sent-events.html#event-stream-interpretation
-type Event struct {
-	ID    string // id (optional)
-	Type  string // event type (optional)
-	Data  []byte // data
-	Retry int    // retry (optional)
+// New server-sent event (SSE) handler
+func New(log logs.Log) *SSE {
+	return &SSE{
+		pub: newPublishers(log),
+		log: log,
+	}
 }
 
-func (e *Event) Format() *bytes.Buffer {
-	b := new(bytes.Buffer)
-	if e.ID != "" {
-		b.WriteString("id: " + e.ID + "\n")
-	}
-	if e.Type != "" {
-		b.WriteString("event: " + e.Type + "\n")
-	}
-	if len(e.Data) > 0 {
-		b.WriteString("data: ")
-		b.Write(e.Data)
-		b.WriteByte('\n')
-	}
-	if e.Retry > 0 {
-		b.WriteString("retry: " + strconv.Itoa(e.Retry) + "\n")
-	}
-	b.WriteByte('\n')
-	return b
+type SSE struct {
+	id  atomic.Int64
+	pub *publishers
+	log logs.Log
 }
 
-func (e *Event) String() string {
-	return e.Format().String()
+var _ http.Handler = (*SSE)(nil)
+var _ Publisher = (*SSE)(nil)
+
+func (s *SSE) Publish(ctx context.Context, event *Event) error {
+	return s.pub.Publish(ctx, event)
+}
+
+const defaultUrl = "/live.js"
+
+// Middleware for serving live reload events and passing the live url along
+// TODO: middleware should support options with configurable url
+func (s *SSE) Middleware() func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// If the request is for the live route, serve it
+			if r.Method == http.MethodGet && r.URL.Path == defaultUrl {
+				s.ServeHTTP(w, r)
+				return
+			}
+			// Otherwise, pass the live url along
+			ctx := locals.Set(r.Context(), "live_url", defaultUrl)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func (s *SSE) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch request.Accept(r, "text/javascript", "text/event-stream") {
+	case "text/javascript":
+		s.serveJS(w, r)
+	case "text/event-stream":
+		s.acceptClient(w, r)
+	default:
+		http.Error(w, "sse: unsupportedaccept header", http.StatusNotAcceptable)
+		return
+	}
+}
+
+func (s *SSE) serveJS(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/javascript")
+	w.Write([]byte(`(function() {
+		var source = new EventSource("` + r.URL.String() + `");
+		source.addEventListener("message", function(e) {
+			const { created, updated, deleted } = JSON.parse(e.data)
+			if (!created.length && !deleted.length && updated.length === 1) {
+				for (const link of document.getElementsByTagName("link")) {
+					const url = new URL(link.href)
+					const pathname = url.pathname.replace(/^\//, '')
+					if (url.host === location.host && pathname === updated[0]) {
+						const next = link.cloneNode()
+						next.href = updated[0] + '?' + Math.random().toString(36).slice(2)
+						next.onload = () => link.remove()
+						link.parentNode.insertBefore(next, link.nextSibling)
+						return
+					}
+				}
+			}
+			window.location.reload()
+		});
+	})();`))
+}
+
+func (s *SSE) acceptClient(w http.ResponseWriter, r *http.Request) {
+	publisher, err := Create(w)
+	if err != nil {
+		s.log.Errorf("sse: unable to create publisher: %w", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	// Add the client to the publisher
+	clientID := strconv.FormatInt(s.id.Add(1), 10)
+	eventCh := s.pub.Set(clientID, publisher)
+	defer s.pub.Remove(clientID)
+	// Wait for the client to disconnect
+	ctx := r.Context()
+	for {
+		select {
+		// Send events to the client
+		case event := <-eventCh:
+			publisher.Publish(ctx, event)
+		// Client disconnected
+		case <-ctx.Done():
+			return
+		}
+	}
 }

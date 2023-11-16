@@ -151,9 +151,9 @@ type SSR struct {
 	Heads json.RawMessage `json:"heads"`
 }
 
-func (v *Viewer) Middleware(next http.Handler) http.Handler {
-	return view.Middleware(v).Middleware(next)
-}
+// func (v *Viewer) Middleware(next http.Handler) http.Handler {
+// 	return view.Middleware(v).Middleware(next)
+// }
 
 //go:embed ssr_runtime.tsx
 var ssrRuntime string

@@ -6,7 +6,6 @@ import (
 
 	"github.com/felixge/httpsnoop"
 	"github.com/livebud/bud/pkg/logs"
-	"github.com/livebud/bud/pkg/middleware"
 	"github.com/segmentio/ksuid"
 )
 
@@ -35,14 +34,14 @@ func defaultRequestId(r *http.Request) string {
 }
 
 // New uses the logger to log requests and responses
-func New(log logs.Log, options ...func(*middlewareOption)) middleware.Middleware {
+func New(log logs.Log, options ...func(*middlewareOption)) func(next http.Handler) http.Handler {
 	opts := &middlewareOption{
 		requestId: defaultRequestId,
 	}
 	for _, option := range options {
 		option(opts)
 	}
-	return middleware.Func(func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			log := log.Fields(logs.Fields{
 				"url":         r.RequestURI,
@@ -68,5 +67,5 @@ func New(log logs.Log, options ...func(*middlewareOption)) middleware.Middleware
 				log.Info("response")
 			}
 		})
-	})
+	}
 }

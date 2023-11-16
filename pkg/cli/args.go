@@ -1,4 +1,4 @@
-package oldcli
+package cli
 
 type Args struct {
 	Name  string

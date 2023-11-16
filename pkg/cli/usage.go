@@ -1,4 +1,4 @@
-package oldcli
+package cli
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"text/template"
 )
 
-func Usage() error {
+func Help() error {
 	return flag.ErrHelp
 }
 

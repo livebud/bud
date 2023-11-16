@@ -10,14 +10,12 @@ import (
 	"github.com/livebud/bud/pkg/gen/gencache"
 	"github.com/livebud/bud/pkg/logs"
 	"github.com/livebud/bud/pkg/mod"
-	"github.com/livebud/bud/pkg/u"
 	"github.com/livebud/bud/pkg/view/css"
 	"github.com/livebud/bud/pkg/view/preact"
 	"github.com/livebud/bud/pkg/virt"
 )
 
-func New(log logs.Log) fs.FS {
-	module := u.Must(mod.Find())
+func New(log logs.Log, module *mod.Module) fs.FS {
 	preact := preact.New(module, preact.WithEnv(map[string]any{
 		"API_URL":            os.Getenv("API_URL"),
 		"SLACK_CLIENT_ID":    os.Getenv("SLACK_CLIENT_ID"),

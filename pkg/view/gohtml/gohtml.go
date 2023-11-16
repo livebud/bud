@@ -5,10 +5,8 @@ import (
 	"html/template"
 	"io"
 	"io/fs"
-	"net/http"
 	"strings"
 
-	"github.com/livebud/bud/pkg/middleware"
 	"github.com/livebud/bud/pkg/view"
 )
 
@@ -64,7 +62,6 @@ func New(fsys fs.FS) *Viewer {
 }
 
 var _ view.Viewer = (*Viewer)(nil)
-var _ middleware.Middleware = (*Viewer)(nil)
 
 type Viewer struct {
 	fsys  fs.FS
@@ -83,9 +80,9 @@ func (v *Viewer) Render(w io.Writer, path string, data *view.Data) error {
 	return tpl.Execute(w, data.Props)
 }
 
-func (v *Viewer) Middleware(next http.Handler) http.Handler {
-	return view.Middleware(v).Middleware(next)
-}
+// func (v *Viewer) Middleware() http.Handler {
+// 	return view.Middleware(v).Middleware(next)
+// }
 
 func (v *Viewer) parseTemplate(path string, data *view.Data) (*template.Template, error) {
 	code, err := fs.ReadFile(v.fsys, path)

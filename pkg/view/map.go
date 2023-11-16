@@ -3,7 +3,6 @@ package view
 import (
 	"fmt"
 	"io"
-	"net/http"
 	"path"
 )
 
@@ -23,6 +22,6 @@ func (m Map) Render(w io.Writer, viewPath string, data *Data) error {
 // 	}
 // }
 
-func (m Map) Middleware(next http.Handler) http.Handler {
-	return Middleware(m).Middleware(next)
-}
+// func (m Map) Middleware(next http.Handler) http.Handler {
+// 	return Middleware(m).Middleware(next)
+// }

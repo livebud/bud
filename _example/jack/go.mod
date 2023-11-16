@@ -4,10 +4,7 @@ go 1.21.0
 
 replace github.com/livebud/bud => ../..
 
-require (
-	github.com/livebud/bud v0.0.0-00010101000000-000000000000
-	golang.org/x/sync v0.3.0
-)
+require github.com/livebud/bud v0.0.0-00010101000000-000000000000
 
 require (
 	github.com/ajg/form v1.5.2-0.20200323032839-9aeb3cf462e1 // indirect
@@ -25,6 +22,7 @@ require (
 	github.com/timewasted/go-accept-headers v0.0.0-20130320203746-c78f304b1b09 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
 	golang.org/x/mod v0.14.0 // indirect
+	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.12.0 // indirect
 	golang.org/x/text v0.3.8 // indirect
 )

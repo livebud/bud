@@ -12,7 +12,7 @@ import (
 	"github.com/matryer/is"
 )
 
-func ok() http.Handler {
+func ok() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})

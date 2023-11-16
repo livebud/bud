@@ -20,10 +20,10 @@ type Controller struct {
 	ssr *ssr.Viewer
 }
 
-func (c *Controller) Routes(r mux.Router) {
-	r.Layout("/", http.HandlerFunc(c.Layout))
-	r.Get("/", http.HandlerFunc(c.Index))
-	r.Get("/faq", http.HandlerFunc(c.Faq))
+func (c *Controller) Routes(r mux.Routes) {
+	r.Layout("/", c.Layout)
+	r.Get("/", c.Index)
+	r.Get("/faq", c.Faq)
 }
 
 func (c *Controller) Layout(w http.ResponseWriter, r *http.Request) {

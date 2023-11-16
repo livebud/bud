@@ -29,8 +29,8 @@ func (m *Module) Import(subpaths ...string) string {
 	return gopath.Join(modulePath, subPath)
 }
 
-// Sub returns an FS corresponding to the subtree rooted at fsys's dir.
-func (m *Module) Sub(subpaths ...string) *Module {
+// In returns an FS corresponding to the subtree rooted at fsys's dir.
+func (m *Module) In(subpaths ...string) *Module {
 	dir := m.Directory(subpaths...)
 	return &Module{
 		dir: dir,

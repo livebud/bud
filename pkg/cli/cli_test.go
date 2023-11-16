@@ -1,4 +1,4 @@
-package oldcli_test
+package cli_test
 
 import (
 	"bufio"
@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	cli "github.com/livebud/bud/internal/oldcli"
+	"github.com/livebud/bud/pkg/cli"
 	"github.com/matryer/is"
 	"github.com/matthewmueller/diff"
 )
@@ -159,7 +159,7 @@ func heroku(w io.Writer) *cli.CLI {
 			cli := cli.Command("scale", `scale dyno quantity up or down`)
 			cli.Flag("app", "app to run command against").Short('a').String(&in.App)
 			cli.Flag("remote", "git remote of app to use").Short('r').Optional().String(&in.Remote)
-			cli.Arg("value", "some value").String(&in.Value)
+			cli.Arg("value").String(&in.Value)
 			cli.Run(func(ctx context.Context) error { return encode(w, "ps:scale", in) })
 		}
 
@@ -334,8 +334,8 @@ func TestHelpArgs(t *testing.T) {
 	is := is.New(t)
 	actual := new(bytes.Buffer)
 	cmd := cli.New("cp", "copy files").Writer(actual)
-	cmd.Arg("src", "source").String(nil)
-	cmd.Arg("dst", "dest").String(nil).Default(".")
+	cmd.Arg("src").String(nil)
+	cmd.Arg("dst").String(nil).Default(".")
 	cmd.Run(func(ctx context.Context) error { return nil })
 	ctx := context.Background()
 	err := cmd.Parse(ctx, "-h")
@@ -679,7 +679,7 @@ func TestArgStringMap(t *testing.T) {
 		return nil
 	})
 	var args map[string]string
-	cli.Arg("arg", "arg help").StringMap(&args)
+	cli.Arg("arg").StringMap(&args)
 	// Can have only one arg
 	ctx := context.Background()
 	err := cli.Parse(ctx, "a:1 + 1")
@@ -698,7 +698,7 @@ func TestArgStringMapRequired(t *testing.T) {
 		return nil
 	})
 	var args map[string]string
-	cli.Arg("arg", "arg help").StringMap(&args)
+	cli.Arg("arg").StringMap(&args)
 	ctx := context.Background()
 	err := cli.Parse(ctx)
 	is.Equal(err.Error(), "missing <arg>")
@@ -714,7 +714,7 @@ func TestArgStringMapDefault(t *testing.T) {
 		return nil
 	})
 	var args map[string]string
-	cli.Arg("arg", "arg help").StringMap(&args).Default(map[string]string{
+	cli.Arg("arg").StringMap(&args).Default(map[string]string{
 		"a": "1",
 		"b": "2",
 	})
@@ -865,7 +865,7 @@ func TestArgString(t *testing.T) {
 		return nil
 	})
 	var arg string
-	cli.Arg("arg", "arg help").String(&arg)
+	cli.Arg("arg").String(&arg)
 	ctx := context.Background()
 	err := cli.Parse(ctx, "cool")
 	is.NoErr(err)
@@ -884,7 +884,7 @@ func TestArgStringDefault(t *testing.T) {
 		return nil
 	})
 	var arg string
-	cli.Arg("arg", "arg help").String(&arg).Default("default")
+	cli.Arg("arg").String(&arg).Default("default")
 	ctx := context.Background()
 	err := cli.Parse(ctx)
 	is.NoErr(err)
@@ -903,7 +903,7 @@ func TestArgStringRequired(t *testing.T) {
 		return nil
 	})
 	var arg string
-	cli.Arg("arg", "arg help").String(&arg)
+	cli.Arg("arg").String(&arg)
 	ctx := context.Background()
 	err := cli.Parse(ctx)
 	is.Equal(err.Error(), "missing <arg>")
@@ -921,7 +921,7 @@ func TestSubArgString(t *testing.T) {
 	var arg string
 	cli.Command("build", "build command")
 	cli.Command("run", "run command")
-	cli.Arg("arg", "arg help").String(&arg)
+	cli.Arg("arg").String(&arg)
 	ctx := context.Background()
 	err := cli.Parse(ctx, "deploy")
 	is.NoErr(err)
@@ -1020,7 +1020,7 @@ func TestUsageError(t *testing.T) {
 	cmd := cli.New("cli", "cli command").Writer(actual)
 	cmd.Run(func(ctx context.Context) error {
 		called++
-		return cli.Usage()
+		return cli.Help()
 	})
 	ctx := context.Background()
 	err := cmd.Parse(ctx)
@@ -1098,7 +1098,7 @@ func TestManualHelpUsage(t *testing.T) {
 		is.Equal(help, true)
 		is.Equal(dir, "somewhere")
 		called++
-		return cli.Usage()
+		return cli.Help()
 	})
 	ctx := context.Background()
 	err := cmd.Parse(ctx, "--help", "--chdir", "somewhere")
@@ -1170,7 +1170,7 @@ func TestArgClearMap(t *testing.T) {
 		return nil
 	})
 	args := map[string]string{"a": "a"}
-	cli.Arg("custom", "custom desc").StringMap(&args)
+	cli.Arg("custom").StringMap(&args)
 	ctx := context.Background()
 	err := cli.Parse(ctx, "b:b")
 	is.NoErr(err)
@@ -1506,7 +1506,7 @@ func TestArgOptionalString(t *testing.T) {
 	called := 0
 	cli := cli.New("cli", "cli command").Writer(actual)
 	var s *string
-	cli.Arg("s", "s").Optional().String(&s)
+	cli.Arg("s").Optional().String(&s)
 	cli.Run(func(ctx context.Context) error {
 		called++
 		return nil
@@ -1524,7 +1524,7 @@ func TestArgOptionalStringDefault(t *testing.T) {
 	called := 0
 	cli := cli.New("cli", "cli command").Writer(actual)
 	var s *string
-	cli.Arg("s", "s").Optional().String(&s).Default("foo")
+	cli.Arg("s").Optional().String(&s).Default("foo")
 	cli.Run(func(ctx context.Context) error {
 		called++
 		return nil
@@ -1542,7 +1542,7 @@ func TestArgOptionalStringNil(t *testing.T) {
 	called := 0
 	cli := cli.New("cli", "cli command").Writer(actual)
 	var s *string
-	cli.Arg("s", "s").Optional().String(&s)
+	cli.Arg("s").Optional().String(&s)
 	cli.Run(func(ctx context.Context) error {
 		called++
 		return nil
@@ -1560,7 +1560,7 @@ func TestArgOptionalBoolTrue(t *testing.T) {
 	called := 0
 	cli := cli.New("cli", "cli command").Writer(actual)
 	var b *bool
-	cli.Arg("b", "b").Optional().Bool(&b)
+	cli.Arg("b").Optional().Bool(&b)
 	cli.Run(func(ctx context.Context) error {
 		called++
 		return nil
@@ -1578,7 +1578,7 @@ func TestArgOptionalBoolFalse(t *testing.T) {
 	called := 0
 	cli := cli.New("cli", "cli command").Writer(actual)
 	var b *bool
-	cli.Arg("b", "b").Optional().Bool(&b)
+	cli.Arg("b").Optional().Bool(&b)
 	cli.Run(func(ctx context.Context) error {
 		called++
 		return nil
@@ -1596,7 +1596,7 @@ func TestArgOptionalBoolDefault(t *testing.T) {
 	called := 0
 	cli := cli.New("cli", "cli command").Writer(actual)
 	var b *bool
-	cli.Arg("b", "b").Optional().Bool(&b).Default(true)
+	cli.Arg("b").Optional().Bool(&b).Default(true)
 	cli.Run(func(ctx context.Context) error {
 		called++
 		return nil
@@ -1614,7 +1614,7 @@ func TestArgOptionalBoolNil(t *testing.T) {
 	called := 0
 	cli := cli.New("cli", "cli command").Writer(actual)
 	var b *bool
-	cli.Arg("b", "b").Optional().Bool(&b)
+	cli.Arg("b").Optional().Bool(&b)
 	cli.Run(func(ctx context.Context) error {
 		called++
 		return nil
@@ -1632,7 +1632,7 @@ func TestArgOptionalInt(t *testing.T) {
 	called := 0
 	cli := cli.New("cli", "cli command").Writer(actual)
 	var i *int
-	cli.Arg("i", "i").Optional().Int(&i)
+	cli.Arg("i").Optional().Int(&i)
 	cli.Run(func(ctx context.Context) error {
 		called++
 		return nil
@@ -1650,7 +1650,7 @@ func TestArgOptionalIntDefault(t *testing.T) {
 	called := 0
 	cli := cli.New("cli", "cli command").Writer(actual)
 	var i *int
-	cli.Arg("i", "i").Optional().Int(&i).Default(1)
+	cli.Arg("i").Optional().Int(&i).Default(1)
 	cli.Run(func(ctx context.Context) error {
 		called++
 		return nil
@@ -1668,7 +1668,7 @@ func TestArgOptionalIntNil(t *testing.T) {
 	called := 0
 	cli := cli.New("cli", "cli command").Writer(actual)
 	var i *int
-	cli.Arg("i", "i").Optional().Int(&i)
+	cli.Arg("i").Optional().Int(&i)
 	cli.Run(func(ctx context.Context) error {
 		called++
 		return nil
@@ -1816,7 +1816,7 @@ func TestUsageNestCommandArg(t *testing.T) {
 		cli := cli.Command("fs", "filesystem tools")
 		{
 			cli := cli.Command("cat", "cat a file")
-			cli.Arg("path", "path to file").String(&path)
+			cli.Arg("path").String(&path)
 			cli.Run(func(ctx context.Context) error {
 				called++
 				return nil
@@ -1874,25 +1874,6 @@ func TestHiddenCommandRunnable(t *testing.T) {
 	is.Equal(1, called)
 }
 
-func TestParseTwice(t *testing.T) {
-	is := is.New(t)
-	actual := new(bytes.Buffer)
-	called := 0
-	cli := cli.New("cli", "cli command").Writer(actual)
-	cmd := cli.Command("foo", "foo command").Hidden()
-	cmd.Run(func(ctx context.Context) error {
-		called++
-		return nil
-	})
-	ctx := context.Background()
-	err := cli.Parse(ctx, "foo")
-	is.NoErr(err)
-	is.Equal(1, called)
-	err = cli.Parse(ctx, "foo")
-	is.NoErr(err)
-	is.Equal(2, called)
-}
-
 func ExampleCLI() {
 	flag := new(Flag)
 	cli := cli.New("app", "your awesome cli").Writer(os.Stderr)
@@ -1902,7 +1883,7 @@ func ExampleCLI() {
 	{ // new <dir>
 		cmd := &New{Flag: flag}
 		cli := cli.Command("new", "create a new project")
-		cli.Arg("dir", "dir to serve from").String(&cmd.Flag.Dir)
+		cli.Arg("dir").String(&cmd.Flag.Dir)
 		cli.Run(cmd.Run)
 	}
 
@@ -1922,78 +1903,6 @@ type New struct {
 
 // Run new
 func (n *New) Run(ctx context.Context) error {
+	fmt.Println("running...")
 	return nil
-}
-
-type add struct {
-	BF  bool              `flag:"bf" desc:"boolean" default:"true"`
-	SF  string            `flag:"sf" desc:"string" default:"foo"`
-	IF  int               `flag:"if" desc:"int" default:"1"`
-	SSF []string          `flag:"ssf" desc:"strings"`
-	SMF map[string]string `flag:"smf" desc:"string map"`
-	PBF *bool             `flag:"pbf" desc:"boolean" default:"true"`
-	PSF *string           `flag:"psf" desc:"string" default:"foo"`
-	PIF *int              `flag:"pif" desc:"int" default:"1"`
-
-	SA  string            `arg:"sa" desc:"string" default:"foo"`
-	IA  int               `arg:"ia" desc:"int" default:"1"`
-	SMA map[string]string `arg:"sma" desc:"string map"`
-}
-
-func (a *add) Run(ctx context.Context) error {
-	return nil
-}
-
-func TestCommandAddHelp(t *testing.T) {
-	is := is.New(t)
-	actual := new(bytes.Buffer)
-	var add add
-	cli := cli.New("cli", "cli command", &add).Writer(actual)
-	cli.Command("add", "add command", &add)
-	ctx := context.Background()
-	err := cli.Parse(ctx, "-h")
-	is.NoErr(err)
-	isEqual(t, actual.String(), `
-  {bold}Usage:{reset}
-    $ cli {dim}<sa>{reset} {dim}<ia>{reset} {dim}<sma>{reset}
-
-  {bold}Description:{reset}
-    cli command
-
-  {bold}Flags:{reset}
-    --bf   {dim}boolean{reset}
-    --if   {dim}int{reset}
-    --pbf  {dim}boolean{reset}
-    --pif  {dim}int{reset}
-    --psf  {dim}string{reset}
-    --sf   {dim}string{reset}
-    --smf  {dim}string map{reset}
-    --ssf  {dim}strings{reset}
-
-  {bold}Commands:{reset}
-    add  {dim}add command{reset}
-
-`)
-
-	actual.Reset()
-	err = cli.Parse(ctx, "add", "-h")
-	is.NoErr(err)
-	isEqual(t, actual.String(), `
-  {bold}Usage:{reset}
-    $ cli add {dim}<sa>{reset} {dim}<ia>{reset} {dim}<sma>{reset}
-
-  {bold}Description:{reset}
-    add command
-
-  {bold}Flags:{reset}
-    --bf   {dim}boolean{reset}
-    --if   {dim}int{reset}
-    --pbf  {dim}boolean{reset}
-    --pif  {dim}int{reset}
-    --psf  {dim}string{reset}
-    --sf   {dim}string{reset}
-    --smf  {dim}string map{reset}
-    --ssf  {dim}strings{reset}
-
-`)
 }
