@@ -9,6 +9,7 @@ require github.com/livebud/bud v0.0.0-00010101000000-000000000000
 require (
 	github.com/ajg/form v1.5.2-0.20200323032839-9aeb3cf462e1 // indirect
 	github.com/bep/debounce v1.2.1 // indirect
+	github.com/caarlos0/env/v10 v10.0.0 // indirect
 	github.com/dlclark/regexp2 v1.7.0 // indirect
 	github.com/dop251/goja v0.0.0-20231027120936-b396bb4c349d // indirect
 	github.com/evanw/esbuild v0.19.5 // indirect

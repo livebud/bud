@@ -77,6 +77,12 @@ func (v *Viewer) Render(w io.Writer, path string, data *view.Data) error {
 	return err
 }
 
+// var _ gen.FileServer = (*Viewer)(nil)
+
+// func (v *Viewer) ServeFile(fsys gen.FS, file *gen.File) error {
+// 	return nil
+// }
+
 func (v *Viewer) RenderHTML(w http.ResponseWriter, path string, data *view.Data) error {
 	w.Header().Set("Content-Type", "text/html")
 	return v.Render(w, path, data)

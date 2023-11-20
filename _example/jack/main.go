@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 
+	"github.com/livebud/bud/_example/jack/env"
 	"github.com/livebud/bud/_example/jack/generator"
 	"github.com/livebud/bud/_example/jack/router"
 	"github.com/livebud/bud/pkg/cli"
@@ -25,6 +26,8 @@ import (
 // Prod
 // - go generate && go build -ldflags "-X github.com/livebud/bud/pkg/ldflag.embed=.bud" -o /tmp/main main.go
 // - (cd /tmp && ./main)
+//
+// TODO: consider using overlays instead
 
 // var generate = flag.Bool("generate", false, "generate")
 
@@ -33,12 +36,12 @@ import (
 //go:embed .bud/**
 var embeddedFS embed.FS
 
-func loadGenerator(log logs.Log, mod *mod.Module) fs.FS {
+func loadGenerator(env *env.Env, log logs.Log, mod *mod.Module) fs.FS {
 	if ldflag.Embed() != "" {
 		log.Info("Using embedded assets")
 		return u.Must(fs.Sub(embeddedFS, ".bud"))
 	}
-	return generator.New(log, mod)
+	return generator.New(env, log, mod)
 }
 
 func loadModule(log logs.Log, dir string) *mod.Module {
@@ -50,9 +53,10 @@ func loadModule(log logs.Log, dir string) *mod.Module {
 }
 
 func main() {
+	env := u.Must(env.Load())
 	log := logs.Default()
 	module := loadModule(log, ".")
-	fsys := loadGenerator(log, module)
+	fsys := loadGenerator(env, log, module)
 	sse := sse.New(log)
 	router := router.New(fsys, sse)
 

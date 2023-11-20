@@ -2,10 +2,10 @@ package generator
 
 import (
 	"io/fs"
-	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/livebud/bud/_example/jack/env"
 	"github.com/livebud/bud/pkg/gen"
 	"github.com/livebud/bud/pkg/gen/gencache"
 	"github.com/livebud/bud/pkg/logs"
@@ -15,15 +15,8 @@ import (
 	"github.com/livebud/bud/pkg/virt"
 )
 
-func New(log logs.Log, module *mod.Module) fs.FS {
-	preact := preact.New(module, preact.WithEnv(map[string]any{
-		"API_URL":            os.Getenv("API_URL"),
-		"SLACK_CLIENT_ID":    os.Getenv("SLACK_CLIENT_ID"),
-		"SLACK_REDIRECT_URL": os.Getenv("SLACK_REDIRECT_URL"),
-		"SLACK_SCOPE":        os.Getenv("SLACK_SCOPE"),
-		"SLACK_USER_SCOPE":   os.Getenv("SLACK_USER_SCOPE"),
-		"STRIPE_CLIENT_KEY":  os.Getenv("STRIPE_CLIENT_KEY"),
-	}))
+func New(env *env.Env, log logs.Log, module *mod.Module) fs.FS {
+	preact := preact.New(module, preact.WithEnv(env))
 	css := css.New(module)
 	gfs := gen.New(gencache.Discard(), virt.Map{}, log)
 	gfs.GenerateFile("view/layout.tsx", func(fsys gen.FS, file *gen.File) error {
