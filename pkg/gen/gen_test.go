@@ -2016,3 +2016,146 @@ func TestAdd(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(string(code), "a")
 }
+
+type cssGenerator struct {
+}
+
+var _ gen.DirGenerator = &cssGenerator{}
+
+func (c *cssGenerator) GenerateDir(fsys gen.FS, dir *gen.Dir) error {
+	dir.GenerateFile("index.css", func(fsys gen.FS, file *gen.File) error {
+		file.Data = []byte("body { background: blue }")
+		return nil
+	})
+	dir.GenerateFile("about/index.css", func(fsys gen.FS, file *gen.File) error {
+		file.Data = []byte("body { background: red }")
+		return nil
+	})
+	return nil
+}
+
+type jsxGenerator struct {
+}
+
+func (j *jsxGenerator) GenerateDir(fsys gen.FS, dir *gen.Dir) error {
+	dir.GenerateFile("index.jsx", func(fsys gen.FS, file *gen.File) error {
+		file.Data = []byte("export default function() { return <h2>Index</h2> }")
+		return nil
+	})
+	dir.GenerateFile("about/index.jsx", func(fsys gen.FS, file *gen.File) error {
+		file.Data = []byte("export default function() { return <h2>About</h2> }")
+		return nil
+	})
+	// Override the css generator
+	dir.GenerateFile("about/index.css", func(fsys gen.FS, file *gen.File) error {
+		file.Data = []byte("body { background: green }")
+		return nil
+	})
+	return nil
+}
+
+func TestMultipleDirGenerators(t *testing.T) {
+	is := is.New(t)
+	fsys := gen.New(gencache.Discard(), virt.List{}, logs.Default())
+	fsys.DirGenerator("view", &cssGenerator{})
+	fsys.DirGenerator("view", &jsxGenerator{})
+	des, err := fs.ReadDir(fsys, "view")
+	is.NoErr(err)
+	is.Equal(len(des), 3)
+	is.Equal(des[0].Name(), "about")
+	is.Equal(des[1].Name(), "index.css")
+
+	// view/index.css
+	code, err := fs.ReadFile(fsys, "view/index.css")
+	is.NoErr(err)
+	is.Equal(string(code), "body { background: blue }")
+	is.Equal(des[2].Name(), "index.jsx")
+
+	// view/index.jsx
+	code, err = fs.ReadFile(fsys, "view/index.jsx")
+	is.NoErr(err)
+	is.Equal(string(code), "export default function() { return <h2>Index</h2> }")
+
+	// view/about
+	des, err = fs.ReadDir(fsys, "view/about")
+	is.NoErr(err)
+	is.Equal(len(des), 2)
+	is.Equal(des[0].Name(), "index.css")
+
+	// // view/about/index.css is overriden by jsxGenerator
+	code, err = fs.ReadFile(fsys, "view/about/index.css")
+	is.NoErr(err)
+	is.Equal(string(code), "body { background: green }")
+	is.Equal(des[1].Name(), "index.jsx")
+
+	// view/about/index.jsx
+	code, err = fs.ReadFile(fsys, "view/about/index.jsx")
+	is.NoErr(err)
+	is.Equal(string(code), "export default function() { return <h2>About</h2> }")
+
+	// run the compliance test suite
+	is.NoErr(fstest.TestFS(fsys, "view/about/index.jsx", "view/about/index.css", "view/index.jsx", "view/index.css"))
+}
+
+func TestGenerateDirAsServeFile(t *testing.T) {
+	is := is.New(t)
+	fsys := virt.Map{
+		"view/about/index.css": "body { background: red }",
+		"view/about/index.jsx": "export default function() { return <h2>About</h2> }",
+	}
+	gfs := gen.New(gencache.Discard(), fsys, logs.Default())
+	gfs.GenerateDir(".bud", func(_ gen.FS, dir *gen.Dir) error {
+		if dir.Relative() == "." {
+			for path, code := range fsys {
+				code := code
+				dir.GenerateFile(path, func(_ gen.FS, file *gen.File) error {
+					file.Data = []byte(code)
+					return nil
+				})
+			}
+			return nil
+		}
+		dir.GenerateFile(dir.Relative(), func(fsys gen.FS, file *gen.File) error {
+			code, err := fs.ReadFile(fsys, rootless(file.Path()))
+			if err != nil {
+				return err
+			}
+			file.Data = code
+			return nil
+		})
+		return nil
+	})
+	data, err := fs.ReadFile(gfs, ".bud/view/about/index.jsx")
+	is.NoErr(err)
+	is.Equal(string(data), "export default function() { return <h2>About</h2> }")
+	fs.WalkDir(gfs, ".bud", func(path string, de fs.DirEntry, err error) error {
+		is.NoErr(err)
+		switch path {
+		case ".bud/view/about/index.jsx":
+			code, err := fs.ReadFile(gfs, path)
+			is.NoErr(err)
+			is.Equal(string(code), "export default function() { return <h2>About</h2> }")
+		case ".bud/view/about/index.css":
+			code, err := fs.ReadFile(gfs, path)
+			is.NoErr(err)
+			is.Equal(string(code), "body { background: red }")
+		default:
+			is.True(de.IsDir())
+		}
+		return nil
+	})
+}
+
+// func TestMultipleFileServers(t *testing.T) {
+// 	gen := gen.New(gencache.Discard(), virt.List{}, logs.Default())
+// 	gen.FileServer("view", &cssGenerator{})
+// 	gen.FileServer("view", &jsxGenerator{})
+// }
+
+// func TestMultipleGeneratorsAndServer(t *testing.T) {
+// 	gen := gen.New(gencache.Discard(), virt.List{}, logs.Default())
+// 	gen.DirGenerator("view", &cssGenerator{})
+// 	gen.DirGenerator("view", &jsxGenerator{})
+// 	gen.FileServer("view", &cssGenerator{})
+// 	gen.FileServer("view", &jsxGenerator{})
+// }

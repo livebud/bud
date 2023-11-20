@@ -71,11 +71,44 @@ func (t *tree) Insert(fpath string, mode mode, generator generator) {
 		}
 		// Add child to parent
 		parent.children[name] = child
+		return
 	}
-	// Create or update the child's attributes
+	// if child.Mode == modeGenDir && mode == modeGenDir {
+	// 	fmt.Println("OK?")
+	// 	child.Mode = mode
+	// 	if multi, ok := child.Generator.(multiGenerator); ok {
+	// 		child.Generator = append(multi, generator)
+	// 		return
+	// 	}
+	// 	child.Generator = multiGenerator{child.Generator, generator}
+	// 	return
+	// }
+	// Update the child's attributes
 	child.Mode = mode
 	child.Generator = generator
 }
+
+// type multiGenerator []generator
+
+// func (gens multiGenerator) Generate(target string) (fs.File, error) {
+// 	dir := &virt.File{
+// 		Path: target,
+// 		Mode: fs.ModeDir,
+// 	}
+// 	for _, gen := range gens {
+// 		if file, err := gen.Generate(target); nil == err {
+// 			if readDir, ok := file.(fs.ReadDirFile); ok {
+// 				if des, err := readDir.ReadDir(-1); nil == err {
+// 					dir.Entries = append(dir.Entries, des...)
+// 				}
+// 			}
+// 		} else if !errors.Is(err, fs.ErrNotExist) {
+// 			return nil, formatError(err, "open by prefix %q", target)
+// 		}
+// 	}
+// 	return virt.Open(dir), nil
+// 	// return nil, fs.ErrNotExist
+// }
 
 func (t *tree) mkdirAll(segments []string) *node {
 	parent := t.node

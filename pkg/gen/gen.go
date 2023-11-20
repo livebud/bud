@@ -15,6 +15,7 @@ type FileSystem interface {
 	fs.ReadDirFS
 	Generator
 	Add(plugin Plugin)
+	Print() string
 }
 
 type Generator interface {
@@ -66,6 +67,10 @@ func (f *fileSystem) Add(plugin Plugin) {
 	plugin.Generator(f)
 }
 
+func (f *fileSystem) Print() string {
+	return f.tree.Print()
+}
+
 func (f *fileSystem) GenerateFile(path string, fn func(fsys FS, file *File) error) {
 	fileg := &fileGenerator{f.cache, fn, f, path}
 	f.tree.Insert(path, modeGen, fileg)
@@ -77,7 +82,27 @@ func (f *fileSystem) FileGenerator(path string, generator FileGenerator) {
 
 func (f *fileSystem) GenerateDir(path string, fn func(fsys FS, dir *Dir) error) {
 	dirg := &dirGenerator{f.cache, fn, f, path, f.tree}
+	node, ok := f.tree.Find(path)
+	// TODO: re-use previously merged generators
+	if ok && node.Mode == modeGenDir {
+		existing, ok := node.Generator.(*dirGenerator)
+		if ok {
+			existing.fn = dirGens(existing.fn, fn)
+			return
+		}
+	}
 	f.tree.Insert(path, modeGenDir, dirg)
+}
+
+func dirGens(gens ...func(fsys FS, dir *Dir) error) func(fsys FS, dir *Dir) error {
+	return func(fsys FS, dir *Dir) error {
+		for _, gen := range gens {
+			if err := gen(fsys, dir); nil != err {
+				return err
+			}
+		}
+		return nil
+	}
 }
 
 func (f *fileSystem) DirGenerator(path string, generator DirGenerator) {
