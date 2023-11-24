@@ -2145,17 +2145,3 @@ func TestGenerateDirAsServeFile(t *testing.T) {
 		return nil
 	})
 }
-
-// func TestMultipleFileServers(t *testing.T) {
-// 	gen := gen.New(gencache.Discard(), virt.List{}, logs.Default())
-// 	gen.FileServer("view", &cssGenerator{})
-// 	gen.FileServer("view", &jsxGenerator{})
-// }
-
-// func TestMultipleGeneratorsAndServer(t *testing.T) {
-// 	gen := gen.New(gencache.Discard(), virt.List{}, logs.Default())
-// 	gen.DirGenerator("view", &cssGenerator{})
-// 	gen.DirGenerator("view", &jsxGenerator{})
-// 	gen.FileServer("view", &cssGenerator{})
-// 	gen.FileServer("view", &jsxGenerator{})
-// }

@@ -1,16 +1,18 @@
-test:
+lint:
 	@ go vet ./...
 	@ go run honnef.co/go/tools/cmd/staticcheck@latest ./...
+
+test:
 	@ go test -race -failfast ./...
 
-precommit: test
+precommit: lint test
 
 version: VERSION := $(shell awk '/[0-9]+\.[0-9]+\.[0-9]+/ {print $$2; exit}' Changelog.md)
 version:
 	@ echo "$(VERSION)"
 
 release: VERSION := $(shell awk '/[0-9]+\.[0-9]+\.[0-9]+/ {print $$2; exit}' Changelog.md)
-release: test
+release: lint test
 	@ go mod tidy
 	@ test -n "$(VERSION)" || (echo "Unable to read the version." && false)
 	@ test -z "`git tag -l $(VERSION)`" || (echo "Aborting because the $(VERSION) tag already exists." && false)

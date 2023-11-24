@@ -10,7 +10,7 @@ import (
 	"github.com/livebud/bud/internal/npm"
 	"github.com/livebud/bud/internal/testdir"
 	"github.com/livebud/bud/pkg/mod"
-	"github.com/livebud/bud/pkg/view/preact"
+	"github.com/livebud/bud/pkg/preact"
 	"github.com/matryer/is"
 	"github.com/matthewmueller/diff"
 )
